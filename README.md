@@ -1,36 +1,156 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Workout
 
-## Getting Started
+Personal workout tracker. Replaces a four-table Notion database with a
+typed Postgres schema, a PWA that installs to the iPhone home screen,
+and per-set logging that drives real progress charts.
 
-First, run the development server:
+Single user, single deployment, single source of truth (Supabase).
+
+## Stack
+
+| Layer | Choice |
+|---|---|
+| Framework | Next.js 16 + React 19 (App Router) |
+| Hosting | Vercel |
+| Database | Supabase Postgres |
+| Auth | Supabase Auth (magic link, not yet wired) |
+| Client state | TanStack Query |
+| Styling | Tailwind 4 |
+| Components | shadcn/ui (added per-screen) |
+| PWA | `@ducanh2912/next-pwa` |
+| Toasts | Sonner |
+| Tests | Vitest |
+| Package manager | bun |
+
+Mirrors the conventions in `Personal/projects/nutrition-app/v1/` (Plately).
+
+## Status
+
+**Milestone 1 (current).** Scaffold, database schema, Notion seed script,
+PWA shell. No screens. No auth UI. No analytics page.
+
+Run `bun run build` to confirm the project compiles. Run `bun test` to
+exercise the parsers (63 tests across the three parsing modules).
+
+**Milestone 2 (next).** Screens: calendar home, active workout, program
+detail, exercise library, history, analytics.
+
+## Local development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Install dependencies
+bun install
+
+# Generate placeholder PWA icons (already committed, only needed if you change the design)
+bun run icons:generate
+
+# Run the dev server
+bun run dev
+
+# Run tests
+bun run test
+bun run test:watch
+
+# Production build
+bun run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The dev server uses webpack (not Turbopack) because `@ducanh2912/next-pwa`
+injects a webpack config. PWA features only activate in the production
+build; `bun run dev` runs without a service worker.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copy `.env.local.example` to `.env.local` and fill in the keys. The seed
+script reads from Notion and writes to Supabase using the service-role key.
 
-## Learn More
+You will need:
+- A Supabase project (URL, anon key, service-role key)
+- A Notion internal integration with read access to the Workout Database
+- Your Supabase `auth.users` id, captured after signing in once
 
-To learn more about Next.js, take a look at the following resources:
+## Database
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Source of truth lives in `supabase/migrations/`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# Push migrations to the linked Supabase project
+supabase link --project-ref <your-ref>
+supabase db push
 
-## Deploy on Vercel
+# Reset local schema (DANGER: drops data)
+supabase db reset
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The schema has nine tables, four enums, RLS on every table, and five
+analytics views. See `supabase/migrations/0001_initial_schema.sql` and
+`supabase/migrations/0002_analytics_views.sql`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Library tables (`muscle_groups`, `exercises`, `exercise_alternates`,
+`programs`, `program_exercises`) allow reads by any authenticated user.
+Per-user tables (`workouts`, `workout_exercises`, `sets`,
+`user_settings`) filter by `auth.uid()`.
+
+## Notion seed
+
+```bash
+bun run seed:notion
+```
+
+Reads the four Notion databases and writes to Supabase via the service
+role. Idempotent: each table has a temporary `_notion_id` column the
+script upserts on. After the first successful import, the column can be
+dropped (Milestone 2 will do this).
+
+The seed writes a verification report to `scripts/seed-report.json` with:
+- Row counts per table
+- Exercises flagged `equipment_type=other` (need a hand-fix)
+- Exercises with `machine_location` set
+- Notion Sessions rows whose `Weight` field failed to parse, with their Notion URLs
+- Programs whose category could not be inferred from the name
+
+The Weight CSV parser lives at `scripts/parse-weight-csv.ts` with full
+test coverage in `scripts/__tests__/parse-weight-csv.test.ts`.
+
+## Project structure
+
+```
+.
+├── .env.local.example          # template for local env vars
+├── docs/                       # planning, handoff prompt, README snapshot
+├── public/                     # static assets + PWA manifest + generated icons
+├── scripts/
+│   ├── parse-weight-csv.ts     # pure parser, used by seed
+│   ├── seed-from-notion.ts     # one-time Notion -> Supabase migration
+│   ├── generate-icons.ts       # placeholder PWA icon generator
+│   ├── lib/
+│   │   ├── env.ts              # env var loader and validator
+│   │   ├── parse-prescription.ts # parse "3-5", "3 mins" etc
+│   │   └── exercise-name.ts    # parse ↑↓ arrows, infer equipment_type
+│   └── __tests__/              # Vitest unit tests for the parsers
+├── src/
+│   └── app/                    # Next.js App Router
+│       ├── layout.tsx          # root layout + PWA metadata + viewport
+│       └── page.tsx            # M1 placeholder
+├── supabase/
+│   ├── config.toml             # supabase CLI local config
+│   └── migrations/
+│       ├── 0001_initial_schema.sql
+│       └── 0002_analytics_views.sql
+├── next.config.ts              # PWA wrapper
+├── package.json
+└── vitest.config.ts
+```
+
+## House rules
+
+- No em dashes in code, comments, or docs. Use a period or restructure.
+- Conventional Commit prefixes: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`.
+- Every Postgres table has RLS on.
+- No ORM. Use the Supabase JS client directly.
+- The Weight CSV parser gets unit tests before any seed runs against real data.
+- If a Notion field is ambiguous, log it instead of guessing.
+
+## License
+
+Private. Personal project.
