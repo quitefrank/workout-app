@@ -56,3 +56,9 @@ next-env.d.ts
 # supabase local artifacts
 /supabase/.temp/
 /supabase/.branches/
+
+# local Claude Code config
+.claude/
+
+# capture log; system of record is ~/Case Study Vault (mirrored + pushed there)
+case-study-raw.md
