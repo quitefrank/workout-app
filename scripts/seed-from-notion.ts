@@ -24,7 +24,7 @@ import { join } from "node:path";
 
 import { loadSeedEnv } from "./lib/env";
 import { parseRange, parseRestSeconds } from "./lib/parse-prescription";
-import { parseExerciseName } from "./lib/exercise-name";
+import { exerciseSlug, parseExerciseName } from "./lib/exercise-name";
 import { parseWeightCsv } from "./parse-weight-csv";
 
 // ============================================================
@@ -70,22 +70,35 @@ const FIELDS = {
 // Notion property accessors. Pragmatic, tolerant of missing fields.
 // ============================================================
 
+type NotionText = { plain_text: string };
+
+/** The subset of Notion property shapes this script reads. Tolerant of missing fields. */
+type NotionProperty = {
+  type: string;
+  title?: NotionText[];
+  rich_text?: NotionText[];
+  date?: { start: string | null } | null;
+  relation?: { id: string }[];
+  url?: string | null;
+  number?: number | null;
+};
+
 type AnyPage = {
   id: string;
   url?: string;
-  properties: Record<string, any>;
+  properties: Record<string, NotionProperty | undefined>;
 };
 
 function getTitle(page: AnyPage, prop: string): string {
   const p = page.properties?.[prop];
   if (!p || p.type !== "title") return "";
-  return p.title.map((t: any) => t.plain_text).join("").trim();
+  return (p.title ?? []).map((t) => t.plain_text).join("").trim();
 }
 
 function getRichText(page: AnyPage, prop: string): string {
   const p = page.properties?.[prop];
   if (!p || p.type !== "rich_text") return "";
-  return p.rich_text.map((t: any) => t.plain_text).join("").trim();
+  return (p.rich_text ?? []).map((t) => t.plain_text).join("").trim();
 }
 
 function getRichTextOrNull(page: AnyPage, prop: string): string | null {
@@ -102,7 +115,7 @@ function getDate(page: AnyPage, prop: string): string | null {
 function getRelation(page: AnyPage, prop: string): string[] {
   const p = page.properties?.[prop];
   if (!p || p.type !== "relation") return [];
-  return p.relation.map((r: any) => r.id);
+  return (p.relation ?? []).map((r) => r.id);
 }
 
 function getUrl(page: AnyPage, prop: string): string | null {
@@ -110,7 +123,7 @@ function getUrl(page: AnyPage, prop: string): string | null {
   if (!p) return null;
   if (p.type === "url") return p.url || null;
   if (p.type === "rich_text") {
-    const text = p.rich_text.map((t: any) => t.plain_text).join("").trim();
+    const text = (p.rich_text ?? []).map((t) => t.plain_text).join("").trim();
     return text || null;
   }
   return null;
@@ -119,7 +132,7 @@ function getUrl(page: AnyPage, prop: string): string | null {
 function getNumber(page: AnyPage, prop: string): number | null {
   const p = page.properties?.[prop];
   if (!p || p.type !== "number") return null;
-  return p.number;
+  return p.number ?? null;
 }
 
 async function resolveDataSourceId(
@@ -212,7 +225,7 @@ type Report = {
   }[];
   weightParseFailures: ParseFailure[];
   notionFieldsWarnings: string[];
-  programsCategoryMissing: { id: string; name: string }[];
+  templatesCategoryMissing: { id: string; name: string }[];
 };
 
 // ============================================================
@@ -237,7 +250,7 @@ async function main() {
     exercisesWithMachineLocation: [],
     weightParseFailures: [],
     notionFieldsWarnings: [],
-    programsCategoryMissing: [],
+    templatesCategoryMissing: [],
   };
 
   // ----------------------------------------------------------
@@ -267,6 +280,7 @@ async function main() {
   console.log("\n[2/8] Seeding exercises");
   const exerciseMap = new Map<string, string>();
   const exercisePages = new Map<string, AnyPage>();
+  const usedSlugs = new Set<string>();
   let exCount = 0;
   let otherCount = 0;
   let locationCount = 0;
@@ -281,9 +295,20 @@ async function main() {
     const muscleGroupId = muscleGroupRel[0]
       ? (muscleGroupMap.get(muscleGroupRel[0]) ?? null)
       : null;
+    let slug = exerciseSlug(rawName, info.machineLocation);
+    if (usedSlugs.has(slug)) {
+      let n = 2;
+      while (usedSlugs.has(`${slug}-${n}`)) n++;
+      slug = `${slug}-${n}`;
+      report.notionFieldsWarnings.push(
+        `duplicate exercise name "${info.name}" (${page.url ?? page.id}); slug set to ${slug}`,
+      );
+    }
+    usedSlugs.add(slug);
     const supabaseId = await upsertExercise(supabase, {
       notionId: page.id,
       name: info.name,
+      slug,
       muscleGroupId,
       equipmentType: info.equipmentType,
       machineLocation: info.machineLocation,
@@ -364,16 +389,16 @@ async function main() {
   );
 
   // ----------------------------------------------------------
-  // 5. Programs (from templates)
+  // 5. Templates (from Notion template pages)
   // ----------------------------------------------------------
-  console.log("\n[5/8] Seeding programs");
-  const programMap = new Map<string, string>();
+  console.log("\n[5/8] Seeding templates");
+  const templateMap = new Map<string, string>();
   for (const page of templates) {
     const name = getTitle(page, FIELDS.workouts.name);
     if (!name) continue;
     const category = inferProgramCategory(name);
     const variant = extractVariant(name);
-    const supabaseId = await upsertProgram(supabase, {
+    const supabaseId = await upsertTemplate(supabase, {
       notionId: page.id,
       name,
       category,
@@ -383,13 +408,13 @@ async function main() {
       notes: getRichTextOrNull(page, FIELDS.workouts.notes),
     });
     if (!supabaseId) continue;
-    programMap.set(page.id, supabaseId);
+    templateMap.set(page.id, supabaseId);
     if (!category) {
-      report.programsCategoryMissing.push({ id: supabaseId, name });
+      report.templatesCategoryMissing.push({ id: supabaseId, name });
     }
   }
   console.log(
-    `  done: ${programMap.size} programs (${report.programsCategoryMissing.length} without category)`,
+    `  done: ${templateMap.size} templates (${report.templatesCategoryMissing.length} without category)`,
   );
 
   const templateNotionIds = new Set(templates.map((p) => p.id));
@@ -401,16 +426,15 @@ async function main() {
   console.log("\n[6/8] Seeding workouts");
   const workoutMap = new Map<string, string>();
   for (const page of instances) {
-    const name = getTitle(page, FIELDS.workouts.name);
     const dateDone = getDate(page, FIELDS.workouts.dateDone);
-    const programRel = getRelation(page, FIELDS.workouts.program);
-    const programId = programRel[0]
-      ? (programMap.get(programRel[0]) ?? null)
+    const templateRel = getRelation(page, FIELDS.workouts.program);
+    const templateId = templateRel[0]
+      ? (templateMap.get(templateRel[0]) ?? null)
       : null;
     const supabaseId = await upsertWorkout(supabase, {
       notionId: page.id,
       userId: env.SEED_USER_ID,
-      programId,
+      templateId,
       scheduledFor: dateDone,
       completedAt: dateDone ? `${dateDone}T00:00:00Z` : null,
       notes: getRichTextOrNull(page, FIELDS.workouts.notes),
@@ -421,7 +445,7 @@ async function main() {
   console.log(`  done: ${workoutMap.size} workouts`);
 
   // ----------------------------------------------------------
-  // 7. Sessions: split into program_exercises and workout_exercises
+  // 7. Sessions: split into template_exercises and workout_exercises
   // ----------------------------------------------------------
   console.log("\n[7/8] Pulling Notion Sessions");
   const sessionPages: AnyPage[] = [];
@@ -430,7 +454,7 @@ async function main() {
   }
   console.log(`  ${sessionPages.length} total session rows`);
 
-  const programSessionsByParent = new Map<string, AnyPage[]>();
+  const templateSessionsByParent = new Map<string, AnyPage[]>();
   const workoutSessionsByParent = new Map<string, AnyPage[]>();
   let noWorkoutRel = 0;
   let noExerciseRel = 0;
@@ -448,9 +472,9 @@ async function main() {
     }
     const parentId = workoutRel[0];
     if (templateNotionIds.has(parentId)) {
-      const arr = programSessionsByParent.get(parentId) ?? [];
+      const arr = templateSessionsByParent.get(parentId) ?? [];
       arr.push(page);
-      programSessionsByParent.set(parentId, arr);
+      templateSessionsByParent.set(parentId, arr);
     } else if (instanceNotionIds.has(parentId)) {
       const arr = workoutSessionsByParent.get(parentId) ?? [];
       arr.push(page);
@@ -461,11 +485,11 @@ async function main() {
   }
   console.log(
     `  routing: ${
-      [...programSessionsByParent.values()].reduce(
+      [...templateSessionsByParent.values()].reduce(
         (a, b) => a + b.length,
         0,
       )
-    } -> program_exercises, ${
+    } -> template_exercises, ${
       [...workoutSessionsByParent.values()].reduce(
         (a, b) => a + b.length,
         0,
@@ -473,28 +497,28 @@ async function main() {
     } -> workout_exercises (${noWorkoutRel} no workout rel, ${noExerciseRel} no exercise rel, ${unknownParent} parent not found)`,
   );
 
-  // Program exercises
-  console.log("  inserting program_exercises");
-  let peCount = 0;
-  for (const [parentNotionId, rows] of programSessionsByParent) {
-    const programId = programMap.get(parentNotionId);
-    if (!programId) continue;
+  // Template exercises
+  console.log("  inserting template_exercises");
+  let teCount = 0;
+  for (const [parentNotionId, rows] of templateSessionsByParent) {
+    const templateId = templateMap.get(parentNotionId);
+    if (!templateId) continue;
     let pos = 1;
     for (const page of rows) {
       const exerciseRel = getRelation(page, FIELDS.sessions.exercise);
       const exerciseId = exerciseMap.get(exerciseRel[0]);
       if (!exerciseId) continue;
-      const ok = await upsertProgramExercise(supabase, {
+      const ok = await upsertTemplateExercise(supabase, {
         notionId: page.id,
-        programId,
+        templateId,
         exerciseId,
         position: pos++,
         ...prescriptionFromSession(page),
       });
-      if (ok) peCount++;
+      if (ok) teCount++;
     }
   }
-  console.log(`    done: ${peCount} program_exercises`);
+  console.log(`    done: ${teCount} template_exercises`);
 
   // Workout exercises + sets
   console.log("  inserting workout_exercises + sets");
@@ -589,8 +613,8 @@ async function main() {
     "muscle_groups",
     "exercises",
     "exercise_alternates",
-    "programs",
-    "program_exercises",
+    "templates",
+    "template_exercises",
     "workouts",
     "workout_exercises",
     "sets",
@@ -615,7 +639,7 @@ async function main() {
   console.log(`  exercises flagged equipment_type=other: ${report.exercisesEquipmentOther.length}`);
   console.log(`  exercises with machine_location set:   ${report.exercisesWithMachineLocation.length}`);
   console.log(`  Sessions rows with Weight parse errors: ${report.weightParseFailures.length}`);
-  console.log(`  programs without inferred category:    ${report.programsCategoryMissing.length}`);
+  console.log(`  templates without inferred category:   ${report.templatesCategoryMissing.length}`);
 }
 
 // ============================================================
@@ -669,6 +693,7 @@ async function upsertExercise(
   args: {
     notionId: string;
     name: string;
+    slug: string;
     muscleGroupId: string | null;
     equipmentType: string;
     machineLocation: string | null;
@@ -681,6 +706,7 @@ async function upsertExercise(
     .upsert(
       {
         name: args.name,
+        slug: args.slug,
         muscle_group_id: args.muscleGroupId,
         equipment_type: args.equipmentType,
         machine_location: args.machineLocation,
@@ -699,7 +725,7 @@ async function upsertExercise(
   return data?.id ?? null;
 }
 
-async function upsertProgram(
+async function upsertTemplate(
   sb: SupabaseClient,
   args: {
     notionId: string;
@@ -712,7 +738,7 @@ async function upsertProgram(
   },
 ): Promise<string | null> {
   const { data, error } = await sb
-    .from("programs")
+    .from("templates")
     .upsert(
       {
         name: args.name,
@@ -728,7 +754,7 @@ async function upsertProgram(
     .select("id")
     .single();
   if (error) {
-    console.error(`  program upsert failed (${args.name}):`, error.message);
+    console.error(`  template upsert failed (${args.name}):`, error.message);
     return null;
   }
   return data?.id ?? null;
@@ -739,7 +765,7 @@ async function upsertWorkout(
   args: {
     notionId: string;
     userId: string;
-    programId: string | null;
+    templateId: string | null;
     scheduledFor: string | null;
     completedAt: string | null;
     notes: string | null;
@@ -750,7 +776,7 @@ async function upsertWorkout(
     .upsert(
       {
         user_id: args.userId,
-        program_id: args.programId,
+        template_id: args.templateId,
         scheduled_for: args.scheduledFor,
         completed_at: args.completedAt,
         notes: args.notes,
@@ -767,11 +793,11 @@ async function upsertWorkout(
   return data?.id ?? null;
 }
 
-async function upsertProgramExercise(
+async function upsertTemplateExercise(
   sb: SupabaseClient,
   args: {
     notionId: string;
-    programId: string;
+    templateId: string;
     exerciseId: string;
     position: number;
     prescribedSetsMin: number | null;
@@ -785,9 +811,9 @@ async function upsertProgramExercise(
     notes: string | null;
   },
 ): Promise<boolean> {
-  const { error } = await sb.from("program_exercises").upsert(
+  const { error } = await sb.from("template_exercises").upsert(
     {
-      program_id: args.programId,
+      template_id: args.templateId,
       exercise_id: args.exerciseId,
       position: args.position,
       prescribed_sets_min: args.prescribedSetsMin,
@@ -804,7 +830,7 @@ async function upsertProgramExercise(
     { onConflict: "_notion_id" },
   );
   if (error) {
-    console.error(`  program_exercise upsert failed:`, error.message);
+    console.error(`  template_exercise upsert failed:`, error.message);
     return false;
   }
   return true;
