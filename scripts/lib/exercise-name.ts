@@ -88,3 +88,22 @@ function inferEquipmentType(
 
   return "other";
 }
+
+/**
+ * Stable identifier for matching the same exercise across sources
+ * (Notion, the Achilles seed, hand entry). Arrows and punctuation go,
+ * whitespace and hyphens collapse to one hyphen, and a machine
+ * location is suffixed so upstairs and downstairs variants stay
+ * distinct rows.
+ */
+export function exerciseSlug(
+  rawName: string,
+  machineLocation: MachineLocationValue,
+): string {
+  const base = rawName
+    .replace(/[↑↓]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return machineLocation ? `${base}-${machineLocation}` : base;
+}

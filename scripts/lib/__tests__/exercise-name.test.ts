@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseExerciseName } from "../exercise-name";
+import { exerciseSlug, parseExerciseName } from "../exercise-name";
 
 describe("parseExerciseName", () => {
   describe("arrow parsing", () => {
@@ -141,5 +141,27 @@ describe("parseExerciseName", () => {
         equipmentType: "machine",
       });
     });
+  });
+});
+
+describe("exerciseSlug", () => {
+  it("lower-cases and hyphenates", () => {
+    expect(exerciseSlug("Seated Cable Row", null)).toBe("seated-cable-row");
+  });
+
+  it("strips arrows and punctuation", () => {
+    expect(exerciseSlug("Leg Press ↑", null)).toBe("leg-press");
+    expect(exerciseSlug("Pull-ups (weighted)", null)).toBe("pull-ups-weighted");
+  });
+
+  it("collapses runs of separators", () => {
+    expect(exerciseSlug("Single-leg  calf raise, sound leg", null)).toBe(
+      "single-leg-calf-raise-sound-leg",
+    );
+  });
+
+  it("suffixes machine location so variants stay distinct", () => {
+    expect(exerciseSlug("Chest Press", "upstairs")).toBe("chest-press-upstairs");
+    expect(exerciseSlug("Chest Press", "downstairs")).toBe("chest-press-downstairs");
   });
 });
