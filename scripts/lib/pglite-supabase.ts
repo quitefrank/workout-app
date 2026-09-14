@@ -6,6 +6,12 @@
  *
  * Used by the migration test so schema mistakes fail locally before
  * `supabase db push`. No Docker, no local Postgres.
+ *
+ * Two systematic gaps, so a green run is not over-read. PGlite 0.5.8 is
+ * PostgreSQL 18 while Supabase hosts 15 or 17, so PG18-only syntax passes
+ * here and fails there. PGlite's session is a true superuser while
+ * Supabase's postgres role is not, so superuser-only DDL passes here and
+ * fails there.
  */
 
 import { PGlite } from "@electric-sql/pglite";
@@ -41,6 +47,7 @@ const SUPABASE_STUB = `
     grant all on functions to anon, authenticated, service_role;
   alter default privileges in schema public
     grant all on sequences to anon, authenticated, service_role;
+  grant all on auth.users to service_role;
 `;
 
 export type SupabaseLikeDb = {
@@ -97,10 +104,12 @@ export async function asAnon(pg: PGlite): Promise<void> {
 }
 
 /**
- * Back to the session's superuser, which stands in for the service role
- * (bypasses RLS, holds every privilege). auth.uid() returns null.
+ * Act as the service role, the way a server-side client with the
+ * service-role key does: bypasses RLS, holds the grants Supabase gives
+ * service_role, and nothing more. auth.uid() returns null.
  */
 export async function asService(pg: PGlite): Promise<void> {
   await pg.exec("reset role;");
   await pg.exec("select set_config('request.jwt.claim.sub', '', false);");
+  await pg.exec("set role service_role;");
 }

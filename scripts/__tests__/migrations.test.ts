@@ -10,7 +10,7 @@
  * Every row here is fake: user ids from gen_random_uuid(), dates in 2000.
  */
 
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { PGlite } from "@electric-sql/pglite";
 import {
   asAnon,
@@ -75,10 +75,17 @@ describe("supabase migrations on PGlite", () => {
     const db = await createSupabaseLikeDb();
     pg = db.pg;
     migrationFiles = db.migrationFiles;
+    // Migrations applied as postgres. Everything from here runs as a
+    // Supabase role, never the superuser.
+    await asService(pg);
   });
 
   afterEach(async () => {
     await asService(pg);
+  });
+
+  afterAll(async () => {
+    await pg.close();
   });
 
   it("applies every migration in order", () => {
