@@ -44,6 +44,9 @@ export function checkExercise(
   equipmentAvailable: EquipmentItem[] | null,
   position: number,
 ): Verdict[] {
+  if (!Number.isInteger(position) || position < 1) {
+    throw new Error(`Position must be a whole number from 1: ${position}`);
+  }
   const out: Verdict[] = [];
   const partialLoad = state.clearedLoadPct < 100;
   const bootOn = state.bootStatus !== "off";
@@ -57,7 +60,7 @@ export function checkExercise(
     out.push({
       level: "blocked",
       rule: 1,
-      reason: "Loads the booted foot while the boot is on or cleared load is under 100%",
+      reason: "Loads the booted foot while the boot is not off or cleared load is under 100%",
     });
   }
 
@@ -131,7 +134,7 @@ export function checkExercise(
   if (out.length === 0) {
     if (ex.supportRequired === "seated_supported" && ex.loadDirection === "sagittal") {
       out.push({ level: "ok", rule: 6, reason: "Seated with a sagittal load; one foot braces it" });
-    } else if (ex.loadDirection === "vertical") {
+    } else if (ex.loadDirection === "vertical" && ex.supportRequired !== "standing_free") {
       out.push({ level: "ok", rule: 7, reason: "Vertical load pulls into the support" });
     } else {
       out.push({ level: "ok", rule: 0, reason: "No rule triggered" });
@@ -176,12 +179,12 @@ export function checkSpacing(templates: TemplateForAuthoring[]): Verdict[] {
   }
   for (const [, entry] of byExercise) {
     if (entry.templates.length < 2) continue;
-    const unnoted = entry.templates.filter((t) => t.spacingNote === null);
+    const unnoted = entry.templates.filter((t) => t.spacingNote === null || t.spacingNote.trim() === "");
     if (unnoted.length === 0) continue;
     out.push({
       level: "warn",
       rule: 11,
-      reason: `${entry.name} appears in ${entry.templates.map((t) => t.name).join(" and ")} with no spacing note on ${unnoted.map((t) => t.name).join(", ")}`,
+      reason: `${entry.name} appears in ${entry.templates.map((t) => t.name).join(", ")} with no spacing note on ${unnoted.map((t) => t.name).join(", ")}`,
     });
   }
   return out;

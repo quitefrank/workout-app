@@ -60,6 +60,16 @@ describe("checkExercise, the hard-won rules", () => {
     expect(levels(v)).toContain("blocked:1");
   });
 
+  it("rule 1: still blocked while weaning off the boot at full load", () => {
+    const v = checkExercise(ex({ id: "step up", loadsBootedFoot: true }), { ...PARTIAL, bootStatus: "weaning", clearedLoadPct: 100 }, GYM, 1);
+    expect(levels(v)).toContain("blocked:1");
+  });
+
+  it("rule 1: blocked out of the boot while load is still partial", () => {
+    const v = checkExercise(ex({ id: "step up", loadsBootedFoot: true }), { ...PARTIAL, bootStatus: "off", clearedLoadPct: 75 }, GYM, 1);
+    expect(levels(v)).toContain("blocked:1");
+  });
+
   it("rule 2: ankle involvement is blocked until range of motion is cleared", () => {
     const v = checkExercise(ex({ id: "ankle pumps", ankleInvolvement: true }), PARTIAL, GYM, 1);
     expect(levels(v)).toContain("blocked:2");
@@ -75,6 +85,11 @@ describe("checkExercise, the hard-won rules", () => {
       1,
     );
     expect(levels(v)).toContain("blocked:3");
+  });
+
+  it("rule 3: standing free against a lateral load is blocked and also warns", () => {
+    const v = checkExercise(ex({ id: "standing pallof", supportRequired: "standing_free", loadDirection: "lateral" }), PARTIAL, GYM, 1);
+    expect(levels(v)).toEqual(["blocked:3", "warn:4"]);
   });
 
   it("rule 4: standing free during partial weight-bearing warns even with a vertical load", () => {
@@ -102,6 +117,11 @@ describe("checkExercise, the hard-won rules", () => {
     expect(levels(v)).toEqual(["ok:7"]);
   });
 
+  it("rule 7 does not claim a standing-free vertical load at full weight", () => {
+    const v = checkExercise(ex({ id: "standing curl", supportRequired: "standing_free", loadDirection: "vertical" }), OUT_OF_BOOT, GYM, 1);
+    expect(levels(v)).toEqual(["ok:0"]);
+  });
+
   it("rule 8: floor work warns unless it is first", () => {
     const deadBug = ex({ id: "dead bug", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
     expect(levels(checkExercise(deadBug, PARTIAL, GYM, 1))).toEqual(["ok:0"]);
@@ -122,6 +142,11 @@ describe("checkExercise, the hard-won rules", () => {
   it("rule 10: an unrated exercise warns", () => {
     const v = checkExercise(ex({ id: "mystery", supportRequired: null }), PARTIAL, GYM, 1);
     expect(levels(v)).toContain("warn:10");
+  });
+
+  it("rejects a position that is not a whole number from 1", () => {
+    expect(() => checkExercise(ex({ id: "x" }), PARTIAL, GYM, 0)).toThrow(/whole number/);
+    expect(() => checkExercise(ex({ id: "x" }), PARTIAL, GYM, 1.5)).toThrow(/whole number/);
   });
 
   it("returns every triggered rule, not just the first", () => {
@@ -184,5 +209,16 @@ describe("checkSpacing (rule 11)", () => {
       { name: "A", spacingNote: null, exercises: [row] },
       { name: "B", spacingNote: null, exercises: [row] },
     ])).toEqual([]);
+  });
+
+  it("treats a blank note as missing and names every template", () => {
+    const v = checkSpacing([
+      { name: "Workout 1", spacingNote: "  ", exercises: [pullUps] },
+      { name: "Workout 4", spacingNote: null, exercises: [pullUps] },
+      { name: "Workout 6", spacingNote: "72 hours after Workout 4", exercises: [pullUps] },
+    ]);
+    expect(v).toHaveLength(1);
+    expect(v[0].reason).toMatch(/Workout 1, Workout 4, Workout 6/);
+    expect(v[0].reason).toMatch(/no spacing note on Workout 1, Workout 4/);
   });
 });
