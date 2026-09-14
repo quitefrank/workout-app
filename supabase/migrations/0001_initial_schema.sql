@@ -189,6 +189,7 @@ create table workouts (
 create index workouts_user_id_idx on workouts(user_id);
 create index workouts_scheduled_for_idx on workouts(scheduled_for);
 create index workouts_completed_at_idx on workouts(completed_at);
+create index workouts_template_id_idx on workouts(template_id);
 
 create trigger workouts_set_updated_at
   before update on workouts
