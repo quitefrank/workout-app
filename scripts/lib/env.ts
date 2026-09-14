@@ -42,3 +42,33 @@ export function loadSeedEnv(): SeedEnv {
   }
   return env as SeedEnv;
 }
+
+type AchillesKey =
+  | "NEXT_PUBLIC_SUPABASE_URL"
+  | "SUPABASE_SERVICE_ROLE_KEY"
+  | "SEED_USER_ID";
+
+const ACHILLES_KEYS: AchillesKey[] = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "SUPABASE_SERVICE_ROLE_KEY",
+  "SEED_USER_ID",
+];
+
+export type AchillesSeedEnv = Record<AchillesKey, string>;
+
+/** The Achilles seed needs Supabase and the user id, never Notion. */
+export function loadAchillesSeedEnv(): AchillesSeedEnv {
+  const missing: string[] = [];
+  const env: Partial<AchillesSeedEnv> = {};
+  for (const key of ACHILLES_KEYS) {
+    const value = process.env[key];
+    if (!value) missing.push(key);
+    else env[key] = value;
+  }
+  if (missing.length > 0) {
+    console.error("Missing required env vars:");
+    for (const k of missing) console.error(`  - ${k}`);
+    process.exit(1);
+  }
+  return env as AchillesSeedEnv;
+}
