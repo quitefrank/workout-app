@@ -1,0 +1,69 @@
+import { describe, expect, it } from "vitest";
+import {
+  addDays,
+  dayIndex,
+  phaseWindow,
+  weekIndex,
+} from "../dates";
+
+// Placeholder injury date. Real dates live in the per-user seed only.
+const INJURY = "2000-03-01";
+
+describe("dayIndex", () => {
+  it("is 0 on the injury date and nothing else defines day 0", () => {
+    expect(dayIndex(INJURY, "2000-03-01")).toBe(0);
+  });
+
+  it("counts calendar days forward", () => {
+    expect(dayIndex(INJURY, "2000-03-02")).toBe(1);
+    expect(dayIndex(INJURY, "2000-03-31")).toBe(30);
+  });
+
+  it("is negative before the injury", () => {
+    expect(dayIndex(INJURY, "2000-02-28")).toBe(-2);
+  });
+
+  it("is unaffected by a daylight-saving change in between", () => {
+    // 2000-04-02 was a DST change in North America.
+    expect(dayIndex("2000-03-30", "2000-04-05")).toBe(6);
+  });
+
+  it("rejects a non-ISO date", () => {
+    expect(() => dayIndex(INJURY, "March 1")).toThrow(/Not an ISO date/);
+  });
+});
+
+describe("weekIndex", () => {
+  it("floors days by 7", () => {
+    expect(weekIndex(INJURY, "2000-03-01")).toBe(0);
+    expect(weekIndex(INJURY, "2000-03-07")).toBe(0);
+    expect(weekIndex(INJURY, "2000-03-08")).toBe(1);
+    expect(weekIndex(INJURY, "2000-03-29")).toBe(4);
+  });
+});
+
+describe("addDays", () => {
+  it("crosses a month boundary", () => {
+    expect(addDays("2000-02-28", 2)).toBe("2000-03-01");
+  });
+
+  it("goes backward", () => {
+    expect(addDays("2000-03-01", -1)).toBe("2000-02-29");
+  });
+});
+
+describe("phaseWindow", () => {
+  it("runs from the first day of week_from to the last day before week_to", () => {
+    expect(phaseWindow(INJURY, 2, 6)).toEqual({
+      start: "2000-03-15",
+      end: "2000-04-11",
+    });
+  });
+
+  it("is open-ended when week_to is null", () => {
+    expect(phaseWindow(INJURY, 53, null)).toEqual({
+      start: "2001-03-07",
+      end: null,
+    });
+  });
+});
