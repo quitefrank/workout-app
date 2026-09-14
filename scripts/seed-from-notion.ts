@@ -35,6 +35,7 @@ import {
   parseRestSeconds,
 } from "./lib/parse-prescription";
 import { exerciseSlug, parseExerciseName } from "./lib/exercise-name";
+import { orderSessions } from "./lib/session-order";
 import {
   TEMPLATE_NAMES,
   extractVariant,
@@ -64,6 +65,9 @@ const FIELDS = {
     name: "Workout",
     dateDone: "Date Done",
     tutorial: "Tutorial",
+    // A relation to Sessions despite the label. Notion lists it
+    // newest-first; the order Frank sees is that array reversed.
+    sessions: "Name",
   },
   sessions: {
     workout: "Workout",
@@ -88,11 +92,14 @@ type NotionText = { plain_text: string };
 
 /** The subset of Notion property shapes this script reads. Tolerant of missing fields. */
 type NotionProperty = {
+  id?: string;
   type: string;
   title?: NotionText[];
   rich_text?: NotionText[];
   date?: { start: string | null } | null;
   relation?: { id: string }[];
+  /** Set on a relation the API truncated at 25 items. */
+  has_more?: boolean;
   url?: string | null;
 };
 
@@ -147,6 +154,38 @@ function getRelation(page: AnyPage, prop: string): string[] {
   const p = page.properties?.[prop];
   if (!p || p.type !== "relation") return [];
   return (p.relation ?? []).map((r) => r.id);
+}
+
+/**
+ * Like getRelation, but pages through the property endpoint when the
+ * page object only carried the first 25 ids (`has_more`).
+ */
+async function getRelationFull(
+  notion: NotionClient,
+  page: AnyPage,
+  prop: string,
+): Promise<{ ids: string[]; truncated: boolean }> {
+  const p = page.properties?.[prop];
+  if (!p || p.type !== "relation") return { ids: [], truncated: false };
+  const inline = (p.relation ?? []).map((r) => r.id);
+  if (!p.has_more || !p.id) return { ids: inline, truncated: false };
+
+  const full: string[] = [];
+  let cursor: string | undefined;
+  do {
+    const res = await notion.pages.properties.retrieve({
+      page_id: page.id,
+      property_id: p.id,
+      start_cursor: cursor,
+      page_size: 100,
+    });
+    if (!("results" in res)) break;
+    for (const item of res.results) {
+      if (item.type === "relation") full.push(item.relation.id);
+    }
+    cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
+  } while (cursor);
+  return { ids: full.length > 0 ? full : inline, truncated: true };
 }
 
 function getUrl(page: AnyPage, prop: string): string | null {
@@ -398,8 +437,11 @@ async function main() {
   // ----------------------------------------------------------
   console.log("\n[4/8] Pulling Notion Workouts");
   const instances: AnyPage[] = [];
+  /** Notion page id -> workout page, so step 7 can read each parent's session order. */
+  const instancePages = new Map<string, AnyPage>();
   for await (const page of paginateDatabase(notion, env.NOTION_WORKOUTS_DB)) {
     instances.push(page);
+    instancePages.set(page.id, page);
   }
   const canonicalNames = new Set<string>(TEMPLATE_NAMES);
   const sourceInstanceByName = new Map<string, AnyPage>();
@@ -489,8 +531,6 @@ async function main() {
     `  done: ${templateMap.size} templates (${report.templatesWithoutInstance.length} without a source instance)`,
   );
 
-  const instanceNotionIds = new Set(instances.map((p) => p.id));
-
   // ----------------------------------------------------------
   // 6. Workouts (every instance)
   // ----------------------------------------------------------
@@ -556,7 +596,7 @@ async function main() {
       report.sessionsWithoutExercise++;
       continue;
     }
-    if (!instanceNotionIds.has(parentId)) {
+    if (!instancePages.has(parentId)) {
       unknownParent++;
       continue;
     }
@@ -578,12 +618,27 @@ async function main() {
   let setsTotal = 0;
   let setsSkippedEmptyWeight = 0;
   let unknownExercise = 0;
+  let rowsOutsideRelation = 0;
+  let truncatedRelations = 0;
   for (const [parentNotionId, rows] of sessionsByParent) {
     const workoutId = workoutMap.get(parentNotionId);
     if (!workoutId) continue;
     const templateSource = templateSourceByInstance.get(parentNotionId);
+
+    // Positions follow the order Frank sees on the workout page: its
+    // sessions relation reversed, then any linked rows the relation
+    // omits (legacy-linked or truncated) in arrival order.
+    const parentPage = instancePages.get(parentNotionId);
+    const relation = parentPage
+      ? await getRelationFull(notion, parentPage, FIELDS.workouts.sessions)
+      : { ids: [], truncated: false };
+    if (relation.truncated) truncatedRelations++;
+    const relationIdSet = new Set(relation.ids);
+    rowsOutsideRelation += rows.filter((r) => !relationIdSet.has(r.id)).length;
+    const ordered = orderSessions(relation.ids, rows);
+
     let pos = 1;
-    for (const page of rows) {
+    for (const page of ordered) {
       const exerciseRel = getRelation(page, FIELDS.sessions.exercise);
       const exerciseId = exerciseMap.get(exerciseRel[0]);
       if (!exerciseId) {
@@ -678,6 +733,9 @@ async function main() {
   }
   console.log(
     `    done: ${weCount} workout_exercises, ${teCount} template_exercises, ${setsTotal} sets (${setsSkippedEmptyWeight} skipped empty Weight, ${unknownExercise} skipped unknown exercise)`,
+  );
+  console.log(
+    `    ordering: ${rowsOutsideRelation} rows appended after the workout page's relation order, ${truncatedRelations} relations paged past 25 items`,
   );
 
   // ----------------------------------------------------------
