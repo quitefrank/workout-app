@@ -53,6 +53,10 @@ next-env.d.ts
 # seed script verification report
 /scripts/seed-report.json
 
+# per-user Achilles seed data; only the .example is committed
+/scripts/data/achilles/personal.local.json
+/scripts/seed-achilles-report.json
+
 # supabase local artifacts
 /supabase/.temp/
 /supabase/.branches/
