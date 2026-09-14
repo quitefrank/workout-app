@@ -31,6 +31,18 @@ describe("parseExerciseName", () => {
       const r = parseExerciseName("Squat");
       expect(r.machineLocation).toBeNull();
     });
+
+    it("drops parentheses the arrow leaves empty", () => {
+      const r = parseExerciseName("Cable Press Around (↑)");
+      expect(r.name).toBe("Cable Press Around");
+      expect(r.machineLocation).toBe("upstairs");
+    });
+
+    it("drops padded empty parentheses too", () => {
+      const r = parseExerciseName("Cable Y-Raise ( ↓ )");
+      expect(r.name).toBe("Cable Y-Raise");
+      expect(r.machineLocation).toBe("downstairs");
+    });
   });
 
   describe("equipment inference - explicit markers", () => {
@@ -163,5 +175,14 @@ describe("exerciseSlug", () => {
   it("suffixes machine location so variants stay distinct", () => {
     expect(exerciseSlug("Chest Press", "upstairs")).toBe("chest-press-upstairs");
     expect(exerciseSlug("Chest Press", "downstairs")).toBe("chest-press-downstairs");
+  });
+
+  it("is unchanged for names whose arrow sat inside parentheses", () => {
+    expect(exerciseSlug("Cable Press Around (↑)", "upstairs")).toBe(
+      "cable-press-around-upstairs",
+    );
+    expect(exerciseSlug("Cable Y-Raise ( ↓ )", "downstairs")).toBe(
+      "cable-y-raise-downstairs",
+    );
   });
 });

@@ -107,7 +107,7 @@ Five pure modules with full unit-test coverage:
 - `scripts/lib/session-order.ts` Order a workout's Sessions rows by the
   workout page's relation, reversed, with unlisted rows appended.
 
-Run `bun run test` to exercise them. 172 tests across 11 files.
+Run `bun run test` to exercise them. 175 tests across 11 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no

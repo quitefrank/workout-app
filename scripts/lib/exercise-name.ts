@@ -61,7 +61,13 @@ export function parseExerciseName(rawName: string): ExerciseNameInfo {
     machineLocation = "downstairs";
   }
 
-  cleaned = cleaned.replace(/[↑↓]/g, "").replace(/\s+/g, " ").trim();
+  // Strip the arrows, then any parentheses the arrow left empty
+  // ("Cable Press Around (↑)" would otherwise become "Cable Press Around ()").
+  cleaned = cleaned
+    .replace(/[↑↓]/g, "")
+    .replace(/\(\s*\)/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
   return {
     name: cleaned,
