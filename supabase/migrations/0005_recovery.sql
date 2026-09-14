@@ -57,7 +57,7 @@ create table clearances (
   kind clearance_kind not null,
   value_pct integer check (value_pct is null or value_pct between 0 and 100),
   value_text text,
-  phase_id uuid references program_phases(id) on delete set null,
+  phase_id uuid references program_phases(id) on delete restrict,
   source clearance_source not null,
   note text,
   voided_at timestamptz,
@@ -66,6 +66,8 @@ create table clearances (
 
 create index clearances_recovery_id_effective_from_idx
   on clearances(recovery_id, effective_from);
+
+create index clearances_phase_id_idx on clearances(phase_id);
 
 -- ============================================================
 -- events
@@ -218,13 +220,15 @@ create policy "clearances_owner_insert" on clearances
 create policy "clearances_owner_void" on clearances
   for update to authenticated
   using (
-    exists (
+    voided_at is null
+    and exists (
       select 1 from recoveries r
       where r.id = clearances.recovery_id and r.user_id = auth.uid()
     )
   )
   with check (
-    exists (
+    voided_at is not null
+    and exists (
       select 1 from recoveries r
       where r.id = clearances.recovery_id and r.user_id = auth.uid()
     )

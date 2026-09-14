@@ -59,6 +59,8 @@ create trigger programs_set_updated_at
   before update on programs
   for each row execute function set_updated_at();
 
+create index programs_source_id_idx on programs(source_id);
+
 -- ============================================================
 -- program_phases
 -- guidance is an ordered array of { "heading": text, "items": text[] }.
@@ -71,7 +73,7 @@ create table program_phases (
   position integer not null,
   label text not null,
   week_from integer not null check (week_from >= 0),
-  week_to integer check (week_to is null or week_to > week_from),
+  week_to integer,
   load_pct integer check (load_pct is null or load_pct between 0 and 100),
   gate text,
   guidance jsonb not null default '[]'::jsonb
@@ -80,14 +82,16 @@ create table program_phases (
   flag_source_id uuid references sources(id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (program_id, position)
+  unique (program_id, position),
+  constraint program_phases_week_range_check
+    check (week_to is null or week_to > week_from)
 );
-
-create index program_phases_program_id_idx on program_phases(program_id);
 
 create trigger program_phases_set_updated_at
   before update on program_phases
   for each row execute function set_updated_at();
+
+create index program_phases_flag_source_id_idx on program_phases(flag_source_id);
 
 -- ============================================================
 -- templates.program_id and template_phases
@@ -103,6 +107,8 @@ create table template_phases (
   phase_id uuid not null references program_phases(id) on delete cascade,
   primary key (template_id, phase_id)
 );
+
+create index template_phases_phase_id_idx on template_phases(phase_id);
 
 -- ============================================================
 -- Row-Level Security: library tables, authenticated reads only.
