@@ -10,6 +10,7 @@ deployed as a PWA on Vercel. Mirrors `Personal/projects/nutrition-app/v1/`
 bun run dev              # Dev server (webpack, not Turbopack)
 bun run build            # Production build
 bun run test             # Vitest run, once
+bun run test scripts/__tests__/migrations.test.ts   # migrations on PGlite only
 bun run test:watch       # Vitest watch mode
 bun run lint             # ESLint
 bun run seed:notion      # One-time Notion -> Supabase seed
@@ -60,16 +61,22 @@ client directly.
 
 ## Database
 
-Source of truth lives in `supabase/migrations/0001_initial_schema.sql`.
+Source of truth lives in `supabase/migrations/`. Eighteen tables:
 
-Nine tables:
-- `muscle_groups`, `exercises`, `exercise_alternates` (library, global)
-- `templates`, `template_exercises` (day templates, global)
-- `workouts`, `workout_exercises`, `sets` (per-user logs)
-- `user_settings` (per-user preferences)
+Library (any authenticated user reads; service role writes):
+- `muscle_groups`, `exercises`, `exercise_alternates`
+- `templates`, `template_exercises`, `template_phases`
+- `programs`, `program_phases`, `sources`
 
-Four enums: `equipment_type`, `machine_location`, `template_category`,
-`weight_unit`.
+Per user (RLS on `auth.uid()`):
+- `workouts`, `workout_exercises`, `sets`, `user_settings`
+- `recoveries`, `clearances` (insert-only; void is one-way), `events`,
+  `rules`, `daily_checks`
+
+Thirteen enums: `equipment_type`, `machine_location`, `template_category`,
+`weight_unit`, `support_type`, `load_direction`, `equipment_item`,
+`program_kind`, `source_kind`, `clearance_kind`, `clearance_source`,
+`event_kind`, `rule_kind`.
 
 Five analytics views in `0002_analytics_views.sql`, all with
 `security_invoker = true` so RLS on underlying tables applies.
@@ -95,7 +102,13 @@ Three pure modules with full unit-test coverage:
 - `scripts/lib/exercise-name.ts` Strip ↑↓ arrows for `machine_location`,
   infer `equipment_type` from name heuristics, default to `other`.
 
-Run `bun run test` to exercise them. 63 tests across 3 files.
+Run `bun run test` to exercise them. 153 tests across 9 files.
+
+- `src/lib/recovery/` The recovery domain: dates, restriction state,
+  dose parsing, the eleven authoring rules, frequency caps. Pure, no
+  Supabase import.
+- `scripts/__tests__/migrations.test.ts` Applies every migration on
+  PGlite with Supabase roles stubbed.
 
 ## Notion seed
 

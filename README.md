@@ -30,7 +30,7 @@ Mirrors the conventions in `Personal/projects/nutrition-app/v1/` (Plately).
 PWA shell. No screens. No auth UI. No analytics page.
 
 Run `bun run build` to confirm the project compiles. Run `bun test` to
-exercise the parsers (63 tests across the three parsing modules).
+exercise the parsers (153 tests across the three parsing modules).
 
 **Milestone 2 (next).** Screens: calendar home, active workout, template
 detail, exercise library, history, analytics.
@@ -86,9 +86,9 @@ The migration test applies every file in `supabase/migrations/` to an
 in-process Postgres (PGlite) with Supabase's roles stubbed, so schema
 mistakes fail here before `supabase db push`.
 
-The schema has nine tables, four enums, RLS on every table, and five
-analytics views. See `supabase/migrations/0001_initial_schema.sql` and
-`supabase/migrations/0002_analytics_views.sql`.
+The schema has eighteen tables, thirteen enums, RLS on every table, and
+five analytics views. See `CLAUDE.md` for the full list of tables and
+enums.
 
 Library tables (`muscle_groups`, `exercises`, `exercise_alternates`,
 `templates`, `template_exercises`) allow reads by any authenticated user.

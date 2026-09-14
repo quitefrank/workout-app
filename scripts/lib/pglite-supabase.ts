@@ -106,7 +106,8 @@ export async function asAnon(pg: PGlite): Promise<void> {
 /**
  * Act as the service role, the way a server-side client with the
  * service-role key does: bypasses RLS, holds the grants Supabase gives
- * service_role, and nothing more. auth.uid() returns null.
+ * service_role, and nothing more, plus insert on auth.users so tests can
+ * create fixture users. auth.uid() returns null.
  */
 export async function asService(pg: PGlite): Promise<void> {
   await pg.exec("reset role;");

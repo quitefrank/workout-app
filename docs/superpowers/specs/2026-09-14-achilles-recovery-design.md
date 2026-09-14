@@ -1,7 +1,7 @@
 ---
 project: workout-app
 type: design-spec
-status: draft-for-review
+status: approved
 created: 2026-09-14
 updated: 2026-09-14
 ---
@@ -174,13 +174,13 @@ Day 0 lives here and nowhere else.
 | `kind` | clearance_kind |
 | `value_pct` | integer, nullable |
 | `value_text` | text, nullable |
-| `phase_id` | uuid fk program_phases, nullable: the phase this clearance enters |
+| `phase_id` | uuid fk program_phases, nullable: the phase this clearance enters. On delete restrict, so a phase with a live clearance cannot be removed |
 | `source` | clearance_source |
 | `note` | text, nullable |
 | `voided_at` | timestamptz, nullable |
 | `created_at` | timestamptz |
 
-Insert-only. The RLS policies allow select and insert, and an update policy that permits changing `voided_at` only. Correcting a clearance means voiding it and inserting a new one, so the trail is never rewritten. This replaces the prototype's `CLEARED` array.
+Insert-only. The RLS policies allow select and insert, and an update policy that permits changing `voided_at` only. Correcting a clearance means voiding it and inserting a new one, so the trail is never rewritten. This replaces the prototype's `CLEARED` array. A weight-bearing row must carry a percentage; the constraint `clearances_weight_bearing_needs_pct` refuses one without.
 
 **`events`**
 
@@ -239,7 +239,7 @@ From the rules disclosure and Block A in `06` (ambient walking bouts building to
 | `workouts`, `workout_exercises`, `sets`, `user_settings` | all, owner via `user_id` (unchanged) |
 | `recoveries` | all, owner via `user_id` |
 | `events`, `rules`, `daily_checks` | all, owner via `recoveries.user_id` |
-| `clearances` | select and insert via `recoveries.user_id`; update restricted to `voided_at` |
+| `clearances` | select and insert via `recoveries.user_id`; update allowed only on `voided_at` (column-level grant) and only from null to a timestamp (policy), so a void is one-way; no delete |
 
 Every table has RLS on. The analytics views in `0002` never referenced `programs` and need no change; they keep `security_invoker = true`.
 
@@ -261,10 +261,10 @@ Pure TypeScript in `src/lib/recovery/`, no Supabase import, every function unit-
 
 | Module | Exports | Rule |
 |---|---|---|
-| `dates.ts` | `dayIndex`, `weekIndex`, `phaseWindow` | Day 0 is `injury_date`. Week is `floor(day / 7)`. A phase's reference window is `injury_date + week_from * 7` to `injury_date + week_to * 7 - 1` |
-| `state.ts` | `restrictionState(clearances, today)` | Latest non-voided clearance per kind with `effective_from <= today`. Returns cleared load (0 when no weight_bearing clearance exists), ankle ROM cleared only when an ankle_rom clearance exists, boot status (on until a boot_weaning clearance, weaning until an out_of_boot clearance, then off), wedges removed (count of wedge_removal clearances), strength gate (latest strength_gate value), current phase from the latest clearance that names one, and days since the last clearance for the stale warning (threshold 21 days) |
-| `authoring.ts` | `checkExercise(exercise, state, equipment)`, `checkTemplate(template, state, equipment)` | Section 6 |
-| `frequency.ts` | `frequencyViolation(exercise, history, proposedDate)` | Returns a violation when the proposed date is inside `min_hours_between_sessions` of the last session containing the exercise, or when `max_sessions_per_week` would be exceeded in the ISO week |
+| `dates.ts` | `dayIndex`, `weekIndex`, `addDays`, `phaseWindow`, `isoWeekStart`, `assertIsoDate` | Day 0 is `injury_date`. Week is `floor(day / 7)`. A phase's reference window is `injury_date + week_from * 7` to `injury_date + week_to * 7 - 1`. `isoWeekStart` gives the Monday of a calendar date's week. Every date is validated as a real calendar date; `2000-02-30` throws |
+| `state.ts` | `restrictionState(clearances, today)` | Latest non-voided clearance per kind with `effective_from <= today`, ties on the same day broken by `created_at`. Returns cleared load (0 when no weight_bearing clearance exists, and 0 if one arrives without a percentage), ankle ROM cleared only when an ankle_rom clearance exists, boot status (on until a boot_weaning clearance, weaning until an out_of_boot clearance, then off), wedges removed (count of wedge_removal clearances), strength gate (latest strength_gate value), current phase from the latest clearance that names one, days since the latest in-effect clearance, and a stale flag when nothing has been written to the log for 21 days by `created_at`, whatever dates the rows carry |
+| `authoring.ts` | `checkExercise(exercise, state, equipment, position)`, `checkTemplate(template, state, equipment)`, `checkSpacing(templates)` | Section 6. `position` is the 1-based slot in the template; rule 8 needs it |
+| `frequency.ts` | `frequencyViolation(exercise, history, proposedAt, proposedDate)` | Returns a violation when the proposed session would exceed `max_sessions_per_week` in the calendar week of `proposedDate` (weeks counted on the date each session was logged, Monday to Sunday, so a late-evening session stays in the week it was lived in), or when `proposedAt` is inside `min_hours_between_sessions` of the last session containing the exercise. The weekly check runs first because it is the more binding one; each reason names its cap |
 | `dose.ts` | `formatDose`, `parseDose` | "3 x 10-12", "4 x RIR 1-2", "3 x 20-40 sec". `parseDose` reads the prototype's strings for the seed and rejects anything it cannot classify |
 
 ## 6. Authoring rules
@@ -273,7 +273,7 @@ These are the brief's hard-won rules made executable. They run when a template i
 
 | # | Rule | Verdict |
 |---|---|---|
-| 1 | `loads_booted_foot` while boot status is on or cleared load is under 100% | blocked |
+| 1 | `loads_booted_foot` while boot status is on or weaning, or cleared load is under 100% | blocked |
 | 2 | `ankle_involvement` while ankle ROM is not cleared | blocked |
 | 3 | `support_required` is standing_free or standing_supported and `load_direction` is sagittal or lateral, while cleared load is under 100% | blocked. On one leg there is nothing to brace a horizontal pull |
 | 4 | `support_required` is standing_free while cleared load is under 100%, any load direction | warn. The prototype has no standing-free exercise for this reason; a hand on the rack is the minimum |
@@ -283,7 +283,7 @@ These are the brief's hard-won rules made executable. They run when a template i
 | 8 | `floor_transfer_required` and the exercise is not first in the template | warn. Transfers are where falls happen |
 | 9 | any item of `equipment_needed` missing from `equipment_available` | warn |
 | 10 | any authoring input is null | warn, "unrated" |
-| 11 | two templates in the same program both contain an exercise with `min_hours_between_sessions` and no ordering note keeps them apart | warn |
+| 11 | two templates in the same program both contain an exercise with `min_hours_between_sessions` and no spacing note (a blank note counts as none) keeps them apart | warn |
 
 Rule 3 and rule 6 encode the same fact from two sides: the test is not whether the movement can be performed, it is what stops you moving. Rules 1 to 7 have the prototype's 25 exercises as named test cases, with the seated Pallof press and a standing band row as the expected failures.
 
@@ -332,19 +332,20 @@ Video verification: each candidate URL is fetched, must resolve, and its page ti
 | Layer | What is asserted | Tool |
 |---|---|---|
 | Domain modules | Every function in section 5 with value assertions. `dates.ts` includes a case proving no offset exists: day 0 equals the injury date and week boundaries follow from it alone | Vitest |
+| Migrations on PGlite | Every file in `supabase/migrations/` applies in order to an in-process Postgres with Supabase's roles, `auth.uid()`, and default privileges stubbed; asserts the slug index, the week-range and weight-bearing constraints, the one-way void policy, the phase-delete restriction, and that library tables are invisible to anon. PGlite is PostgreSQL 18 and runs as superuser, so PG18-only syntax and superuser-only DDL pass here and would fail on Supabase; the migrations use neither | Vitest |
 | Authoring rules | Section 6, with the 25 prototype exercises as named cases and the two known failures | Vitest |
 | Seed data integrity | Every Achilles exercise has every authoring input; every template exercise resolves to an exercise; every dose string parses; every phase in `program.ts` matches `05` on weeks and percentages; no file under `scripts/data/achilles/` other than the gitignored personal file contains an ISO date, the word "ultrasound", or the whole words "left" or "right". Cues stay second person; that is instruction, not patient detail | Vitest |
 | Existing parsers | The 63 tests keep passing after the rename | Vitest |
 | Lint | `no-redeclare` added | ESLint |
 | Build | `bun run build` clean | Next |
-| Migrations | `supabase db push` applies from empty; a smoke script signs in as the seed user and confirms a select on each per-user table returns only that user's rows | Manual, in the plan |
+| Migrations on Supabase | `supabase db push` applies clean; anon gets `[]` from a library table, the service role gets rows | Manual, in the plan |
 
 ## 10. Build map
 
 | Plan | Delivers | Ends when |
 |---|---|---|
 | 0 Infra | Supabase project created and linked, `.env.local`, auth user, migrations pushed, Notion seed run, `seed-report.json` reviewed and hand-fixes applied | Notion data visible in the Supabase dashboard |
-| 1 Schema and domain | Rename in `0001` and `0002`, migrations `0003` to `0005`, seed script updated for the rename, generated types, the five domain modules with tests | Tests green, `db push` clean |
+| 1 Schema and domain | Rename in `0001` and `0002`, migrations `0003` to `0005`, seed script updated for the rename, generated types, the five domain modules with tests, plus the PGlite migration test and the `no-redeclare` lint rule | Tests green, `db push` clean |
 | 2 Content | Review document written and approved, videos verified, seed data files, `seed-achilles.ts`, seed run, report reviewed | All 25 exercises and four templates in Supabase with the recovery program and personal rows |
 | 3 onward | Screens and design system | Defined by the screens spec |
 
@@ -354,7 +355,7 @@ Plans 0 to 2 need nothing from the screens spec. Plan 0 needs the user's Supabas
 
 - Notion exercise names will not all match Achilles names by slug. The seed report lists misses; the fix is a hand edit in `exercises.ts` or in the library, not a fuzzy matcher.
 - The roughly 100 Notion exercises stay unrated on the authoring inputs until someone rates them. Rule 9 makes that visible in the review, not a silent pass.
-- The rename touches `seed-from-notion.ts` in eleven places. The 63 parser tests do not cover the seed script's table writes, so Plan 0's dashboard check is the verification.
+- The seed script's table writes are not unit-tested. The PGlite migration test proves the schema; the Notion seed's first run against it is the verification, and the report it writes is what gets reviewed.
 - `guidance` as jsonb is display content, not queried data. If a query ever needs it, normalise then.
 
 ## 12. Deferred to the screens spec
