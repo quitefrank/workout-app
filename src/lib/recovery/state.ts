@@ -74,12 +74,14 @@ export function restrictionState(
   const daysSinceLastClearance =
     lastInEffect === null ? null : dayIndex(lastInEffect, today);
 
-  let lastWrite: string | null = null;
+  let lastWriteMs: number | null = null;
   for (const c of live) {
-    if (lastWrite === null || c.createdAt > lastWrite) lastWrite = c.createdAt;
+    const ms = Date.parse(c.createdAt);
+    if (lastWriteMs === null || ms > lastWriteMs) lastWriteMs = ms;
   }
   const isStale =
-    lastWrite !== null && dayIndex(lastWrite.slice(0, 10), today) > STALE_AFTER_DAYS;
+    lastWriteMs !== null &&
+    dayIndex(new Date(lastWriteMs).toISOString().slice(0, 10), today) > STALE_AFTER_DAYS;
 
   return {
     clearedLoadPct,
