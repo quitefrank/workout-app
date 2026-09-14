@@ -90,7 +90,7 @@ Authoring inputs are stored so the rules in section 5 can run against them, firs
 |---|---|---|
 | `program_id` | uuid, fk programs, nullable | Which program this template belongs to. Null for the 18 Notion templates |
 
-Plus a join table `template_phases (template_id, phase_id)` recording which phases of the program a template is valid in. The review document in section 8 names the phases for each Achilles template; the working assumption is every phase where the boot is on. `0006` adds `position` (integer, nullable) to the join table: the order of templates inside a phase, so the app can say which day comes next without the user choosing. The seed writes it as the template's index in its own phase list.
+Plus a join table `template_phases (template_id, phase_id)` recording which phases of the program a template is valid in. The review document in section 8 names the phases for each Achilles template; the working assumption is every phase where the boot is on. `0006` adds `position` (integer, nullable) to the join table: the order of templates inside a phase, so the app can say which day comes next without the user choosing. The seed writes it as the template's index among the templates that share that phase, in the order they are declared in `templates.ts`, so the same template can sit at a different position in different phases.
 
 ### 4.4 Dose additions
 
@@ -321,7 +321,7 @@ No patient detail in any of these. Several of the prototype's phase flags mix ge
 3. For each exercise in `exercises.ts`, compute the slug, look it up in `exercises`. If found, update the authoring inputs, and the video fields only when the Achilles URL is verified (a Notion URL is never overwritten by an unverified one). Insert otherwise. Report every miss and every match so mismatches with Notion names get a hand-fix.
 4. Fill `exercise_alternates` with notes, empty slots only. A library row's existing sub-options are never overwritten; every slot the seed left alone is listed in the report.
 5. Upsert `templates` (with `program_id`), `template_exercises` (with any override), `template_phases` (with position).
-6. For `SEED_USER_ID`: upsert `recoveries`, insert `clearances` that are not already present (matched on effective date and kind), upsert `events`, `rules`, `user_settings.equipment_available`.
+6. For `SEED_USER_ID`: upsert `recoveries`, insert `clearances` that are not already present (matched on effective date, kind and source, ignoring voided rows), upsert `events`, `rules`, `user_settings.equipment_available`.
 7. Write `scripts/seed-achilles-report.json`: counts, exercise matches and misses, alternate slots kept as they were, any dose string `parseDose` rejected, any exercise whose video is unverified, the overrides recorded.
 
 Idempotent. Running it twice changes nothing.

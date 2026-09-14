@@ -144,9 +144,10 @@ clearances, events, rules and available equipment. The per-user rows
 come from `scripts/data/achilles/personal.local.json`, which is
 gitignored; its shape lives in `personal.example.json` next to it.
 Exercises match the library by slug: a matched row gets its authoring
-inputs updated and keeps its name, group and Notion demo link, and its
-existing alternates are never overwritten (the seed only fills empty
-slots and reports the ones it left alone). A template row that
+inputs updated and keeps its name, group and Notion demo link unless
+the seed carries a verified clip for it, and its existing alternates
+are never overwritten (the seed only fills empty slots, corrects the
+rows it wrote itself, and reports the ones it left alone). A template row that
 knowingly breaks an authoring rule carries `override_rule` and
 `override_reason`, so a conflict the user chose to keep is recorded on
 the row rather than left silent.

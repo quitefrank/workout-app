@@ -115,7 +115,7 @@ export type TemplateSeed = {
   notes: string;
   /** How this template is spaced from others sharing a capped exercise. */
   spacingNote: string | null;
-  /** Program phase positions this template is valid in, in the order it sits inside each phase. */
+  /** Program phase positions this template is valid in; its order inside each phase is its index among the templates that share that phase, in TEMPLATES order. */
   phases: number[];
   exercises: TemplateExerciseSeed[];
 };

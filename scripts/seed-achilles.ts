@@ -9,12 +9,15 @@
  * Run after the Notion seed:
  *   bun run seed:achilles
  *
- * Idempotent. Exercises match the library by slug; templates,
- * template_exercises and template_phases are keyed by synthetic ids
- * prefixed "achilles:" and are cleared and rewritten each run.
- * Alternates only fill empty slots: a library row's Notion sub-options
- * are never overwritten, and every slot the seed left alone is listed
- * in the report.
+ * Idempotent. Exercises match the library by slug. Templates and
+ * template_exercises are keyed by synthetic ids prefixed "achilles:"
+ * and are cleared and rewritten each run; template_phases are keyed by
+ * (template_id, phase_id) and cleared by template_id. Alternates the
+ * seed writes carry "achilles:<slug>:<position>" in _notion_id and are
+ * corrected in place when the seed data changes; a slot holding a
+ * library row's Notion sub-option is never overwritten, and every such
+ * slot is listed in the report with what it holds and what the seed
+ * wanted.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -27,22 +30,44 @@ import { SOURCES } from "./data/achilles/sources";
 import { RECOVERY_PROGRAM } from "./data/achilles/program";
 import { EXERCISES } from "./data/achilles/exercises";
 import { TEMPLATES } from "./data/achilles/templates";
-import type { EquipmentItem } from "../src/lib/recovery/types";
+import { EQUIPMENT_LABELS } from "./data/achilles/equipment";
+import type { ClearanceKind, ClearanceSource, EquipmentItem } from "../src/lib/recovery/types";
+
+type Side = "left" | "right";
+type EventKind = "appointment" | "milestone" | "reminder";
+type RuleKind = "rule" | "prohibition";
 
 type Personal = {
-  recovery: { programName: string; label: string; side: "left" | "right"; injuryDate: string; notes: string | null };
-  clearances: { effectiveFrom: string; kind: string; valuePct: number | null; valueText: string | null; phasePosition: number | null; source: string; note: string | null }[];
-  events: { date: string; kind: string; label: string; note: string | null; questions: string[] }[];
-  rules: { position: number; kind: string; title: string; detail: string | null; active: boolean }[];
+  recovery: { programName: string; label: string; side: Side; injuryDate: string; notes: string | null };
+  clearances: { effectiveFrom: string; kind: ClearanceKind; valuePct: number | null; valueText: string | null; phasePosition: number | null; source: ClearanceSource; note: string | null }[];
+  events: { date: string; kind: EventKind; label: string; note: string | null; questions: string[] }[];
+  rules: { position: number; kind: RuleKind; title: string; detail: string | null; active: boolean }[];
   equipmentAvailable: EquipmentItem[];
 };
+
+// The allowed values of each union, defined once. The Record types make
+// the compiler reject a missing or extra member, so these stay in step
+// with src/lib/recovery/types.ts and the Postgres enums.
+const SIDES = Object.keys({ left: true, right: true } satisfies Record<Side, true>) as Side[];
+const CLEARANCE_KINDS = Object.keys({
+  weight_bearing: true,
+  ankle_rom: true,
+  wedge_removal: true,
+  boot_weaning: true,
+  out_of_boot: true,
+  strength_gate: true,
+} satisfies Record<ClearanceKind, true>) as ClearanceKind[];
+const CLEARANCE_SOURCES = Object.keys({ clinic: true, self: true, planned: true } satisfies Record<ClearanceSource, true>) as ClearanceSource[];
+const EVENT_KINDS = Object.keys({ appointment: true, milestone: true, reminder: true } satisfies Record<EventKind, true>) as EventKind[];
+const RULE_KINDS = Object.keys({ rule: true, prohibition: true } satisfies Record<RuleKind, true>) as RuleKind[];
+const EQUIPMENT_ITEMS = Object.keys(EQUIPMENT_LABELS) as EquipmentItem[];
 
 type Report = {
   rowCounts: Record<string, number>;
   exerciseMatches: { slug: string; action: "updated" | "inserted" }[];
   alternateMisses: { exercise: string; alternate: string }[];
-  /** Slots already holding a different alternate (a library row's Notion sub-option); left as they were. */
-  alternatesKeptExisting: { exercise: string; position: number; keptExisting: true }[];
+  /** Slots holding a library row's Notion sub-option that differs from the seed's alternate; left as they were. */
+  alternatesKeptExisting: { exercise: string; position: number; existing: string; wanted: string }[];
   unverifiedVideos: string[];
   rejectedDoses: { template: string; slug: string; dose: string }[];
   overrides: { template: string; slug: string; rule: number }[];
@@ -55,6 +80,27 @@ function fail(msg: string): never {
   process.exit(1);
 }
 
+function oneOf<T extends string>(allowed: readonly T[], value: unknown, path: string): void {
+  if (!allowed.includes(value as T)) {
+    fail(`personal.local.json: ${path} is ${JSON.stringify(value)}; expected one of ${allowed.join(", ")}`);
+  }
+}
+
+/** Every enum-valued field in the personal file must hold an allowed value before anything is written. */
+function validatePersonal(personal: Personal): void {
+  if (personal.recovery.programName !== RECOVERY_PROGRAM.name) {
+    fail("personal.local.json: recovery.programName is not the seeded program's name");
+  }
+  oneOf(SIDES, personal.recovery.side, "recovery.side");
+  personal.clearances.forEach((c, i) => {
+    oneOf(CLEARANCE_KINDS, c.kind, `clearances[${i}].kind`);
+    oneOf(CLEARANCE_SOURCES, c.source, `clearances[${i}].source`);
+  });
+  personal.events.forEach((ev, i) => oneOf(EVENT_KINDS, ev.kind, `events[${i}].kind`));
+  personal.rules.forEach((r, i) => oneOf(RULE_KINDS, r.kind, `rules[${i}].kind`));
+  personal.equipmentAvailable.forEach((item, i) => oneOf(EQUIPMENT_ITEMS, item, `equipmentAvailable[${i}]`));
+}
+
 async function main() {
   const env = loadAchillesSeedEnv();
   const sb = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
@@ -62,6 +108,7 @@ async function main() {
   });
   const personalPath = fileURLToPath(new URL("./data/achilles/personal.local.json", import.meta.url));
   const personal = JSON.parse(readFileSync(personalPath, "utf8")) as Personal;
+  validatePersonal(personal);
 
   const report: Report = {
     rowCounts: {},
@@ -146,7 +193,8 @@ async function main() {
   console.log("\n[3/7] exercises");
   const exerciseId = new Map<string, string>();
   for (const e of EXERCISES) {
-    const { data: existing } = await sb.from("exercises").select("id").eq("slug", e.slug).maybeSingle();
+    const { data: existing, error: lookupErr } = await sb.from("exercises").select("id").eq("slug", e.slug).maybeSingle();
+    if (lookupErr) fail(`exercise lookup failed (${e.slug}): ${lookupErr.message}`);
     const authoring = {
       support_required: e.supportRequired,
       load_direction: e.loadDirection,
@@ -187,8 +235,10 @@ async function main() {
   }
   console.log(`  ${report.exerciseMatches.filter((m) => m.action === "updated").length} matched the library, ${report.exerciseMatches.filter((m) => m.action === "inserted").length} inserted`);
 
-  // 4. Alternates. Empty slots only: a library row's Notion sub-options
-  // stay as they are, and every slot left alone is reported.
+  // 4. Alternates. The seed's rows carry "achilles:<slug>:<position>" in
+  // _notion_id and are corrected in place when the seed data changes. A
+  // slot holding a library row's Notion sub-option (no such key) is left
+  // as it is and reported with what it holds and what the seed wanted.
   console.log("\n[4/7] alternates");
   let altCount = 0;
   for (const e of EXERCISES) {
@@ -197,31 +247,54 @@ async function main() {
     for (const a of e.alternates) {
       let altId = exerciseId.get(a.slug);
       if (!altId) {
-        const { data } = await sb.from("exercises").select("id").eq("slug", a.slug).maybeSingle();
+        const { data, error } = await sb.from("exercises").select("id").eq("slug", a.slug).maybeSingle();
+        if (error) fail(`alternate lookup failed (${e.slug} -> ${a.slug}): ${error.message}`);
         altId = data?.id;
       }
       if (!altId) {
         report.alternateMisses.push({ exercise: e.slug, alternate: a.slug });
         continue;
       }
+      const key = `achilles:${e.slug}:${a.position}`;
+      const wanted = { exercise_id: ownId, alternate_exercise_id: altId, position: a.position, notes: a.notes, _notion_id: key };
       const { error } = await sb
         .from("exercise_alternates")
-        .upsert(
-          { exercise_id: ownId, alternate_exercise_id: altId, position: a.position, notes: a.notes },
-          { onConflict: "exercise_id,position", ignoreDuplicates: true },
-        );
+        .upsert(wanted, { onConflict: "exercise_id,position", ignoreDuplicates: true });
       if (error) fail(`alternate upsert failed (${e.slug} -> ${a.slug}): ${error.message}`);
       const { data: slot, error: slotErr } = await sb
         .from("exercise_alternates")
-        .select("alternate_exercise_id")
+        .select("id,alternate_exercise_id,notes,_notion_id")
         .eq("exercise_id", ownId)
         .eq("position", a.position)
         .maybeSingle();
       if (slotErr) fail(`alternate read-back failed (${e.slug} position ${a.position}): ${slotErr.message}`);
       if (!slot) fail(`alternate slot missing after upsert (${e.slug} position ${a.position})`);
-      if (slot.alternate_exercise_id !== altId) {
-        report.alternatesKeptExisting.push({ exercise: e.slug, position: a.position, keptExisting: true });
+      const seedOwned = typeof slot._notion_id === "string" && slot._notion_id.startsWith("achilles:");
+      const sameAlternate = slot.alternate_exercise_id === altId;
+      if (!seedOwned && !sameAlternate) {
+        const { data: existingAlt, error: existingErr } = await sb
+          .from("exercises")
+          .select("slug")
+          .eq("id", slot.alternate_exercise_id)
+          .maybeSingle();
+        if (existingErr) fail(`existing alternate lookup failed (${e.slug} position ${a.position}): ${existingErr.message}`);
+        report.alternatesKeptExisting.push({
+          exercise: e.slug,
+          position: a.position,
+          existing: existingAlt?.slug ?? slot.alternate_exercise_id,
+          wanted: a.slug,
+        });
         continue;
+      }
+      // Seed-owned and drifted, or the same alternate without the seed's
+      // key or notes (a row the seed wrote before it stamped the key):
+      // bring the row to what the seed wants.
+      if (!sameAlternate || slot.notes !== a.notes || slot._notion_id !== key) {
+        const { error: updErr } = await sb
+          .from("exercise_alternates")
+          .update({ alternate_exercise_id: altId, notes: a.notes, _notion_id: key })
+          .eq("id", slot.id);
+        if (updErr) fail(`alternate update failed (${e.slug} position ${a.position}): ${updErr.message}`);
       }
       altCount++;
     }
@@ -229,7 +302,13 @@ async function main() {
   console.log(`  ${altCount} alternates in place (${report.alternatesKeptExisting.length} slots kept their existing alternate, ${report.alternateMisses.length} missing)`);
 
   // 5. Templates: upsert, clear seed-owned rows, rewrite exercises and phases.
+  // Every template's exercises must resolve before any template is cleared.
   console.log("\n[5/7] templates");
+  for (const t of TEMPLATES) {
+    for (const te of t.exercises) {
+      if (!exerciseId.has(te.slug)) fail(`template ${t.name} references unknown exercise ${te.slug}`);
+    }
+  }
   let teCount = 0;
   for (const t of TEMPLATES) {
     const { data: tpl, error } = await sb
@@ -284,7 +363,12 @@ async function main() {
 
     const { error: phClearErr } = await sb.from("template_phases").delete().eq("template_id", templateId);
     if (phClearErr) fail(`template_phases clear failed (${t.name}): ${phClearErr.message}`);
-    const phaseRows = t.phases.map((pp, i) => ({ template_id: templateId, phase_id: phaseIdByPosition.get(pp), position: i + 1 }));
+    // position is the template's order inside the phase: its index among
+    // the templates that share that phase, in TEMPLATES order.
+    const phaseRows = t.phases.map((pp) => {
+      const inPhase = TEMPLATES.filter((x) => x.phases.includes(pp));
+      return { template_id: templateId, phase_id: phaseIdByPosition.get(pp), position: inPhase.indexOf(t) + 1 };
+    });
     if (phaseRows.length > 0) {
       const { error: phErr } = await sb.from("template_phases").insert(phaseRows);
       if (phErr) fail(`template_phases insert failed (${t.name}): ${phErr.message}`);
@@ -294,13 +378,13 @@ async function main() {
 
   // 6. Personal rows.
   console.log("\n[6/7] personal rows");
-  if (personal.recovery.programName !== p.name) fail("personal.local.json names a program that is not the seeded one");
-  const { data: existingRec } = await sb
+  const { data: existingRec, error: recLookupErr } = await sb
     .from("recoveries")
     .select("id")
     .eq("user_id", env.SEED_USER_ID)
     .eq("program_id", programId)
     .maybeSingle();
+  if (recLookupErr) fail(`recovery lookup failed: ${recLookupErr.message}`);
   let recoveryId: string;
   const recRow = {
     user_id: env.SEED_USER_ID,
@@ -321,7 +405,7 @@ async function main() {
   }
 
   for (const c of personal.clearances) {
-    const { data: dup } = await sb
+    const { data: dups, error: dupErr } = await sb
       .from("clearances")
       .select("id")
       .eq("recovery_id", recoveryId)
@@ -329,8 +413,9 @@ async function main() {
       .eq("kind", c.kind)
       .eq("source", c.source)
       .is("voided_at", null)
-      .maybeSingle();
-    if (dup) {
+      .limit(1);
+    if (dupErr) fail(`clearance lookup failed (${c.effectiveFrom} ${c.kind}): ${dupErr.message}`);
+    if (dups[0]) {
       report.clearancesAlreadyPresent++;
       continue;
     }
@@ -349,7 +434,15 @@ async function main() {
   }
 
   for (const ev of personal.events) {
-    const { data: dup } = await sb.from("events").select("id").eq("recovery_id", recoveryId).eq("date", ev.date).eq("label", ev.label).maybeSingle();
+    const { data: dups, error: dupErr } = await sb
+      .from("events")
+      .select("id")
+      .eq("recovery_id", recoveryId)
+      .eq("date", ev.date)
+      .eq("label", ev.label)
+      .limit(1);
+    if (dupErr) fail(`event lookup failed (${ev.label}): ${dupErr.message}`);
+    const dup = dups[0];
     const row = { recovery_id: recoveryId, date: ev.date, kind: ev.kind, label: ev.label, note: ev.note, questions: ev.questions };
     const { error } = dup ? await sb.from("events").update(row).eq("id", dup.id) : await sb.from("events").insert(row);
     if (error) fail(`event upsert failed (${ev.label}): ${error.message}`);
