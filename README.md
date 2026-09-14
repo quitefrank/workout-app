@@ -59,6 +59,10 @@ The dev server uses webpack (not Turbopack) because `@ducanh2912/next-pwa`
 injects a webpack config. PWA features only activate in the production
 build; `bun run dev` runs without a service worker.
 
+The migration test applies every file in `supabase/migrations/` to an
+in-process Postgres (PGlite) with Supabase's roles stubbed, so schema
+mistakes fail here before `supabase db push`.
+
 ## Environment
 
 Copy `.env.local.example` to `.env.local` and fill in the keys. The seed
