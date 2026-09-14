@@ -125,6 +125,33 @@ The seed writes a verification report to `scripts/seed-report.json` with:
 The Weight CSV parser lives at `scripts/parse-weight-csv.ts` with full
 test coverage in `scripts/__tests__/parse-weight-csv.test.ts`.
 
+## Achilles seed
+
+```bash
+bun run seed:achilles
+```
+
+Runs after the Notion seed. Writes the recovery program and its phases,
+the sources, the reviewed exercises with every authoring input and the
+demonstration clips, the three recovery templates with their phases,
+and the user's recovery row, clearances, events, rules and available
+equipment. The per-user rows come from
+`scripts/data/achilles/personal.local.json`, which is gitignored; its
+shape lives in `scripts/data/achilles/personal.example.json`.
+
+Exercises match the library by slug. A matched row gets its authoring
+inputs updated and keeps its name, group and Notion demo link, and its
+existing alternates are never overwritten: the seed fills empty slots
+only and reports the ones it left alone. A template row that knowingly
+breaks an authoring rule carries `override_rule` and `override_reason`,
+so a conflict the user chose to keep is recorded on the row rather than
+left silent.
+
+Idempotent. The seed writes `scripts/seed-achilles-report.json` with
+row counts, which exercises matched versus inserted, alternate slots
+kept as they were, unverified videos, rejected doses, and the overrides
+recorded.
+
 ## Project structure
 
 ```
@@ -135,6 +162,8 @@ test coverage in `scripts/__tests__/parse-weight-csv.test.ts`.
 ├── scripts/
 │   ├── parse-weight-csv.ts     # pure parser, used by seed
 │   ├── seed-from-notion.ts     # one-time Notion -> Supabase migration
+│   ├── seed-achilles.ts        # Achilles program, exercises, templates, personal rows
+│   ├── data/achilles/          # committed seed data + gitignored personal.local.json
 │   ├── generate-icons.ts       # placeholder PWA icon generator
 │   ├── lib/
 │   │   ├── env.ts              # env var loader and validator

@@ -80,6 +80,7 @@ This renames the existing `programs` and `program_exercises` tables to `template
 | `min_hours_between_sessions` | integer, nullable | no | Authoring input. 72 for pull-ups |
 | `max_sessions_per_week` | integer, nullable | no | Authoring input. 2 for pull-ups |
 | `video_verified_at` | timestamptz, nullable | yes, as a badge | Set only after the URL was fetched and its title matched the exercise |
+| `video_credit` | text, nullable | yes, next to the embed | Who owns the demonstration clip and where it came from (added in `0006`). The 416 Physio clips are embedded through Vimeo's player, never re-hosted, and each carries the article's name and URL here |
 
 Authoring inputs are stored so the rules in section 5 can run against them, first in seed tests, later in an in-app template builder. They are never rendered as fields on an exercise. Nullable because the roughly 100 Notion exercises arrive unrated; every Achilles exercise must have all of them set, and a test enforces that.
 
@@ -89,11 +90,13 @@ Authoring inputs are stored so the rules in section 5 can run against them, firs
 |---|---|---|
 | `program_id` | uuid, fk programs, nullable | Which program this template belongs to. Null for the 18 Notion templates |
 
-Plus a join table `template_phases (template_id, phase_id)` recording which phases of the program a template is valid in. The review document in section 8 names the phases for each Achilles template; the working assumption is every phase where the boot is on.
+Plus a join table `template_phases (template_id, phase_id)` recording which phases of the program a template is valid in. The review document in section 8 names the phases for each Achilles template; the working assumption is every phase where the boot is on. `0006` adds `position` (integer, nullable) to the join table: the order of templates inside a phase, so the app can say which day comes next without the user choosing. The seed writes it as the template's index in its own phase list.
 
 ### 4.4 Dose additions
 
 `template_exercises` and `workout_exercises` gain `prescribed_rir_min`, `prescribed_rir_max`, `prescribed_seconds_min`, `prescribed_seconds_max` (integers, nullable). `sets` gains `seconds` (integer, nullable). A prescription is one of reps, RIR, or seconds; the existing `prescribed_reps_*` columns stay for reps. Cues ("Step up from the bench already in the rack") go in the existing `notes` column on `template_exercises`.
+
+`template_exercises` also gains `override_rule` (integer 1 to 11, nullable) and `override_reason` (text, nullable), added in `0006`. They are set together or not at all; a check constraint enforces the pair. A row carries them only when it knowingly breaks one of the authoring rules in section 6 and the user chose to keep it. The seed data test requires that an override names a rule that actually fires for that row, so a stale override fails the build.
 
 ### 4.5 `exercise_alternates` addition
 
@@ -124,6 +127,7 @@ Any authenticated user reads; the service role writes.
 | `program_id` | uuid fk programs |
 | `position` | integer |
 | `label` | text |
+| `block` | text, nullable (added in `0006`; groups one-week phases of a training programme, null for the recovery program) |
 | `week_from` | integer |
 | `week_to` | integer, nullable (open-ended) |
 | `load_pct` | integer, nullable |
@@ -252,6 +256,7 @@ Every table has RLS on. The analytics views in `0002` never referenced `programs
 | `0003_exercise_authoring.sql` | Enums `support_type`, `load_direction`, `equipment_item`; the `exercises` additions; `user_settings.equipment_available` |
 | `0004_programs.sql` | `program_kind`, `source_kind`; `sources`, `programs`, `program_phases`; `templates.program_id`; `template_phases` |
 | `0005_recovery.sql` | `clearance_kind`, `clearance_source`, `event_kind`, `rule_kind`; `recoveries`, `clearances`, `events`, `rules`, `daily_checks`; their RLS |
+| `0006_programs_weekly.sql` | `exercises.video_credit`; `program_phases.block`; `template_phases.position`; `template_exercises.override_rule` and `override_reason` with their pair constraint |
 
 The `_notion_id` columns stay until the Notion seed has run clean once, per the existing plan.
 
@@ -287,6 +292,8 @@ These are the brief's hard-won rules made executable. They run when a template i
 
 Rule 3 and rule 6 encode the same fact from two sides: the test is not whether the movement can be performed, it is what stops you moving. Rules 1 to 7 have the prototype's 25 exercises as named test cases, with the seated Pallof press and a standing band row as the expected failures.
 
+**Overrides.** A rule verdict is advice to the author, not a hard stop. When a template row trips a rule and the user decides the exercise stays, the decision is written on the row as `override_rule` and `override_reason` (section 4.4) instead of being left as a silent exception. The reason names the source that permits it. The recovery templates carry three, all rule 1: the engine blocks anything that loads the booted foot while the boot is on, and the handout permits protected weight-bearing in the boot at the cleared percentage from week 2, which is why the template holding them starts at phase 2 rather than phase 1. An override can only name a rule that fires for that row under the review's restriction state; the seed data test checks this, so an override that no longer applies fails the build rather than lingering.
+
 ## 7. Seed pipeline
 
 Order: the Notion seed runs first, the Achilles seed second.
@@ -312,10 +319,10 @@ No patient detail in any of these. Several of the prototype's phase flags mix ge
 1. Load env and `personal.local.json`. Refuse to run if the Notion seed has not populated `muscle_groups`.
 2. Upsert `sources`, then `programs`, then `program_phases` (matching on program name and phase position).
 3. For each exercise in `exercises.ts`, compute the slug, look it up in `exercises`. If found, update the authoring inputs, and the video fields only when the Achilles URL is verified (a Notion URL is never overwritten by an unverified one). Insert otherwise. Report every miss and every match so mismatches with Notion names get a hand-fix.
-4. Upsert `exercise_alternates` with notes.
-5. Upsert `templates` (with `program_id`), `template_exercises`, `template_phases`.
+4. Fill `exercise_alternates` with notes, empty slots only. A library row's existing sub-options are never overwritten; every slot the seed left alone is listed in the report.
+5. Upsert `templates` (with `program_id`), `template_exercises` (with any override), `template_phases` (with position).
 6. For `SEED_USER_ID`: upsert `recoveries`, insert `clearances` that are not already present (matched on effective date and kind), upsert `events`, `rules`, `user_settings.equipment_available`.
-7. Write `scripts/seed-achilles-report.json`: counts, exercise matches and misses, any dose string `parseDose` rejected, any exercise whose video is unverified.
+7. Write `scripts/seed-achilles-report.json`: counts, exercise matches and misses, alternate slots kept as they were, any dose string `parseDose` rejected, any exercise whose video is unverified, the overrides recorded.
 
 Idempotent. Running it twice changes nothing.
 
@@ -346,7 +353,7 @@ Video verification: each candidate URL is fetched, must resolve, and its page ti
 |---|---|---|
 | 0 Infra | Supabase project created and linked, `.env.local`, auth user, migrations pushed, Notion seed run, `seed-report.json` reviewed and hand-fixes applied | Notion data visible in the Supabase dashboard |
 | 1 Schema and domain | Rename in `0001` and `0002`, migrations `0003` to `0005`, seed script updated for the rename, generated types, the five domain modules with tests, plus the PGlite migration test and the `no-redeclare` lint rule | Tests green, `db push` clean |
-| 2 Content | Review document written and approved, videos verified, seed data files, `seed-achilles.ts`, seed run, report reviewed | All 25 exercises and four templates in Supabase with the recovery program and personal rows |
+| 2 Content | Review document written and approved, videos verified, seed data files, `seed-achilles.ts`, seed run, report reviewed. **Delivered.** The approved set is 42 exercises (13 from the 416 Physio article with their clips, the rest from the prototype and the review's alternates), three recovery templates with three recorded rule 1 overrides, migration `0006`, and the personal rows; the seed is idempotent across two consecutive runs | The exercises and templates in Supabase with the recovery program and personal rows |
 | 3 onward | Screens and design system | Defined by the screens spec |
 
 Plans 0 to 2 need nothing from the screens spec. Plan 0 needs the user's Supabase and Notion credentials.

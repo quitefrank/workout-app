@@ -14,6 +14,7 @@ bun run test scripts/__tests__/migrations.test.ts   # migrations on PGlite only
 bun run test:watch       # Vitest watch mode
 bun run lint             # ESLint
 bun run seed:notion      # One-time Notion -> Supabase seed
+bun run seed:achilles    # Achilles program, exercises, templates, personal rows
 bun run icons:generate   # Re-render placeholder PWA icons
 supabase db push         # Apply migrations to linked cloud project
 ```
@@ -132,6 +133,28 @@ After running, check `scripts/seed-report.json` for row counts,
 exercises that need a hand-fix on `equipment_type`, any Weight CSV
 parse failures (with Notion URLs), and which instance each template
 was rebuilt from.
+
+## Achilles seed
+
+`scripts/seed-achilles.ts` runs after the Notion seed and writes the
+recovery program with its phases, the sources, the reviewed exercises
+with every authoring input and the demonstration clips, the three
+recovery templates with their phases, and the user's recovery row,
+clearances, events, rules and available equipment. The per-user rows
+come from `scripts/data/achilles/personal.local.json`, which is
+gitignored; its shape lives in `personal.example.json` next to it.
+Exercises match the library by slug: a matched row gets its authoring
+inputs updated and keeps its name, group and Notion demo link, and its
+existing alternates are never overwritten (the seed only fills empty
+slots and reports the ones it left alone). A template row that
+knowingly breaks an authoring rule carries `override_rule` and
+`override_reason`, so a conflict the user chose to keep is recorded on
+the row rather than left silent.
+
+Idempotent. After running, check `scripts/seed-achilles-report.json`
+for row counts, which exercises matched versus inserted, alternate
+slots kept as they were, unverified videos, rejected doses, and the
+overrides recorded.
 
 ## What's done (Milestone 1)
 
