@@ -118,9 +118,15 @@ Run `bun run test` to exercise them. 153 tests across 9 files.
 Notion field names live in the `FIELDS` constant at the top; edit
 those if your Notion DB uses different labels.
 
+Templates are rebuilt from each canonical name's most recent Workouts
+row because Notion page templates keep their prescription in a button
+automation the API cannot read. The 18 canonical names and the
+category and variant helpers live in `scripts/lib/template-name.ts`.
+
 After running, check `scripts/seed-report.json` for row counts,
-exercises that need a hand-fix on `equipment_type`, and any Weight
-CSV parse failures (with Notion URLs).
+exercises that need a hand-fix on `equipment_type`, any Weight CSV
+parse failures (with Notion URLs), and which instance each template
+was rebuilt from.
 
 ## What's done (Milestone 1)
 

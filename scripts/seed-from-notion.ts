@@ -6,6 +6,12 @@
  * via the Supabase service-role key. Idempotent: every table has a
  * temporary `_notion_id` column the script upserts on.
  *
+ * Templates are not Notion rows. The 18 day templates are Notion page
+ * templates whose prescription lives in a button automation the API
+ * cannot read, so each one is rebuilt from the most recent Workouts row
+ * carrying its canonical title (see scripts/lib/template-name.ts).
+ * Template rows use the synthetic key `template:<name>` in `_notion_id`.
+ *
  * Run with:
  *   bun run scripts/seed-from-notion.ts
  *   bun run seed:notion             (alias)
@@ -25,7 +31,11 @@ import { join } from "node:path";
 import { loadSeedEnv } from "./lib/env";
 import { parseRange, parseRestSeconds } from "./lib/parse-prescription";
 import { exerciseSlug, parseExerciseName } from "./lib/exercise-name";
-import { extractVariant, inferTemplateCategory } from "./lib/template-name";
+import {
+  TEMPLATE_NAMES,
+  extractVariant,
+  inferTemplateCategory,
+} from "./lib/template-name";
 import { parseWeightCsv } from "./parse-weight-csv";
 
 // ============================================================
@@ -42,20 +52,19 @@ const FIELDS = {
     name: "Name",
     muscleGroup: "Muscle Group",
     notes: "Notes",
-    video: "YouTube",
+    video: "Example",
     subOption1: "Sub Option 1",
     subOption2: "Sub Option 2",
   },
   workouts: {
-    name: "Name",
+    name: "Workout",
     dateDone: "Date Done",
-    program: "Program",
     tutorial: "Tutorial",
-    estimatedMinutes: "Estimated Minutes",
-    notes: "Notes",
   },
   sessions: {
     workout: "Workout",
+    // Older rows link to their workout through a second relation.
+    workoutLegacy: "Workouts",
     exercise: "Exercise",
     warmUp: "Warm Up",
     sets: "Sets",
@@ -81,7 +90,6 @@ type NotionProperty = {
   date?: { start: string | null } | null;
   relation?: { id: string }[];
   url?: string | null;
-  number?: number | null;
 };
 
 type AnyPage = {
@@ -106,15 +114,34 @@ function getRichText(page: AnyPage, prop: string): string {
   return plainText(p.rich_text);
 }
 
+/** Sessions text fields use a bare "-" for empty. Treat it as null. */
+function isEmptyText(value: string): boolean {
+  return value.length === 0 || value === "-";
+}
+
 function getRichTextOrNull(page: AnyPage, prop: string): string | null {
   const v = getRichText(page, prop);
-  return v.length > 0 ? v : null;
+  return isEmptyText(v) ? null : v;
 }
 
 function getDate(page: AnyPage, prop: string): string | null {
   const p = page.properties?.[prop];
   if (!p || p.type !== "date") return null;
   return p.date?.start ?? null;
+}
+
+/** Notion date starts are "YYYY-MM-DD" or a full ISO datetime. */
+function dateOnly(start: string): string {
+  return start.slice(0, 10);
+}
+
+function completedAtFrom(start: string | null): string | null {
+  if (!start) return null;
+  return start.includes("T") ? start : `${start}T00:00:00Z`;
+}
+
+function notionUrl(page: AnyPage): string {
+  return page.url ?? `https://www.notion.so/${page.id.replace(/-/g, "")}`;
 }
 
 function getRelation(page: AnyPage, prop: string): string[] {
@@ -132,12 +159,6 @@ function getUrl(page: AnyPage, prop: string): string | null {
     return text || null;
   }
   return null;
-}
-
-function getNumber(page: AnyPage, prop: string): number | null {
-  const p = page.properties?.[prop];
-  if (!p || p.type !== "number") return null;
-  return p.number ?? null;
 }
 
 async function resolveDataSourceId(
@@ -181,6 +202,13 @@ type ParseFailure = {
   errors: { setNumber: number; token: string; reason: string }[];
 };
 
+type TemplateSource = {
+  name: string;
+  instanceDate: string;
+  instanceUrl: string;
+  exerciseCount: number;
+};
+
 type Report = {
   rowCounts: Record<string, number>;
   exercisesEquipmentOther: { id: string; name: string }[];
@@ -192,6 +220,16 @@ type Report = {
   weightParseFailures: ParseFailure[];
   notionFieldsWarnings: string[];
   templatesCategoryMissing: { id: string; name: string }[];
+  /** Canonical template names with no Workouts row carrying that title. */
+  templatesWithoutInstance: string[];
+  /** The instance each template's prescription was rebuilt from. */
+  templateSources: TemplateSource[];
+  /** Workouts whose title matched no canonical template name. */
+  workoutsWithoutTemplate: number;
+  /** Sessions rows that only linked through the older "Workouts" relation. */
+  sessionsViaLegacyRelation: number;
+  /** Sessions rows with neither relation set. */
+  sessionsWithoutParent: number;
 };
 
 // ============================================================
@@ -217,6 +255,11 @@ async function main() {
     weightParseFailures: [],
     notionFieldsWarnings: [],
     templatesCategoryMissing: [],
+    templatesWithoutInstance: [],
+    templateSources: [],
+    workoutsWithoutTemplate: 0,
+    sessionsViaLegacyRelation: 0,
+    sessionsWithoutParent: 0,
   };
 
   // ----------------------------------------------------------
@@ -343,81 +386,118 @@ async function main() {
   console.log(`  done: ${altCount} alternates`);
 
   // ----------------------------------------------------------
-  // 4. Workouts table -> split into templates + instances
+  // 4. Workouts table. Every row is a dated instance. The 18 day
+  // templates are Notion page templates whose prescription lives in a
+  // button automation the API cannot read, so each template is rebuilt
+  // from the most recent instance carrying its exact (trimmed) title.
   // ----------------------------------------------------------
   console.log("\n[4/8] Pulling Notion Workouts");
-  const allWorkoutPages: AnyPage[] = [];
-  for await (const page of paginateDatabase(notion, env.NOTION_WORKOUTS_DB)) {
-    allWorkoutPages.push(page);
-  }
-  const templates: AnyPage[] = [];
   const instances: AnyPage[] = [];
-  for (const page of allWorkoutPages) {
-    if (getDate(page, FIELDS.workouts.dateDone)) instances.push(page);
-    else templates.push(page);
+  for await (const page of paginateDatabase(notion, env.NOTION_WORKOUTS_DB)) {
+    instances.push(page);
   }
-  console.log(
-    `  ${allWorkoutPages.length} total: ${templates.length} templates, ${instances.length} instances`,
-  );
-
-  // ----------------------------------------------------------
-  // 5. Templates (from Notion template pages)
-  // ----------------------------------------------------------
-  console.log("\n[5/8] Seeding templates");
-  const templateMap = new Map<string, string>();
-  for (const page of templates) {
-    const name = getTitle(page, FIELDS.workouts.name);
-    if (!name) continue;
-    const category = inferTemplateCategory(name);
-    const variant = extractVariant(name);
-    const supabaseId = await upsertTemplate(supabase, {
-      notionId: page.id,
-      name,
-      category,
-      variant,
-      tutorialUrl: getUrl(page, FIELDS.workouts.tutorial),
-      estimatedMinutes: getNumber(page, FIELDS.workouts.estimatedMinutes),
-      notes: getRichTextOrNull(page, FIELDS.workouts.notes),
-    });
-    if (!supabaseId) continue;
-    templateMap.set(page.id, supabaseId);
-    if (!category) {
-      report.templatesCategoryMissing.push({ id: supabaseId, name });
+  const canonicalNames = new Set<string>(TEMPLATE_NAMES);
+  const sourceInstanceByName = new Map<string, AnyPage>();
+  for (const page of instances) {
+    const title = getTitle(page, FIELDS.workouts.name);
+    if (!canonicalNames.has(title)) continue;
+    const dateDone = getDate(page, FIELDS.workouts.dateDone);
+    if (!dateDone) continue;
+    const current = sourceInstanceByName.get(title);
+    const currentDate = current
+      ? getDate(current, FIELDS.workouts.dateDone)
+      : null;
+    // Strict greater-than keeps the first encountered on a tie. Pages
+    // arrive in created-time order.
+    if (!current || (currentDate !== null && dateDone > currentDate)) {
+      sourceInstanceByName.set(title, page);
     }
   }
   console.log(
-    `  done: ${templateMap.size} templates (${report.templatesCategoryMissing.length} without category)`,
+    `  ${instances.length} instances, ${sourceInstanceByName.size}/${TEMPLATE_NAMES.length} canonical templates have a source instance`,
   );
 
-  const templateNotionIds = new Set(templates.map((p) => p.id));
+  // ----------------------------------------------------------
+  // 5. Templates (one per canonical name, from its latest instance)
+  // ----------------------------------------------------------
+  console.log("\n[5/8] Seeding templates");
+  /** canonical name -> Supabase templates.id */
+  const templateMap = new Map<string, string>();
+  /** source instance Notion page id -> the template it feeds */
+  const templateSourceByInstance = new Map<
+    string,
+    { templateId: string; name: string; source: TemplateSource }
+  >();
+  for (const name of TEMPLATE_NAMES) {
+    const source = sourceInstanceByName.get(name) ?? null;
+    const category = inferTemplateCategory(name);
+    const variant = extractVariant(name);
+    const supabaseId = await upsertTemplate(supabase, {
+      notionId: `template:${name}`,
+      name,
+      category,
+      variant,
+      tutorialUrl: source ? getUrl(source, FIELDS.workouts.tutorial) : null,
+    });
+    if (!supabaseId) continue;
+    templateMap.set(name, supabaseId);
+    if (!category) {
+      report.templatesCategoryMissing.push({ id: supabaseId, name });
+    }
+    if (!source) {
+      report.templatesWithoutInstance.push(name);
+      continue;
+    }
+    const sourceDate = getDate(source, FIELDS.workouts.dateDone);
+    const entry: TemplateSource = {
+      name,
+      instanceDate: sourceDate ? dateOnly(sourceDate) : "",
+      instanceUrl: notionUrl(source),
+      exerciseCount: 0,
+    };
+    report.templateSources.push(entry);
+    templateSourceByInstance.set(source.id, {
+      templateId: supabaseId,
+      name,
+      source: entry,
+    });
+  }
+  console.log(
+    `  done: ${templateMap.size} templates (${report.templatesWithoutInstance.length} without a source instance)`,
+  );
+
   const instanceNotionIds = new Set(instances.map((p) => p.id));
 
   // ----------------------------------------------------------
-  // 6. Workouts (from instances)
+  // 6. Workouts (every instance)
   // ----------------------------------------------------------
   console.log("\n[6/8] Seeding workouts");
   const workoutMap = new Map<string, string>();
   for (const page of instances) {
     const dateDone = getDate(page, FIELDS.workouts.dateDone);
-    const templateRel = getRelation(page, FIELDS.workouts.program);
-    const templateId = templateRel[0]
-      ? (templateMap.get(templateRel[0]) ?? null)
-      : null;
+    const title = getTitle(page, FIELDS.workouts.name);
+    const templateId = templateMap.get(title) ?? null;
+    if (!templateId) report.workoutsWithoutTemplate++;
     const supabaseId = await upsertWorkout(supabase, {
       notionId: page.id,
       userId: env.SEED_USER_ID,
       templateId,
-      scheduledFor: dateDone,
-      completedAt: dateDone ? `${dateDone}T00:00:00Z` : null,
-      notes: getRichTextOrNull(page, FIELDS.workouts.notes),
+      scheduledFor: dateDone ? dateOnly(dateDone) : null,
+      completedAt: completedAtFrom(dateDone),
+      notes: null,
     });
     if (!supabaseId) continue;
     workoutMap.set(page.id, supabaseId);
   }
-  console.log(`  done: ${workoutMap.size} workouts`);
+  console.log(
+    `  done: ${workoutMap.size} workouts (${report.workoutsWithoutTemplate} without a template)`,
+  );
 
   // ----------------------------------------------------------
-  // 7. Sessions: split into template_exercises and workout_exercises
+  // 7. Sessions. Every parent is an instance, so every row becomes a
+  // workout_exercises row plus its sets. Rows whose parent is the source
+  // instance of a template also become that template's
+  // template_exercises rows.
   // ----------------------------------------------------------
   console.log("\n[7/8] Pulling Notion Sessions");
   const sessionPages: AnyPage[] = [];
@@ -426,98 +506,90 @@ async function main() {
   }
   console.log(`  ${sessionPages.length} total session rows`);
 
-  const templateSessionsByParent = new Map<string, AnyPage[]>();
-  const workoutSessionsByParent = new Map<string, AnyPage[]>();
-  let noWorkoutRel = 0;
+  const sessionsByParent = new Map<string, AnyPage[]>();
   let noExerciseRel = 0;
   let unknownParent = 0;
   for (const page of sessionPages) {
-    const workoutRel = getRelation(page, FIELDS.sessions.workout);
-    const exerciseRel = getRelation(page, FIELDS.sessions.exercise);
-    if (workoutRel.length === 0) {
-      noWorkoutRel++;
+    let parentId: string | undefined = getRelation(
+      page,
+      FIELDS.sessions.workout,
+    )[0];
+    if (!parentId) {
+      parentId = getRelation(page, FIELDS.sessions.workoutLegacy)[0];
+      if (parentId) report.sessionsViaLegacyRelation++;
+    }
+    if (!parentId) {
+      report.sessionsWithoutParent++;
       continue;
     }
+    const exerciseRel = getRelation(page, FIELDS.sessions.exercise);
     if (exerciseRel.length === 0) {
       noExerciseRel++;
       continue;
     }
-    const parentId = workoutRel[0];
-    if (templateNotionIds.has(parentId)) {
-      const arr = templateSessionsByParent.get(parentId) ?? [];
-      arr.push(page);
-      templateSessionsByParent.set(parentId, arr);
-    } else if (instanceNotionIds.has(parentId)) {
-      const arr = workoutSessionsByParent.get(parentId) ?? [];
-      arr.push(page);
-      workoutSessionsByParent.set(parentId, arr);
-    } else {
+    if (!instanceNotionIds.has(parentId)) {
       unknownParent++;
+      continue;
     }
+    const arr = sessionsByParent.get(parentId) ?? [];
+    arr.push(page);
+    sessionsByParent.set(parentId, arr);
   }
+  const routed = [...sessionsByParent.values()].reduce(
+    (a, b) => a + b.length,
+    0,
+  );
   console.log(
-    `  routing: ${
-      [...templateSessionsByParent.values()].reduce(
-        (a, b) => a + b.length,
-        0,
-      )
-    } -> template_exercises, ${
-      [...workoutSessionsByParent.values()].reduce(
-        (a, b) => a + b.length,
-        0,
-      )
-    } -> workout_exercises (${noWorkoutRel} no workout rel, ${noExerciseRel} no exercise rel, ${unknownParent} parent not found)`,
+    `  routing: ${routed} -> workout_exercises (${report.sessionsViaLegacyRelation} via legacy "Workouts" relation, ${report.sessionsWithoutParent} no parent, ${noExerciseRel} no exercise rel, ${unknownParent} parent not found)`,
   );
 
-  // Template exercises
-  console.log("  inserting template_exercises");
-  let teCount = 0;
-  for (const [parentNotionId, rows] of templateSessionsByParent) {
-    const templateId = templateMap.get(parentNotionId);
-    if (!templateId) continue;
-    let pos = 1;
-    for (const page of rows) {
-      const exerciseRel = getRelation(page, FIELDS.sessions.exercise);
-      const exerciseId = exerciseMap.get(exerciseRel[0]);
-      if (!exerciseId) continue;
-      const ok = await upsertTemplateExercise(supabase, {
-        notionId: page.id,
-        templateId,
-        exerciseId,
-        position: pos++,
-        ...prescriptionFromSession(page),
-      });
-      if (ok) teCount++;
-    }
-  }
-  console.log(`    done: ${teCount} template_exercises`);
-
-  // Workout exercises + sets
-  console.log("  inserting workout_exercises + sets");
+  console.log("  inserting workout_exercises, template_exercises, sets");
   let weCount = 0;
+  let teCount = 0;
   let setsTotal = 0;
   let setsSkippedEmptyWeight = 0;
-  for (const [parentNotionId, rows] of workoutSessionsByParent) {
+  let unknownExercise = 0;
+  for (const [parentNotionId, rows] of sessionsByParent) {
     const workoutId = workoutMap.get(parentNotionId);
     if (!workoutId) continue;
+    const templateSource = templateSourceByInstance.get(parentNotionId);
     let pos = 1;
     for (const page of rows) {
       const exerciseRel = getRelation(page, FIELDS.sessions.exercise);
       const exerciseId = exerciseMap.get(exerciseRel[0]);
-      if (!exerciseId) continue;
+      if (!exerciseId) {
+        unknownExercise++;
+        continue;
+      }
       const prescription = prescriptionFromSession(page);
+      const position = pos++;
+
+      if (templateSource) {
+        const ok = await upsertTemplateExercise(supabase, {
+          notionId: `template:${templateSource.name}:${page.id}`,
+          templateId: templateSource.templateId,
+          exerciseId,
+          position,
+          ...prescription,
+        });
+        if (ok) {
+          teCount++;
+          templateSource.source.exerciseCount++;
+        }
+      }
+
       const workoutExerciseId = await upsertWorkoutExercise(supabase, {
         notionId: page.id,
         workoutId,
         exerciseId,
-        position: pos++,
+        position,
         ...prescription,
       });
       if (!workoutExerciseId) continue;
       weCount++;
 
       const weightCsv = getRichText(page, FIELDS.sessions.weight);
-      if (!weightCsv) {
+      if (isEmptyText(weightCsv)) {
         setsSkippedEmptyWeight++;
         continue;
       }
@@ -537,7 +609,7 @@ async function main() {
       if (parsed.errors.length > 0) {
         report.weightParseFailures.push({
           notionPageId: page.id,
-          notionUrl: page.url ?? `https://www.notion.so/${page.id.replace(/-/g, "")}`,
+          notionUrl: notionUrl(page),
           exerciseName: null,
           weightCsv,
           errors: parsed.errors,
@@ -574,7 +646,7 @@ async function main() {
     }
   }
   console.log(
-    `    done: ${weCount} workout_exercises, ${setsTotal} sets (${setsSkippedEmptyWeight} skipped empty Weight)`,
+    `    done: ${weCount} workout_exercises, ${teCount} template_exercises, ${setsTotal} sets (${setsSkippedEmptyWeight} skipped empty Weight, ${unknownExercise} skipped unknown exercise)`,
   );
 
   // ----------------------------------------------------------
@@ -612,6 +684,20 @@ async function main() {
   console.log(`  exercises with machine_location set:   ${report.exercisesWithMachineLocation.length}`);
   console.log(`  Sessions rows with Weight parse errors: ${report.weightParseFailures.length}`);
   console.log(`  templates without inferred category:   ${report.templatesCategoryMissing.length}`);
+  console.log(`  templates without a source instance:   ${report.templatesWithoutInstance.length}`);
+  for (const name of report.templatesWithoutInstance) {
+    console.log(`    - ${name}`);
+  }
+  console.log(`  template sources (latest instance per canonical name):`);
+  for (const s of report.templateSources) {
+    console.log(
+      `    - ${s.name.padEnd(14)} ${s.instanceDate}  ${s.exerciseCount} exercises`,
+    );
+  }
+  console.log(`  workouts without a template:           ${report.workoutsWithoutTemplate}`);
+  console.log(`  sessions via legacy "Workouts" rel:    ${report.sessionsViaLegacyRelation}`);
+  console.log(`  sessions with no parent workout:       ${report.sessionsWithoutParent}`);
+  console.log(`  Notion field warnings:                 ${report.notionFieldsWarnings.length}`);
 }
 
 // ============================================================
@@ -700,13 +786,12 @@ async function upsertExercise(
 async function upsertTemplate(
   sb: SupabaseClient,
   args: {
+    /** Synthetic key, `template:<canonical name>`; there is no Notion page. */
     notionId: string;
     name: string;
     category: string | null;
     variant: string | null;
     tutorialUrl: string | null;
-    estimatedMinutes: number | null;
-    notes: string | null;
   },
 ): Promise<string | null> {
   const { data, error } = await sb
@@ -717,8 +802,6 @@ async function upsertTemplate(
         category: args.category,
         variant: args.variant,
         tutorial_url: args.tutorialUrl,
-        estimated_minutes: args.estimatedMinutes,
-        notes: args.notes,
         _notion_id: args.notionId,
       },
       { onConflict: "_notion_id" },

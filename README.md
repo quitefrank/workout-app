@@ -107,12 +107,19 @@ role. Idempotent: each table has a temporary `_notion_id` column the
 script upserts on. After the first successful import, the column can be
 dropped (Milestone 2 will do this).
 
+Templates are rebuilt from each canonical name's most recent Workouts
+row because Notion page templates keep their prescription in a button
+automation the API cannot read. The canonical names live in
+`scripts/lib/template-name.ts`.
+
 The seed writes a verification report to `scripts/seed-report.json` with:
 - Row counts per table
 - Exercises flagged `equipment_type=other` (need a hand-fix)
 - Exercises with `machine_location` set
 - Notion Sessions rows whose `Weight` field failed to parse, with their Notion URLs
 - Templates whose category could not be inferred from the name
+- The instance each template was rebuilt from (date, URL, exercise count), and any canonical template with no instance at all
+- Workouts whose title matched no canonical template, Sessions rows that linked through the older `Workouts` relation, and Sessions rows with no parent workout
 - Notion field warnings, including exercise-name slug collisions, which are written with a numeric suffix and reported with both page URLs so the duplicate can be fixed in Notion
 
 The Weight CSV parser lives at `scripts/parse-weight-csv.ts` with full
