@@ -29,7 +29,11 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { loadSeedEnv } from "./lib/env";
-import { parseRange, parseRestSeconds } from "./lib/parse-prescription";
+import {
+  isEmptyText,
+  parseRange,
+  parseRestSeconds,
+} from "./lib/parse-prescription";
 import { exerciseSlug, parseExerciseName } from "./lib/exercise-name";
 import {
   TEMPLATE_NAMES,
@@ -112,11 +116,6 @@ function getRichText(page: AnyPage, prop: string): string {
   const p = page.properties?.[prop];
   if (!p || p.type !== "rich_text") return "";
   return plainText(p.rich_text);
-}
-
-/** Sessions text fields use a bare "-" for empty. Treat it as null. */
-function isEmptyText(value: string): boolean {
-  return value.length === 0 || value === "-";
 }
 
 function getRichTextOrNull(page: AnyPage, prop: string): string | null {
@@ -230,6 +229,10 @@ type Report = {
   sessionsViaLegacyRelation: number;
   /** Sessions rows with neither relation set. */
   sessionsWithoutParent: number;
+  /** First 25 Notion URLs of parentless rows that do carry an exercise, for relinking. */
+  sessionsWithoutParentSample: string[];
+  /** Sessions rows with a parent but no Exercise relation. */
+  sessionsWithoutExercise: number;
 };
 
 // ============================================================
@@ -260,6 +263,8 @@ async function main() {
     workoutsWithoutTemplate: 0,
     sessionsViaLegacyRelation: 0,
     sessionsWithoutParent: 0,
+    sessionsWithoutParentSample: [],
+    sessionsWithoutExercise: 0,
   };
 
   // ----------------------------------------------------------
@@ -403,13 +408,15 @@ async function main() {
     if (!canonicalNames.has(title)) continue;
     const dateDone = getDate(page, FIELDS.workouts.dateDone);
     if (!dateDone) continue;
+    const parsed = Date.parse(dateDone);
+    if (Number.isNaN(parsed)) continue;
     const current = sourceInstanceByName.get(title);
-    const currentDate = current
-      ? getDate(current, FIELDS.workouts.dateDone)
-      : null;
-    // Strict greater-than keeps the first encountered on a tie. Pages
-    // arrive in created-time order.
-    if (!current || (currentDate !== null && dateDone > currentDate)) {
+    const currentParsed = current
+      ? Date.parse(getDate(current, FIELDS.workouts.dateDone) ?? "")
+      : Number.NEGATIVE_INFINITY;
+    // Pages arrive in created-time order, so >= makes the later-created
+    // page win when two instances share a Date Done.
+    if (!current || parsed >= currentParsed) {
       sourceInstanceByName.set(title, page);
     }
   }
@@ -441,6 +448,22 @@ async function main() {
     });
     if (!supabaseId) continue;
     templateMap.set(name, supabaseId);
+    // Clear the seed-owned prescription rows so the sessions loop
+    // rewrites them from scratch and a template that lost its source
+    // instance ends up empty. The like() guard leaves any hand-authored
+    // rows (null _notion_id) alone.
+    const { error: delErr } = await supabase
+      .from("template_exercises")
+      .delete()
+      .eq("template_id", supabaseId)
+      .like("_notion_id", "template:%");
+    if (delErr) {
+      console.error(
+        `  template_exercises clear failed (${name}):`,
+        delErr.message,
+      );
+      continue;
+    }
     if (!category) {
       report.templatesCategoryMissing.push({ id: supabaseId, name });
     }
@@ -507,9 +530,10 @@ async function main() {
   console.log(`  ${sessionPages.length} total session rows`);
 
   const sessionsByParent = new Map<string, AnyPage[]>();
-  let noExerciseRel = 0;
+  const PARENTLESS_SAMPLE_SIZE = 25;
   let unknownParent = 0;
   for (const page of sessionPages) {
+    const exerciseRel = getRelation(page, FIELDS.sessions.exercise);
     let parentId: string | undefined = getRelation(
       page,
       FIELDS.sessions.workout,
@@ -520,11 +544,16 @@ async function main() {
     }
     if (!parentId) {
       report.sessionsWithoutParent++;
+      if (
+        exerciseRel.length > 0 &&
+        report.sessionsWithoutParentSample.length < PARENTLESS_SAMPLE_SIZE
+      ) {
+        report.sessionsWithoutParentSample.push(notionUrl(page));
+      }
       continue;
     }
-    const exerciseRel = getRelation(page, FIELDS.sessions.exercise);
     if (exerciseRel.length === 0) {
-      noExerciseRel++;
+      report.sessionsWithoutExercise++;
       continue;
     }
     if (!instanceNotionIds.has(parentId)) {
@@ -540,7 +569,7 @@ async function main() {
     0,
   );
   console.log(
-    `  routing: ${routed} -> workout_exercises (${report.sessionsViaLegacyRelation} via legacy "Workouts" relation, ${report.sessionsWithoutParent} no parent, ${noExerciseRel} no exercise rel, ${unknownParent} parent not found)`,
+    `  routing: ${routed} -> workout_exercises (${report.sessionsViaLegacyRelation} via legacy "Workouts" relation, ${report.sessionsWithoutParent} no parent, ${report.sessionsWithoutExercise} no exercise rel, ${unknownParent} parent not found)`,
   );
 
   console.log("  inserting workout_exercises, template_exercises, sets");
@@ -588,6 +617,19 @@ async function main() {
       if (!workoutExerciseId) continue;
       weCount++;
 
+      // Clear this workout_exercise's sets before deciding whether to
+      // write any, so a Weight that later goes empty in Notion drops its
+      // old sets on re-run instead of leaving them behind. Service role
+      // bypasses RLS.
+      const { error: setsDelErr } = await supabase
+        .from("sets")
+        .delete()
+        .eq("workout_exercise_id", workoutExerciseId);
+      if (setsDelErr) {
+        console.error(`    set delete failed:`, setsDelErr.message);
+        continue;
+      }
+
       const weightCsv = getRichText(page, FIELDS.sessions.weight);
       if (isEmptyText(weightCsv)) {
         setsSkippedEmptyWeight++;
@@ -617,17 +659,6 @@ async function main() {
       }
 
       if (parsed.sets.length === 0) continue;
-
-      // Replace existing sets for this workout_exercise so reruns don't
-      // duplicate rows. Service role bypasses RLS.
-      const { error: delErr } = await supabase
-        .from("sets")
-        .delete()
-        .eq("workout_exercise_id", workoutExerciseId);
-      if (delErr) {
-        console.error(`    set delete failed:`, delErr.message);
-        continue;
-      }
 
       const rowsToInsert = parsed.sets.map((s) => ({
         workout_exercise_id: workoutExerciseId,
@@ -697,6 +728,13 @@ async function main() {
   console.log(`  workouts without a template:           ${report.workoutsWithoutTemplate}`);
   console.log(`  sessions via legacy "Workouts" rel:    ${report.sessionsViaLegacyRelation}`);
   console.log(`  sessions with no parent workout:       ${report.sessionsWithoutParent}`);
+  console.log(`  sessions with no exercise:             ${report.sessionsWithoutExercise}`);
+  console.log(
+    `  parentless rows with an exercise (first ${report.sessionsWithoutParentSample.length}, relink in Notion):`,
+  );
+  for (const url of report.sessionsWithoutParentSample) {
+    console.log(`    - ${url}`);
+  }
   console.log(`  Notion field warnings:                 ${report.notionFieldsWarnings.length}`);
 }
 

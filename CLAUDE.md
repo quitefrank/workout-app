@@ -93,16 +93,19 @@ known good.
 
 ## Parsers
 
-Three pure modules with full unit-test coverage:
+Four pure modules with full unit-test coverage:
 
 - `scripts/parse-weight-csv.ts` Parse the Notion Sessions Weight CSV
   (`"50, 70, 90, 100(5), 100(4)"`) into structured set rows.
 - `scripts/lib/parse-prescription.ts` Parse range strings like "3-5"
-  and rest periods like "3 mins" or "3-4 mins".
+  and rest periods like "3 mins" or "3-4 mins"; treat a bare "-" as
+  empty text.
 - `scripts/lib/exercise-name.ts` Strip ↑↓ arrows for `machine_location`,
   infer `equipment_type` from name heuristics, default to `other`.
+- `scripts/lib/template-name.ts` The 18 canonical template names plus
+  category and variant inference from a template name.
 
-Run `bun run test` to exercise them. 153 tests across 9 files.
+Run `bun run test` to exercise them. 168 tests across 10 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no

@@ -18,6 +18,15 @@ export type Range = {
   max: number;
 };
 
+/**
+ * Notion Sessions text fields use a bare "-" for empty (Sets: "-",
+ * Weight: "-"). Treat that, and whitespace-only text, as empty.
+ */
+export function isEmptyText(input: string | null | undefined): boolean {
+  const raw = (input ?? "").trim();
+  return raw.length === 0 || raw === "-";
+}
+
 const RANGE_RE = /^\s*(\d+)\s*(?:[-–—]\s*(\d+))?\s*$/;
 
 /**

@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { parseRange, parseRestSeconds } from "../parse-prescription";
+import {
+  isEmptyText,
+  parseRange,
+  parseRestSeconds,
+} from "../parse-prescription";
+
+describe("isEmptyText", () => {
+  it("a bare dash is empty", () => {
+    expect(isEmptyText("-")).toBe(true);
+  });
+
+  it("whitespace only is empty", () => {
+    expect(isEmptyText("  ")).toBe(true);
+  });
+
+  it("a negative-looking value is not empty", () => {
+    expect(isEmptyText("-5")).toBe(false);
+  });
+});
 
 describe("parseRange", () => {
   it("parses a bare integer as min=max", () => {
