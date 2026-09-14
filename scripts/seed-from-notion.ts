@@ -89,16 +89,20 @@ type AnyPage = {
   properties: Record<string, NotionProperty | undefined>;
 };
 
+function plainText(items: NotionText[] | undefined): string {
+  return (items ?? []).map((t) => t.plain_text).join("").trim();
+}
+
 function getTitle(page: AnyPage, prop: string): string {
   const p = page.properties?.[prop];
   if (!p || p.type !== "title") return "";
-  return (p.title ?? []).map((t) => t.plain_text).join("").trim();
+  return plainText(p.title);
 }
 
 function getRichText(page: AnyPage, prop: string): string {
   const p = page.properties?.[prop];
   if (!p || p.type !== "rich_text") return "";
-  return (p.rich_text ?? []).map((t) => t.plain_text).join("").trim();
+  return plainText(p.rich_text);
 }
 
 function getRichTextOrNull(page: AnyPage, prop: string): string | null {
@@ -123,7 +127,7 @@ function getUrl(page: AnyPage, prop: string): string | null {
   if (!p) return null;
   if (p.type === "url") return p.url || null;
   if (p.type === "rich_text") {
-    const text = (p.rich_text ?? []).map((t) => t.plain_text).join("").trim();
+    const text = plainText(p.rich_text);
     return text || null;
   }
   return null;
@@ -157,6 +161,7 @@ async function* paginateDatabase(notion: NotionClient, databaseId: string) {
       data_source_id: dataSourceId,
       start_cursor: cursor,
       page_size: 100,
+      sorts: [{ timestamp: "created_time", direction: "ascending" }],
     });
     for (const page of res.results) yield page as unknown as AnyPage;
     cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
@@ -280,7 +285,7 @@ async function main() {
   console.log("\n[2/8] Seeding exercises");
   const exerciseMap = new Map<string, string>();
   const exercisePages = new Map<string, AnyPage>();
-  const usedSlugs = new Set<string>();
+  const usedSlugs = new Map<string, { name: string; url: string }>();
   let exCount = 0;
   let otherCount = 0;
   let locationCount = 0;
@@ -295,16 +300,22 @@ async function main() {
     const muscleGroupId = muscleGroupRel[0]
       ? (muscleGroupMap.get(muscleGroupRel[0]) ?? null)
       : null;
-    let slug = exerciseSlug(rawName, info.machineLocation);
-    if (usedSlugs.has(slug)) {
+    const base = exerciseSlug(rawName, info.machineLocation);
+    if (!base) {
+      console.warn(`  skip: exercise "${rawName}" (${page.url ?? page.id}) has no slug-able characters`);
+      continue;
+    }
+    let slug = base;
+    const other = usedSlugs.get(base);
+    if (other) {
       let n = 2;
-      while (usedSlugs.has(`${slug}-${n}`)) n++;
-      slug = `${slug}-${n}`;
+      while (usedSlugs.has(`${base}-${n}`)) n++;
+      slug = `${base}-${n}`;
       report.notionFieldsWarnings.push(
-        `duplicate exercise name "${info.name}" (${page.url ?? page.id}); slug set to ${slug}`,
+        `slug collision: "${info.name}" (${page.url ?? page.id}) and "${other.name}" (${other.url}) both normalise to "${base}"; wrote "${slug}"`,
       );
     }
-    usedSlugs.add(slug);
+    usedSlugs.set(slug, { name: info.name, url: page.url ?? page.id });
     const supabaseId = await upsertExercise(supabase, {
       notionId: page.id,
       name: info.name,
