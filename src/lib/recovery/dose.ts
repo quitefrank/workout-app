@@ -19,12 +19,14 @@ export type Dose = {
   modifier: string | null;
 };
 
-const RANGE = "\\d+(?:\\s*[-\\u2013]\\s*\\d+)?";
+const RANGE = "\\d+(?:\\s*[-\\u2013\\u2014]\\s*\\d+)?";
+/** A trailing modifier: words only, no digits, and not a unit or keyword. */
+const MOD = "(?:\\s+(?!(?:sec|secs|seconds|s|min|mins|minutes|rir|reps?|sets?|leave|x|\\u00d7)\\b)(?=[a-z])(\\D+?))?";
 const SETS_RE = new RegExp(`^\\s*(${RANGE})\\s*[x\\u00d7]\\s*(.+?)\\s*$`, "i");
-const RIR_LONG_RE = new RegExp(`^leave\\s+(${RANGE})\\s+in\\s+reserve(?:\\s+(.*))?$`, "i");
-const RIR_SHORT_RE = new RegExp(`^rir\\s+(${RANGE})(?:\\s+(.*))?$`, "i");
-const SECONDS_RE = new RegExp(`^(${RANGE})\\s*(?:sec|secs|s)\\b(?:\\s+(.*))?$`, "i");
-const REPS_RE = new RegExp(`^(${RANGE})(?:\\s+(.*))?$`);
+const RIR_LONG_RE = new RegExp(`^leave\\s+(${RANGE})\\s+in\\s+reserve${MOD}$`, "i");
+const RIR_SHORT_RE = new RegExp(`^rir\\s+(${RANGE})${MOD}$`, "i");
+const SECONDS_RE = new RegExp(`^(${RANGE})\\s*(?:sec|secs|s)\\b${MOD}$`, "i");
+const REPS_RE = new RegExp(`^(${RANGE})${MOD}$`, "i");
 
 function modifierOf(raw: string | undefined): string | null {
   const t = (raw ?? "").trim();
@@ -75,5 +77,6 @@ export function formatDose(d: Dose): string {
   else if (d.reps) body = range(d.reps);
   else body = "";
   const head = body ? `${range(d.sets)} x ${body}` : `${range(d.sets)} sets`;
-  return d.modifier ? `${head} ${d.modifier}` : head;
+  const mod = d.modifier?.trim();
+  return mod ? `${head} ${mod}` : head;
 }

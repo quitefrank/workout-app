@@ -77,6 +77,7 @@ export function restrictionState(
   let lastWriteMs: number | null = null;
   for (const c of live) {
     const ms = Date.parse(c.createdAt);
+    if (Number.isNaN(ms)) throw new Error(`Not a timestamp: ${c.createdAt}`);
     if (lastWriteMs === null || ms > lastWriteMs) lastWriteMs = ms;
   }
   const isStale =

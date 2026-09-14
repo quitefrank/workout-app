@@ -64,6 +64,18 @@ describe("parseDose", () => {
     expect(parseDose("")).toBeNull();
     expect(parseDose("3 sets of 10")).toBeNull();
     expect(parseDose("3 x 12-10")).toBeNull();
+    expect(parseDose("3 x 1 min")).toBeNull();
+    expect(parseDose("3 x 20 seconds")).toBeNull();
+    expect(parseDose("3 x 8 RIR 2")).toBeNull();
+    expect(parseDose("3 x 10 leave 2 in reserve")).toBeNull();
+    expect(parseDose("3 x 10-12 x 2")).toBeNull();
+    expect(parseDose("3 x 10-12 reps")).toBeNull();
+    expect(parseDose("3 x 20 sec.")).toBeNull();
+  });
+
+  it("keeps word-only modifiers", () => {
+    expect(parseDose("3 x 20 sec hold")?.modifier).toBe("hold");
+    expect(parseDose("3 x 10 super slow")?.modifier).toBe("super slow");
   });
 });
 
@@ -82,5 +94,9 @@ describe("formatDose", () => {
 
   it("renders a sets-only dose", () => {
     expect(formatDose({ sets: { min: 3, max: 3 }, reps: null, rir: null, seconds: null, modifier: null })).toBe("3 sets");
+  });
+
+  it("trims a hand-built modifier", () => {
+    expect(formatDose({ sets: { min: 3, max: 3 }, reps: { min: 10, max: 10 }, rir: null, seconds: null, modifier: "  slow  " })).toBe("3 x 10 slow");
   });
 });

@@ -166,4 +166,10 @@ describe("restrictionState", () => {
     restrictionState(list, "2000-03-09");
     expect(list[0].effectiveFrom).toBe("2000-03-08");
   });
+
+  it("rejects a malformed write time", () => {
+    expect(() =>
+      restrictionState([c({ effectiveFrom: "2000-03-01", kind: "ankle_rom", createdAt: "yesterday" })], "2000-03-02"),
+    ).toThrow(/Not a timestamp/);
+  });
 });
