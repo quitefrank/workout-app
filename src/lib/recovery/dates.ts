@@ -39,6 +39,13 @@ export function addDays(iso: string, days: number): string {
   return fromUtcMidnight(toUtcMidnight(iso) + days * MS_PER_DAY);
 }
 
+/** Monday of the ISO week containing the calendar date, as YYYY-MM-DD. */
+export function isoWeekStart(iso: string): string {
+  const ms = toUtcMidnight(iso);
+  const dayOfWeek = (new Date(ms).getUTCDay() + 6) % 7; // Monday = 0
+  return fromUtcMidnight(ms - dayOfWeek * MS_PER_DAY);
+}
+
 /** Days from the injury date to today. 0 on the injury date, negative before it. */
 export function dayIndex(injuryDate: string, today: string): number {
   return (toUtcMidnight(today) - toUtcMidnight(injuryDate)) / MS_PER_DAY;

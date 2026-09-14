@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { frequencyViolation, isoWeekStart } from "../frequency";
+import { frequencyViolation } from "../frequency";
 import type { AuthoringExercise } from "../types";
 
 const pullUps: AuthoringExercise = {
@@ -17,53 +17,64 @@ const pullUps: AuthoringExercise = {
 
 const row: AuthoringExercise = { ...pullUps, id: "row", name: "Row", minHoursBetweenSessions: null, maxSessionsPerWeek: null };
 
-describe("isoWeekStart", () => {
-  it("returns the Monday of the week, as an ISO date", () => {
-    expect(isoWeekStart("2000-03-01T10:00:00Z")).toBe("2000-02-28"); // Wednesday
-    expect(isoWeekStart("2000-02-28T00:00:00Z")).toBe("2000-02-28"); // Monday
-    expect(isoWeekStart("2000-03-05T23:00:00Z")).toBe("2000-02-28"); // Sunday
-  });
-});
+function s(completedAt: string, exerciseIds: string[]) {
+  return { completedAt, date: completedAt.slice(0, 10), exerciseIds };
+}
 
 describe("frequencyViolation", () => {
-  const history = [
-    { completedAt: "2000-03-06T18:00:00Z", exerciseIds: ["pull-ups", "row"] },
-  ];
+  const history = [s("2000-03-06T18:00:00Z", ["pull-ups", "row"])];
 
   it("returns null for an exercise with no caps", () => {
-    expect(frequencyViolation(row, history, "2000-03-07T18:00:00Z")).toBeNull();
+    expect(frequencyViolation(row, history, "2000-03-07T18:00:00Z", "2000-03-07")).toBeNull();
   });
 
   it("warns inside the minimum gap", () => {
-    const v = frequencyViolation(pullUps, history, "2000-03-08T18:00:00Z");
+    const v = frequencyViolation(pullUps, history, "2000-03-08T18:00:00Z", "2000-03-08");
     expect(v).toMatchObject({ level: "warn" });
     expect(v?.reason).toMatch(/48 of 72 hours/);
   });
 
   it("passes at exactly the minimum gap", () => {
-    expect(frequencyViolation(pullUps, history, "2000-03-09T18:00:00Z")).toBeNull();
+    expect(frequencyViolation(pullUps, history, "2000-03-09T18:00:00Z", "2000-03-09")).toBeNull();
   });
 
   it("ignores sessions after the proposed time", () => {
-    const later = [{ completedAt: "2000-03-10T18:00:00Z", exerciseIds: ["pull-ups"] }];
-    expect(frequencyViolation(pullUps, later, "2000-03-09T18:00:00Z")).toBeNull();
+    const later = [s("2000-03-10T18:00:00Z", ["pull-ups"])];
+    expect(frequencyViolation(pullUps, later, "2000-03-09T18:00:00Z", "2000-03-09")).toBeNull();
   });
 
   it("warns when the weekly cap would be exceeded", () => {
     const twoThisWeek = [
-      { completedAt: "2000-03-06T18:00:00Z", exerciseIds: ["pull-ups"] }, // Monday
-      { completedAt: "2000-03-09T18:00:00Z", exerciseIds: ["pull-ups"] }, // Thursday
+      s("2000-03-06T18:00:00Z", ["pull-ups"]), // Monday
+      s("2000-03-09T18:00:00Z", ["pull-ups"]), // Thursday
     ];
-    const v = frequencyViolation(pullUps, twoThisWeek, "2000-03-12T18:00:00Z"); // Sunday, 72h later
+    const v = frequencyViolation(pullUps, twoThisWeek, "2000-03-12T18:00:00Z", "2000-03-12"); // Sunday
     expect(v).toMatchObject({ level: "warn" });
     expect(v?.reason).toMatch(/2 per week/);
   });
 
   it("resets the weekly count on Monday", () => {
     const twoLastWeek = [
-      { completedAt: "2000-03-06T18:00:00Z", exerciseIds: ["pull-ups"] },
-      { completedAt: "2000-03-09T18:00:00Z", exerciseIds: ["pull-ups"] },
+      s("2000-03-06T18:00:00Z", ["pull-ups"]),
+      s("2000-03-09T18:00:00Z", ["pull-ups"]),
     ];
-    expect(frequencyViolation(pullUps, twoLastWeek, "2000-03-13T18:00:00Z")).toBeNull();
+    expect(frequencyViolation(pullUps, twoLastWeek, "2000-03-13T18:00:00Z", "2000-03-13")).toBeNull();
+  });
+
+  it("counts the week by the logged calendar date, not the UTC instant", () => {
+    // A Sunday 20:00 Toronto session is Monday 00:00 UTC. It belongs to Sunday's week.
+    const twoThisWeek = [
+      s("2000-03-07T22:00:00Z", ["pull-ups"]), // Tuesday evening Toronto
+      s("2000-03-10T22:00:00Z", ["pull-ups"]), // Friday evening Toronto
+    ];
+    const v = frequencyViolation(pullUps, twoThisWeek, "2000-03-13T00:00:00Z", "2000-03-12");
+    expect(v).toMatchObject({ level: "warn" });
+    expect(v?.reason).toMatch(/session 3 this week/);
+  });
+
+  it("validates every timestamp and date up front", () => {
+    expect(() => frequencyViolation(row, [s("yesterday", ["row"])], "2000-03-07T18:00:00Z", "2000-03-07")).toThrow(/Not a timestamp/);
+    expect(() => frequencyViolation(row, [{ completedAt: "2000-03-06T18:00:00Z", date: "3/6", exerciseIds: [] }], "2000-03-07T18:00:00Z", "2000-03-07")).toThrow(/Not an ISO date/);
+    expect(() => frequencyViolation(row, [], "2000-03-07T18:00:00Z", "March 7")).toThrow(/Not an ISO date/);
   });
 });

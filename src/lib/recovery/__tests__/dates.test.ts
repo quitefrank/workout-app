@@ -3,6 +3,7 @@ import {
   addDays,
   assertIsoDate,
   dayIndex,
+  isoWeekStart,
   phaseWindow,
   weekIndex,
 } from "../dates";
@@ -64,6 +65,15 @@ describe("addDays", () => {
   it("rejects a fractional or NaN day count", () => {
     expect(() => addDays(INJURY, 1.5)).toThrow(/whole number/);
     expect(() => addDays(INJURY, Number.NaN)).toThrow(/whole number/);
+  });
+});
+
+describe("isoWeekStart", () => {
+  it("returns the Monday of the week", () => {
+    expect(isoWeekStart("2000-03-01")).toBe("2000-02-28"); // Wednesday
+    expect(isoWeekStart("2000-02-28")).toBe("2000-02-28"); // Monday
+    expect(isoWeekStart("2000-03-05")).toBe("2000-02-28"); // Sunday
+    expect(isoWeekStart("2000-01-01")).toBe("1999-12-27"); // crosses the year
   });
 });
 
