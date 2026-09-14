@@ -37,12 +37,16 @@ export function worstLevel(verdicts: Verdict[]): VerdictLevel {
  * Run rules 1 to 10 against one exercise in one slot of a template.
  * @param position 1-based position of the exercise inside its template.
  * @param equipmentAvailable null when no inventory is known; the check is skipped.
+ * @param previous the exercise in the slot before this one, or null in
+ *   slot 1. Rule 8 reads it: floor work is one block at the start, so a
+ *   floor row directly after another floor row is fine.
  */
 export function checkExercise(
   ex: AuthoringExercise,
   state: RestrictionState,
   equipmentAvailable: EquipmentItem[] | null,
   position: number,
+  previous: AuthoringExercise | null = null,
 ): Verdict[] {
   if (!Number.isInteger(position) || position < 1) {
     throw new Error(`Position must be a whole number from 1: ${position}`);
@@ -96,11 +100,15 @@ export function checkExercise(
     });
   }
 
-  if (ex.floorTransferRequired === true && position !== 1) {
+  if (
+    ex.floorTransferRequired === true &&
+    position !== 1 &&
+    previous?.floorTransferRequired !== true
+  ) {
     out.push({
       level: "warn",
       rule: 8,
-      reason: "Floor transfer is not first in the template; transfers are where falls happen",
+      reason: "Floor transfer follows a non-floor exercise; keep floor work in one block at the start",
     });
   }
 
@@ -156,7 +164,13 @@ export function checkTemplate(
   equipmentAvailable: EquipmentItem[] | null,
 ): TemplateVerdict {
   const perExercise = template.exercises.map((ex, i) =>
-    checkExercise(ex, state, equipmentAvailable, i + 1),
+    checkExercise(
+      ex,
+      state,
+      equipmentAvailable,
+      i + 1,
+      i === 0 ? null : template.exercises[i - 1],
+    ),
   );
   return { perExercise, worst: worstLevel(perExercise.flat()) };
 }

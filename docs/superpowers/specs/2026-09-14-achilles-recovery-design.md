@@ -280,7 +280,7 @@ These are the brief's hard-won rules made executable. They run when a template i
 | 5 | `support_required` is seated_supported and `load_direction` is lateral | blocked. The seated Pallof press tipped off the bench |
 | 6 | `support_required` is seated_supported and `load_direction` is sagittal | ok. One foot braces a sagittal pull |
 | 7 | `load_direction` is vertical with any support other than standing_free | ok. The load pulls into the seat |
-| 8 | `floor_transfer_required` and the exercise is not first in the template | warn. Transfers are where falls happen |
+| 8 | `floor_transfer_required` and the previous row is not floor work; a floor block at the top of a template passes | warn. Transfers are where falls happen |
 | 9 | any item of `equipment_needed` missing from `equipment_available` | warn |
 | 10 | any authoring input is null | warn, "unrated" |
 | 11 | two templates in the same program both contain an exercise with `min_hours_between_sessions` and no spacing note (a blank note counts as none) keeps them apart | warn |

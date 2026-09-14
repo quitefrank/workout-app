@@ -128,6 +128,19 @@ describe("checkExercise, the hard-won rules", () => {
     expect(levels(checkExercise(deadBug, PARTIAL, GYM, 4))).toContain("warn:8");
   });
 
+  it("rule 8: a floor row directly after another floor row passes", () => {
+    const bridge = ex({ id: "glute bridge", supportRequired: "lying", loadDirection: "vertical", floorTransferRequired: true });
+    const deadBug = ex({ id: "dead bug", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
+    const v = checkExercise(deadBug, PARTIAL, GYM, 2, bridge);
+    expect(v.map((x) => x.rule)).not.toContain(8);
+  });
+
+  it("rule 8: a floor row after a non-floor row warns", () => {
+    const seatedPress = ex({ id: "seated press" });
+    const deadBug = ex({ id: "dead bug", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
+    expect(levels(checkExercise(deadBug, PARTIAL, GYM, 2, seatedPress))).toContain("warn:8");
+  });
+
   it("rule 9: missing equipment warns and names it", () => {
     const v = checkExercise(ex({ id: "calf machine", equipmentNeeded: ["calf_machine"] }), PARTIAL, GYM, 1);
     expect(levels(v)).toContain("warn:9");
@@ -179,6 +192,29 @@ describe("checkTemplate", () => {
   it("is ok when nothing triggers", () => {
     const t = { name: "Push", spacingNote: null, exercises: [ex({ id: "seated press" })] };
     expect(checkTemplate(t, PARTIAL, GYM).worst).toBe("ok");
+  });
+
+  it("rule 8: a floor block at the top passes; a floor row at the end warns on that row only", () => {
+    const floor = (id: string) =>
+      ex({ id, supportRequired: "lying", loadDirection: "vertical", floorTransferRequired: true });
+    const seated = (id: string) => ex({ id });
+    const block = {
+      name: "Legs",
+      spacingNote: null,
+      exercises: [floor("bridge"), floor("straight leg raise"), floor("dead bug"), seated("leg extension"), seated("sit to stand")],
+    };
+    const r = checkTemplate(block, PARTIAL, GYM);
+    expect(r.perExercise.flat().map((v) => v.rule)).not.toContain(8);
+    expect(r.worst).toBe("ok");
+
+    const trailing = { ...block, exercises: [...block.exercises, floor("front plank")] };
+    const r2 = checkTemplate(trailing, PARTIAL, GYM);
+    r2.perExercise.forEach((verdicts, i) => {
+      const rules = verdicts.map((v) => v.rule);
+      if (i === r2.perExercise.length - 1) expect(rules).toContain(8);
+      else expect(rules).not.toContain(8);
+    });
+    expect(r2.worst).toBe("warn");
   });
 });
 
