@@ -1,0 +1,22 @@
+{
+  "recovery": {
+    "programName": "Achilles rupture, accelerated functional rehabilitation (non-operative, modified Willits)",
+    "label": "Achilles recovery",
+    "side": "left",
+    "injuryDate": "2000-01-01",
+    "notes": null
+  },
+  "clearances": [
+    { "effectiveFrom": "2000-01-01", "kind": "weight_bearing", "valuePct": 0, "valueText": null, "phasePosition": 1, "source": "clinic", "note": "Boot fitted" },
+    { "effectiveFrom": "2000-01-15", "kind": "weight_bearing", "valuePct": 25, "valueText": null, "phasePosition": 2, "source": "clinic", "note": null }
+  ],
+  "events": [
+    { "date": "2000-02-01", "kind": "appointment", "label": "Clinic appointment", "note": null, "questions": ["Wedge removal timing", "Physio referral"] },
+    { "date": "2000-12-31", "kind": "reminder", "label": "Reminder attached to a phase", "note": "A personal note that belongs with a phase but not in the shared program text", "questions": [] }
+  ],
+  "rules": [
+    { "position": 1, "kind": "prohibition", "title": "Ankle range of motion is on hold", "detail": "Permitted by the handout from week 2; not yet cleared by the treating clinician, whose call governs.", "active": true },
+    { "position": 2, "kind": "rule", "title": "Boot on at all times, including sleep", "detail": "Straps snug, air cells deflated.", "active": true }
+  ],
+  "equipmentAvailable": ["cable_tower", "dumbbells", "adjustable_bench", "half_rack", "mat", "pull_up_bar", "resistance_band"]
+}
