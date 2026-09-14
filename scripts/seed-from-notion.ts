@@ -25,6 +25,7 @@ import { join } from "node:path";
 import { loadSeedEnv } from "./lib/env";
 import { parseRange, parseRestSeconds } from "./lib/parse-prescription";
 import { exerciseSlug, parseExerciseName } from "./lib/exercise-name";
+import { extractVariant, inferTemplateCategory } from "./lib/template-name";
 import { parseWeightCsv } from "./parse-weight-csv";
 
 // ============================================================
@@ -166,46 +167,6 @@ async function* paginateDatabase(notion: NotionClient, databaseId: string) {
     for (const page of res.results) yield page as unknown as AnyPage;
     cursor = res.has_more ? (res.next_cursor ?? undefined) : undefined;
   } while (cursor);
-}
-
-// ============================================================
-// Program name parsing. Frank's templates follow "Push P1", "Pull A",
-// "Legs 2", etc. First word is the category, remainder is the variant.
-// ============================================================
-
-const CATEGORY_MAP: Record<string, string> = {
-  push: "push",
-  pull: "pull",
-  legs: "legs",
-  leg: "legs",
-  arms: "arms",
-  arm: "arms",
-  "full": "full_body",
-  "full_body": "full_body",
-  fullbody: "full_body",
-  cardio: "cardio",
-  abs: "abs",
-  core: "abs",
-};
-
-function inferProgramCategory(name: string): string | null {
-  const lower = name.trim().toLowerCase();
-  // try first word
-  const firstWord = lower.split(/\s+/)[0];
-  if (firstWord in CATEGORY_MAP) return CATEGORY_MAP[firstWord];
-  // try "full body" two-word
-  if (lower.startsWith("full body")) return "full_body";
-  return null;
-}
-
-function extractVariant(name: string): string | null {
-  const parts = name.trim().split(/\s+/);
-  if (parts.length < 2) return null;
-  // skip a "Body" word from "Full Body"
-  if (parts[0].toLowerCase() === "full" && parts[1].toLowerCase() === "body") {
-    return parts.slice(2).join(" ") || null;
-  }
-  return parts.slice(1).join(" ");
 }
 
 // ============================================================
@@ -407,7 +368,7 @@ async function main() {
   for (const page of templates) {
     const name = getTitle(page, FIELDS.workouts.name);
     if (!name) continue;
-    const category = inferProgramCategory(name);
+    const category = inferTemplateCategory(name);
     const variant = extractVariant(name);
     const supabaseId = await upsertTemplate(supabase, {
       notionId: page.id,
