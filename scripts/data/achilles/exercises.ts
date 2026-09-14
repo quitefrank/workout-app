@@ -469,7 +469,10 @@ export const EXERCISES: ExerciseSeed[] = [
 
   // ------------------------------------------------------------------
   // Library rows in the templates (6). Matched by slug: the seed writes
-  // the authoring inputs and caps, nothing else.
+  // the authoring inputs and caps, nothing else. The review's
+  // single-arm-cable-row was dropped as an alternate of the cable row
+  // because only two alternate slots exist and the banded rows took
+  // slot 1.
   // ------------------------------------------------------------------
   {
     name: "Pull-Ups",

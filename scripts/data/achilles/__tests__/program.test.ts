@@ -68,7 +68,9 @@ describe("committed seed data carries no patient detail", () => {
   it("has no 2026 dates, no imaging words, no side words in the TypeScript data", () => {
     for (const f of tsFiles) {
       const text = readFileSync(dir + f, "utf8");
-      expect(text, f).not.toMatch(/\b20\d\d-\d\d-\d\d\b/);
+      // Clip verification times are fetch timestamps, not patient dates.
+      const withoutClipTimes = text.replace(/videoVerifiedAt:\s*"[^"]*"/g, "");
+      expect(withoutClipTimes, f).not.toMatch(/\b20\d\d-\d\d-\d\d\b/);
       expect(text, f).not.toMatch(/ultrasound|tendinosis|thromboprophylaxis/i);
       expect(text, f).not.toMatch(/\b(left|right)\b/i);
     }

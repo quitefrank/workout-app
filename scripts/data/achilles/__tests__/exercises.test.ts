@@ -1,12 +1,52 @@
+// @vitest-environment node
+
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { EXERCISES } from "../exercises";
 import { TEMPLATES } from "../templates";
 import { RECOVERY_PROGRAM } from "../program";
 import { parseDose } from "../../../../src/lib/recovery/dose";
 import { checkExercise, checkSpacing } from "../../../../src/lib/recovery/authoring";
-import type { AuthoringExercise, RestrictionState } from "../../../../src/lib/recovery/types";
+import type { AuthoringExercise, EquipmentItem, RestrictionState } from "../../../../src/lib/recovery/types";
 
 const bySlug = new Map(EXERCISES.map((e) => [e.slug, e]));
+
+/** Library rows the review matched by slug; the seed updates their authoring inputs. */
+const MATCHED_LIBRARY_SLUGS = [
+  "pull-ups",
+  "cable-seated-row",
+  "db-curls",
+  "hanging-leg-raise",
+  "db-bench-press",
+  "bench-db-lateral-raise",
+  "incline-chest-supported-db-row",
+  "cable-curl",
+  "dead-bug-kicks",
+  "dumbbell-flyes",
+  "reverse-cable-flies",
+];
+
+/** The muscle_groups names as the Notion seed wrote them. */
+const MUSCLE_GROUPS = [
+  "Abs",
+  "Biceps",
+  "Chest",
+  "Glutes",
+  "Back",
+  "Shoulders",
+  "Hamstrings",
+  "Calves",
+  "Quadriceps",
+  "Triceps",
+  "Stretches",
+  "Cardio",
+];
+
+/** The example personal file's equipment list, so rule 9 runs in CI. */
+const EXAMPLE_EQUIPMENT: EquipmentItem[] = JSON.parse(
+  readFileSync(fileURLToPath(new URL("../personal.example.json", import.meta.url)), "utf8"),
+).equipmentAvailable;
 
 function toAuthoring(slug: string): AuthoringExercise {
   const e = bySlug.get(slug);
@@ -73,6 +113,22 @@ describe("exercise seed integrity", () => {
     expect(p?.minHoursBetweenSessions).toBe(72);
     expect(p?.maxSessionsPerWeek).toBe(2);
   });
+
+  it("points every alternate at a row in this file or a matched library slug", () => {
+    const known = new Set([...bySlug.keys(), ...MATCHED_LIBRARY_SLUGS]);
+    for (const e of EXERCISES) {
+      for (const a of e.alternates) {
+        expect(known.has(a.slug), `${e.slug} -> ${a.slug}`).toBe(true);
+        expect(a.slug, `${e.slug} lists itself`).not.toBe(e.slug);
+      }
+    }
+  });
+
+  it("uses only the seeded muscle group names", () => {
+    for (const e of EXERCISES) {
+      if (e.muscleGroup !== null) expect(MUSCLE_GROUPS, `${e.slug}: ${e.muscleGroup}`).toContain(e.muscleGroup);
+    }
+  });
 });
 
 describe("template seed integrity", () => {
@@ -97,7 +153,7 @@ describe("template seed integrity", () => {
     for (const t of TEMPLATES) {
       t.exercises.forEach((te, i) => {
         const previous = i === 0 ? null : toAuthoring(t.exercises[i - 1].slug);
-        const verdicts = checkExercise(toAuthoring(te.slug), BOOT_ON, null, i + 1, previous);
+        const verdicts = checkExercise(toAuthoring(te.slug), BOOT_ON, EXAMPLE_EQUIPMENT, i + 1, previous);
         for (const v of verdicts) {
           if (v.level === "blocked") {
             expect(te.override?.rule, `${t.name} #${i + 1} ${te.slug}: ${v.reason}`).toBe(v.rule);

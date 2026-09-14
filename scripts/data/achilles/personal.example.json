@@ -18,5 +18,5 @@
     { "position": 1, "kind": "prohibition", "title": "Ankle range of motion is on hold", "detail": "Permitted by the handout from week 2; not yet cleared by the treating clinician, whose call governs.", "active": true },
     { "position": 2, "kind": "rule", "title": "Boot on at all times, including sleep", "detail": "Straps snug, air cells deflated.", "active": true }
   ],
-  "equipmentAvailable": ["cable_tower", "dumbbells", "adjustable_bench", "half_rack", "mat", "pull_up_bar", "resistance_band"]
+  "equipmentAvailable": ["cable_tower", "dumbbells", "adjustable_bench", "half_rack", "mat", "stability_ball", "medicine_ball", "pull_up_bar", "resistance_band"]
 }
