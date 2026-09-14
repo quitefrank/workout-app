@@ -7,8 +7,10 @@ import { RECOVERY_PROGRAM } from "../program";
 import { SOURCES } from "../sources";
 import { EQUIPMENT_LABELS } from "../equipment";
 
-const HANDOUT_LADDER: [number, number, number][] = [
+/** Every phase boundary as the handout prints it: weekFrom, weekTo, loadPct. */
+const HANDOUT_LADDER: [number, number | null, number | null][] = [
   [0, 2, 0], [2, 3, 25], [3, 4, 50], [4, 5, 75], [5, 6, 100], [6, 8, 100], [8, 12, 100],
+  [12, 16, null], [16, 26, null], [26, 52, null], [52, null, null],
 ];
 
 describe("recovery program phases", () => {
@@ -22,11 +24,13 @@ describe("recovery program phases", () => {
     expect(p[10].weekTo).toBeNull();
   });
 
-  it("matches the handout's weight-bearing ladder as printed", () => {
+  it("matches the handout's weight-bearing ladder and every later boundary as printed", () => {
+    expect(HANDOUT_LADDER).toHaveLength(RECOVERY_PROGRAM.phases.length);
     HANDOUT_LADDER.forEach(([from, to, pct], i) => {
-      expect(RECOVERY_PROGRAM.phases[i].weekFrom).toBe(from);
-      expect(RECOVERY_PROGRAM.phases[i].weekTo).toBe(to);
-      expect(RECOVERY_PROGRAM.phases[i].loadPct).toBe(pct);
+      const ph = RECOVERY_PROGRAM.phases[i];
+      expect(ph.weekFrom, ph.label).toBe(from);
+      expect(ph.weekTo, ph.label).toBe(to);
+      expect(ph.loadPct, ph.label).toBe(pct);
     });
   });
 

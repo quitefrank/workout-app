@@ -63,7 +63,7 @@ export const SOURCES: SourceSeed[] = [
   {
     key: "barfod2020rct",
     citation:
-      "Barfod KW, Hansen MS, Holmich P, Kristensen MT, Troelsen A. Efficacy of early controlled motion of the ankle compared with immobilisation in non-operative treatment of patients with an acute Achilles tendon rupture: an assessor-blinded, randomised controlled trial. Br J Sports Med. 2020;54(12):719-724",
+      "Barfod KW, Hansen MS, Hölmich P, Kristensen MT, Troelsen A. Efficacy of early controlled motion of the ankle compared with immobilisation in non-operative treatment of patients with an acute Achilles tendon rupture: an assessor-blinded, randomised controlled trial. Br J Sports Med. 2020;54(12):719-724",
     url: null,
     kind: "trial",
     quality:
@@ -74,7 +74,7 @@ export const SOURCES: SourceSeed[] = [
   {
     key: "barfod2020cohort",
     citation:
-      "Barfod KW, Nielsen EG, Olsen BH, Vinicoff PG, Troelsen A, Holmich P. Orthop J Sports Med. 2020;8(4)",
+      "Barfod KW, Nielsen EG, Olsen BH, Vinicoff PG, Troelsen A, Hölmich P. Orthop J Sports Med. 2020;8(4)",
     url: null,
     kind: "cohort",
     quality: "moderate. Prospective cohort support, not RCT-validated.",
@@ -120,7 +120,7 @@ export const SOURCES: SourceSeed[] = [
   },
   {
     key: "kannus1991",
-    citation: "Kannus P, Jozsa L. J Bone Joint Surg Am. 1991",
+    citation: "Kannus P, Józsa L. J Bone Joint Surg Am. 1991",
     url: null,
     kind: "cohort",
     quality: "strong",
@@ -176,7 +176,7 @@ export const SOURCES: SourceSeed[] = [
   // ------------------------------------------------------------
   {
     key: "tonnesen1999",
-    citation: "Tonnesen H, et al. BMJ. 1999",
+    citation: "Tønnesen H, et al. BMJ. 1999",
     url: null,
     kind: "trial",
     quality: "moderate-to-strong, but studied in heavy drinkers.",
@@ -486,7 +486,7 @@ export const SOURCES: SourceSeed[] = [
   {
     key: "zellers2019",
     citation:
-      "Zellers JA, Carmont MR, Gravare Silbernagel K. Defining Components of Early Functional Rehabilitation for Acute Achilles Tendon Rupture: A Systematic Review. Orthop J Sports Med. 2019;7(11)",
+      "Zellers JA, Carmont MR, Grävare Silbernagel K. Defining Components of Early Functional Rehabilitation for Acute Achilles Tendon Rupture: A Systematic Review. Orthop J Sports Med. 2019;7(11)",
     url: null,
     kind: "review",
     quality:

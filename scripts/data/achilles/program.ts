@@ -101,7 +101,7 @@ export const RECOVERY_PROGRAM: ProgramSeed = {
           ],
         },
       ],
-      flag: "New calf pain, swelling or warmth, or any breathlessness, needs same-day assessment. DVT after Achilles rupture runs 35 to 50%, and loading under 50% of bodyweight is an independent risk factor (OR 4.3, 95% CI 1.28 to 14.3).",
+      flag: "New calf pain, swelling or warmth, or any breathlessness, needs same-day assessment. DVT after Achilles rupture runs 35 to 50%, and loading at or under 50% of bodyweight is an independent risk factor (OR 4.3, 95% CI 1.28 to 14.3).",
       flagSourceKey: "pedersen2019",
     },
     {
