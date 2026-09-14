@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  assertIsoDate,
   dayIndex,
   phaseWindow,
   weekIndex,
@@ -31,6 +32,11 @@ describe("dayIndex", () => {
   it("rejects a non-ISO date", () => {
     expect(() => dayIndex(INJURY, "March 1")).toThrow(/Not an ISO date/);
   });
+
+  it("rejects a date that only looks valid", () => {
+    expect(() => dayIndex(INJURY, "2000-02-30")).toThrow(/Not a calendar date/);
+    expect(() => dayIndex(INJURY, "2000-13-01")).toThrow(/Not a calendar date/);
+  });
 });
 
 describe("weekIndex", () => {
@@ -39,6 +45,10 @@ describe("weekIndex", () => {
     expect(weekIndex(INJURY, "2000-03-07")).toBe(0);
     expect(weekIndex(INJURY, "2000-03-08")).toBe(1);
     expect(weekIndex(INJURY, "2000-03-29")).toBe(4);
+  });
+
+  it("floors toward negative infinity before the injury", () => {
+    expect(weekIndex(INJURY, "2000-02-29")).toBe(-1);
   });
 });
 
@@ -49,6 +59,19 @@ describe("addDays", () => {
 
   it("goes backward", () => {
     expect(addDays("2000-03-01", -1)).toBe("2000-02-29");
+  });
+
+  it("rejects a fractional or NaN day count", () => {
+    expect(() => addDays(INJURY, 1.5)).toThrow(/whole number/);
+    expect(() => addDays(INJURY, Number.NaN)).toThrow(/whole number/);
+  });
+});
+
+describe("assertIsoDate", () => {
+  it("passes a real date and throws otherwise", () => {
+    expect(() => assertIsoDate("2000-02-29")).not.toThrow();
+    expect(() => assertIsoDate("2001-02-29")).toThrow();
+    expect(() => assertIsoDate("")).toThrow(/Not an ISO date/);
   });
 });
 

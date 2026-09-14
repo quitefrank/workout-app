@@ -4,7 +4,7 @@
  * fall or a slow week show up honestly instead of being papered over.
  */
 
-import { dayIndex } from "./dates";
+import { assertIsoDate, dayIndex } from "./dates";
 import type {
   BootStatus,
   Clearance,
@@ -15,10 +15,12 @@ import type {
 /** Days without a new clearance entry before the log is called out of date. */
 export const STALE_AFTER_DAYS = 21;
 
-function inEffect(clearances: Clearance[], today: string): Clearance[] {
-  return clearances
-    .filter((c) => c.voidedAt === null && c.effectiveFrom <= today)
-    .sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom));
+/** Chronological, with the write time breaking ties on the same day. */
+function byEffectiveThenCreated(a: Clearance, b: Clearance): number {
+  if (a.effectiveFrom !== b.effectiveFrom) {
+    return a.effectiveFrom < b.effectiveFrom ? -1 : 1;
+  }
+  return Date.parse(a.createdAt) - Date.parse(b.createdAt);
 }
 
 function latestOfKind(list: Clearance[], kind: ClearanceKind): Clearance | null {
@@ -28,12 +30,25 @@ function latestOfKind(list: Clearance[], kind: ClearanceKind): Clearance | null 
   return null;
 }
 
+/**
+ * Derive the restriction state on a given day from the clearance log.
+ * Voided rows are ignored. Rows dated after today do not count toward
+ * the state, but the write time of every live row counts toward
+ * staleness: the log is stale when nothing has been written to it for
+ * STALE_AFTER_DAYS, whatever dates the rows carry.
+ */
 export function restrictionState(
   clearances: Clearance[],
   today: string,
 ): RestrictionState {
-  const list = inEffect(clearances, today);
+  assertIsoDate(today);
+  const live = clearances.filter((c) => c.voidedAt === null);
+  for (const c of live) assertIsoDate(c.effectiveFrom);
+  live.sort(byEffectiveThenCreated);
+  const list = live.filter((c) => c.effectiveFrom <= today);
 
+  // A weight-bearing row without a percentage fails closed to 0. The
+  // database refuses such a row; this is the fallback if one ever arrives.
   const weightBearing = latestOfKind(list, "weight_bearing");
   const clearedLoadPct = weightBearing?.valuePct ?? 0;
 
@@ -55,16 +70,16 @@ export function restrictionState(
     }
   }
 
-  // Staleness looks at every non-voided entry, including planned future
-  // ones: a planned entry means the log was maintained.
-  const dates = clearances
-    .filter((c) => c.voidedAt === null)
-    .map((c) => c.effectiveFrom)
-    .sort();
-  const last = dates.length > 0 ? dates[dates.length - 1] : null;
-  const daysSinceLastClearance = last === null ? null : dayIndex(last, today);
+  const lastInEffect = list.length > 0 ? list[list.length - 1].effectiveFrom : null;
+  const daysSinceLastClearance =
+    lastInEffect === null ? null : dayIndex(lastInEffect, today);
+
+  let lastWrite: string | null = null;
+  for (const c of live) {
+    if (lastWrite === null || c.createdAt > lastWrite) lastWrite = c.createdAt;
+  }
   const isStale =
-    daysSinceLastClearance !== null && daysSinceLastClearance > STALE_AFTER_DAYS;
+    lastWrite !== null && dayIndex(lastWrite.slice(0, 10), today) > STALE_AFTER_DAYS;
 
   return {
     clearedLoadPct,

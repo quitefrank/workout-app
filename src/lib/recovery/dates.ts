@@ -11,30 +11,40 @@
 const MS_PER_DAY = 86_400_000;
 const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-function toUtcMidnight(iso: string): number {
-  const m = ISO_RE.exec(iso);
-  if (!m) throw new Error(`Not an ISO date: ${iso}`);
-  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-}
-
 function fromUtcMidnight(ms: number): string {
   const d = new Date(ms);
-  const y = d.getUTCFullYear();
+  const y = String(d.getUTCFullYear()).padStart(4, "0");
   const mo = String(d.getUTCMonth() + 1).padStart(2, "0");
   const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${mo}-${day}`;
 }
 
+function toUtcMidnight(iso: string): number {
+  const m = ISO_RE.exec(iso);
+  if (!m) throw new Error(`Not an ISO date: ${iso}`);
+  const ms = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  // Date.UTC rolls 2000-02-30 over to March. The round trip catches it.
+  if (fromUtcMidnight(ms) !== iso) throw new Error(`Not a calendar date: ${iso}`);
+  return ms;
+}
+
+/** Throws unless iso is a well-formed calendar date. */
+export function assertIsoDate(iso: string): void {
+  toUtcMidnight(iso);
+}
+
+/** The calendar day a whole number of days before or after iso. */
 export function addDays(iso: string, days: number): string {
+  if (!Number.isInteger(days)) throw new Error(`Not a whole number of days: ${days}`);
   return fromUtcMidnight(toUtcMidnight(iso) + days * MS_PER_DAY);
 }
 
+/** Days from the injury date to today. 0 on the injury date, negative before it. */
 export function dayIndex(injuryDate: string, today: string): number {
-  return Math.round(
-    (toUtcMidnight(today) - toUtcMidnight(injuryDate)) / MS_PER_DAY,
-  );
+  return (toUtcMidnight(today) - toUtcMidnight(injuryDate)) / MS_PER_DAY;
 }
 
+/** Week number counted from the injury date: floor(dayIndex / 7). */
 export function weekIndex(injuryDate: string, today: string): number {
   return Math.floor(dayIndex(injuryDate, today) / 7);
 }

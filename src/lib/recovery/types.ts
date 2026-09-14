@@ -54,6 +54,8 @@ export type ClearanceSource = "clinic" | "self" | "planned";
 
 export type Clearance = {
   effectiveFrom: string;
+  /** ISO datetime the row was written. Tiebreak for rows sharing an effectiveFrom. */
+  createdAt: string;
   kind: ClearanceKind;
   valuePct: number | null;
   valueText: string | null;
