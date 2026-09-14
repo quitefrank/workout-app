@@ -108,6 +108,7 @@ The seed writes a verification report to `scripts/seed-report.json` with:
 - Exercises with `machine_location` set
 - Notion Sessions rows whose `Weight` field failed to parse, with their Notion URLs
 - Templates whose category could not be inferred from the name
+- Notion field warnings, including exercise-name slug collisions, which are written with a numeric suffix and reported with both page URLs so the duplicate can be fixed in Notion
 
 The Weight CSV parser lives at `scripts/parse-weight-csv.ts` with full
 test coverage in `scripts/__tests__/parse-weight-csv.test.ts`.

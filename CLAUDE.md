@@ -68,16 +68,17 @@ Nine tables:
 - `workouts`, `workout_exercises`, `sets` (per-user logs)
 - `user_settings` (per-user preferences)
 
-Vocabulary, top to bottom: Program (multi-week, has phases) > Template
-(one day's prescription) > Workout (a template performed on a date) >
-Set. Programs and the recovery tables arrive in migrations 0003 to
-0005; see `docs/superpowers/specs/2026-09-14-achilles-recovery-design.md`.
-
 Four enums: `equipment_type`, `machine_location`, `template_category`,
 `weight_unit`.
 
 Five analytics views in `0002_analytics_views.sql`, all with
 `security_invoker = true` so RLS on underlying tables applies.
+
+Vocabulary, top to bottom: Program (multi-week, has phases) > Template
+(one day's prescription) > Workout (a template performed on a date) >
+Set. The recovery layer (exercise authoring attributes in 0003, programs
+and phases in 0004, recovery tables in 0005) is specified in
+`docs/superpowers/specs/2026-09-14-achilles-recovery-design.md`.
 
 Every seeded table has a temporary `_notion_id` text column for
 idempotent upserts. Drop these in Milestone 2 once the migration is
