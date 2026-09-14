@@ -62,6 +62,9 @@ create table clearances (
   note text,
   voided_at timestamptz,
   created_at timestamptz not null default now()
+  ,
+  constraint clearances_weight_bearing_needs_pct
+    check (kind <> 'weight_bearing' or value_pct is not null)
 );
 
 create index clearances_recovery_id_effective_from_idx
