@@ -30,7 +30,8 @@ Mirrors the conventions in `Personal/projects/nutrition-app/v1/` (Plately).
 PWA shell. No screens. No auth UI. No analytics page.
 
 Run `bun run build` to confirm the project compiles. Run `bun test` to
-exercise the parsers (153 tests across the three parsing modules).
+exercise the parsers (63 parser tests across the three parsing modules
+(the suite is now 153 with the recovery domain and migration tests)).
 
 **Milestone 2 (next).** Screens: calendar home, active workout, template
 detail, exercise library, history, analytics.

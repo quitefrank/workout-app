@@ -335,7 +335,7 @@ Video verification: each candidate URL is fetched, must resolve, and its page ti
 | Migrations on PGlite | Every file in `supabase/migrations/` applies in order to an in-process Postgres with Supabase's roles, `auth.uid()`, and default privileges stubbed; asserts the slug index, the week-range and weight-bearing constraints, the one-way void policy, the phase-delete restriction, and that library tables are invisible to anon. PGlite is PostgreSQL 18 and runs as superuser, so PG18-only syntax and superuser-only DDL pass here and would fail on Supabase; the migrations use neither | Vitest |
 | Authoring rules | Section 6, with the 25 prototype exercises as named cases and the two known failures | Vitest |
 | Seed data integrity | Every Achilles exercise has every authoring input; every template exercise resolves to an exercise; every dose string parses; every phase in `program.ts` matches `05` on weeks and percentages; no file under `scripts/data/achilles/` other than the gitignored personal file contains an ISO date, the word "ultrasound", or the whole words "left" or "right". Cues stay second person; that is instruction, not patient detail | Vitest |
-| Existing parsers | The 63 tests keep passing after the rename | Vitest |
+| Existing parsers | The original 63 parser tests keep passing after the rename | Vitest |
 | Lint | `no-redeclare` added | ESLint |
 | Build | `bun run build` clean | Next |
 | Migrations on Supabase | `supabase db push` applies clean; anon gets `[]` from a library table, the service role gets rows | Manual, in the plan |

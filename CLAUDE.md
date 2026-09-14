@@ -129,7 +129,7 @@ CSV parse failures (with Notion URLs).
 - Analytics views migration
 - Notion seed script with verification report
 - PWA manifest, icons, service worker config
-- 63 unit tests passing
+- 63 parser tests passing (suite now 153)
 - Production build clean
 
 ## What's next (Milestone 2)
