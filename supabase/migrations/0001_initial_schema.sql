@@ -22,7 +22,7 @@ create type machine_location as enum (
   'downstairs'
 );
 
-create type program_category as enum (
+create type template_category as enum (
   'push',
   'pull',
   'legs',
@@ -101,6 +101,7 @@ create table exercise_alternates (
   exercise_id uuid not null references exercises(id) on delete cascade,
   alternate_exercise_id uuid not null references exercises(id) on delete cascade,
   position integer not null check (position in (1, 2)),
+  notes text,
   _notion_id text,
   created_at timestamptz not null default now(),
   unique (exercise_id, position),
@@ -110,13 +111,14 @@ create table exercise_alternates (
 create index exercise_alternates_exercise_id_idx on exercise_alternates(exercise_id);
 
 -- ============================================================
--- programs
+-- templates (one day's prescription; the 18 Notion day templates
+-- and any recovery templates added later)
 -- ============================================================
 
-create table programs (
+create table templates (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  category program_category,
+  category template_category,
   variant text,
   tutorial_url text,
   estimated_minutes integer,
@@ -126,23 +128,28 @@ create table programs (
   updated_at timestamptz not null default now()
 );
 
-create trigger programs_set_updated_at
-  before update on programs
+create trigger templates_set_updated_at
+  before update on templates
   for each row execute function set_updated_at();
 
 -- ============================================================
--- program_exercises (prescription rows for a program template)
+-- template_exercises (prescription rows for a template)
+-- A prescription is one of reps, RIR, or seconds.
 -- ============================================================
 
-create table program_exercises (
+create table template_exercises (
   id uuid primary key default gen_random_uuid(),
-  program_id uuid not null references programs(id) on delete cascade,
+  template_id uuid not null references templates(id) on delete cascade,
   exercise_id uuid not null references exercises(id) on delete restrict,
   position integer not null,
   prescribed_sets_min integer,
   prescribed_sets_max integer,
   prescribed_reps_min integer,
   prescribed_reps_max integer,
+  prescribed_rir_min integer,
+  prescribed_rir_max integer,
+  prescribed_seconds_min integer,
+  prescribed_seconds_max integer,
   prescribed_rest_seconds integer,
   prescribed_rpe text,
   warm_up_sets_min integer,
@@ -153,11 +160,11 @@ create table program_exercises (
   updated_at timestamptz not null default now()
 );
 
-create index program_exercises_program_id_idx on program_exercises(program_id);
-create index program_exercises_exercise_id_idx on program_exercises(exercise_id);
+create index template_exercises_template_id_idx on template_exercises(template_id);
+create index template_exercises_exercise_id_idx on template_exercises(exercise_id);
 
-create trigger program_exercises_set_updated_at
-  before update on program_exercises
+create trigger template_exercises_set_updated_at
+  before update on template_exercises
   for each row execute function set_updated_at();
 
 -- ============================================================
@@ -167,7 +174,7 @@ create trigger program_exercises_set_updated_at
 create table workouts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  program_id uuid references programs(id) on delete set null,
+  template_id uuid references templates(id) on delete set null,
   machine_location machine_location,
   scheduled_for date,
   started_at timestamptz,
@@ -200,6 +207,10 @@ create table workout_exercises (
   prescribed_sets_max integer,
   prescribed_reps_min integer,
   prescribed_reps_max integer,
+  prescribed_rir_min integer,
+  prescribed_rir_max integer,
+  prescribed_seconds_min integer,
+  prescribed_seconds_max integer,
   prescribed_rest_seconds integer,
   prescribed_rpe text,
   warm_up_sets_min integer,
@@ -228,6 +239,7 @@ create table sets (
   is_warm_up boolean not null default false,
   weight numeric(8, 2),
   reps integer,
+  seconds integer,
   rpe numeric(3, 1),
   notes text,
   completed_at timestamptz,
@@ -259,7 +271,7 @@ create trigger user_settings_set_updated_at
 -- Row-Level Security
 --
 -- Library tables (muscle_groups, exercises, exercise_alternates,
--- programs, program_exercises) are global reference data shared
+-- templates, template_exercises) are global reference data shared
 -- across users. Any authenticated user can read them. Writes are
 -- restricted to the service role, which bypasses RLS during the
 -- Notion seed and any future admin tasks.
@@ -271,8 +283,8 @@ create trigger user_settings_set_updated_at
 alter table muscle_groups enable row level security;
 alter table exercises enable row level security;
 alter table exercise_alternates enable row level security;
-alter table programs enable row level security;
-alter table program_exercises enable row level security;
+alter table templates enable row level security;
+alter table template_exercises enable row level security;
 alter table workouts enable row level security;
 alter table workout_exercises enable row level security;
 alter table sets enable row level security;
@@ -288,10 +300,10 @@ create policy "library_read_exercises" on exercises
 create policy "library_read_exercise_alternates" on exercise_alternates
   for select to authenticated using (true);
 
-create policy "library_read_programs" on programs
+create policy "library_read_templates" on templates
   for select to authenticated using (true);
 
-create policy "library_read_program_exercises" on program_exercises
+create policy "library_read_template_exercises" on template_exercises
   for select to authenticated using (true);
 
 -- Per-user tables.
