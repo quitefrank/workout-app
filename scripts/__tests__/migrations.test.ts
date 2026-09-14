@@ -95,7 +95,44 @@ describe("supabase migrations on PGlite", () => {
       "0003_exercise_authoring.sql",
       "0004_programs.sql",
       "0005_recovery.sql",
+      "0006_programs_weekly.sql",
     ]);
+  });
+
+  it("override rule and reason travel together", async () => {
+    const { rows: templateRows } = await pg.query<IdRow>(
+      "insert into templates (name) values ('Override template') returning id",
+    );
+    const templateId = templateRows[0].id;
+    const { rows: exerciseRows } = await pg.query<IdRow>(
+      "insert into exercises (name) values ('Override exercise') returning id",
+    );
+    const exerciseId = exerciseRows[0].id;
+
+    await expect(
+      pg.query(
+        `insert into template_exercises (template_id, exercise_id, position, override_rule)
+         values ($1, $2, 1, 1)`,
+        [templateId, exerciseId],
+      ),
+    ).rejects.toThrow(/template_exercises_override_pair/);
+    await expect(
+      pg.query(
+        `insert into template_exercises (template_id, exercise_id, position, override_reason)
+         values ($1, $2, 1, 'reason without a rule')`,
+        [templateId, exerciseId],
+      ),
+    ).rejects.toThrow(/template_exercises_override_pair/);
+    await pg.query(
+      `insert into template_exercises (template_id, exercise_id, position, override_rule, override_reason)
+       values ($1, $2, 1, 1, 'Protected weight-bearing in the boot is what the handout permits')`,
+      [templateId, exerciseId],
+    );
+    await pg.query(
+      `insert into template_exercises (template_id, exercise_id, position)
+       values ($1, $2, 2)`,
+      [templateId, exerciseId],
+    );
   });
 
   it("exercises.slug is unique among non-null values", async () => {

@@ -280,6 +280,7 @@ export type Database = {
           slug: string | null
           support_required: Database["public"]["Enums"]["support_type"] | null
           updated_at: string
+          video_credit: string | null
           video_url: string | null
           video_verified_at: string | null
         }
@@ -306,6 +307,7 @@ export type Database = {
           slug?: string | null
           support_required?: Database["public"]["Enums"]["support_type"] | null
           updated_at?: string
+          video_credit?: string | null
           video_url?: string | null
           video_verified_at?: string | null
         }
@@ -332,6 +334,7 @@ export type Database = {
           slug?: string | null
           support_required?: Database["public"]["Enums"]["support_type"] | null
           updated_at?: string
+          video_credit?: string | null
           video_url?: string | null
           video_verified_at?: string | null
         }
@@ -374,6 +377,7 @@ export type Database = {
       }
       program_phases: {
         Row: {
+          block: string | null
           created_at: string
           flag: string | null
           flag_source_id: string | null
@@ -389,6 +393,7 @@ export type Database = {
           week_to: number | null
         }
         Insert: {
+          block?: string | null
           created_at?: string
           flag?: string | null
           flag_source_id?: string | null
@@ -404,6 +409,7 @@ export type Database = {
           week_to?: number | null
         }
         Update: {
+          block?: string | null
           created_at?: string
           flag?: string | null
           flag_source_id?: string | null
@@ -681,6 +687,8 @@ export type Database = {
           exercise_id: string
           id: string
           notes: string | null
+          override_reason: string | null
+          override_rule: number | null
           position: number
           prescribed_reps_max: number | null
           prescribed_reps_min: number | null
@@ -703,6 +711,8 @@ export type Database = {
           exercise_id: string
           id?: string
           notes?: string | null
+          override_reason?: string | null
+          override_rule?: number | null
           position: number
           prescribed_reps_max?: number | null
           prescribed_reps_min?: number | null
@@ -725,6 +735,8 @@ export type Database = {
           exercise_id?: string
           id?: string
           notes?: string | null
+          override_reason?: string | null
+          override_rule?: number | null
           position?: number
           prescribed_reps_max?: number | null
           prescribed_reps_min?: number | null
@@ -761,14 +773,17 @@ export type Database = {
       template_phases: {
         Row: {
           phase_id: string
+          position: number | null
           template_id: string
         }
         Insert: {
           phase_id: string
+          position?: number | null
           template_id: string
         }
         Update: {
           phase_id?: string
+          position?: number | null
           template_id?: string
         }
         Relationships: [
