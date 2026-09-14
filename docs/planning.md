@@ -82,8 +82,10 @@ Database tables use neutral names. UI screens use the Notion vocabulary you alre
 | `sets` | Set | Parsed from Weight CSV |
 | `exercises` | Exercise | Exercises |
 | `muscle_groups` | Muscle group | Muscle Groups |
-| `programs` | Program | The 18 day templates |
-| `program_exercises` | Prescribed exercise | Sessions rows attached to a template |
+| `templates` | Template | The 18 day templates |
+| `template_exercises` | Prescribed exercise | Sessions rows attached to a template |
+
+> Updated [2026-09-14]: `programs` was renamed to `templates`. "Program" now means a multi-week programme with phases (the recovery protocol first). See the recovery design spec.
 
 ## Data Model
 

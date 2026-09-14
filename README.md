@@ -32,7 +32,7 @@ PWA shell. No screens. No auth UI. No analytics page.
 Run `bun run build` to confirm the project compiles. Run `bun test` to
 exercise the parsers (63 tests across the three parsing modules).
 
-**Milestone 2 (next).** Screens: calendar home, active workout, program
+**Milestone 2 (next).** Screens: calendar home, active workout, template
 detail, exercise library, history, analytics.
 
 ## Local development
@@ -87,7 +87,7 @@ analytics views. See `supabase/migrations/0001_initial_schema.sql` and
 `supabase/migrations/0002_analytics_views.sql`.
 
 Library tables (`muscle_groups`, `exercises`, `exercise_alternates`,
-`programs`, `program_exercises`) allow reads by any authenticated user.
+`templates`, `template_exercises`) allow reads by any authenticated user.
 Per-user tables (`workouts`, `workout_exercises`, `sets`,
 `user_settings`) filter by `auth.uid()`.
 
@@ -107,7 +107,7 @@ The seed writes a verification report to `scripts/seed-report.json` with:
 - Exercises flagged `equipment_type=other` (need a hand-fix)
 - Exercises with `machine_location` set
 - Notion Sessions rows whose `Weight` field failed to parse, with their Notion URLs
-- Programs whose category could not be inferred from the name
+- Templates whose category could not be inferred from the name
 
 The Weight CSV parser lives at `scripts/parse-weight-csv.ts` with full
 test coverage in `scripts/__tests__/parse-weight-csv.test.ts`.

@@ -42,7 +42,7 @@ client directly.
   `refactor:`, `test:`.
 - Every Postgres table has RLS on.
 - Library tables (muscle_groups, exercises, exercise_alternates,
-  programs, program_exercises) read for any authenticated user.
+  templates, template_exercises) read for any authenticated user.
 - Per-user tables (workouts, workout_exercises, sets, user_settings)
   filter by `auth.uid()`.
 - Parsers get tests before they hit real data.
@@ -64,11 +64,16 @@ Source of truth lives in `supabase/migrations/0001_initial_schema.sql`.
 
 Nine tables:
 - `muscle_groups`, `exercises`, `exercise_alternates` (library, global)
-- `programs`, `program_exercises` (templates, global)
+- `templates`, `template_exercises` (day templates, global)
 - `workouts`, `workout_exercises`, `sets` (per-user logs)
 - `user_settings` (per-user preferences)
 
-Four enums: `equipment_type`, `machine_location`, `program_category`,
+Vocabulary, top to bottom: Program (multi-week, has phases) > Template
+(one day's prescription) > Workout (a template performed on a date) >
+Set. Programs and the recovery tables arrive in migrations 0003 to
+0005; see `docs/superpowers/specs/2026-09-14-achilles-recovery-design.md`.
+
+Four enums: `equipment_type`, `machine_location`, `template_category`,
 `weight_unit`.
 
 Five analytics views in `0002_analytics_views.sql`, all with
@@ -116,6 +121,6 @@ CSV parse failures (with Notion URLs).
 ## What's next (Milestone 2)
 
 - Auth UI (Supabase magic link)
-- Screens per `docs/planning.md`: calendar home, program detail,
+- Screens per `docs/planning.md`: calendar home, template detail,
   active workout, history, exercise library, analytics, settings
 - Drop the `_notion_id` columns once migration is verified

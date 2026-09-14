@@ -241,11 +241,11 @@ From the rules disclosure and Block A in `06` (ambient walking bouts building to
 | `events`, `rules`, `daily_checks` | all, owner via `recoveries.user_id` |
 | `clearances` | select and insert via `recoveries.user_id`; update restricted to `voided_at` |
 
-Every table has RLS on. The analytics views in `0002` are rewritten for the renamed tables and keep `security_invoker = true`.
+Every table has RLS on. The analytics views in `0002` never referenced `programs` and need no change; they keep `security_invoker = true`.
 
 ### 4.10 Migration files
 
-`0001_initial_schema.sql` is edited in place for the rename (section 3), the dose columns (4.4), and `exercise_alternates.notes` (4.5). `0002_analytics_views.sql` is edited for the rename. Then:
+`0001_initial_schema.sql` is edited in place for the rename (section 3), the dose columns (4.4), and `exercise_alternates.notes` (4.5). `0002_analytics_views.sql` is untouched. Then:
 
 | File | Contents |
 |---|---|
