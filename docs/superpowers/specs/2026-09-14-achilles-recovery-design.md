@@ -260,6 +260,22 @@ Every table has RLS on. The analytics views in `0002` never referenced `programs
 
 The `_notion_id` columns stay until the Notion seed has run clean once, per the existing plan.
 
+### 4.11 Training programmes
+
+The programmes model in 4.6 also carries multi-week training programmes (`kind = training`), so the app can answer "what do I do today" from the current phase and the ordered templates inside it, without the user choosing a template.
+
+**Weekly phases, grouped by block.** A training programme gets one `program_phases` row per week: `position` counts weeks from 1, `week_from` is the week number minus one, `week_to` is the week number, `label` names the week and its block, and `block` (added in `0006`) carries the block name so consecutive weeks group under it. `load_pct`, `gate`, `guidance` and `flag` stay null or empty; the recovery program is the only one that uses them. The recovery program's phases keep `block` null.
+
+**Template ordering.** Each day of each week is its own template row: `program_id` points at the programme, `category` comes from the day name, `variant` is the week (`W1`, `W2`, ...), and `_notion_id` is the key `program:<programme>:<block>:<week>:<day>`. The template joins its phase through `template_phases`, and `template_phases.position` (added in `0006`) is the day's index inside that week, so the app orders the templates of a phase without parsing names. A template belongs to exactly one phase in a training programme; the recovery templates keep their many-to-many use of the same table.
+
+**Prescription columns.** `template_exercises` carries the programme's warm-up sets, working sets, reps or seconds, RPE (`prescribed_rpe`, text as written) and rest (`prescribed_rest_seconds`, midpoint of a range). Anything the source wrote that the dose grammar (4.4) cannot hold, per-set rep lists, drop sets, a load cue, lands in `notes`. The dose modifier is appended to `notes` as well.
+
+**Substitutions.** A programme's substitution options become `exercise_alternates` rows on the exercise, keyed `program:<programme>:<slug>:<position>` in `_notion_id`. A slot already holding a library row's Notion sub-option, or another programme's alternate, is never overwritten; the seed reports it with what it holds and what was wanted.
+
+**The JSON contract.** Every programme arrives as JSON in the shape defined by `scripts/data/programs/schema.ts`: a programme has `name`, `kind`, `description`, `citation`, `sourceUrl` and `blocks`; a block has `name` and `weeks`; a week has a `week` number (global, counting from 1 across blocks) and `days`; a day has `name` and `exercises`; an exercise has `name`, `warmUp`, `dose`, `rpe`, `rest`, `sub1`, `sub2` and `notes`, every one a string or null except `dose`, which is a string the dose grammar accepts. `validateProgramJson` checks the shape and the week numbering; the seed parses every dose before its first write. The contract is the interface a future in-app importer produces, so programmes can be added without a converter. Programme content is copyrighted: the JSON files are gitignored except a made-up example, and the workbook and PDFs stay in the vault.
+
+**Converters.** `scripts/lib/ppl-sheet.ts` turns the push-pull-legs workbook into the contract and returns any row it could not place or dose alongside the programme; the CLI refuses to write when that list is non-empty. The other four Nippard PDFs are next: each gets its own converter or a hand-written JSON in the same contract, and `scripts/seed-programs.ts` loads it unchanged.
+
 ## 5. Domain rules
 
 Pure TypeScript in `src/lib/recovery/`, no Supabase import, every function unit-tested with value assertions.
@@ -367,4 +383,4 @@ Plans 0 to 2 need nothing from the screens spec. Plan 0 needs the user's Supabas
 
 ## 12. Deferred to the screens spec
 
-Every route, the calendar home's recovery strip, the protocol chart, the clearance and event forms, the daily check-in, the template and workout screens with timed sets and RIR, the library and analytics additions, settings, sources, the theme, the Tailwind tokens, the contrast and type audits, PWA polish, and deployment. Also deferred: an in-app template builder that runs section 6 live, and runtime eligibility badges, which the user has said he does not want as UI.
+Every route, the calendar home's recovery strip, the protocol chart, the clearance and event forms, the daily check-in, the template and workout screens with timed sets and RIR, the library and analytics additions, settings, sources, the theme, the Tailwind tokens, the contrast and type audits, PWA polish, and deployment. Also deferred: an in-app template builder that runs section 6 live; runtime eligibility badges, which the user has said he does not want as UI; and an in-app importer that produces programme JSON (4.11) from a pasted sheet or CSV, which is how programmes get added without Claude Code once the four remaining Nippard PDFs have their JSON.

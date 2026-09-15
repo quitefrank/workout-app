@@ -15,6 +15,8 @@ bun run test:watch       # Vitest watch mode
 bun run lint             # ESLint
 bun run seed:notion      # One-time Notion -> Supabase seed
 bun run seed:achilles    # Achilles program, exercises, templates, personal rows
+bun run convert:ppl      # Vault workbook -> programme JSON (gitignored)
+bun run seed:programs    # Every programme JSON -> programs, phases, templates
 bun run icons:generate   # Re-render placeholder PWA icons
 supabase db push         # Apply migrations to linked cloud project
 ```
@@ -94,7 +96,7 @@ known good.
 
 ## Parsers
 
-Five pure modules with full unit-test coverage:
+Six pure modules with full unit-test coverage:
 
 - `scripts/parse-weight-csv.ts` Parse the Notion Sessions Weight CSV
   (`"50, 70, 90, 100(5), 100(4)"`) into structured set rows.
@@ -107,8 +109,11 @@ Five pure modules with full unit-test coverage:
   category and variant inference from a template name.
 - `scripts/lib/session-order.ts` Order a workout's Sessions rows by the
   workout page's relation, reversed, with unlisted rows appended.
+- `scripts/lib/ppl-sheet.ts` Parse a programme workbook's rows (as
+  arrays) into the programme JSON contract; returns the rows it could
+  not place or dose alongside the programme, never drops them.
 
-Run `bun run test` to exercise them. 175 tests across 11 files.
+Run `bun run test` to exercise them. 226 tests across 15 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -156,6 +161,47 @@ Idempotent. After running, check `scripts/seed-achilles-report.json`
 for row counts, which exercises matched versus inserted, alternate
 slots kept as they were, unverified videos, rejected doses, and the
 overrides recorded.
+
+## Programmes
+
+A training programme is blocks of weeks; each week has ordered days;
+each day has ordered exercises with a prescription. That shape is the
+JSON contract in `scripts/data/programs/schema.ts` (types plus
+`validateProgramJson`), and `scripts/data/programs/example.json` is a
+tiny made-up programme in it. Every seeded programme and, later, every
+programme imported through the app arrives in this contract.
+
+Programme content is copyrighted, so `scripts/data/programs/*.json` is
+gitignored except the example, and the seed loads whatever JSON files
+are present. `bun run convert:ppl` reads the push-pull-legs workbook
+from the vault (`Personal/raw/training/`) and writes its JSON; the
+converter exits 1 and writes nothing when any exercise row could not
+be placed or turned into a dose, and prints every such row.
+
+`bun run seed:programs` loads every programme JSON. It validates every
+file and parses every dose before the first write, so a bad file fails
+the run with nothing changed. One `programs` row per file; one
+`program_phases` row per week with the block name in `block`; one
+template per day per week, keyed `program:<programme>:<block>:<week>:<day>`
+in `_notion_id`, with `variant` set to the week (`W1`, `W2`, ...) and
+ordered inside its phase by `template_phases.position`. Exercises match
+the library by slug; unknown ones are inserted with the equipment type
+the name implies, no muscle group and no authoring inputs (the report
+lists them, and `other` means hand-fix). A programme's substitutions
+become alternates on the exercise row, keyed
+`program:<programme>:<slug>:<position>`; a slot already holding a Notion
+sub-option or another programme's alternate is left alone and reported.
+Templates and phases the JSON no longer has are removed. The
+Notion-derived templates (`template:` keys) and the Achilles ones
+(`achilles:` keys) are never touched.
+
+Idempotent. After running, check `scripts/seed-programs-report.json`
+for row counts, exercises inserted versus matched, alternates written
+and kept, and any stale rows removed.
+
+The other four Nippard PDFs in `Personal/raw/training/` are next. Each
+gets its own converter or a hand-written JSON in the same contract, and
+the same seed loads it without changes.
 
 ## What's done (Milestone 1)
 

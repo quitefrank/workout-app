@@ -29,9 +29,9 @@ Mirrors the conventions in `Personal/projects/nutrition-app/v1/` (Plately).
 **Milestone 1 (current).** Scaffold, database schema, Notion seed script,
 PWA shell. No screens. No auth UI. No analytics page.
 
-Run `bun run build` to confirm the project compiles. Run `bun test` to
-exercise the parsers (63 parser tests across the three parsing modules
-(the suite is now 153 with the recovery domain and migration tests)).
+Run `bun run build` to confirm the project compiles. Run `bun run test`
+to exercise the parsers, the recovery domain, the programme contract and
+the migrations (226 tests across 15 files).
 
 **Milestone 2 (next).** Screens: calendar home, active workout, template
 detail, exercise library, history, analytics.
@@ -153,6 +153,39 @@ row counts, which exercises matched versus inserted, alternate slots
 kept as they were, unverified videos, rejected doses, and the overrides
 recorded.
 
+## Programmes
+
+```bash
+bun run convert:ppl      # vault workbook -> scripts/data/programs/<name>.json
+bun run seed:programs    # every programme JSON -> Supabase
+```
+
+A programme is blocks of weeks, each week ordered days, each day
+ordered exercises with a prescription. The JSON contract lives in
+`scripts/data/programs/schema.ts`; `example.json` next to it shows the
+shape with made-up content. Programme content is copyrighted, so every
+other JSON in that folder is gitignored and the seed loads whatever is
+present.
+
+The converter writes nothing and exits 1 if any row of the workbook
+could not be placed or turned into a dose, and prints those rows. The
+seed validates every file and parses every dose before its first write.
+It creates one `programs` row per file, one `program_phases` row per
+week (block name in `block`), and one template per day per week,
+ordered inside its phase by `template_phases.position`. Exercises match
+the library by slug; unknown ones are inserted with the equipment type
+the name implies and no authoring inputs. Substitutions become
+alternates on the exercise row; a slot that already holds a Notion
+sub-option is left alone and reported. The Notion and Achilles
+templates are never touched.
+
+Idempotent. The seed writes `scripts/seed-programs-report.json` with
+row counts, exercises inserted versus matched, and alternates written
+and kept.
+
+The other four Nippard PDFs are next. Each becomes JSON in the same
+contract, by its own converter or by hand, and the same seed loads it.
+
 ## Project structure
 
 ```
@@ -164,12 +197,17 @@ recorded.
 │   ├── parse-weight-csv.ts     # pure parser, used by seed
 │   ├── seed-from-notion.ts     # one-time Notion -> Supabase migration
 │   ├── seed-achilles.ts        # Achilles program, exercises, templates, personal rows
+│   ├── seed-programs.ts        # every programme JSON -> programs, phases, templates
+│   ├── convert-ppl-sheet.ts    # vault workbook -> programme JSON
 │   ├── data/achilles/          # committed seed data + gitignored personal.local.json
+│   ├── data/programs/          # JSON contract (schema.ts), example.json, gitignored programme JSON
 │   ├── generate-icons.ts       # placeholder PWA icon generator
 │   ├── lib/
 │   │   ├── env.ts              # env var loader and validator
 │   │   ├── parse-prescription.ts # parse "3-5", "3 mins" etc
-│   │   └── exercise-name.ts    # parse ↑↓ arrows, infer equipment_type
+│   │   ├── exercise-name.ts    # parse ↑↓ arrows, infer equipment_type
+│   │   ├── template-name.ts    # canonical template names, category and variant
+│   │   └── ppl-sheet.ts        # workbook rows -> programme JSON, with skipped rows
 │   └── __tests__/              # Vitest unit tests for the parsers
 ├── src/
 │   └── app/                    # Next.js App Router
