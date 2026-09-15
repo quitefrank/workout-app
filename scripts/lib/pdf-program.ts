@@ -45,14 +45,15 @@ function capitalise(word: string): string {
 /**
  * Title-case an all-caps PDF name: each word and each hyphen, slash,
  * bracket, comma or colon part capitalised, known acronyms kept, small
- * words lowered after the first. Punctuation stays where it is.
+ * words lowered between the first and the last (a final "A" is a label,
+ * as in "Supplemental A"). Punctuation stays where it is.
  */
 export function titleCaseName(raw: string): string {
   const words = (cellText(raw) ?? "").split(" ");
   return words
     .map((word, i) => {
       const lower = word.toLowerCase();
-      if (i > 0 && SMALL_WORDS.has(lower)) return lower;
+      if (i > 0 && i < words.length - 1 && SMALL_WORDS.has(lower)) return lower;
       return word
         .split(/([-/(),:])/)
         .map((part) => (/^[-/(),:]$/.test(part) ? part : capitalise(part)))

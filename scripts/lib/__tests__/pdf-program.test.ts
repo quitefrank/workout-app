@@ -24,6 +24,12 @@ describe("titleCaseName", () => {
     expect(titleCaseName("ROUND-BACK DUMBBELL 45° HYPEREXTENSION")).toBe("Round-Back Dumbbell 45° Hyperextension");
     expect(titleCaseName("MILITARY PRESS / PUSH PRESS COMPLEX")).toBe("Military Press / Push Press Complex");
     expect(titleCaseName("NECK FLEXION/EXTENSION")).toBe("Neck Flexion/Extension");
+    expect(titleCaseName("STANDING EZ BAR CURL (DESCENDING ROM)")).toBe("Standing EZ Bar Curl (Descending ROM)");
+  });
+
+  it("keeps a label letter at the end of a day name", () => {
+    expect(titleCaseName("SUPPLEMENTAL A")).toBe("Supplemental A");
+    expect(titleCaseName("LEGS #1")).toBe("Legs #1");
   });
 });
 
