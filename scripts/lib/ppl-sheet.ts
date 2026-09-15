@@ -75,7 +75,8 @@ export function doseFromSheet(working: Cell, reps: Cell): SheetDose | null {
 const PHASE_RE = /^Phase\s+\d+\s*-\s*(.+?)\s*(?:\(.*\))?$/i;
 const WEEK_RE = /^Week\s+(\d+)$/i;
 const DAY_RE = /^(.*?)\s*#\d+$/;
-const SUPERSET_RE = /^([A-Z])(\d)[.:]\s*/;
+/** "A1: " or "B2. " superset prefix; group 1 is the letter, group 2 the slot. Shared with the PDF converters. */
+export const SUPERSET_RE = /^([A-Z])(\d)[.:]\s*/;
 
 /** An exercise row the parser could not place or could not turn into a dose. */
 export type PplSkippedRow = {

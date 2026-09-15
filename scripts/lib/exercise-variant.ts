@@ -25,18 +25,24 @@ const ALIASES: Record<string, VariantSplit> = {
 };
 
 /** Parenthetical set types, matched whole and case-insensitively; the variant keeps the source spelling. */
-const SET_TYPE_RE = /^(top set|back ?off(?: amrap)?|feeder sets?|failure set|heavy|light|drop ?set|rest[- ]?pause|myo[- ]?reps?|amrap|cluster)$/i;
+const SET_TYPE_RE = /^(top set|back ?off(?: amrap)?|feeder sets?|failure set|heavy|light|drop ?set|rest[- ]?pause|myo[- ]?reps?|amrap|cluster|(?:reverse )?21'?s|descending rom|metabolic|optional)$/i;
 const REP_HINT_RE = /^\d+(?:\s*-\s*\d+)?\s*reps?$/i;
 const SECONDS_RE = /^\d+\s*s(?:ec)?$/i;
 const TEMPO_RE = /^\d+\s*up,?\s*\d+\s*down$/i;
 const TRAILING_PAREN_RE = /^(.*?)\s*\(([^()]*)\)\s*$/;
 const TRAILING_SECONDS_RE = /^(.*?)\s+(\d+s)$/i;
-const TRAILING_SCHEME_RE = /^(.*?)\s+(ladder|21's|21s)$/i;
+const TRAILING_SCHEME_RE = /^(.*?)\s+(ladder|(?:reverse )?21'?s)$/i;
 const LEADING_SLOW_RE = /^slow\s+(.+)$/i;
 const LEADING_HALF_RE = /^(squeeze|stretch)-only\s+(.+)$/i;
 
 function collapse(s: string): string {
   return s.replace(/\s+/g, " ").trim();
+}
+
+/** A trailing scheme word as the variant: "21s" is spelled "21's", a leading "reverse" is capitalised, "ladder" keeps the source spelling. */
+function schemeVariant(raw: string): string {
+  if (!/21'?s$/i.test(raw)) return raw;
+  return raw.replace(/21'?s$/i, "21's").replace(/^reverse\s+/i, "Reverse ");
 }
 
 export function splitVariant(rawName: string): VariantSplit {
@@ -77,7 +83,7 @@ export function splitVariant(rawName: string): VariantSplit {
   // Scheme before seconds: "21s" is the 21's scheme, not 21 seconds.
   const scheme = TRAILING_SCHEME_RE.exec(name);
   if (scheme) {
-    variantParts.push(scheme[2].toLowerCase() === "21s" ? "21's" : scheme[2]);
+    variantParts.push(schemeVariant(scheme[2]));
     name = scheme[1];
   }
 

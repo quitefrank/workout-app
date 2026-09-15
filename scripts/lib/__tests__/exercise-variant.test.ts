@@ -46,6 +46,15 @@ describe("splitVariant", () => {
     expect(splitVariant("Stretch-Only Overhead Triceps Extension")).toEqual({ name: "Overhead Triceps Extension", variant: "Stretch-only", dropped: null });
   });
 
+  it("handles the PDF spellings of rep schemes and optional rows", () => {
+    expect(splitVariant("Incline Dumbbell Curl (Reverse 21's)")).toEqual({ name: "Incline Dumbbell Curl", variant: "Reverse 21's", dropped: null });
+    expect(splitVariant("Incline Dumbbell Curl Reverse 21's")).toEqual({ name: "Incline Dumbbell Curl", variant: "Reverse 21's", dropped: null });
+    expect(splitVariant("Standing EZ Bar Curl (Descending ROM)")).toEqual({ name: "Standing EZ Bar Curl", variant: "Descending ROM", dropped: null });
+    expect(splitVariant("Reverse Grip EZ Bar Curl (Metabolic)")).toEqual({ name: "Reverse Grip EZ Bar Curl", variant: "Metabolic", dropped: null });
+    expect(splitVariant("Neck Flexion/Extension (Optional)")).toEqual({ name: "Neck Flexion/Extension", variant: "Optional", dropped: null });
+    expect(splitVariant("Weighted Dip (Close Grip)")).toEqual({ name: "Weighted Dip (Close Grip)", variant: null, dropped: null });
+  });
+
   it("applies the explicit aliases first", () => {
     expect(splitVariant("EZ-Bar Modified Bicep 21's")).toEqual({ name: "EZ-Bar Curl", variant: "Modified 21's", dropped: null });
     expect(splitVariant("Squat or Machine Squat")).toEqual({ name: "Squat", variant: null, dropped: null });
