@@ -5,8 +5,11 @@
  * row (template_exercises.variant).
  *
  * Only known set-type words move to the variant; any other
- * parenthetical ("(Side Delt)", "(Flat)") is part of the name. A rep
- * hint or a seconds suffix is dropped, since the dose already says it.
+ * parenthetical ("(Side Delt)", "(Flat)") is part of the name. A
+ * leading "Slow Eccentric", "Slow" or "Tempo" is a set type too; a
+ * leading "Pause" or "Enhanced-Eccentric" is part of the exercise, as
+ * in Frank's Notion rows. A rep hint or a seconds suffix is dropped,
+ * since the dose already says it.
  * A cell naming two movements joined by " + " is a superset performed
  * as one set; splitCompound turns it into two rows.
  */
@@ -32,7 +35,8 @@ const TEMPO_RE = /^\d+\s*up,?\s*\d+\s*down$/i;
 const TRAILING_PAREN_RE = /^(.*?)\s*\(([^()]*)\)\s*$/;
 const TRAILING_SECONDS_RE = /^(.*?)\s+(\d+s)$/i;
 const TRAILING_SCHEME_RE = /^(.*?)\s+(ladder|(?:reverse )?21'?s)$/i;
-const LEADING_SLOW_RE = /^slow\s+(.+)$/i;
+/** A leading technique phrase that is a set type, not part of the exercise; "pause" and "enhanced-eccentric" stay in the name, as in Notion. */
+const LEADING_TECHNIQUE_RE = /^(slow eccentric|slow|tempo)\s+(.+)$/i;
 const LEADING_HALF_RE = /^(squeeze|stretch)-only\s+(.+)$/i;
 
 function collapse(s: string): string {
@@ -59,10 +63,10 @@ export function splitVariant(rawName: string): VariantSplit {
     name = half[2];
   }
 
-  const slow = LEADING_SLOW_RE.exec(name);
-  if (slow) {
-    variantParts.push("Slow");
-    name = slow[1];
+  const technique = LEADING_TECHNIQUE_RE.exec(name);
+  if (technique) {
+    variantParts.push(technique[1].split(" ").map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(" "));
+    name = technique[2];
   }
 
   const paren = TRAILING_PAREN_RE.exec(name);

@@ -38,7 +38,16 @@ describe("splitVariant", () => {
 
   it("joins a leading tempo word with its parenthetical", () => {
     expect(splitVariant("Slow Seated Leg Curl (3 up, 3 down)")).toEqual({ name: "Seated Leg Curl", variant: "Slow (3 up, 3 down)", dropped: null });
-    expect(splitVariant("Slow Eccentric Curl")).toEqual({ name: "Eccentric Curl", variant: "Slow", dropped: null });
+    expect(splitVariant("Slow Eccentric Curl")).toEqual({ name: "Curl", variant: "Slow Eccentric", dropped: null });
+  });
+
+  it("moves a leading slow eccentric or tempo phrase onto the variant as one unit", () => {
+    expect(splitVariant("Slow Eccentric Goblet Squat")).toEqual({ name: "Goblet Squat", variant: "Slow Eccentric", dropped: null });
+    expect(splitVariant("Slow Eccentric Dip")).toEqual({ name: "Dip", variant: "Slow Eccentric", dropped: null });
+    expect(splitVariant("Tempo Back Squat")).toEqual({ name: "Back Squat", variant: "Tempo", dropped: null });
+    expect(splitVariant("Tempo Standing Calf Raise")).toEqual({ name: "Standing Calf Raise", variant: "Tempo", dropped: null });
+    expect(splitVariant("Pause Squat")).toEqual({ name: "Pause Squat", variant: null, dropped: null });
+    expect(splitVariant("Enhanced-Eccentric Leg Extension")).toEqual({ name: "Enhanced-Eccentric Leg Extension", variant: null, dropped: null });
   });
 
   it("moves a squeeze-only or stretch-only prefix onto the variant", () => {
