@@ -20,14 +20,16 @@
  * keeps its own row with attributes, and nothing aliases to an upstairs
  * or downstairs row. Equipment comes from the name, or from the source
  * notes when the name is silent ("barbell or EZ bar" is barbell, "DB,
- * cable or band" is other). Forearm work sits under Biceps and neck
- * work under Shoulders, the nearest groups the library has.
+ * cable or band" is other). Wrist curls and farmer's walks are
+ * Forearms and neck work is Neck: two groups Notion never had, which
+ * the seed inserts (stamped "program:muscle-group:<slug>") when a row
+ * here names them.
  */
 
 import type { EquipmentType } from "../../lib/exercise-name";
 
 export const MUSCLE_GROUP_NAMES = [
-  "Abs", "Back", "Biceps", "Calves", "Cardio", "Chest", "Glutes", "Hamstrings", "Quadriceps", "Shoulders", "Stretches", "Triceps",
+  "Abs", "Back", "Biceps", "Calves", "Cardio", "Chest", "Forearms", "Glutes", "Hamstrings", "Neck", "Quadriceps", "Shoulders", "Stretches", "Triceps",
 ] as const;
 export type MuscleGroupName = (typeof MUSCLE_GROUP_NAMES)[number];
 
@@ -136,9 +138,9 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "enhanced-eccentric-leg-extension": { muscleGroup: "Quadriceps", equipmentType: "machine" },
   "enhanced-eccentric-lying-leg-curl": { muscleGroup: "Hamstrings", equipmentType: "machine" },
   "face-pull": { muscleGroup: "Shoulders", equipmentType: "cable" },
-  "farmers-walks": { muscleGroup: "Biceps", equipmentType: "other" },
+  "farmers-walks": { muscleGroup: "Forearms", equipmentType: "other" },
   "flat-back-bench-press": { muscleGroup: "Chest", equipmentType: "barbell" },
-  "forearm-wrist-curl": { muscleGroup: "Biceps", equipmentType: "other" },
+  "forearm-wrist-curl": { muscleGroup: "Forearms", equipmentType: "other" },
   "glute-ham-raise": { muscleGroup: "Hamstrings", equipmentType: "machine" },
   "hammer-cheat-curl": { muscleGroup: "Biceps", equipmentType: "dumbbell" },
   "high-bar-box-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
@@ -161,7 +163,7 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "machine-high-row": { muscleGroup: "Back", equipmentType: "machine" },
   "machine-preacher-curl": { muscleGroup: "Biceps", equipmentType: "machine" },
   "n1-style-cross-body-triceps-extension": { muscleGroup: "Triceps", equipmentType: "cable" },
-  "neck-flexion-extension": { muscleGroup: "Shoulders", equipmentType: "other" },
+  "neck-flexion-extension": { muscleGroup: "Neck", equipmentType: "other" },
   "omni-direction-face-pull": { muscleGroup: "Shoulders", equipmentType: "cable" },
   "omni-grip-machine-chest-supported-row": { muscleGroup: "Back", equipmentType: "machine" },
   "overhead-press": { muscleGroup: "Shoulders", equipmentType: "barbell" },
@@ -176,7 +178,7 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "preacher-death-curls": { muscleGroup: "Biceps", equipmentType: "other" },
   "press-around": { muscleGroup: "Chest", equipmentType: "cable" },
   "reverse-grip-ez-bar-curl": { muscleGroup: "Biceps", equipmentType: "other" },
-  "reverse-grip-forearm-wrist-curl": { muscleGroup: "Biceps", equipmentType: "other" },
+  "reverse-grip-forearm-wrist-curl": { muscleGroup: "Forearms", equipmentType: "other" },
   "reverse-pec-deck": { muscleGroup: "Shoulders", equipmentType: "machine" },
   "rope-upright-row": { muscleGroup: "Shoulders", equipmentType: "cable" },
   "round-back-dumbbell-45-hyperextension": { muscleGroup: "Glutes", equipmentType: "dumbbell" },

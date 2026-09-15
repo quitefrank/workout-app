@@ -15,6 +15,7 @@
  *   program:<programme>:<block>:<week>:<day>:<n>    template_exercises
  *   program:<programme>:<slug>:<position>           exercise_alternates
  *   program:exercise:<slug>                         exercises it inserted
+ *   program:muscle-group:<slug>                     muscle_groups it inserted
  *
  * For each programme in the loaded files, the seed clears and rewrites
  * its template_exercises and template_phases, removes its templates and
@@ -39,7 +40,10 @@
  * substitution is inserted only when the slot it fills will actually be
  * written. After the unreferenced rows go, LIBRARY_ATTRIBUTES gives
  * every seed-owned row its muscle group and equipment, on every run, so
- * a fresh database ends up the same; curated rows are never touched.
+ * a fresh database ends up the same; curated rows are never touched. A
+ * muscle group the attributes name that muscle_groups lacks is inserted
+ * as a seed-owned row (Notion never had Forearms or Neck); a group
+ * already present is never modified and no group is ever deleted.
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -53,9 +57,10 @@ import { inferTemplateCategory } from "./lib/template-name";
 import { parseRange, parseRestSeconds } from "./lib/parse-prescription";
 import { parseDose } from "../src/lib/recovery/dose";
 import { validateProgramJson, type ProgramJson } from "./data/programs/schema";
-import { LIBRARY_ALIASES, LIBRARY_ATTRIBUTES } from "./data/programs/library";
+import { LIBRARY_ALIASES, LIBRARY_ATTRIBUTES, MUSCLE_GROUP_NAMES } from "./data/programs/library";
 
 const EXERCISE_OWNER = "program:exercise:";
+const MUSCLE_GROUP_OWNER = "program:muscle-group:";
 
 type Report = {
   programs: { name: string; weeks: number; templates: number; templateExercises: number }[];
@@ -72,6 +77,8 @@ type Report = {
   attributesApplied: string[];
   /** LIBRARY_ATTRIBUTES keys that are not seed-owned rows (aliased away, renamed, or never inserted). */
   attributesUnused: string[];
+  /** Muscle groups LIBRARY_ATTRIBUTES names that muscle_groups lacked; inserted seed-owned this run. */
+  muscleGroupsInserted: string[];
   /** Seed-inserted exercises nothing references any more; deleted at the end of the run. */
   exercisesRemoved: string[];
   /** Seed-owned exercises with no muscle group, or with no LIBRARY_ATTRIBUTES entry (even if hand-set in the database); computed every run. */
@@ -320,6 +327,7 @@ async function main() {
     aliasesMissing: [],
     attributesApplied: [],
     attributesUnused: [],
+    muscleGroupsInserted: [],
     exercisesRemoved: [],
     handFix: [],
     rejectedDoses: [],
@@ -638,13 +646,27 @@ async function main() {
 
   // 5. Attributes for seed-owned rows from LIBRARY_ATTRIBUTES. Curated
   // rows are never touched; a key that is not a seed-owned row (aliased
-  // away, or renamed) is reported so the table does not rot.
+  // away, or renamed) is reported so the table does not rot. A muscle
+  // group the table names that the database lacks is inserted once,
+  // seed-owned, after the existing ones; a group already there, whoever
+  // owns it, is left as it is, and no group is ever deleted.
   console.log("\n[5/7] library attributes");
-  const { data: groups, error: gErr } = await sb.from("muscle_groups").select("id,name");
+  const { data: groups, error: gErr } = await sb.from("muscle_groups").select("id,name,display_order");
   if (gErr) fail(`muscle_groups listing failed: ${gErr.message}`);
   const groupId = new Map((groups ?? []).map((g) => [g.name as string, g.id as string]));
+  let nextGroupOrder = Math.max(0, ...(groups ?? []).map((g) => (g.display_order as number | null) ?? 0)) + 1;
   for (const [slug, a] of Object.entries(LIBRARY_ATTRIBUTES)) {
-    if (!groupId.has(a.muscleGroup)) fail(`LIBRARY_ATTRIBUTES ${slug}: muscle group "${a.muscleGroup}" is not in muscle_groups`);
+    if (!MUSCLE_GROUP_NAMES.includes(a.muscleGroup)) fail(`LIBRARY_ATTRIBUTES ${slug}: muscle group "${a.muscleGroup}" is not in MUSCLE_GROUP_NAMES`);
+    if (groupId.has(a.muscleGroup)) continue;
+    const { data: inserted, error: insErr } = await sb
+      .from("muscle_groups")
+      .insert({ name: a.muscleGroup, display_order: nextGroupOrder, _notion_id: `${MUSCLE_GROUP_OWNER}${exerciseSlug(a.muscleGroup, null)}` })
+      .select("id")
+      .single();
+    if (insErr) fail(`muscle group insert failed (${a.muscleGroup}): ${insErr.message}`);
+    groupId.set(a.muscleGroup, inserted.id as string);
+    nextGroupOrder++;
+    report.muscleGroupsInserted.push(a.muscleGroup);
   }
   const { data: ownedRows, error: ownedRowsErr } = await sb
     .from("exercises")
@@ -667,7 +689,7 @@ async function main() {
     if (updErr) fail(`attribute update failed (${slug}): ${updErr.message}`);
     report.attributesApplied.push(slug);
   }
-  console.log(`  ${report.attributesApplied.length} applied, ${report.attributesUnused.length} unused keys`);
+  console.log(`  ${report.attributesApplied.length} applied, ${report.attributesUnused.length} unused keys, ${report.muscleGroupsInserted.length} muscle groups inserted`);
 
   // 6. Report-only findings: orphans and hand-fixes.
   console.log("\n[6/7] orphans and hand-fixes");

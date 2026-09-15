@@ -101,7 +101,9 @@ Every seeded table has a `_notion_id` text column. It began as the
 Notion upsert key and is now the ownership key for three seeds
 (`template:` for Notion-derived templates, `achilles:` for the recovery
 seed, `program:` for the programme seed), so each seed clears and
-rewrites only its own rows. The column stays.
+rewrites only its own rows. The column stays. The programme seed also
+stamps the muscle groups it adds (`program:muscle-group:<slug>`, so far
+Forearms and Neck) when `LIBRARY_ATTRIBUTES` names one Notion never had.
 
 ## Parsers
 
@@ -238,9 +240,13 @@ the curated Notion row it really is (`bench-press` to
 `bench-press-flat`), tried before near-duplicate matching; and
 `LIBRARY_ATTRIBUTES` gives muscle group and equipment to the exercises
 the seed inserts, applied to seed-owned rows on every run so a fresh
-database ends up the same. The report lists `aliasMatches`,
-`aliasesMissing`, `attributesApplied` and `attributesUnused`; `handFix`
-is now the seed-owned rows the table does not cover.
+database ends up the same. A muscle group the table names that
+`muscle_groups` lacks is inserted once as a seed-owned row (Forearms
+and Neck, which Notion never had); a group already present is never
+modified and none is ever deleted. The report lists `aliasMatches`,
+`aliasesMissing`, `attributesApplied`, `attributesUnused` and
+`muscleGroupsInserted`; `handFix` is now the seed-owned rows the table
+does not cover.
 
 A programme's substitutions become alternates on the exercise row,
 keyed `program:<programme>:<slug>:<position>`; a slot already holding a
