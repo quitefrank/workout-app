@@ -8,11 +8,13 @@
  * and are decoded to month-day. And the sheet writes reps in a few
  * idioms parseDose does not accept (per-set lists, drop sets, "8 + 8");
  * doseFromSheet maps each to a parseable dose and keeps the original in
- * the notes.
+ * the notes. Set types spelled into a name move to the row's variant and
+ * a "+" cell becomes two rows (exercise-variant.ts).
  */
 
 import * as XLSX from "xlsx";
 import type { ProgramJson, ProgramJsonBlock, ProgramJsonDay, ProgramJsonWeek } from "../data/programs/schema";
+import { splitCompound, splitVariant } from "./exercise-variant";
 
 export type SheetMeta = {
   name: string;
@@ -163,11 +165,11 @@ export function parsePplRows(sheets: unknown[][][], meta: SheetMeta): PplParseRe
         continue;
       }
 
-      let name = rawName;
+      let cell = rawName;
       const noteParts: string[] = [];
-      const ss = SUPERSET_RE.exec(name);
+      const ss = SUPERSET_RE.exec(cell);
       if (ss) {
-        name = name.replace(SUPERSET_RE, "");
+        cell = cell.replace(SUPERSET_RE, "");
         noteParts.push(`Superset ${ss[1]}`);
       }
       const n = text(row[10]);
@@ -178,17 +180,27 @@ export function parsePplRows(sheets: unknown[][][], meta: SheetMeta): PplParseRe
 
       const warmUp = decodeRangeCell(row[2]);
       const rpe = decodeRangeCell(row[6]);
+      const subs = [text(row[8]), text(row[9])].map((s) => (s ? splitVariant(s).name : null));
 
-      day.exercises.push({
-        name,
-        warmUp: warmUp !== null && /^\d+(-\d+)?$/.test(warmUp) ? warmUp : null,
-        dose: sd.dose,
-        rpe: rpe !== null && /^\d+(-\d+)?$/.test(rpe) ? rpe : null,
-        rest: text(row[7]),
-        sub1: text(row[8]),
-        sub2: text(row[9]),
-        notes: noteParts.length ? noteParts.join(". ") : null,
-      });
+      // "A + B" is two movements done as one set: two rows with the same
+      // prescription, the first substitution on the first row and the
+      // second on the second.
+      const parts = splitCompound(cell);
+      for (const [i, part] of parts.entries()) {
+        const split = splitVariant(part);
+        const [sub1, sub2] = parts.length === 2 ? [subs[i] ?? null, null] : subs;
+        day.exercises.push({
+          name: split.name,
+          variant: split.variant,
+          warmUp: warmUp !== null && /^\d+(-\d+)?$/.test(warmUp) ? warmUp : null,
+          dose: sd.dose,
+          rpe: rpe !== null && /^\d+(-\d+)?$/.test(rpe) ? rpe : null,
+          rest: text(row[7]),
+          sub1,
+          sub2,
+          notes: noteParts.length ? noteParts.join(". ") : null,
+        });
+      }
     }
   }
 

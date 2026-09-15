@@ -6,11 +6,15 @@
  *
  * Doses are strings parseDose accepts ("1 x 3-5", "1 x 45 min",
  * "1 x AMRAP", "2 x 30 sec hold"). Anything the source wrote that does
- * not fit (per-set rep lists, drop sets) goes into `notes`.
+ * not fit (per-set rep lists, drop sets) goes into `notes`. A set type
+ * the source spelled into the name ("Bench Press (Top Set)") is
+ * `variant` on the row, and the name is the base exercise.
  */
 
 export type ProgramJsonExercise = {
   name: string;
+  /** Set type or technique the source put in the name ("Top Set", "21's"); null for a plain row. */
+  variant: string | null;
   /** Warm-up sets as written, "3-4" or null. */
   warmUp: string | null;
   dose: string;
@@ -111,6 +115,7 @@ export function validateProgramJson(input: unknown): ProgramJson {
           if (!isRecord(e)) throw new Error(`${ep}: expected an object`);
           return {
             name: str(e.name, `${ep}.name`),
+            variant: strOrNull(e.variant, `${ep}.variant`),
             warmUp: strOrNull(e.warmUp, `${ep}.warmUp`),
             dose: str(e.dose, `${ep}.dose`),
             rpe: strOrNull(e.rpe, `${ep}.rpe`),

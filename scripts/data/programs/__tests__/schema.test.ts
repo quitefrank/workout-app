@@ -22,6 +22,15 @@ describe("validateProgramJson", () => {
     }
   });
 
+  it("carries an optional variant on an exercise, defaulting to null", () => {
+    const base = structuredClone(example);
+    base.blocks[0].weeks[0].days[0].exercises[0].variant = "Top Set";
+    delete base.blocks[0].weeks[0].days[0].exercises[1].variant;
+    const p = validateProgramJson(base);
+    expect(p.blocks[0].weeks[0].days[0].exercises[0].variant).toBe("Top Set");
+    expect(p.blocks[0].weeks[0].days[0].exercises[1].variant).toBeNull();
+  });
+
   it("rejects weeks that do not run 1..n across blocks", () => {
     const bad = structuredClone(example);
     bad.blocks[1].weeks[0].week = 5;

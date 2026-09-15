@@ -91,7 +91,7 @@ describe("parsePplRows", () => {
     const w1 = p.blocks[0].weeks[0];
     expect(w1.days.map((d) => d.name)).toEqual(["Legs", "Push"]);
     expect(w1.days[0].exercises.map((e) => e.name)).toEqual(["Example Squat", "Example Walk"]);
-    expect(w1.days[1].exercises.map((e) => e.name)).toEqual(["Example Press-Around", "Example Stretch 30s", "Example Finisher"]);
+    expect(w1.days[1].exercises.map((e) => e.name)).toEqual(["Example Press-Around", "Example Stretch", "Example Finisher"]);
   });
 
   it("decodes date-serial ranges, strips superset prefixes into notes, and turns N/A into null", () => {
@@ -107,7 +107,8 @@ describe("parsePplRows", () => {
     expect(pa.rpe).toBe("9-10");
     expect(pa.sub2).toBeNull();
     const stretch = p.blocks[0].weeks[0].days[1].exercises[1];
-    expect(stretch.name).toBe("Example Stretch 30s");
+    expect(stretch.name).toBe("Example Stretch");
+    expect(stretch.variant).toBeNull();
     expect(stretch.rpe).toBeNull();
     expect(stretch.notes).toBe("Superset A. Hold");
   });
@@ -131,6 +132,48 @@ describe("parsePplRows", () => {
       expect(parseDose(e.dose), `${d.name}: ${e.name} ${e.dose}`).not.toBeNull();
     }
     expect(() => validateProgramJson(p)).not.toThrow();
+  });
+
+  it("folds set-type names onto the row variant and keeps the base name", () => {
+    const rows: unknown[][] = [
+      ["Test Program"],
+      ["Phase 1 - Block One (Test)"],
+      HEADER,
+      ["Push #1", "Bench Press (Top Set)", 2, 1, "2-4", null, 44782, "~3-4 min", "DB Bench Press", "Machine Chest Press", "Explode"],
+      [null, "Bench Press (Back Off AMRAP)", 0, 1, "AMRAP", "~60%", 10, "~3-4 min", "DB Bench Press", "Machine Chest Press", null],
+      [null, "Pec Static Stretch 30s", 0, 2, "30s HOLD", null, "N/A", "0 min", "N/A", "N/A", "Hold"],
+      [null, "Triceps Pressdown", 0, 3, "8", null, 9, "~1-2 min", "Triceps Pressdown (12-15 reps)", "DB Skull Crusher (12-15 reps)", null],
+    ];
+    const { program, skipped } = parsePplRows([rows], META);
+    expect(skipped).toEqual([]);
+    const ex = program.blocks[0].weeks[0].days[0].exercises;
+    expect(ex.map((e) => [e.name, e.variant])).toEqual([
+      ["Bench Press", "Top Set"],
+      ["Bench Press", "Back Off AMRAP"],
+      ["Pec Static Stretch", null],
+      ["Triceps Pressdown", null],
+    ]);
+    expect(ex[3].sub1).toBe("Triceps Pressdown");
+    expect(ex[3].sub2).toBe("DB Skull Crusher");
+  });
+
+  it("splits an A + B superset cell into two rows sharing the prescription", () => {
+    const rows: unknown[][] = [
+      ["Test Program"],
+      ["Phase 1 - Block One (Test)"],
+      HEADER,
+      ["Push #1", "A1. Squeeze-Only Triceps Pressdown + Stretch-Only Overhead Triceps Extension", 0, 3, "8 + 8", null, "9-10", "~1-2 min", "Triceps Pressdown (12-15 reps)", "DB Skull Crusher (12-15 reps)", "Do the squeeze then the stretch"],
+    ];
+    const { program, skipped } = parsePplRows([rows], META);
+    expect(skipped).toEqual([]);
+    const ex = program.blocks[0].weeks[0].days[0].exercises;
+    expect(ex).toHaveLength(2);
+    expect(ex[0]).toMatchObject({ name: "Triceps Pressdown", variant: "Squeeze-only", dose: "3 x 8", sub1: "Triceps Pressdown", sub2: null });
+    expect(ex[1]).toMatchObject({ name: "Overhead Triceps Extension", variant: "Stretch-only", dose: "3 x 8", sub1: "DB Skull Crusher", sub2: null });
+    expect(ex[0].notes).toContain("Superset A");
+    expect(ex[0].notes).toContain("8 + 8");
+    expect(ex[1].notes).toContain("8 + 8");
+    expect(ex[1].notes).toContain("Do the squeeze then the stretch");
   });
 });
 

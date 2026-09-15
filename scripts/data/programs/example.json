@@ -14,15 +14,15 @@
             {
               "name": "Push",
               "exercises": [
-                { "name": "Example Press", "warmUp": "2", "dose": "3 x 8-10", "rpe": "8", "rest": "2-3 min", "sub1": "Example Machine Press", "sub2": null, "notes": "Keep the shoulder blades set" },
-                { "name": "Example Fly", "warmUp": null, "dose": "2 x 12-15", "rpe": "9", "rest": "1-2 min", "sub1": null, "sub2": null, "notes": null }
+                { "name": "Example Press", "variant": "Top Set", "warmUp": "2", "dose": "3 x 8-10", "rpe": "8", "rest": "2-3 min", "sub1": "Example Machine Press", "sub2": null, "notes": "Keep the shoulder blades set" },
+                { "name": "Example Fly", "variant": null, "warmUp": null, "dose": "2 x 12-15", "rpe": "9", "rest": "1-2 min", "sub1": null, "sub2": null, "notes": null }
               ]
             },
             {
               "name": "Pull",
               "exercises": [
-                { "name": "Example Row", "warmUp": "2", "dose": "3 x 8-10", "rpe": "8", "rest": "2-3 min", "sub1": null, "sub2": null, "notes": null },
-                { "name": "Example Curl", "warmUp": null, "dose": "2 x 10-12", "rpe": "9", "rest": "1-2 min", "sub1": null, "sub2": null, "notes": null }
+                { "name": "Example Row", "variant": null, "warmUp": "2", "dose": "3 x 8-10", "rpe": "8", "rest": "2-3 min", "sub1": null, "sub2": null, "notes": null },
+                { "name": "Example Curl", "variant": null, "warmUp": null, "dose": "2 x 10-12", "rpe": "9", "rest": "1-2 min", "sub1": null, "sub2": null, "notes": null }
               ]
             }
           ]
@@ -38,15 +38,15 @@
             {
               "name": "Push",
               "exercises": [
-                { "name": "Example Press", "warmUp": "2", "dose": "3 x 5-7", "rpe": "9", "rest": "3 min", "sub1": null, "sub2": null, "notes": null },
-                { "name": "Example Finisher", "warmUp": null, "dose": "1 x AMRAP", "rpe": "10", "rest": null, "sub1": null, "sub2": null, "notes": null }
+                { "name": "Example Press", "variant": null, "warmUp": "2", "dose": "3 x 5-7", "rpe": "9", "rest": "3 min", "sub1": null, "sub2": null, "notes": null },
+                { "name": "Example Finisher", "variant": null, "warmUp": null, "dose": "1 x AMRAP", "rpe": "10", "rest": null, "sub1": null, "sub2": null, "notes": null }
               ]
             },
             {
               "name": "Pull",
               "exercises": [
-                { "name": "Example Row", "warmUp": "2", "dose": "3 x 5-7", "rpe": "9", "rest": "3 min", "sub1": null, "sub2": null, "notes": null },
-                { "name": "Example Cardio", "warmUp": null, "dose": "1 x 20 min", "rpe": null, "rest": null, "sub1": null, "sub2": null, "notes": "Easy pace" }
+                { "name": "Example Row", "variant": null, "warmUp": "2", "dose": "3 x 5-7", "rpe": "9", "rest": "3 min", "sub1": null, "sub2": null, "notes": null },
+                { "name": "Example Cardio", "variant": null, "warmUp": null, "dose": "1 x 20 min", "rpe": null, "rest": null, "sub1": null, "sub2": null, "notes": "Easy pace" }
               ]
             }
           ]
