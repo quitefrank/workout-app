@@ -114,3 +114,23 @@ export function exerciseSlug(
     .replace(/^-+|-+$/g, "");
   return machineLocation ? `${base}-${machineLocation}` : base;
 }
+
+/**
+ * The slugs a library row for `slug` might carry instead, most exact
+ * first: the slug itself, its singular or plural, "db"/"dumbbell" and
+ * "bb"/"barbell" swapped, then the singular or plural of each swap.
+ * exerciseSlug is unchanged; this only widens a lookup.
+ */
+export function slugCandidates(slug: string): string[] {
+  const plural = (s: string): string[] => [...(s.endsWith("s") ? [s.slice(0, -1)] : []), `${s}s`];
+  const swapped = (s: string): string[] => {
+    const out: string[] = [];
+    for (const [from, to] of [["db", "dumbbell"], ["dumbbell", "db"], ["bb", "barbell"], ["barbell", "bb"]] as const) {
+      const r = s.replace(new RegExp(`(?<=^|-)${from}(?=-|$)`, "g"), to);
+      if (r !== s) out.push(r);
+    }
+    return out;
+  };
+  const swaps = swapped(slug);
+  return [...new Set([slug, ...plural(slug), ...swaps, ...swaps.flatMap(plural)])];
+}

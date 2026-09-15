@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { exerciseSlug, parseExerciseName } from "../exercise-name";
+import { exerciseSlug, parseExerciseName, slugCandidates } from "../exercise-name";
 
 describe("parseExerciseName", () => {
   describe("arrow parsing", () => {
@@ -201,5 +201,28 @@ describe("exerciseSlug", () => {
     expect(exerciseSlug("Cable Y-Raise ( ↓ )", "downstairs")).toBe(
       "cable-y-raise-downstairs",
     );
+  });
+});
+
+describe("slugCandidates", () => {
+  it("puts the exact slug first, then singular or plural, then the abbreviation swaps, then both", () => {
+    expect(slugCandidates("pull-up")).toEqual(["pull-up", "pull-ups"]);
+    expect(slugCandidates("pull-ups")).toEqual(["pull-ups", "pull-up", "pull-upss"]);
+    expect(slugCandidates("db-row")).toEqual(["db-row", "db-rows", "dumbbell-row", "dumbbell-rows"]);
+    expect(slugCandidates("dumbbell-rows")).toEqual(["dumbbell-rows", "dumbbell-row", "dumbbell-rowss", "db-rows", "db-row", "db-rowss"]);
+    expect(slugCandidates("bb-curl")).toEqual(["bb-curl", "bb-curls", "barbell-curl", "barbell-curls"]);
+    expect(slugCandidates("barbell-curl")).toEqual(["barbell-curl", "barbell-curls", "bb-curl", "bb-curls"]);
+  });
+
+  it("swaps only whole hyphen-separated tokens", () => {
+    expect(slugCandidates("dbz-press")).toEqual(["dbz-press", "dbz-pres", "dbz-presss"]);
+    expect(slugCandidates("seated-db-shoulder-press")).toContain("seated-dumbbell-shoulder-press");
+    expect(slugCandidates("db")).toEqual(["db", "dbs", "dumbbell", "dumbbells"]);
+  });
+
+  it("never repeats a candidate", () => {
+    const c = slugCandidates("db-db-row");
+    expect(new Set(c).size).toBe(c.length);
+    expect(c).toContain("dumbbell-dumbbell-row");
   });
 });

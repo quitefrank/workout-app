@@ -103,9 +103,10 @@ bun run seed:notion
 ```
 
 Reads the four Notion databases and writes to Supabase via the service
-role. Idempotent: each table has a temporary `_notion_id` column the
-script upserts on. After the first successful import, the column can be
-dropped (Milestone 2 will do this).
+role. Idempotent: each table has a `_notion_id` column the script
+upserts on. The column stays; it is now the ownership key the three
+seeds (`template:`, `achilles:`, `program:`) use to clear and rewrite
+only their own rows.
 
 Templates are rebuilt from each canonical name's most recent Workouts
 row because Notion page templates keep their prescription in a button
@@ -168,23 +169,27 @@ other JSON in that folder is gitignored and the seed loads whatever is
 present.
 
 The converter writes nothing and exits 1 if any row of the workbook
-could not be placed or turned into a dose, and prints those rows. The
+could not be placed or turned into a dose and prints those rows. The
 seed validates every file and parses every dose before its first write.
 It creates one `programs` row per file, one `program_phases` row per
 week (block name in `block`), and one template per day per week,
 ordered inside its phase by `template_phases.position`. Exercises match
-the library by slug; unknown ones are inserted with the equipment type
-the name implies and no authoring inputs. Substitutions become
-alternates on the exercise row; a slot that already holds a Notion
-sub-option is left alone and reported. The Notion and Achilles
-templates are never touched.
+the library by slug or a near-duplicate slug (plural, `db`/`dumbbell`,
+`bb`/`barbell`); unknown ones are inserted with the equipment type the
+name implies and no authoring inputs, and the report's `handFix` field
+lists the seed's exercises still at `other` or without a muscle group.
+Substitutions become alternates on the exercise row; a slot that
+already holds a Notion sub-option is left alone and reported. Each
+loaded programme's rows the JSON no longer has are removed. The Notion
+and Achilles templates and any programme not in the loaded files are
+never touched.
 
 Idempotent. The seed writes `scripts/seed-programs-report.json` with
-row counts, exercises inserted versus matched, and alternates written
-and kept.
+row counts, exercises inserted, matched and removed, `handFix`,
+alternates in place, kept and removed, and orphans.
 
 The other four Nippard PDFs are next. Each becomes JSON in the same
-contract, by its own converter or by hand, and the same seed loads it.
+contract, by its own converter or by hand and the same seed loads it.
 
 ## Project structure
 

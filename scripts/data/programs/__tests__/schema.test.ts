@@ -47,6 +47,21 @@ describe("validateProgramJson", () => {
     expect(p.blocks[0].weeks[0].days[0].exercises[0].notes).toBe("keep it");
   });
 
+  it("rejects a colon in programme, block and day names, which become seed keys", () => {
+    const badName = structuredClone(example);
+    badName.name = "Test: programme";
+    expect(() => validateProgramJson(badName)).toThrow(/^name: must not contain ":"/);
+    const badBlock = structuredClone(example);
+    badBlock.blocks[0].name = "Block: one";
+    expect(() => validateProgramJson(badBlock)).toThrow(/^blocks\[0\]\.name: must not contain ":"/);
+    const badDay = structuredClone(example);
+    badDay.blocks[0].weeks[0].days[0].name = "Day: one";
+    expect(() => validateProgramJson(badDay)).toThrow(/^blocks\[0\]\.weeks\[0\]\.days\[0\]\.name: must not contain ":"/);
+    const okExercise = structuredClone(example);
+    okExercise.blocks[0].weeks[0].days[0].exercises[0].name = "Squat: paused";
+    expect(() => validateProgramJson(okExercise)).not.toThrow();
+  });
+
   it("rejects a duplicate day name inside a week and names the path", () => {
     const bad = structuredClone(example);
     bad.blocks[0].weeks[0].days[1].name = "Push";

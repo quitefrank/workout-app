@@ -258,7 +258,7 @@ Every table has RLS on. The analytics views in `0002` never referenced `programs
 | `0005_recovery.sql` | `clearance_kind`, `clearance_source`, `event_kind`, `rule_kind`; `recoveries`, `clearances`, `events`, `rules`, `daily_checks`; their RLS |
 | `0006_programs_weekly.sql` | `exercises.video_credit`; `program_phases.block`; `template_phases.position`; `template_exercises.override_rule` and `override_reason` with their pair constraint |
 
-The `_notion_id` columns stay until the Notion seed has run clean once, per the existing plan.
+The `_notion_id` columns stay for good: they are the ownership key the three seeds (`template:`, `achilles:`, `program:`) use to clear and rewrite only their own rows.
 
 ### 4.11 Training programmes
 

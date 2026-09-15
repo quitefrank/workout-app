@@ -90,9 +90,11 @@ Set. The recovery layer (exercise authoring attributes in 0003, programs
 and phases in 0004, recovery tables in 0005) is specified in
 `docs/superpowers/specs/2026-09-14-achilles-recovery-design.md`.
 
-Every seeded table has a temporary `_notion_id` text column for
-idempotent upserts. Drop these in Milestone 2 once the migration is
-known good.
+Every seeded table has a `_notion_id` text column. It began as the
+Notion upsert key and is now the ownership key for three seeds
+(`template:` for Notion-derived templates, `achilles:` for the recovery
+seed, `program:` for the programme seed), so each seed clears and
+rewrites only its own rows. The column stays.
 
 ## Parsers
 
@@ -167,37 +169,50 @@ overrides recorded.
 A training programme is blocks of weeks; each week has ordered days;
 each day has ordered exercises with a prescription. That shape is the
 JSON contract in `scripts/data/programs/schema.ts` (types plus
-`validateProgramJson`), and `scripts/data/programs/example.json` is a
+`validateProgramJson`) and `scripts/data/programs/example.json` is a
 tiny made-up programme in it. Every seeded programme and, later, every
-programme imported through the app arrives in this contract.
+programme imported through the app arrives in this contract. Programme,
+block and day names become seed keys, so they cannot contain a colon.
 
 Programme content is copyrighted, so `scripts/data/programs/*.json` is
-gitignored except the example, and the seed loads whatever JSON files
+gitignored except the example and the seed loads whatever JSON files
 are present. `bun run convert:ppl` reads the push-pull-legs workbook
 from the vault (`Personal/raw/training/`) and writes its JSON; the
 converter exits 1 and writes nothing when any exercise row could not
-be placed or turned into a dose, and prints every such row.
+be placed or turned into a dose and prints every such row.
 
 `bun run seed:programs` loads every programme JSON. It validates every
 file and parses every dose before the first write, so a bad file fails
-the run with nothing changed. One `programs` row per file; one
+the run with nothing changed (the report is still written, so the
+rejected doses are on disk), and it refuses a programme whose name
+belongs to a row of another kind. One `programs` row per file; one
 `program_phases` row per week with the block name in `block`; one
 template per day per week, keyed `program:<programme>:<block>:<week>:<day>`
 in `_notion_id`, with `variant` set to the week (`W1`, `W2`, ...) and
-ordered inside its phase by `template_phases.position`. Exercises match
-the library by slug; unknown ones are inserted with the equipment type
-the name implies, no muscle group and no authoring inputs (the report
-lists them, and `other` means hand-fix). A programme's substitutions
-become alternates on the exercise row, keyed
-`program:<programme>:<slug>:<position>`; a slot already holding a Notion
-sub-option or another programme's alternate is left alone and reported.
-Templates and phases the JSON no longer has are removed. The
-Notion-derived templates (`template:` keys) and the Achilles ones
-(`achilles:` keys) are never touched.
+ordered inside its phase by `template_phases.position`.
+
+Exercises match the library by slug, then by near-duplicate slugs
+(singular or plural, `db`/`dumbbell`, `bb`/`barbell`); a row this seed
+inserted never shadows a curated row. Unknown ones are inserted with
+the equipment type the name implies, no muscle group and no authoring
+inputs, stamped `program:exercise:<slug>`. The report's `handFix` field
+lists every seed-owned exercise still at `other` or without a muscle
+group, recomputed on every run. A seed-owned exercise that nothing
+references any more is removed at the end of the run.
+
+A programme's substitutions become alternates on the exercise row,
+keyed `program:<programme>:<slug>:<position>`; a slot already holding a
+Notion sub-option or another programme's alternate is left alone and
+reported. For each loaded programme, its templates, phases and
+alternates that the JSON no longer has are removed. The Notion-derived
+templates (`template:` keys), the Achilles rows (`achilles:` keys) and
+any programme not among the loaded files are never touched; orphaned
+programmes and alternates are reported.
 
 Idempotent. After running, check `scripts/seed-programs-report.json`
-for row counts, exercises inserted versus matched, alternates written
-and kept, and any stale rows removed.
+for row counts, exercises inserted versus matched (with the fuzzy
+matches listed), exercises removed, `handFix`, alternates in place,
+already matching, kept and removed, orphans and stale rows removed.
 
 The other four Nippard PDFs in `Personal/raw/training/` are next. Each
 gets its own converter or a hand-written JSON in the same contract, and
@@ -218,4 +233,5 @@ the same seed loads it without changes.
 - Auth UI (Supabase magic link)
 - Screens per `docs/planning.md`: calendar home, template detail,
   active workout, history, exercise library, analytics, settings
-- Drop the `_notion_id` columns once migration is verified
+- `_notion_id` stays: it is the ownership key for the three seeds
+  (`template:`, `achilles:`, `program:`), not a temporary import column

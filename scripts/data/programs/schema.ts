@@ -55,6 +55,16 @@ function str(v: unknown, path: string): string {
   return v.trim();
 }
 
+/**
+ * A name that becomes part of a seed key ("program:<programme>:<block>:
+ * <week>:<day>"), so a colon inside it would make the key ambiguous.
+ */
+function keyName(v: unknown, path: string): string {
+  const s = str(v, path);
+  if (s.includes(":")) throw new Error(`${path}: must not contain ":" (it becomes part of a seed key)`);
+  return s;
+}
+
 function strOrNull(v: unknown, path: string): string | null {
   if (v === null || v === undefined) return null;
   if (typeof v !== "string") throw new Error(`${path}: expected a string or null`);
@@ -68,7 +78,7 @@ function strOrNull(v: unknown, path: string): string | null {
  */
 export function validateProgramJson(input: unknown): ProgramJson {
   if (!isRecord(input)) throw new Error("programme: expected an object");
-  const name = str(input.name, "name");
+  const name = keyName(input.name, "name");
   if (input.kind !== "training") throw new Error("kind: expected \"training\"");
   const description = str(input.description, "description");
   const citation = strOrNull(input.citation, "citation");
@@ -79,7 +89,7 @@ export function validateProgramJson(input: unknown): ProgramJson {
   const blocks: ProgramJsonBlock[] = input.blocks.map((b, bi) => {
     const bp = `blocks[${bi}]`;
     if (!isRecord(b)) throw new Error(`${bp}: expected an object`);
-    const bname = str(b.name, `${bp}.name`);
+    const bname = keyName(b.name, `${bp}.name`);
     if (!Array.isArray(b.weeks) || b.weeks.length === 0) throw new Error(`${bp}.weeks: expected a non-empty array`);
     const weeks: ProgramJsonWeek[] = b.weeks.map((w, wi) => {
       const wp = `${bp}.weeks[${wi}]`;
@@ -92,7 +102,7 @@ export function validateProgramJson(input: unknown): ProgramJson {
       const days: ProgramJsonDay[] = w.days.map((d, di) => {
         const dp = `${wp}.days[${di}]`;
         if (!isRecord(d)) throw new Error(`${dp}: expected an object`);
-        const dname = str(d.name, `${dp}.name`);
+        const dname = keyName(d.name, `${dp}.name`);
         if (seenDays.has(dname)) throw new Error(`${dp}.name: duplicate day "${dname}" in week ${weekNumber}`);
         seenDays.add(dname);
         if (!Array.isArray(d.exercises) || d.exercises.length === 0) throw new Error(`${dp}.exercises: expected a non-empty array`);
