@@ -118,15 +118,16 @@ export function percentOrRpe(raw: string | null | undefined): RpeCell {
 
 /**
  * A complex ("Overhead Press / Push Press", the name holding " / ")
- * writes its reps as "a/b": one set of a of the first movement then b
- * of the second, not a per side. Rewrite the cell to "a+b" so
- * doseFromPdf sums it and keeps the scheme in the note. Any other name,
- * or any other cell shape, comes back unchanged.
+ * writes its reps as "a/b" or "a, b": one set of a of the first
+ * movement then b of the second, not a per side and not a per-set
+ * list. Rewrite the cell to "a+b" so doseFromPdf sums it and keeps the
+ * scheme in the note. Any other name, or any other cell shape, comes
+ * back unchanged.
  */
 export function complexReps(bareName: string, repsCell: string | null | undefined): string | null | undefined {
   if (!/ \/ /.test(bareName)) return repsCell;
   const t = cellText(repsCell);
-  const m = t ? /^(\d+)\s*\/\s*(\d+)$/.exec(t) : null;
+  const m = t ? /^(\d+)\s*[/,]\s*(\d+)$/.exec(t) : null;
   return m ? `${m[1]}+${m[2]}` : repsCell;
 }
 

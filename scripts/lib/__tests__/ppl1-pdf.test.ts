@@ -22,7 +22,7 @@ const DUMP: PdfTables = {
       text: ["LEGS/PUSH/PULL HYPERTROPHY PROGRAM", "WEEK 1: DAYS 1-4", "BLOCK 1"],
       tables: [
         [HEADER("LEGS #1"), ["BACK SQUAT", "4", "5", "70%", "3-4MIN", "", "", "", "", "SIT BACK AND DOWN", ""], ["A1: LEG EXTENSION", "3", "15", "7", "0 MIN", "", "", "", "", "SQUEEZE", ""], ["A2: SEATED LEG CURL", "3", "15", "7", "1-2MIN", "", "", "", "", "", ""]],
-        [HEADER("PUSH #1"), ["DUMBBELL ISOLATERAL SKULL\nCRUSHER", "3", "12", "8", "1-2MIN", "", "", "", "", "USE 1 DUMBBELL\nIN EACH HAND", ""], ["PLANK", "3", "30SEC", "7", "1-2MIN", "", "", "", "", "", ""]],
+        [HEADER("PUSH #1"), ["DUMBBELL ISOLATERAL SKULL\nCRUSHER", "3", "12", "8", "1-2MIN", "", "", "", "", "USE 1 DUMBBELL\nIN EACH HAND", ""], ["PLANK", "3", "30SEC", "7", "1-2MIN", "", "", "", "", "", ""], ["MILITARY PRESS / PUSH\nPRESS COMPLEX", "3", "4, 4", "72.50%", "2-3MIN", "", "", "", "", "FIRST 4 REPS MILITARY PRESS, LAST 4 REPS PUSH PRESS", ""]],
       ],
     },
     {
@@ -66,6 +66,8 @@ describe("parsePpl1", () => {
     const push = program.blocks[0].weeks[0].days[1].exercises;
     expect(push[0]).toMatchObject({ name: "Dumbbell Isolateral Skull Crusher", notes: "Use 1 dumbbell in each hand" });
     expect(push[1]).toMatchObject({ dose: "3 x 30 sec" });
+    expect(push[2]).toMatchObject({ name: "Military Press / Push Press Complex", dose: "3 x 8", rpe: null, rest: "~2-3 min" });
+    expect(push[2].notes).toBe("First 4 reps military press, last 4 reps push press. Load: 72.5% 1RM. Reps: 4 + 4");
     const pull = program.blocks[0].weeks[0].days[2].exercises;
     expect(pull[0]).toMatchObject({ dose: "3 x 15", notes: "15 per side" });
     expect(pull[1]).toMatchObject({ dose: "2 x 20", notes: "As written: 20 each leg" });

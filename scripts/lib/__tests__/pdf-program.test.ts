@@ -94,6 +94,8 @@ describe("percentOrRpe", () => {
 describe("complexReps", () => {
   it("turns an a/b reps cell into a+b for a complex and leaves every other name alone", () => {
     expect(complexReps("OVERHEAD PRESS / PUSH PRESS", "3/3")).toBe("3+3");
+    expect(complexReps("MILITARY PRESS / PUSH PRESS COMPLEX", "4, 4")).toBe("4+4");
+    expect(complexReps("BACK SQUAT", "4, 4")).toBe("4, 4");
     expect(complexReps("OVERHEAD PRESS / PUSH PRESS", "5")).toBe("5");
     expect(complexReps("REVERSE PEC DECK", "15/15")).toBe("15/15");
     expect(complexReps("NECK FLEXION/EXTENSION", "12/12")).toBe("12/12");

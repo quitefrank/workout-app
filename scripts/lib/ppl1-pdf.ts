@@ -8,7 +8,7 @@
 
 import type { ProgramJson, ProgramJsonBlock, ProgramJsonDay, ProgramJsonWeek } from "../data/programs/schema";
 import { splitVariant } from "./exercise-variant";
-import { cellText, doseFromPdf, joinNotes, percentOrRpe, restFromPdf, sentenceCase, SUPERSET_RE, titleCaseName, type PdfTables } from "./pdf-program";
+import { cellText, complexReps, doseFromPdf, joinNotes, percentOrRpe, restFromPdf, sentenceCase, SUPERSET_RE, titleCaseName, type PdfTables } from "./pdf-program";
 import type { PplParseResult, PplSkippedRow, SheetMeta } from "./ppl-sheet";
 
 const COVER_BLOCK_RE = /^B\s*L\s*O\s*C\s*K\s*(\d)$/;
@@ -64,7 +64,7 @@ export function parsePpl1(dump: PdfTables, meta: SheetMeta): PplParseResult {
         if (!rawName) continue;
         const ss = SUPERSET_RE.exec(rawName);
         const bare = rawName.replace(SUPERSET_RE, "");
-        const sd = doseFromPdf(row[1], row[2]);
+        const sd = doseFromPdf(row[1], complexReps(bare, row[2]));
         if (!sd) {
           skipped.push({ block: block.name, week: week.week, day: day.name, name: rawName, reason: `no dose from sets ${JSON.stringify(row[1])} and reps ${JSON.stringify(row[2])}` });
           continue;
