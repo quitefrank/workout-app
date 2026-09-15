@@ -26,13 +26,17 @@
  * any programme not in the loaded files are left as they are; the last
  * two are only reported.
  *
- * Exercises match the library by slug, then by near-duplicate slugs
- * (plural, "db"/"dumbbell", "bb"/"barbell"). A row this seed inserted
- * never shadows a curated library row: candidates are tried against
- * Notion and Achilles rows first, then against seed-owned rows. Unknown
- * exercises are inserted unrated (no authoring inputs), which the
- * recovery rules report as unrated; an unknown substitution is inserted
- * only when the slot it fills will actually be written.
+ * Exercises match the library by slug, then by the alias LIBRARY_ALIASES
+ * gives the slug (a curated Notion row under another name), then by
+ * near-duplicate slugs (plural, "db"/"dumbbell", "bb"/"barbell"). A row
+ * this seed inserted never shadows a curated library row: candidates
+ * are tried against Notion and Achilles rows first, then against
+ * seed-owned rows. Unknown exercises are inserted unrated (no authoring
+ * inputs), which the recovery rules report as unrated; an unknown
+ * substitution is inserted only when the slot it fills will actually be
+ * written. After the unreferenced rows go, LIBRARY_ATTRIBUTES gives
+ * every seed-owned row its muscle group and equipment, on every run, so
+ * a fresh database ends up the same; curated rows are never touched.
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -46,6 +50,7 @@ import { inferTemplateCategory } from "./lib/template-name";
 import { parseRange, parseRestSeconds } from "./lib/parse-prescription";
 import { parseDose } from "../src/lib/recovery/dose";
 import { validateProgramJson, type ProgramJson } from "./data/programs/schema";
+import { LIBRARY_ALIASES, LIBRARY_ATTRIBUTES } from "./data/programs/library";
 
 const EXERCISE_OWNER = "program:exercise:";
 
@@ -56,9 +61,17 @@ type Report = {
   exercisesMatched: string[];
   /** Matched a library row through a near-duplicate slug rather than the exact one. */
   fuzzyMatches: { wanted: string; matched: string }[];
+  /** Matched a curated row through LIBRARY_ALIASES. */
+  aliasMatches: { wanted: string; matched: string }[];
+  /** Alias targets that are not in the library; the alias is ignored and the name resolved as usual. */
+  aliasesMissing: { wanted: string; target: string }[];
+  /** Seed-owned rows whose muscle group or equipment LIBRARY_ATTRIBUTES set or corrected this run. */
+  attributesApplied: string[];
+  /** LIBRARY_ATTRIBUTES keys that are not seed-owned rows (aliased away, renamed, or never inserted). */
+  attributesUnused: string[];
   /** Seed-inserted exercises nothing references any more; deleted at the end of the run. */
   exercisesRemoved: string[];
-  /** Seed-owned exercises still at equipment_type "other" or with no muscle group; computed every run. */
+  /** Seed-owned exercises with no muscle group, or at equipment_type "other" without a LIBRARY_ATTRIBUTES entry saying so; computed every run. */
   handFix: { slug: string; equipmentType: string; muscleGroup: string | null }[];
   /** Filled during pre-flight; the run stops before any write when non-empty. */
   rejectedDoses: { program: string; block: string; week: number; day: string; name: string; dose: string }[];
@@ -191,10 +204,11 @@ function collectPrescribedNames(loaded: Loaded[]): Map<string, string> {
 }
 
 /**
- * Match a JSON exercise to the library by its slug or a near-duplicate,
- * trying curated rows (Notion, Achilles) before seed-owned ones so a row
- * this seed inserted never shadows a curated one. Inserts when nothing
- * matches and `insertIfMissing` is set; otherwise returns null.
+ * Match a JSON exercise to the library by its slug, its alias in
+ * LIBRARY_ALIASES, or a near-duplicate, trying curated rows (Notion,
+ * Achilles) before seed-owned ones so a row this seed inserted never
+ * shadows a curated one. Inserts when nothing matches and
+ * `insertIfMissing` is set; otherwise returns null.
  */
 async function makeResolver(sb: SupabaseClient, report: Report) {
   const exerciseId = new Map<string, string>();
@@ -204,7 +218,9 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
   async function resolve(slug: string, name: string, insertIfMissing: boolean): Promise<string | null> {
     const cached = exerciseId.get(slug);
     if (cached) return cached;
-    const candidates = slugCandidates(slug);
+    const alias = LIBRARY_ALIASES[slug];
+    const fuzzy = slugCandidates(slug);
+    const candidates = alias ? [slug, alias, ...fuzzy.filter((c) => c !== slug && c !== alias)] : fuzzy;
     const { data: rows, error: lookupErr } = await sb.from("exercises").select("id,slug,_notion_id").in("slug", candidates);
     if (lookupErr) fail(`exercise lookup failed (${slug}): ${lookupErr.message}`);
     const pick = (seedOwned: boolean) => {
@@ -219,9 +235,11 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
       exerciseId.set(slug, hit.id as string);
       librarySlug.set(slug, hit.slug as string);
       report.exercisesMatched.push(slug);
-      if (hit.slug !== slug) report.fuzzyMatches.push({ wanted: slug, matched: hit.slug as string });
+      if (hit.slug === alias) report.aliasMatches.push({ wanted: slug, matched: hit.slug as string });
+      else if (hit.slug !== slug) report.fuzzyMatches.push({ wanted: slug, matched: hit.slug as string });
       return hit.id as string;
     }
+    if (alias && !(rows ?? []).some((r) => r.slug === alias)) report.aliasesMissing.push({ wanted: slug, target: alias });
     if (!insertIfMissing) return null;
     // A near-duplicate spelling already resolved this run (inserted or
     // matched) takes precedence over a fresh insert.
@@ -288,6 +306,10 @@ async function main() {
     exercisesInserted: [],
     exercisesMatched: [],
     fuzzyMatches: [],
+    aliasMatches: [],
+    aliasesMissing: [],
+    attributesApplied: [],
+    attributesUnused: [],
     exercisesRemoved: [],
     handFix: [],
     rejectedDoses: [],
@@ -304,7 +326,7 @@ async function main() {
   };
 
   // 0. Pre-flight: files, shape, doses, names, library present.
-  console.log("\n[0/6] pre-flight");
+  console.log("\n[0/7] pre-flight");
   const files = programFiles();
   if (files.length === 0) fail("no programme JSON found under scripts/data/programs/ (the example is skipped)");
   const { count: mgCount, error: mgErr } = await sb.from("muscle_groups").select("*", { count: "exact", head: true });
@@ -320,7 +342,7 @@ async function main() {
   // 1. Prescribed exercises: match by slug or a near-duplicate slug,
   // insert the rest with the equipment type the name implies, no muscle
   // group, no authoring inputs, stamped as seed-owned.
-  console.log("\n[1/6] exercises");
+  console.log("\n[1/7] exercises");
   const { resolve, exerciseId, librarySlug } = await makeResolver(sb, report);
   for (const [slug, name] of collectPrescribedNames(loaded)) {
     await resolve(slug, name, true);
@@ -336,7 +358,7 @@ async function main() {
   // so nothing is added that the run would then find unreferenced.
   // Seed-owned rows of this programme that are no longer wanted are
   // removed.
-  console.log("\n[2/6] alternates");
+  console.log("\n[2/7] alternates");
   const readSlot = async (ownId: string, position: number, label: string) => {
     const { data: slot, error } = await sb
       .from("exercise_alternates")
@@ -426,7 +448,7 @@ async function main() {
   console.log(`  ${report.alternatesInPlace} alternates in place, ${report.alternatesAlreadyMatching} already matching, ${report.alternatesKeptExisting.length} kept their existing alternate, ${report.alternatesRemoved} removed, ${report.alternateConflicts.length} conflicts`);
 
   // 3. Programs, phases and templates.
-  console.log("\n[3/6] programs, phases, templates");
+  console.log("\n[3/7] programs, phases, templates");
   for (const { program } of loaded) {
     const { data: prog, error: progErr } = await sb
       .from("programs")
@@ -507,6 +529,7 @@ async function main() {
               template_id: templateId,
               exercise_id: exId,
               position: pos,
+              variant: ex.variant,
               prescribed_sets_min: d.sets.min,
               prescribed_sets_max: d.sets.max,
               prescribed_reps_min: d.reps?.min ?? null,
@@ -572,7 +595,7 @@ async function main() {
 
   // 4. Seed-owned exercises nothing references any more (a near-duplicate
   // that later matched a curated row, or a name the JSON dropped).
-  console.log("\n[4/6] unreferenced seed exercises");
+  console.log("\n[4/7] unreferenced seed exercises");
   const { data: seedExercises, error: seErr } = await sb.from("exercises").select("id,slug").like("_notion_id", `${EXERCISE_OWNER}%`);
   if (seErr) fail(`seed exercise listing failed: ${seErr.message}`);
   const seedIds = (seedExercises ?? []).map((r) => r.id as string);
@@ -599,8 +622,41 @@ async function main() {
   }
   console.log(`  ${report.exercisesRemoved.length} removed`);
 
-  // 5. Report-only findings: orphans and hand-fixes.
-  console.log("\n[5/6] orphans and hand-fixes");
+  // 5. Attributes for seed-owned rows from LIBRARY_ATTRIBUTES. Curated
+  // rows are never touched; a key that is not a seed-owned row (aliased
+  // away, or renamed) is reported so the table does not rot.
+  console.log("\n[5/7] library attributes");
+  const { data: groups, error: gErr } = await sb.from("muscle_groups").select("id,name");
+  if (gErr) fail(`muscle_groups listing failed: ${gErr.message}`);
+  const groupId = new Map((groups ?? []).map((g) => [g.name as string, g.id as string]));
+  for (const [slug, a] of Object.entries(LIBRARY_ATTRIBUTES)) {
+    if (!groupId.has(a.muscleGroup)) fail(`LIBRARY_ATTRIBUTES ${slug}: muscle group "${a.muscleGroup}" is not in muscle_groups`);
+  }
+  const { data: ownedRows, error: ownedRowsErr } = await sb
+    .from("exercises")
+    .select("id,slug,equipment_type,muscle_group_id")
+    .like("_notion_id", `${EXERCISE_OWNER}%`);
+  if (ownedRowsErr) fail(`seed exercise listing failed: ${ownedRowsErr.message}`);
+  const ownedBySlug = new Map((ownedRows ?? []).map((r) => [r.slug as string, r]));
+  for (const [slug, a] of Object.entries(LIBRARY_ATTRIBUTES)) {
+    const row = ownedBySlug.get(slug);
+    if (!row) {
+      report.attributesUnused.push(slug);
+      continue;
+    }
+    const wantedGroup = groupId.get(a.muscleGroup) as string;
+    if (row.muscle_group_id === wantedGroup && row.equipment_type === a.equipmentType) continue;
+    const { error: updErr } = await sb
+      .from("exercises")
+      .update({ muscle_group_id: wantedGroup, equipment_type: a.equipmentType })
+      .eq("id", row.id as string);
+    if (updErr) fail(`attribute update failed (${slug}): ${updErr.message}`);
+    report.attributesApplied.push(slug);
+  }
+  console.log(`  ${report.attributesApplied.length} applied, ${report.attributesUnused.length} unused keys`);
+
+  // 6. Report-only findings: orphans and hand-fixes.
+  console.log("\n[6/7] orphans and hand-fixes");
   const { data: trainingRows, error: trErr } = await sb.from("programs").select("name").eq("kind", "training");
   if (trErr) fail(`programs listing failed: ${trErr.message}`);
   report.orphanPrograms = (trainingRows ?? []).map((r) => r.name as string).filter((n) => !loadedNames.has(n));
@@ -616,18 +672,20 @@ async function main() {
     .or("equipment_type.eq.other,muscle_group_id.is.null")
     .order("slug");
   if (fixErr) fail(`hand-fix listing failed: ${fixErr.message}`);
-  report.handFix = (fixRows ?? []).map((r) => {
-    const group = r.muscle_group as { name: string } | { name: string }[] | null;
-    return {
-      slug: r.slug as string,
-      equipmentType: r.equipment_type as string,
-      muscleGroup: Array.isArray(group) ? (group[0]?.name ?? null) : (group?.name ?? null),
-    };
-  });
+  report.handFix = (fixRows ?? [])
+    .map((r) => {
+      const group = r.muscle_group as { name: string } | { name: string }[] | null;
+      return {
+        slug: r.slug as string,
+        equipmentType: r.equipment_type as string,
+        muscleGroup: Array.isArray(group) ? (group[0]?.name ?? null) : (group?.name ?? null),
+      };
+    })
+    .filter((r) => r.muscleGroup === null || !(r.slug in LIBRARY_ATTRIBUTES));
   console.log(`  ${report.orphanPrograms.length} orphan programmes, ${report.orphanAlternates.length} orphan alternates, ${report.handFix.length} exercises to hand-fix`);
 
-  // 6. Report.
-  console.log("\n[6/6] report");
+  // 7. Report.
+  console.log("\n[7/7] report");
   for (const t of ["programs", "program_phases", "templates", "template_exercises", "template_phases", "exercises", "exercise_alternates"]) {
     const { count, error } = await sb.from(t).select("*", { count: "exact", head: true });
     if (error) fail(`${t} count failed: ${error.message}`);
@@ -636,6 +694,7 @@ async function main() {
   writeReport(report);
   console.log("  row counts:", report.rowCounts);
   console.log(`  exercises inserted: ${report.exercisesInserted.length}, matched: ${report.exercisesMatched.length} (${report.fuzzyMatches.length} fuzzy), removed: ${report.exercisesRemoved.length}, hand-fix: ${report.handFix.length}`);
+  console.log(`  aliases: ${report.aliasMatches.length} matched, ${report.aliasesMissing.length} missing; attributes: ${report.attributesApplied.length} applied, ${report.attributesUnused.length} unused`);
   console.log(`  alternates in place: ${report.alternatesInPlace}, already matching: ${report.alternatesAlreadyMatching}, kept existing: ${report.alternatesKeptExisting.length}, removed: ${report.alternatesRemoved}, conflicts: ${report.alternateConflicts.length}`);
   console.log(`  stale rows removed: ${report.staleTemplatesDeleted} templates, ${report.stalePhasesDeleted} phases`);
   console.log(`  orphans: ${report.orphanPrograms.length} programmes, ${report.orphanAlternates.length} alternates`);
