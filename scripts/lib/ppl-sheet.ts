@@ -182,13 +182,13 @@ export function parsePplRows(sheets: unknown[][][], meta: SheetMeta): PplParseRe
       const rpe = decodeRangeCell(row[6]);
       const subs = [text(row[8]), text(row[9])].map((s) => (s ? splitVariant(s).name : null));
 
-      // "A + B" is two movements done as one set: two rows with the same
-      // prescription, the first substitution on the first row and the
-      // second on the second.
+      // "A + B" is two or more movements done as one set: one row each
+      // with the same prescription, the first substitution on the first
+      // row, the second on the second, none past that.
       const parts = splitCompound(cell);
       for (const [i, part] of parts.entries()) {
         const split = splitVariant(part);
-        const [sub1, sub2] = parts.length === 2 ? [subs[i] ?? null, null] : subs;
+        const [sub1, sub2] = parts.length > 1 ? [subs[i] ?? null, null] : subs;
         day.exercises.push({
           name: split.name,
           variant: split.variant,

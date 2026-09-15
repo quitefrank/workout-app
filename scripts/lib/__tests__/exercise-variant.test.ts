@@ -31,6 +31,11 @@ describe("splitVariant", () => {
     expect(splitVariant("Cable Curl 21's")).toEqual({ name: "Cable Curl", variant: "21's", dropped: null });
   });
 
+  it("reads a bare 21s as the scheme, not as seconds", () => {
+    expect(splitVariant("DB Curl 21s")).toEqual({ name: "DB Curl", variant: "21's", dropped: null });
+    expect(splitVariant("Pec Static Stretch 30s")).toEqual({ name: "Pec Static Stretch", variant: null, dropped: "30s" });
+  });
+
   it("joins a leading tempo word with its parenthetical", () => {
     expect(splitVariant("Slow Seated Leg Curl (3 up, 3 down)")).toEqual({ name: "Seated Leg Curl", variant: "Slow (3 up, 3 down)", dropped: null });
     expect(splitVariant("Slow Eccentric Curl")).toEqual({ name: "Eccentric Curl", variant: "Slow", dropped: null });
@@ -59,6 +64,10 @@ describe("splitCompound", () => {
       "Squeeze-Only Triceps Pressdown",
       "Stretch-Only Overhead Triceps Extension",
     ]);
+  });
+
+  it("returns every part of a three-way cell", () => {
+    expect(splitCompound("Plank + Side Plank + Reverse Plank")).toEqual(["Plank", "Side Plank", "Reverse Plank"]);
   });
 
   it("returns a single name otherwise", () => {

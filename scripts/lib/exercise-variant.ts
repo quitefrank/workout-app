@@ -74,23 +74,29 @@ export function splitVariant(rawName: string): VariantSplit {
     }
   }
 
-  const seconds = TRAILING_SECONDS_RE.exec(name);
-  if (seconds) {
-    dropped = seconds[2];
-    name = seconds[1];
-  }
-
+  // Scheme before seconds: "21s" is the 21's scheme, not 21 seconds.
   const scheme = TRAILING_SCHEME_RE.exec(name);
   if (scheme) {
     variantParts.push(scheme[2].toLowerCase() === "21s" ? "21's" : scheme[2]);
     name = scheme[1];
   }
 
+  const seconds = TRAILING_SECONDS_RE.exec(name);
+  if (seconds) {
+    dropped = seconds[2];
+    name = seconds[1];
+  }
+
   return { name: collapse(name), variant: variantParts.length ? variantParts.join(" ") : null, dropped };
 }
 
-/** "A + B" is two movements done as one set; anything else is one name. */
+/**
+ * "A + B" (or "A + B + C") is two or more movements done as one set;
+ * anything else is one name. A combo lift spelled with "+" ("Clean +
+ * Press") would need an ALIASES entry checked here first; none so far.
+ */
 export function splitCompound(rawName: string): string[] {
-  const parts = collapse(rawName).split(/\s\+\s/);
-  return parts.length === 2 ? parts.map(collapse) : [collapse(rawName)];
+  const collapsed = collapse(rawName);
+  const parts = collapsed.split(/\s\+\s/);
+  return parts.length > 1 ? parts.map(collapse) : [collapsed];
 }

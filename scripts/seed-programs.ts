@@ -71,7 +71,7 @@ type Report = {
   attributesUnused: string[];
   /** Seed-inserted exercises nothing references any more; deleted at the end of the run. */
   exercisesRemoved: string[];
-  /** Seed-owned exercises with no muscle group, or at equipment_type "other" without a LIBRARY_ATTRIBUTES entry saying so; computed every run. */
+  /** Seed-owned exercises with no muscle group, or with no LIBRARY_ATTRIBUTES entry (even if hand-set in the database); computed every run. */
   handFix: { slug: string; equipmentType: string; muscleGroup: string | null }[];
   /** Filled during pre-flight; the run stops before any write when non-empty. */
   rejectedDoses: { program: string; block: string; week: number; day: string; name: string; dose: string }[];
@@ -230,6 +230,9 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
       }
       return null;
     };
+    // A wrong alias target is reported whatever else matched, so a
+    // fuzzy hit never hides it.
+    if (alias && !(rows ?? []).some((r) => r.slug === alias)) report.aliasesMissing.push({ wanted: slug, target: alias });
     const hit = pick(false) ?? pick(true);
     if (hit) {
       exerciseId.set(slug, hit.id as string);
@@ -239,7 +242,6 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
       else if (hit.slug !== slug) report.fuzzyMatches.push({ wanted: slug, matched: hit.slug as string });
       return hit.id as string;
     }
-    if (alias && !(rows ?? []).some((r) => r.slug === alias)) report.aliasesMissing.push({ wanted: slug, target: alias });
     if (!insertIfMissing) return null;
     // A near-duplicate spelling already resolved this run (inserted or
     // matched) takes precedence over a fresh insert.
@@ -669,7 +671,6 @@ async function main() {
     .from("exercises")
     .select("slug,equipment_type,muscle_group:muscle_groups(name)")
     .like("_notion_id", `${EXERCISE_OWNER}%`)
-    .or("equipment_type.eq.other,muscle_group_id.is.null")
     .order("slug");
   if (fixErr) fail(`hand-fix listing failed: ${fixErr.message}`);
   report.handFix = (fixRows ?? [])
