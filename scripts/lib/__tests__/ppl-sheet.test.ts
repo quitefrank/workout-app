@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import * as XLSX from "xlsx";
-import { decodeRangeCell, doseFromSheet, parsePplWorkbook, parsePplRows } from "../ppl-sheet";
+import { decodeRangeCell, doseFromSheet, formatSkippedRow, parsePplWorkbook, parsePplRows } from "../ppl-sheet";
 import { validateProgramJson } from "../../data/programs/schema";
 import { parseDose } from "../../../src/lib/recovery/dose";
 
@@ -14,7 +14,7 @@ const PHASE_ONE: unknown[][] = [
   [null, null, null, null, null, null, null, null, null, null, "Copyright line"],
   ["Phase 1 - Block One (Test)"],
   HEADER,
-  ["Legs #1", "Example Squat", 44624, 1, "2-4", null, 44782, "~3-4 min", "Example Hack Squat", "Example Split Squat", "Sit back and down"],
+  ["Legs #1", "Example Squat", 44624, 1, "2-4", "Example load cue", 44782, "~3-4 min", "Example Hack Squat", "Example Split Squat", "Sit back and down"],
   [null, "Example Walk", "5mins", 1, "45mins", null, null, null, null, null, null],
   ["Push #2", "A1. Example Press-Around", 1, 2, "12-15", null, 44814, "0 min", "Example Flye", "N/A", "Brace"],
   [null, "A2: Example Stretch 30s", 0, 2, "30s HOLD", null, "N/A", "0 min", "N/A", "N/A", "Hold"],
@@ -72,8 +72,14 @@ describe("doseFromSheet", () => {
   });
 });
 
+const META = { name: "Test programme", description: "d", citation: null, sourceUrl: null };
+
 describe("parsePplRows", () => {
-  const p = parsePplRows([PHASE_ONE, PHASE_TWO], { name: "Test programme", description: "d", citation: null, sourceUrl: null });
+  const { program: p, skipped } = parsePplRows([PHASE_ONE, PHASE_TWO], META);
+
+  it("skips nothing in a clean fixture", () => {
+    expect(skipped).toEqual([]);
+  });
 
   it("groups weeks into blocks with global week numbers", () => {
     expect(p.blocks.map((b) => b.name)).toEqual(["Block One", "Block Two"]);
@@ -94,6 +100,8 @@ describe("parsePplRows", () => {
     expect(squat.rpe).toBe("8-9");
     expect(squat.rest).toBe("~3-4 min");
     expect(squat.sub1).toBe("Example Hack Squat");
+    const walk = p.blocks[0].weeks[0].days[0].exercises[1];
+    expect(walk.notes).toBeNull();
     const pa = p.blocks[0].weeks[0].days[1].exercises[0];
     expect(pa.notes).toBe("Superset A. Brace");
     expect(pa.rpe).toBe("9-10");
@@ -113,6 +121,11 @@ describe("parsePplRows", () => {
     expect(drop.notes).toBe("Drop set. Then a drop set of 5");
   });
 
+  it("keeps a Load cell in the notes after the sheet's note text", () => {
+    const squat = p.blocks[0].weeks[0].days[0].exercises[0];
+    expect(squat.notes).toBe("Sit back and down. Load: Example load cue");
+  });
+
   it("produces doses parseDose accepts and a programme the validator accepts", () => {
     for (const b of p.blocks) for (const w of b.weeks) for (const d of w.days) for (const e of d.exercises) {
       expect(parseDose(e.dose), `${d.name}: ${e.name} ${e.dose}`).not.toBeNull();
@@ -121,10 +134,54 @@ describe("parsePplRows", () => {
   });
 });
 
+describe("parsePplRows reports what it cannot place", () => {
+  const ORPHANS: unknown[][] = [
+    ["Test Program"],
+    ["Phase 1 - Block One (Test)"],
+    HEADER,
+    [null, "Example Orphan Under Header", 0, 1, "10", null, null, null, null, null, null],
+    ["Legs #1", "Example Squat", 1, 1, "2-4", null, 8, "~3-4 min", null, null, null],
+    [null, "Example Mystery", 1, 3, "banana", null, null, null, null, null, null],
+    ["Mandatory 1-2 Rest Days"],
+    [null, "Example Orphan Under Banner", 0, 1, "10", null, null, null, null, null, null],
+  ];
+  const { program, skipped } = parsePplRows([ORPHANS], META);
+
+  it("lists an exercise row with no day above it, with a reason, instead of dropping it", () => {
+    const orphans = skipped.filter((s) => s.day === null);
+    expect(orphans.map((s) => s.name)).toEqual(["Example Orphan Under Header", "Example Orphan Under Banner"]);
+    for (const s of orphans) {
+      expect(s.block).toBe("Block One");
+      expect(s.week).toBe(1);
+      expect(s.reason).toMatch(/no day/);
+    }
+    expect(program.blocks[0].weeks[0].days.map((d) => d.name)).toEqual(["Legs"]);
+    expect(program.blocks[0].weeks[0].days[0].exercises.map((e) => e.name)).toEqual(["Example Squat"]);
+  });
+
+  it("lists a row whose reps it cannot map, under its day", () => {
+    const mystery = skipped.find((s) => s.name === "Example Mystery");
+    expect(mystery).toMatchObject({ block: "Block One", week: 1, day: "Legs" });
+    expect(mystery?.reason).toMatch(/no dose/);
+    expect(formatSkippedRow(mystery!)).toBe(`Block One W1 Legs: Example Mystery: ${mystery!.reason}`);
+    expect(skipped).toHaveLength(3);
+  });
+});
+
+describe("parsePplWorkbook", () => {
+  it("throws naming the sheets when none matches the phase pattern", () => {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["nothing"]]), "Cover");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([["nothing"]]), "Notes");
+    expect(() => parsePplWorkbook(wb, META)).toThrow(/Cover, Notes/);
+  });
+});
+
 describe("the real workbook, when present", () => {
   const path = "/Users/quitefrank/Claude/Personal/raw/training/nippard-ultimate-ppl-4x.xlsx";
   it.skipIf(!existsSync(path))("converts with every dose parsing, 13 weeks in 3 blocks, four days a week", () => {
-    const p = parsePplWorkbook(XLSX.readFile(path), { name: "x", description: "x", citation: null, sourceUrl: null });
+    const { program: p, skipped } = parsePplWorkbook(XLSX.readFile(path), { name: "x", description: "x", citation: null, sourceUrl: null });
+    expect(skipped).toEqual([]);
     expect(p.blocks).toHaveLength(3);
     expect(p.blocks.reduce((n, b) => n + b.weeks.length, 0)).toBe(13);
     const bad: string[] = [];

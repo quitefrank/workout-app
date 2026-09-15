@@ -75,11 +75,30 @@ const WEEK_RE = /^Week\s+(\d+)$/i;
 const DAY_RE = /^(.*?)\s*#\d+$/;
 const SUPERSET_RE = /^([A-Z])(\d)[.:]\s*/;
 
-/** Parse one or more phase sheets (rows as arrays) into a programme. */
-export function parsePplRows(sheets: unknown[][][], meta: SheetMeta): ProgramJson {
+/** An exercise row the parser could not place or could not turn into a dose. */
+export type PplSkippedRow = {
+  block: string;
+  week: number;
+  /** null when the row sat under no day label. */
+  day: string | null;
+  name: string;
+  reason: string;
+};
+
+export type PplParseResult = { program: ProgramJson; skipped: PplSkippedRow[] };
+
+export function formatSkippedRow(s: PplSkippedRow): string {
+  return `${s.block} W${s.week} ${s.day ?? "(no day)"}: ${s.name}: ${s.reason}`;
+}
+
+/**
+ * Parse one or more phase sheets (rows as arrays) into a programme.
+ * Rows that do not map are returned in `skipped`, never dropped silently.
+ */
+export function parsePplRows(sheets: unknown[][][], meta: SheetMeta): PplParseResult {
   const blocks: ProgramJsonBlock[] = [];
   let globalWeek = 0;
-  const skipped: string[] = [];
+  const skipped: PplSkippedRow[] = [];
 
   for (const rows of sheets) {
     let block: ProgramJsonBlock | null = null;
@@ -121,11 +140,28 @@ export function parsePplRows(sheets: unknown[][][], meta: SheetMeta): ProgramJso
           week.days.push(day);
         }
       }
-      if (!day) continue;
-
       if (!rawName || rawName === "Exercise") continue;
+
+      // An exercise with nothing to attach to: the row sits under a
+      // banner or directly under the week header. Report it rather
+      // than let it vanish.
+      const blockName = block?.name ?? "(no block)";
+      if (!day) {
+        skipped.push({ block: blockName, week: week.week, day: null, name: rawName, reason: "no day label above this row" });
+        continue;
+      }
+
       const sd = doseFromSheet(row[3], row[4]);
-      if (!sd) { skipped.push(`${block?.name} W${week.week} ${day.name}: ${rawName} (${String(row[3])}, ${String(row[4])})`); continue; }
+      if (!sd) {
+        skipped.push({
+          block: blockName,
+          week: week.week,
+          day: day.name,
+          name: rawName,
+          reason: `no dose from working sets ${JSON.stringify(row[3] ?? null)} and reps ${JSON.stringify(row[4] ?? null)}`,
+        });
+        continue;
+      }
 
       let name = rawName;
       const noteParts: string[] = [];
@@ -136,6 +172,8 @@ export function parsePplRows(sheets: unknown[][][], meta: SheetMeta): ProgramJso
       }
       const n = text(row[10]);
       if (n) noteParts.push(n);
+      const load = text(row[5]);
+      if (load) noteParts.push(`Load: ${load}`);
       if (sd.note) noteParts.push(sd.note);
 
       const warmUp = decodeRangeCell(row[2]);
@@ -154,17 +192,25 @@ export function parsePplRows(sheets: unknown[][][], meta: SheetMeta): ProgramJso
     }
   }
 
-  if (skipped.length) {
-    console.warn(`ppl-sheet: skipped ${skipped.length} rows that did not map to a dose`);
-    for (const s of skipped.slice(0, 10)) console.warn("  " + s);
-  }
-  return { name: meta.name, kind: "training", description: meta.description, citation: meta.citation, sourceUrl: meta.sourceUrl, blocks };
+  const program: ProgramJson = {
+    name: meta.name,
+    kind: "training",
+    description: meta.description,
+    citation: meta.citation,
+    sourceUrl: meta.sourceUrl,
+    blocks,
+  };
+  return { program, skipped };
 }
 
-/** Read every sheet whose name starts with "4x - Phase", in sheet order. */
-export function parsePplWorkbook(wb: XLSX.WorkBook, meta: SheetMeta): ProgramJson {
-  const sheets = wb.SheetNames.filter((n) => /^4x - Phase \d+$/i.test(n)).map(
-    (n) => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, blankrows: false }) as unknown[][],
-  );
+const PHASE_SHEET_RE = /^4x - Phase \d+$/i;
+
+/** Read every sheet whose name matches "4x - Phase N", in sheet order. Throws when none does. */
+export function parsePplWorkbook(wb: XLSX.WorkBook, meta: SheetMeta): PplParseResult {
+  const names = wb.SheetNames.filter((n) => PHASE_SHEET_RE.test(n));
+  if (names.length === 0) {
+    throw new Error(`no sheet matches ${PHASE_SHEET_RE}; the workbook has: ${wb.SheetNames.join(", ")}`);
+  }
+  const sheets = names.map((n) => XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, blankrows: false }) as unknown[][]);
   return parsePplRows(sheets, meta);
 }
