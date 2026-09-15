@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
-import { cellText, doseFromPdf, percentOrRpe, restFromPdf, SUPERSET_RE, titleCaseName } from "../pdf-program";
+import { cellText, doseFromPdf, joinNotes, percentOrRpe, restFromPdf, sentenceCase, SUPERSET_RE, titleCaseName } from "../pdf-program";
 
 describe("cellText", () => {
   it("collapses line breaks and blanks", () => {
@@ -24,6 +24,27 @@ describe("titleCaseName", () => {
     expect(titleCaseName("ROUND-BACK DUMBBELL 45° HYPEREXTENSION")).toBe("Round-Back Dumbbell 45° Hyperextension");
     expect(titleCaseName("MILITARY PRESS / PUSH PRESS COMPLEX")).toBe("Military Press / Push Press Complex");
     expect(titleCaseName("NECK FLEXION/EXTENSION")).toBe("Neck Flexion/Extension");
+  });
+});
+
+describe("sentenceCase", () => {
+  it("lowercases shouted notes and keeps acronyms", () => {
+    expect(sentenceCase("SIT BACK AND DOWN. FULL ROM, KEEP YOUR RPE HONEST")).toBe("Sit back and down. Full ROM, keep your RPE honest");
+    expect(sentenceCase("USE 1 DUMBBELL\nIN EACH HAND")).toBe("Use 1 dumbbell in each hand");
+  });
+
+  it("returns null for a blank cell", () => {
+    expect(sentenceCase(null)).toBeNull();
+    expect(sentenceCase("-")).toBeNull();
+  });
+});
+
+describe("joinNotes", () => {
+  it("joins the parts with a period and never doubles one the source wrote", () => {
+    expect(joinNotes(["Superset A", "Squeeze", null, "Load: 70% 1RM"])).toBe("Superset A. Squeeze. Load: 70% 1RM");
+    expect(joinNotes(["Superset A", "Minimize momentum."])).toBe("Superset A. Minimize momentum.");
+    expect(joinNotes(["Test new strength! Perfect form!", "Load: 90% 1RM"])).toBe("Test new strength! Perfect form! Load: 90% 1RM");
+    expect(joinNotes([null, ""])).toBeNull();
   });
 });
 

@@ -76,6 +76,16 @@ export function sentenceCase(raw: string | null | undefined): string | null {
     .join(" ");
 }
 
+/**
+ * Join note parts into one row note, a period between parts unless the
+ * part before already ends a sentence. Null when nothing is left.
+ */
+export function joinNotes(parts: (string | null | undefined)[]): string | null {
+  const kept = parts.filter((p): p is string => typeof p === "string" && p.trim() !== "").map((p) => p.trim());
+  if (kept.length === 0) return null;
+  return kept.reduce((acc, part) => (/[.!?]$/.test(acc) ? `${acc} ${part}` : `${acc}. ${part}`));
+}
+
 /** Rest as the seed's parseRestSeconds reads it: "~3-4 min", "0 min", "30 sec", "90 sec". */
 export function restFromPdf(raw: string | null | undefined): string | null {
   const t = cellText(raw);
