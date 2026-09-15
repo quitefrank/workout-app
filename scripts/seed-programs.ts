@@ -31,7 +31,8 @@
  * never shadows a curated library row: candidates are tried against
  * Notion and Achilles rows first, then against seed-owned rows. Unknown
  * exercises are inserted unrated (no authoring inputs), which the
- * recovery rules report as unrated.
+ * recovery rules report as unrated; an unknown substitution is inserted
+ * only when the slot it fills will actually be written.
  */
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -170,24 +171,72 @@ async function preflight(sb: SupabaseClient, files: string[], report: Report): P
   return loaded;
 }
 
-/** Every distinct exercise and substitution name across the programmes, keyed by slug, first spelling wins. */
-function collectNames(loaded: Loaded[]): Map<string, string> {
+/**
+ * Every distinct exercise name the programmes prescribe (not the
+ * substitutions), keyed by slug, first spelling wins. Substitutions are
+ * resolved at the slot, so one is only inserted when its slot will
+ * actually be written.
+ */
+function collectPrescribedNames(loaded: Loaded[]): Map<string, string> {
   const names = new Map<string, string>();
-  const add = (name: string | null) => {
-    if (!name) return;
-    const slug = exerciseSlug(name, null);
-    if (!names.has(slug)) names.set(slug, name);
-  };
   for (const { program } of loaded) {
     for (const block of program.blocks) for (const week of block.weeks) for (const day of week.days) {
       for (const ex of day.exercises) {
-        add(ex.name);
-        add(ex.sub1);
-        add(ex.sub2);
+        const slug = exerciseSlug(ex.name, null);
+        if (!names.has(slug)) names.set(slug, ex.name);
       }
     }
   }
   return names;
+}
+
+/**
+ * Match a JSON exercise to the library by its slug or a near-duplicate,
+ * trying curated rows (Notion, Achilles) before seed-owned ones so a row
+ * this seed inserted never shadows a curated one. Inserts when nothing
+ * matches and `insertIfMissing` is set; otherwise returns null.
+ */
+async function makeResolver(sb: SupabaseClient, report: Report) {
+  const exerciseId = new Map<string, string>();
+  /** The library slug each JSON slug resolved to (differs from the key on a fuzzy match). */
+  const librarySlug = new Map<string, string>();
+
+  async function resolve(slug: string, name: string, insertIfMissing: boolean): Promise<string | null> {
+    const cached = exerciseId.get(slug);
+    if (cached) return cached;
+    const candidates = slugCandidates(slug);
+    const { data: rows, error: lookupErr } = await sb.from("exercises").select("id,slug,_notion_id").in("slug", candidates);
+    if (lookupErr) fail(`exercise lookup failed (${slug}): ${lookupErr.message}`);
+    const pick = (seedOwned: boolean) => {
+      for (const c of candidates) {
+        const row = (rows ?? []).find((r) => r.slug === c && isSeedExercise(r._notion_id) === seedOwned);
+        if (row) return row;
+      }
+      return null;
+    };
+    const hit = pick(false) ?? pick(true);
+    if (hit) {
+      exerciseId.set(slug, hit.id as string);
+      librarySlug.set(slug, hit.slug as string);
+      report.exercisesMatched.push(slug);
+      if (hit.slug !== slug) report.fuzzyMatches.push({ wanted: slug, matched: hit.slug as string });
+      return hit.id as string;
+    }
+    if (!insertIfMissing) return null;
+    const parsed = parseExerciseName(name);
+    const { data, error } = await sb
+      .from("exercises")
+      .insert({ name: parsed.name, slug, equipment_type: parsed.equipmentType, notes: null, _notion_id: `${EXERCISE_OWNER}${slug}` })
+      .select("id")
+      .single();
+    if (error) fail(`exercise insert failed (${slug}): ${error.message}`);
+    exerciseId.set(slug, data.id);
+    librarySlug.set(slug, slug);
+    report.exercisesInserted.push({ slug, equipmentType: parsed.equipmentType });
+    return data.id as string;
+  }
+
+  return { resolve, exerciseId, librarySlug };
 }
 
 /** The substitution slots one programme wants, one per (exercise, position). */
@@ -256,42 +305,13 @@ async function main() {
     console.log(`  ${basename(file)}: ${program.name} (${program.blocks.length} blocks, ${weeks} weeks)`);
   }
 
-  // 1. Exercises: match by slug or a near-duplicate slug, insert the
-  // rest with the equipment type the name implies, no muscle group, no
-  // authoring inputs, stamped as seed-owned.
+  // 1. Prescribed exercises: match by slug or a near-duplicate slug,
+  // insert the rest with the equipment type the name implies, no muscle
+  // group, no authoring inputs, stamped as seed-owned.
   console.log("\n[1/6] exercises");
-  const exerciseId = new Map<string, string>();
-  /** The library slug each JSON slug resolved to (differs from the key on a fuzzy match). */
-  const librarySlug = new Map<string, string>();
-  for (const [slug, name] of collectNames(loaded)) {
-    const candidates = slugCandidates(slug);
-    const { data: rows, error: lookupErr } = await sb.from("exercises").select("id,slug,_notion_id").in("slug", candidates);
-    if (lookupErr) fail(`exercise lookup failed (${slug}): ${lookupErr.message}`);
-    const pick = (seedOwned: boolean) => {
-      for (const c of candidates) {
-        const row = (rows ?? []).find((r) => r.slug === c && isSeedExercise(r._notion_id) === seedOwned);
-        if (row) return row;
-      }
-      return null;
-    };
-    const hit = pick(false) ?? pick(true);
-    if (hit) {
-      exerciseId.set(slug, hit.id as string);
-      librarySlug.set(slug, hit.slug as string);
-      report.exercisesMatched.push(slug);
-      if (hit.slug !== slug) report.fuzzyMatches.push({ wanted: slug, matched: hit.slug as string });
-      continue;
-    }
-    const parsed = parseExerciseName(name);
-    const { data, error } = await sb
-      .from("exercises")
-      .insert({ name: parsed.name, slug, equipment_type: parsed.equipmentType, notes: null, _notion_id: `${EXERCISE_OWNER}${slug}` })
-      .select("id")
-      .single();
-    if (error) fail(`exercise insert failed (${slug}): ${error.message}`);
-    exerciseId.set(slug, data.id);
-    librarySlug.set(slug, slug);
-    report.exercisesInserted.push({ slug, equipmentType: parsed.equipmentType });
+  const { resolve, exerciseId, librarySlug } = await makeResolver(sb, report);
+  for (const [slug, name] of collectPrescribedNames(loaded)) {
+    await resolve(slug, name, true);
   }
   console.log(`  ${report.exercisesMatched.length} matched the library (${report.fuzzyMatches.length} through a near-duplicate slug), ${report.exercisesInserted.length} inserted`);
 
@@ -300,19 +320,59 @@ async function main() {
   // are corrected in place when the JSON changes. A slot holding a
   // library row's Notion sub-option, or another programme's alternate,
   // is left as it is and reported with what it holds and what was
-  // wanted. Seed-owned rows of this programme that are no longer
-  // wanted are removed.
+  // wanted; the substitution exercise is not inserted for such a slot,
+  // so nothing is added that the run would then find unreferenced.
+  // Seed-owned rows of this programme that are no longer wanted are
+  // removed.
   console.log("\n[2/6] alternates");
+  const readSlot = async (ownId: string, position: number, label: string) => {
+    const { data: slot, error } = await sb
+      .from("exercise_alternates")
+      .select("id,alternate_exercise_id,notes,_notion_id")
+      .eq("exercise_id", ownId)
+      .eq("position", position)
+      .maybeSingle();
+    if (error) fail(`alternate read failed (${label} position ${position}): ${error.message}`);
+    return slot;
+  };
   for (const { program } of loaded) {
     const owner = `program:${program.name}:`;
     const wantedKeys = new Set<string>();
     for (const a of collectAlternates(program, report)) {
       const ownId = exerciseId.get(a.exerciseSlug);
-      const altId = exerciseId.get(a.alternateSlug);
       if (!ownId) fail(`no id for ${a.exerciseSlug} after the exercises step`);
-      if (!altId) fail(`no id for ${a.alternateSlug} after the exercises step`);
+      const current = await readSlot(ownId, a.position, a.exerciseSlug);
+      const currentSeedOwned = typeof current?._notion_id === "string" && current._notion_id.startsWith(owner);
+
+      // Resolve the substitution without inserting first, so a slot the
+      // seed will not write never causes an insert.
+      let altId = await resolve(a.alternateSlug, a.alternateName, false);
+      if (current && !currentSeedOwned) {
+        if (altId && current.alternate_exercise_id === altId) {
+          // A Notion sub-option (or another programme) already says this; leave it with its own key.
+          report.alternatesAlreadyMatching++;
+          continue;
+        }
+        const { data: existingAlt, error: existingErr } = await sb
+          .from("exercises")
+          .select("slug")
+          .eq("id", current.alternate_exercise_id)
+          .maybeSingle();
+        if (existingErr) fail(`existing alternate lookup failed (${a.exerciseSlug} position ${a.position}): ${existingErr.message}`);
+        report.alternatesKeptExisting.push({
+          program: program.name,
+          exercise: a.exerciseSlug,
+          position: a.position,
+          existing: existingAlt?.slug ?? current.alternate_exercise_id,
+          wanted: a.alternateSlug,
+        });
+        continue;
+      }
+      altId ??= await resolve(a.alternateSlug, a.alternateName, true);
+      if (!altId) fail(`no id for ${a.alternateSlug} after resolving it`);
       // Two spellings that resolved to the same library row.
       if (altId === ownId) continue;
+
       const key = `${owner}${librarySlug.get(a.exerciseSlug)}:${a.position}`;
       wantedKeys.add(key);
       const notes = `Substitution from ${program.name}`;
@@ -321,37 +381,11 @@ async function main() {
         .from("exercise_alternates")
         .upsert(wanted, { onConflict: "exercise_id,position", ignoreDuplicates: true });
       if (error) fail(`alternate upsert failed (${a.exerciseSlug} -> ${a.alternateSlug}): ${error.message}`);
-      const { data: slot, error: slotErr } = await sb
-        .from("exercise_alternates")
-        .select("id,alternate_exercise_id,notes,_notion_id")
-        .eq("exercise_id", ownId)
-        .eq("position", a.position)
-        .maybeSingle();
-      if (slotErr) fail(`alternate read-back failed (${a.exerciseSlug} position ${a.position}): ${slotErr.message}`);
+      const slot = await readSlot(ownId, a.position, a.exerciseSlug);
       if (!slot) fail(`alternate slot missing after upsert (${a.exerciseSlug} position ${a.position})`);
       const seedOwned = typeof slot._notion_id === "string" && slot._notion_id.startsWith(owner);
+      if (!seedOwned) fail(`alternate slot changed owner during the run (${a.exerciseSlug} position ${a.position})`);
       const sameAlternate = slot.alternate_exercise_id === altId;
-      if (!seedOwned) {
-        if (sameAlternate) {
-          // A Notion sub-option (or another programme) already says this; leave it with its own key.
-          report.alternatesAlreadyMatching++;
-          continue;
-        }
-        const { data: existingAlt, error: existingErr } = await sb
-          .from("exercises")
-          .select("slug")
-          .eq("id", slot.alternate_exercise_id)
-          .maybeSingle();
-        if (existingErr) fail(`existing alternate lookup failed (${a.exerciseSlug} position ${a.position}): ${existingErr.message}`);
-        report.alternatesKeptExisting.push({
-          program: program.name,
-          exercise: a.exerciseSlug,
-          position: a.position,
-          existing: existingAlt?.slug ?? slot.alternate_exercise_id,
-          wanted: a.alternateSlug,
-        });
-        continue;
-      }
       // Seed-owned and drifted: bring the row to what the JSON says.
       if (!sameAlternate || slot.notes !== notes || slot._notion_id !== key) {
         const { error: updErr } = await sb
