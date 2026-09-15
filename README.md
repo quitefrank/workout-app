@@ -31,7 +31,7 @@ PWA shell. No screens. No auth UI. No analytics page.
 
 Run `bun run build` to confirm the project compiles. Run `bun run test`
 to exercise the parsers, the recovery domain, the programme contract and
-the migrations (226 tests across 15 files).
+the migrations (234 tests across 15 files).
 
 **Milestone 2 (next).** Screens: calendar home, active workout, template
 detail, exercise library, history, analytics.

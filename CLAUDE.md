@@ -115,7 +115,7 @@ Six pure modules with full unit-test coverage:
   arrays) into the programme JSON contract; returns the rows it could
   not place or dose alongside the programme, never drops them.
 
-Run `bun run test` to exercise them. 226 tests across 15 files.
+Run `bun run test` to exercise them. 234 tests across 15 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -195,7 +195,8 @@ Exercises match the library by slug, then by near-duplicate slugs
 (singular or plural, `db`/`dumbbell`, `bb`/`barbell`); a row this seed
 inserted never shadows a curated row. Unknown ones are inserted with
 the equipment type the name implies, no muscle group and no authoring
-inputs, stamped `program:exercise:<slug>`. The report's `handFix` field
+inputs, stamped `program:exercise:<slug>`; a substitution is inserted
+only when the seed will write its slot. The report's `handFix` field
 lists every seed-owned exercise still at `other` or without a muscle
 group, recomputed on every run. A seed-owned exercise that nothing
 references any more is removed at the end of the run.
