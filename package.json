@@ -13,6 +13,7 @@
     "seed:achilles": "bun run scripts/seed-achilles.ts",
     "seed:programs": "bun run scripts/seed-programs.ts",
     "convert:ppl": "bun run scripts/convert-ppl-sheet.ts",
+    "extract:pdfs": "bun run scripts/extract-training-pdfs.ts",
     "icons:generate": "bun run scripts/generate-icons.ts",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
