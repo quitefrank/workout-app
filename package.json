@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "seed:notion": "bun run scripts/seed-from-notion.ts",
     "seed:achilles": "bun run scripts/seed-achilles.ts",
+    "convert:ppl": "bun run scripts/convert-ppl-sheet.ts",
     "icons:generate": "bun run scripts/generate-icons.ts",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
