@@ -96,7 +96,7 @@ Plus a join table `template_phases (template_id, phase_id)` recording which phas
 
 `template_exercises` and `workout_exercises` gain `prescribed_rir_min`, `prescribed_rir_max`, `prescribed_seconds_min`, `prescribed_seconds_max` (integers, nullable). `sets` gains `seconds` (integer, nullable). A prescription is one of reps, RIR, or seconds; the existing `prescribed_reps_*` columns stay for reps. Cues ("Step up from the bench already in the rack") go in the existing `notes` column on `template_exercises`.
 
-`template_exercises` also gains `override_rule` (integer 1 to 11, nullable) and `override_reason` (text, nullable), added in `0006`. They are set together or not at all; a check constraint enforces the pair. A row carries them only when it knowingly breaks one of the authoring rules in section 6 and the user chose to keep it. The seed data test requires that an override names a rule that actually fires for that row, so a stale override fails the build.
+`template_exercises` also gains `override_rule` (integer 1 to 11, nullable) and `override_reason` (text, nullable), added in `0006`. They are set together or not at all; a check constraint enforces the pair. A row carries them only when it knowingly breaks one of the authoring rules in section 6 and the user chose to keep it. The seed data test requires that an override names a rule that actually fires for that row, so a stale override fails the build. `variant` (added in `0007`) carries a set type the programme spelled into the exercise name, such as "Top Set" or "21's"; the row's exercise is the base movement.
 
 ### 4.5 `exercise_alternates` addition
 
@@ -257,6 +257,7 @@ Every table has RLS on. The analytics views in `0002` never referenced `programs
 | `0004_programs.sql` | `program_kind`, `source_kind`; `sources`, `programs`, `program_phases`; `templates.program_id`; `template_phases` |
 | `0005_recovery.sql` | `clearance_kind`, `clearance_source`, `event_kind`, `rule_kind`; `recoveries`, `clearances`, `events`, `rules`, `daily_checks`; their RLS |
 | `0006_programs_weekly.sql` | `exercises.video_credit`; `program_phases.block`; `template_phases.position`; `template_exercises.override_rule` and `override_reason` with their pair constraint |
+| `0007_template_exercise_variant.sql` | `template_exercises.variant`, the set type a programme spelled into an exercise name |
 
 The `_notion_id` columns stay for good: they are the ownership key the three seeds (`template:`, `achilles:`, `program:`) use to clear and rewrite only their own rows.
 

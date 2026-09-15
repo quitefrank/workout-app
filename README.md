@@ -31,7 +31,7 @@ PWA shell. No screens. No auth UI. No analytics page.
 
 Run `bun run build` to confirm the project compiles. Run `bun run test`
 to exercise the parsers, the recovery domain, the programme contract and
-the migrations (234 tests across 15 files).
+the migrations (251 tests across 17 files).
 
 **Milestone 2 (next).** Screens: calendar home, active workout, template
 detail, exercise library, history, analytics.
@@ -205,14 +205,15 @@ contract, by its own converter or by hand and the same seed loads it.
 │   ├── seed-programs.ts        # every programme JSON -> programs, phases, templates
 │   ├── convert-ppl-sheet.ts    # vault workbook -> programme JSON
 │   ├── data/achilles/          # committed seed data + gitignored personal.local.json
-│   ├── data/programs/          # JSON contract (schema.ts), example.json, gitignored programme JSON
+│   ├── data/programs/          # JSON contract (schema.ts), library map (library.ts), example.json, gitignored programme JSON
 │   ├── generate-icons.ts       # placeholder PWA icon generator
 │   ├── lib/
 │   │   ├── env.ts              # env var loader and validator
 │   │   ├── parse-prescription.ts # parse "3-5", "3 mins" etc
 │   │   ├── exercise-name.ts    # parse ↑↓ arrows, infer equipment_type
 │   │   ├── template-name.ts    # canonical template names, category and variant
-│   │   └── ppl-sheet.ts        # workbook rows -> programme JSON, with skipped rows
+│   │   ├── ppl-sheet.ts        # workbook rows -> programme JSON, with skipped rows
+│   │   └── exercise-variant.ts # split a set type out of an exercise name, split "A + B" cells
 │   └── __tests__/              # Vitest unit tests for the parsers
 ├── src/
 │   └── app/                    # Next.js App Router
@@ -222,7 +223,12 @@ contract, by its own converter or by hand and the same seed loads it.
 │   ├── config.toml             # supabase CLI local config
 │   └── migrations/
 │       ├── 0001_initial_schema.sql
-│       └── 0002_analytics_views.sql
+│       ├── 0002_analytics_views.sql
+│       ├── 0003_exercise_authoring.sql
+│       ├── 0004_programs.sql
+│       ├── 0005_recovery.sql
+│       ├── 0006_programs_weekly.sql
+│       └── 0007_template_exercise_variant.sql
 ├── next.config.ts              # PWA wrapper
 ├── package.json
 └── vitest.config.ts

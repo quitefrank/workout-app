@@ -98,7 +98,7 @@ rewrites only its own rows. The column stays.
 
 ## Parsers
 
-Six pure modules with full unit-test coverage:
+Seven pure modules with full unit-test coverage:
 
 - `scripts/parse-weight-csv.ts` Parse the Notion Sessions Weight CSV
   (`"50, 70, 90, 100(5), 100(4)"`) into structured set rows.
@@ -114,8 +114,12 @@ Six pure modules with full unit-test coverage:
 - `scripts/lib/ppl-sheet.ts` Parse a programme workbook's rows (as
   arrays) into the programme JSON contract; returns the rows it could
   not place or dose alongside the programme, never drops them.
+- `scripts/lib/exercise-variant.ts` Split a programme spelling into the
+  base exercise and its set type ("Bench Press (Top Set)"), drop a rep
+  or seconds hint the dose already carries, and split an "A + B"
+  superset cell into two rows.
 
-Run `bun run test` to exercise them. 234 tests across 15 files.
+Run `bun run test` to exercise them. 251 tests across 17 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -201,6 +205,23 @@ lists every seed-owned exercise still at `other` or without a muscle
 group, recomputed on every run. A seed-owned exercise that nothing
 references any more is removed at the end of the run.
 
+A set type spelled into a name ("Bench Press (Top Set)", "DB Curl 21's",
+"Cable Crossover Ladder") is split off by the converter: the row's
+exercise is the base movement and `template_exercises.variant` carries
+the set type, so history and alternates attach to one library row. A
+workbook cell naming two movements with "+" becomes two rows sharing
+the prescription.
+
+`scripts/data/programs/library.ts` is the committed map from programme
+spellings to the library: `LIBRARY_ALIASES` sends a programme slug to
+the curated Notion row it really is (`bench-press` to
+`bench-press-flat`), tried before near-duplicate matching; and
+`LIBRARY_ATTRIBUTES` gives muscle group and equipment to the exercises
+the seed inserts, applied to seed-owned rows on every run so a fresh
+database ends up the same. The report lists `aliasMatches`,
+`aliasesMissing`, `attributesApplied` and `attributesUnused`; `handFix`
+is now the seed-owned rows the table does not cover.
+
 A programme's substitutions become alternates on the exercise row,
 keyed `program:<programme>:<slug>:<position>`; a slot already holding a
 Notion sub-option or another programme's alternate is left alone and
@@ -226,7 +247,7 @@ the same seed loads it without changes.
 - Analytics views migration
 - Notion seed script with verification report
 - PWA manifest, icons, service worker config
-- Parser tests passing (suite now 234)
+- Parser tests passing (suite now 251)
 - Production build clean
 
 ## What's next (Milestone 2)
