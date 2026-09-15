@@ -73,3 +73,6 @@ next-env.d.ts
 
 # capture log; system of record is ~/Case Study Vault (mirrored + pushed there)
 case-study-raw.md
+
+# design labs: throwaway HTML prototypes, some embed Apple kit screenshots
+/docs/lab/
