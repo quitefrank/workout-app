@@ -11,10 +11,11 @@ describe("library map", () => {
     }
   });
 
-  it("an alias key never also has attributes, and never aliases itself", () => {
+  it("an alias key never also has attributes, never aliases itself, and never points at another alias key", () => {
     for (const [from, to] of Object.entries(LIBRARY_ALIASES)) {
       expect(from).not.toBe(to);
       expect(LIBRARY_ATTRIBUTES[from]).toBeUndefined();
+      expect(LIBRARY_ALIASES[to], `${from} -> ${to}`).toBeUndefined();
     }
   });
 

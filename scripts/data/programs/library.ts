@@ -2,8 +2,11 @@
  * How programme exercises map onto Frank's library.
  *
  * LIBRARY_ALIASES: a programme spelling (as a slug) that is one of the
- * curated Notion rows under another name. The seed resolves the alias
- * before near-duplicate matching, so no seed row is inserted for it.
+ * curated Notion rows under another name, or the same movement another
+ * programme spells differently (the target is the spelling that keeps
+ * the seed row). The seed resolves the alias before the slug itself and
+ * before near-duplicate matching, so no seed row is inserted for it. A
+ * target is never itself an alias key.
  *
  * LIBRARY_ATTRIBUTES: muscle group and equipment for exercises the seed
  * inserts because no curated row exists. Applied on every run to
@@ -13,9 +16,9 @@
  * split ("Bench Press (Top Set)" is "bench-press").
  *
  * An alias is only for the same movement under another spelling. A
- * technique variant (pause, tempo, eccentric, bottom-half, cheat) keeps
- * its own row with attributes, and nothing aliases to an upstairs or
- * downstairs row. Equipment comes from the name, or from the source
+ * technique variant (pause, enhanced-eccentric, bottom-half, cheat)
+ * keeps its own row with attributes, and nothing aliases to an upstairs
+ * or downstairs row. Equipment comes from the name, or from the source
  * notes when the name is silent ("barbell or EZ bar" is barbell, "DB,
  * cable or band" is other). Forearm work sits under Biceps and neck
  * work under Shoulders, the nearest groups the library has.
@@ -39,9 +42,11 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "bulgarian-split-squat": "db-bulgarian-split-squats",
   "cable-lat-pullover": "cable-pullover",
   "cable-reverse-flye": "reverse-cable-flies",
+  "cable-rope-pullthrough": "cable-pull-through",
   "cable-triceps-kickback": "cable-tricep-kickback",
   "chest-supported-dumbbell-row": "incline-chest-supported-db-row",
   "close-grip-seated-cable-row": "cable-seated-row",
+  "concentration-bicep-curl": "dumbbell-concentration-curl",
   "decline-plate-weighted-crunch": "decline-weighted-crunch",
   "diamond-pushup": "diamond-push-ups",
   "dumbbell-hammer-curl": "hammer-curls",
@@ -58,14 +63,17 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "incline-db-press": "db-bench-press-incline",
   "kneeling-straight-arm-cable-pull-over": "cable-pullover",
   "lat-static-stretch": "static-lat-stretch",
+  "lateral-band-walk": "banded-lateral-walk",
   "leg-curl": "lying-leg-curl",
   "low-incline-db-press": "db-bench-press-low-incline",
   "med-ball-close-grip-push-up": "med-ball-push-up",
   "medicine-ball-pushups": "med-ball-push-up",
+  "military-press": "overhead-press",
   "neutral-grip-pulldown": "neutral-grip-lat-pulldown",
   "overhead-rope-tricep-extension": "overhead-cable-triceps-extension",
   "overhead-triceps-extension": "overhead-cable-triceps-extension",
   "pec-static-stretch": "pec-stretch",
+  "reverse-cable-flye": "reverse-cable-flies",
   "romanian-deadlift": "barbell-rdl",
   "rope-overhead-triceps-extension": "overhead-cable-triceps-extension",
   "seated-db-shoulder-press": "db-shoulder-press",
@@ -76,9 +84,11 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "single-arm-lat-pulldown": "single-arm-cable-pulldown",
   "single-arm-pulldown": "single-arm-cable-pulldown",
   "single-arm-row": "dumbbell-rows",
+  "squat": "back-squat",
   "standing-dumbbell-arnold-press": "standing-arnold-press",
   "standing-ez-bar-curl": "ez-bar-bicep-curls",
   "supinated-ez-bar-curl": "ez-bar-bicep-curls",
+  "tricep-pressdown": "triceps-pressdown",
   "walking-lunge": "walking-db-lunge",
 };
 
@@ -101,7 +111,6 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "cable-crunch": { muscleGroup: "Abs", equipmentType: "cable" },
   "cable-lateral-raise": { muscleGroup: "Shoulders", equipmentType: "cable" },
   "cable-pull-through": { muscleGroup: "Glutes", equipmentType: "cable" },
-  "cable-rope-pullthrough": { muscleGroup: "Glutes", equipmentType: "cable" },
   "cable-seated-elbows-out-row": { muscleGroup: "Back", equipmentType: "cable" },
   "cable-shrug-in": { muscleGroup: "Back", equipmentType: "cable" },
   "chest-supported-t-bar-row": { muscleGroup: "Back", equipmentType: "machine" },
@@ -109,7 +118,6 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "close-grip-barbell-incline-press": { muscleGroup: "Triceps", equipmentType: "barbell" },
   "close-grip-bench-press": { muscleGroup: "Triceps", equipmentType: "barbell" },
   "close-grip-smith-machine-press": { muscleGroup: "Triceps", equipmentType: "machine" },
-  "concentration-bicep-curl": { muscleGroup: "Biceps", equipmentType: "dumbbell" },
   "constant-tension-cable-lateral-raise": { muscleGroup: "Shoulders", equipmentType: "cable" },
   "constant-tension-machine-lateral-raise": { muscleGroup: "Shoulders", equipmentType: "machine" },
   "cross-body-cable-y-raise-side-delt": { muscleGroup: "Shoulders", equipmentType: "cable" },
@@ -139,7 +147,6 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "kroc-row": { muscleGroup: "Back", equipmentType: "dumbbell" },
   "lat-pull-over": { muscleGroup: "Back", equipmentType: "other" },
   "lat-pulldown": { muscleGroup: "Back", equipmentType: "cable" },
-  "lateral-band-walk": { muscleGroup: "Glutes", equipmentType: "other" },
   "lean-in-constant-tension-db-lateral-raise": { muscleGroup: "Shoulders", equipmentType: "dumbbell" },
   "llpt-plank": { muscleGroup: "Abs", equipmentType: "bodyweight" },
   "low-bar-back-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
@@ -149,7 +156,6 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "lying-incline-death-curls": { muscleGroup: "Biceps", equipmentType: "other" },
   "machine-high-row": { muscleGroup: "Back", equipmentType: "machine" },
   "machine-preacher-curl": { muscleGroup: "Biceps", equipmentType: "machine" },
-  "military-press": { muscleGroup: "Shoulders", equipmentType: "barbell" },
   "military-press-push-press-complex": { muscleGroup: "Shoulders", equipmentType: "barbell" },
   "n1-style-cross-body-triceps-extension": { muscleGroup: "Triceps", equipmentType: "cable" },
   "neck-flexion-extension": { muscleGroup: "Shoulders", equipmentType: "other" },
@@ -167,7 +173,6 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "plate-weighted-crunch": { muscleGroup: "Abs", equipmentType: "bodyweight" },
   "preacher-death-curls": { muscleGroup: "Biceps", equipmentType: "other" },
   "press-around": { muscleGroup: "Chest", equipmentType: "cable" },
-  "reverse-cable-flye": { muscleGroup: "Shoulders", equipmentType: "cable" },
   "reverse-grip-ez-bar-curl": { muscleGroup: "Biceps", equipmentType: "other" },
   "reverse-grip-forearm-wrist-curl": { muscleGroup: "Biceps", equipmentType: "other" },
   "reverse-pec-deck": { muscleGroup: "Shoulders", equipmentType: "machine" },
@@ -183,12 +188,10 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "snatch-grip-barbell-shrug": { muscleGroup: "Back", equipmentType: "barbell" },
   "snatch-grip-romanian-deadlift": { muscleGroup: "Hamstrings", equipmentType: "barbell" },
   "spider-curl": { muscleGroup: "Biceps", equipmentType: "other" },
-  "squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
   "squat-walk-out-do-not-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
   "sumo-box-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
   "swiss-ball-single-leg-leg-curl": { muscleGroup: "Hamstrings", equipmentType: "bodyweight" },
   "trap-bar-deadlift": { muscleGroup: "Glutes", equipmentType: "barbell" },
-  "tricep-pressdown": { muscleGroup: "Triceps", equipmentType: "cable" },
   "triceps-pressdown": { muscleGroup: "Triceps", equipmentType: "cable" },
   "triceps-v-bar-pressdown": { muscleGroup: "Triceps", equipmentType: "cable" },
   "upright-row": { muscleGroup: "Shoulders", equipmentType: "other" },

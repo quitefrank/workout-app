@@ -26,12 +26,15 @@
  * any programme not in the loaded files are left as they are; the last
  * two are only reported.
  *
- * Exercises match the library by slug, then by the alias LIBRARY_ALIASES
- * gives the slug (a curated Notion row under another name), then by
- * near-duplicate slugs (plural, "db"/"dumbbell", "bb"/"barbell"). A row
- * this seed inserted never shadows a curated library row: candidates
- * are tried against Notion and Achilles rows first, then against
- * seed-owned rows. Unknown exercises are inserted unrated (no authoring
+ * Exercises match the library by the alias LIBRARY_ALIASES gives the
+ * slug (a curated Notion row under another name, or the spelling
+ * another programme keeps), then by slug, then by near-duplicate slugs
+ * (plural, "db"/"dumbbell", "bb"/"barbell"). A row this seed inserted
+ * never shadows a curated library row: candidates are tried against
+ * Notion and Achilles rows first, then against seed-owned rows.
+ * Aliased spellings are resolved after every other prescribed name, so
+ * an alias whose target is a row this run inserts for another
+ * programme finds it. Unknown exercises are inserted unrated (no authoring
  * inputs), which the recovery rules report as unrated; an unknown
  * substitution is inserted only when the slot it fills will actually be
  * written. After the unreferenced rows go, LIBRARY_ATTRIBUTES gives
@@ -204,11 +207,11 @@ function collectPrescribedNames(loaded: Loaded[]): Map<string, string> {
 }
 
 /**
- * Match a JSON exercise to the library by its slug, its alias in
- * LIBRARY_ALIASES, or a near-duplicate, trying curated rows (Notion,
- * Achilles) before seed-owned ones so a row this seed inserted never
- * shadows a curated one. Inserts when nothing matches and
- * `insertIfMissing` is set; otherwise returns null.
+ * Match a JSON exercise to the library by its alias in LIBRARY_ALIASES,
+ * its slug, or a near-duplicate, trying curated rows (Notion, Achilles)
+ * before seed-owned ones so a row this seed inserted never shadows a
+ * curated one. Inserts when nothing matches and `insertIfMissing` is
+ * set; otherwise returns null.
  */
 async function makeResolver(sb: SupabaseClient, report: Report) {
   const exerciseId = new Map<string, string>();
@@ -220,7 +223,10 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
     if (cached) return cached;
     const alias = LIBRARY_ALIASES[slug];
     const fuzzy = slugCandidates(slug);
-    const candidates = alias ? [slug, alias, ...fuzzy.filter((c) => c !== slug && c !== alias)] : fuzzy;
+    // The alias goes first: its target may be a seed-owned row (the
+    // spelling another programme keeps), and the slug's own seed row
+    // from an earlier run must not win over it.
+    const candidates = alias ? [alias, slug, ...fuzzy.filter((c) => c !== slug && c !== alias)] : fuzzy;
     const { data: rows, error: lookupErr } = await sb.from("exercises").select("id,slug,_notion_id").in("slug", candidates);
     if (lookupErr) fail(`exercise lookup failed (${slug}): ${lookupErr.message}`);
     const pick = (seedOwned: boolean) => {
@@ -346,7 +352,11 @@ async function main() {
   // group, no authoring inputs, stamped as seed-owned.
   console.log("\n[1/7] exercises");
   const { resolve, exerciseId, librarySlug } = await makeResolver(sb, report);
-  for (const [slug, name] of collectPrescribedNames(loaded)) {
+  // Aliased spellings last (stable order otherwise), so an alias whose
+  // target is a row this run inserts for another programme finds it
+  // instead of reporting the target missing and inserting a duplicate.
+  const prescribed = [...collectPrescribedNames(loaded)].sort(([a], [b]) => Number(a in LIBRARY_ALIASES) - Number(b in LIBRARY_ALIASES));
+  for (const [slug, name] of prescribed) {
     await resolve(slug, name, true);
   }
   console.log(`  ${report.exercisesMatched.length} matched the library (${report.fuzzyMatches.length} through a near-duplicate slug), ${report.exercisesInserted.length} inserted`);
