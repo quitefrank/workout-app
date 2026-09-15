@@ -15,6 +15,7 @@
     "convert:ppl": "bun run scripts/convert-ppl-sheet.ts",
     "extract:pdfs": "bun run scripts/extract-training-pdfs.ts",
     "convert:ppl1": "bun run scripts/convert-ppl1.ts",
+    "convert:powerbuilding": "bun run scripts/convert-powerbuilding.ts",
     "icons:generate": "bun run scripts/generate-icons.ts",
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
