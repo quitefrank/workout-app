@@ -37,4 +37,27 @@ describe("validateProgramJson", () => {
   it("rejects the wrong kind", () => {
     expect(() => validateProgramJson({ ...example, kind: "recovery" })).toThrow(/kind/);
   });
+
+  it("returns trimmed strings", () => {
+    const padded = structuredClone(example);
+    padded.name = "  Padded  ";
+    padded.blocks[0].weeks[0].days[0].exercises[0].notes = "  keep it  ";
+    const p = validateProgramJson(padded);
+    expect(p.name).toBe("Padded");
+    expect(p.blocks[0].weeks[0].days[0].exercises[0].notes).toBe("keep it");
+  });
+
+  it("rejects a duplicate day name inside a week and names the path", () => {
+    const bad = structuredClone(example);
+    bad.blocks[0].weeks[0].days[1].name = "Push";
+    expect(() => validateProgramJson(bad)).toThrow(
+      /blocks\[0\]\.weeks\[0\]\.days\[1\]\.name: duplicate day "Push" in week 1/,
+    );
+  });
+
+  it("shows the week value with its type when it is not the expected number", () => {
+    const bad = structuredClone(example);
+    bad.blocks[0].weeks[0].week = "1";
+    expect(() => validateProgramJson(bad)).toThrow(/expected 1, got "1"/);
+  });
 });

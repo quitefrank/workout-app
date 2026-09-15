@@ -52,16 +52,20 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 function str(v: unknown, path: string): string {
   if (typeof v !== "string" || v.trim() === "") throw new Error(`${path}: expected a non-empty string`);
-  return v;
+  return v.trim();
 }
 
 function strOrNull(v: unknown, path: string): string | null {
   if (v === null || v === undefined) return null;
   if (typeof v !== "string") throw new Error(`${path}: expected a string or null`);
-  return v.trim() === "" ? null : v;
+  const t = v.trim();
+  return t === "" ? null : t;
 }
 
-/** Throws with a path on the first shape error. Returns the typed programme. */
+/**
+ * Throws with a path on the first shape error. Returns the typed programme.
+ * Shape only: whether each dose parses is checked at seed time, not here.
+ */
 export function validateProgramJson(input: unknown): ProgramJson {
   if (!isRecord(input)) throw new Error("programme: expected an object");
   const name = str(input.name, "name");
@@ -80,13 +84,17 @@ export function validateProgramJson(input: unknown): ProgramJson {
     const weeks: ProgramJsonWeek[] = b.weeks.map((w, wi) => {
       const wp = `${bp}.weeks[${wi}]`;
       if (!isRecord(w)) throw new Error(`${wp}: expected an object`);
-      if (w.week !== expectedWeek) throw new Error(`${wp}.week: expected ${expectedWeek}, got ${String(w.week)}`);
+      if (w.week !== expectedWeek) throw new Error(`${wp}.week: expected ${expectedWeek}, got ${JSON.stringify(w.week)}`);
+      const weekNumber = expectedWeek;
       expectedWeek++;
       if (!Array.isArray(w.days) || w.days.length === 0) throw new Error(`${wp}.days: expected a non-empty array`);
+      const seenDays = new Set<string>();
       const days: ProgramJsonDay[] = w.days.map((d, di) => {
         const dp = `${wp}.days[${di}]`;
         if (!isRecord(d)) throw new Error(`${dp}: expected an object`);
         const dname = str(d.name, `${dp}.name`);
+        if (seenDays.has(dname)) throw new Error(`${dp}.name: duplicate day "${dname}" in week ${weekNumber}`);
+        seenDays.add(dname);
         if (!Array.isArray(d.exercises) || d.exercises.length === 0) throw new Error(`${dp}.exercises: expected a non-empty array`);
         const exercises: ProgramJsonExercise[] = d.exercises.map((e, ei) => {
           const ep = `${dp}.exercises[${ei}]`;
@@ -104,7 +112,7 @@ export function validateProgramJson(input: unknown): ProgramJson {
         });
         return { name: dname, exercises };
       });
-      return { week: w.week, days };
+      return { week: weekNumber, days };
     });
     return { name: bname, weeks };
   });
