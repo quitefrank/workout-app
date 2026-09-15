@@ -202,10 +202,13 @@ block and day names become seed keys, so they cannot contain a colon.
 
 Programme content is copyrighted, so `scripts/data/programs/*.json` is
 gitignored except the example and the seed loads whatever JSON files
-are present. `bun run convert:ppl` reads the push-pull-legs workbook
-from the vault (`Personal/raw/training/`) and writes its JSON; the
-converter exits 1 and writes nothing when any exercise row could not
-be placed or turned into a dose and prints every such row.
+are present. The purchased sources (the Nippard workbook and PDFs)
+live in `scripts/data/programs/sources/`, also gitignored, so they stay
+with the project without ever entering the public repo; the vault's
+`Personal/raw/training/` holds a second copy. `bun run convert:ppl`
+reads the push-pull-legs workbook from `sources/` and writes its JSON;
+the converter exits 1 and writes nothing when any exercise row could
+not be placed or turned into a dose and prints every such row.
 
 `bun run seed:programs` loads every programme JSON. It validates every
 file and parses every dose before the first write, so a bad file fails
@@ -262,8 +265,8 @@ for row counts, exercises inserted versus matched (with the fuzzy
 matches listed), exercises removed, `handFix`, alternates in place,
 already matching, kept and removed, orphans and stale rows removed.
 
-Three Nippard PDFs in `Personal/raw/training/` go through a second
-pipeline into the same contract. `bun run extract:pdfs` runs
+Three Nippard PDFs in `scripts/data/programs/sources/` go through a
+second pipeline into the same contract. `bun run extract:pdfs` runs
 `scripts/extract-pdf-tables.py` (pdfplumber) over each PDF and writes
 one page dump per file, text lines plus tables with cells as written,
 to `scripts/data/programs/raw/` (gitignored). One tested parser per

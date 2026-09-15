@@ -1,8 +1,9 @@
 /**
- * Dump the vault's Nippard PDFs to scripts/data/programs/raw/ (gitignored)
- * for the converters. One JSON per PDF, via scripts/extract-pdf-tables.py.
+ * Dump the Nippard PDFs in scripts/data/programs/sources/ (gitignored,
+ * purchased content) to scripts/data/programs/raw/ (gitignored) for the
+ * converters. One JSON per PDF, via scripts/extract-pdf-tables.py.
  *
- *   bun run extract:pdfs [vault-training-dir]
+ *   bun run extract:pdfs [sources-dir]
  */
 
 import { spawnSync } from "node:child_process";
@@ -12,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const SOURCES = ["nippard-ppl-1.0.pdf", "nippard-powerbuilding-4x.pdf", "nippard-arm-hypertrophy.pdf"];
 
-const dir = process.argv[2] ?? "/Users/quitefrank/Claude/Personal/raw/training";
+const dir = process.argv[2] ?? fileURLToPath(new URL("./data/programs/sources/", import.meta.url));
 const outDir = fileURLToPath(new URL("./data/programs/raw/", import.meta.url));
 const script = fileURLToPath(new URL("./extract-pdf-tables.py", import.meta.url));
 mkdirSync(outDir, { recursive: true });

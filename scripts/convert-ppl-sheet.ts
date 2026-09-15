@@ -1,6 +1,7 @@
 /**
- * Convert the vault's Ultimate Push Pull Legs workbook into programme
- * JSON under scripts/data/programs/ (gitignored).
+ * Convert the Ultimate Push Pull Legs workbook from
+ * scripts/data/programs/sources/ (gitignored, purchased content) into
+ * programme JSON under scripts/data/programs/ (gitignored).
  *
  *   bun run convert:ppl [path-to-workbook.xlsx]
  *
@@ -14,7 +15,7 @@ import * as XLSX from "xlsx";
 import { formatSkippedRow, parsePplWorkbook } from "./lib/ppl-sheet";
 import { programWeeks, validateProgramJson } from "./data/programs/schema";
 
-const input = process.argv[2] ?? "/Users/quitefrank/Claude/Personal/raw/training/nippard-ultimate-ppl-4x.xlsx";
+const input = process.argv[2] ?? fileURLToPath(new URL("./data/programs/sources/nippard-ultimate-ppl-4x.xlsx", import.meta.url));
 const out = fileURLToPath(new URL("./data/programs/nippard-ultimate-ppl-4x.json", import.meta.url));
 
 const { program: parsed, skipped } = parsePplWorkbook(XLSX.readFile(input), {

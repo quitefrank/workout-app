@@ -2,6 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import * as XLSX from "xlsx";
 import { decodeRangeCell, doseFromSheet, formatSkippedRow, parsePplWorkbook, parsePplRows } from "../ppl-sheet";
 import { validateProgramJson } from "../../data/programs/schema";
@@ -221,7 +222,7 @@ describe("parsePplWorkbook", () => {
 });
 
 describe("the real workbook, when present", () => {
-  const path = "/Users/quitefrank/Claude/Personal/raw/training/nippard-ultimate-ppl-4x.xlsx";
+  const path = fileURLToPath(new URL("../../data/programs/sources/nippard-ultimate-ppl-4x.xlsx", import.meta.url));
   it.skipIf(!existsSync(path))("converts with every dose parsing, 13 weeks in 3 blocks, four days a week", () => {
     const { program: p, skipped } = parsePplWorkbook(XLSX.readFile(path), { name: "x", description: "x", citation: null, sourceUrl: null });
     expect(skipped).toEqual([]);

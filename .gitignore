@@ -57,9 +57,11 @@ next-env.d.ts
 /scripts/data/achilles/personal.local.json
 /scripts/seed-achilles-report.json
 
-# programme content is copyrighted; only the example and the loader are committed
+# programme content is copyrighted; only the example and the loader are committed.
+# sources/ holds the purchased PDFs and workbook the converters read.
 /scripts/data/programs/**/*.json
 !/scripts/data/programs/example.json
+/scripts/data/programs/sources/
 /scripts/seed-programs-report.json
 
 # supabase local artifacts
