@@ -139,7 +139,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 281 tests across 21 files.
+Run `bun run test` to exercise them. 284 tests across 21 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -296,7 +296,7 @@ without changes.
 - Analytics views migration
 - Notion seed script with verification report
 - PWA manifest, icons, service worker config
-- Parser tests passing (suite now 281)
+- Parser tests passing (suite now 284)
 - Production build clean
 
 ## What's next (Milestone 2)

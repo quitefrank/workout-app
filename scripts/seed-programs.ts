@@ -229,6 +229,8 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
     const candidates = alias ? [alias, slug, ...fuzzy.filter((c) => c !== slug && c !== alias)] : fuzzy;
     const { data: rows, error: lookupErr } = await sb.from("exercises").select("id,slug,_notion_id").in("slug", candidates);
     if (lookupErr) fail(`exercise lookup failed (${slug}): ${lookupErr.message}`);
+    // An alias key that is itself a curated spelling would hide Frank's own row behind the alias; the map is wrong, so stop.
+    if (alias && (rows ?? []).some((r) => r.slug === slug && !isSeedExercise(r._notion_id))) fail(`LIBRARY_ALIASES ${slug}: the key is a curated library row and must not be aliased`);
     const pick = (seedOwned: boolean) => {
       for (const c of candidates) {
         const row = (rows ?? []).find((r) => r.slug === c && isSeedExercise(r._notion_id) === seedOwned);

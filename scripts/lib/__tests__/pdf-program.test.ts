@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
-import { cellText, doseFromPdf, joinNotes, percentOrRpe, restFromPdf, sentenceCase, SUPERSET_RE, titleCaseName } from "../pdf-program";
+import { cellText, complexReps, doseFromPdf, joinNotes, percentOrRpe, restFromPdf, sentenceCase, SUPERSET_RE, titleCaseName } from "../pdf-program";
 
 describe("cellText", () => {
   it("collapses line breaks and blanks", () => {
@@ -37,6 +37,7 @@ describe("sentenceCase", () => {
   it("lowercases shouted notes and keeps acronyms", () => {
     expect(sentenceCase("SIT BACK AND DOWN. FULL ROM, KEEP YOUR RPE HONEST")).toBe("Sit back and down. Full ROM, keep your RPE honest");
     expect(sentenceCase("USE 1 DUMBBELL\nIN EACH HAND")).toBe("Use 1 dumbbell in each hand");
+    expect(sentenceCase("AIM FOR NEAR PR")).toBe("Aim for near PR");
   });
 
   it("returns null for a blank cell", () => {
@@ -87,6 +88,16 @@ describe("percentOrRpe", () => {
     expect(percentOrRpe("90 %")).toEqual({ rpe: null, loadNote: "Load: 90% 1RM" });
     expect(percentOrRpe("N/A")).toEqual({ rpe: null, loadNote: null });
     expect(percentOrRpe("NO REPS")).toEqual({ rpe: null, loadNote: "RPE as written: NO REPS" });
+  });
+});
+
+describe("complexReps", () => {
+  it("turns an a/b reps cell into a+b for a complex and leaves every other name alone", () => {
+    expect(complexReps("OVERHEAD PRESS / PUSH PRESS", "3/3")).toBe("3+3");
+    expect(complexReps("OVERHEAD PRESS / PUSH PRESS", "5")).toBe("5");
+    expect(complexReps("REVERSE PEC DECK", "15/15")).toBe("15/15");
+    expect(complexReps("NECK FLEXION/EXTENSION", "12/12")).toBe("12/12");
+    expect(complexReps("OVERHEAD PRESS / PUSH PRESS", null)).toBeNull();
   });
 });
 

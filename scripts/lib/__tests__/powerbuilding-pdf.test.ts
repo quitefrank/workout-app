@@ -22,7 +22,10 @@ const DUMP: PdfTables = {
       [HEADER, row("FULL\nBODY 1:\nSQUAT,\nOHP", "BACK SQUAT", "4", "1", "5", "75-80%", "7.5", "3-4 MIN", "FOCUS ON TECHNIQUE"), row("", "BACK SQUAT", "0", "2", "8", "70%", "N/A", "3-4 MIN", "")],
       [HEADER, row("FULL\nBODY 2:\nDEADLIFT,\nBENCH\nPRESS", "CHEST-SUPPORTED T-BAR ROW\nOR PENDLAY ROW", "1", "3", "10", "N/A", "7", "1-2 MIN", "STAY LIGHT")],
     ]),
-    weekPage("2", [[HEADER, row("LOWER # 2", "LEG PRESS", "1", "3", "12/12", "N/A", "8", "1-2 MIN", "")]]),
+    weekPage("2", [
+      [HEADER, row("LOWER # 2", "LEG PRESS", "1", "3", "12/12", "N/A", "8", "1-2 MIN", "")],
+      [HEADER, row("UPPER #1", "OVERHEAD PRESS / PUSH PRESS", "2", "3", "3/3", "N/A", "8", "2-3 MIN", "3 STRICT PRESSES THEN 3 PUSH PRESSES")],
+    ]),
     weekPage("10A", [[HEADER, row("SQUAT\nTEST", "BACK SQUAT", "4", "1", "AMRAP", "90%", "9.5", "4-5 MIN", "AIM TO 3+ REPS")]]),
     weekPage("10B", [[HEADER, row("SQUAT\nMAX", "BACK SQUAT", "4", "1", "1", "100-105%", "NO REPS", "4-5 MIN", "")]]),
     weekPage("11", [[HEADER, row("LOWER #1", "BACK SQUAT", "2", "2", "5", "60%", "N/A", "3-4 MIN", "")]]),
@@ -45,7 +48,7 @@ describe("parsePowerbuilding", () => {
   it("names days from the WORKOUT cell without a colon", () => {
     const { program } = parsePowerbuilding(DUMP, META);
     expect(program.blocks[0].weeks[0].days.map((d) => d.name)).toEqual(["Full Body 1 (Squat, OHP)", "Full Body 2 (Deadlift, Bench Press)", "Optional Arm and Pump Day"]);
-    expect(program.blocks[0].weeks[1].days.map((d) => d.name)).toEqual(["Lower #2"]);
+    expect(program.blocks[0].weeks[1].days.map((d) => d.name)).toEqual(["Lower #2", "Upper #1"]);
     expect(program.blocks[1].weeks[0].days.map((d) => d.name)).toEqual(["Squat Test"]);
   });
 
@@ -58,6 +61,17 @@ describe("parsePowerbuilding", () => {
     expect(fb2[0]).toMatchObject({ name: "Chest-Supported T-Bar Row", sub1: "Pendlay Row", sub2: null, dose: "3 x 10", rpe: "7" });
     expect(program.blocks[0].weeks[1].days[0].exercises[0]).toMatchObject({ dose: "3 x 12", notes: "12 per side" });
     expect(program.blocks[1].weeks[0].days[0].exercises[0]).toMatchObject({ dose: "1 x AMRAP", rpe: "9.5", notes: "Aim to 3+ reps. Load: 90% 1RM" });
+  });
+
+  it("reads a complex's a/b reps as one set of a then b, not as per side", () => {
+    const { program } = parsePowerbuilding(DUMP, META);
+    expect(program.blocks[0].weeks[1].days[1].exercises[0]).toMatchObject({
+      name: "Overhead Press / Push Press",
+      dose: "3 x 6",
+      warmUp: "2",
+      notes: "3 strict presses then 3 push presses. Reps: 3 + 3",
+    });
+    expect(program.blocks[0].weeks[1].days[0].exercises[0]).toMatchObject({ name: "Leg Press", dose: "3 x 12", notes: "12 per side" });
   });
 
   it("puts the optional day last on odd weeks only, with its arm-curl choice as a substitution", () => {

@@ -32,7 +32,7 @@ export function cellText(v: string | null | undefined): string | null {
   return t;
 }
 
-const KEEP_UPPER = new Set(["EZ", "DB", "BB", "RDL", "OHP", "GHR", "ROM", "AMRAP", "RPE"]);
+const KEEP_UPPER = new Set(["EZ", "DB", "BB", "RDL", "OHP", "GHR", "ROM", "AMRAP", "RPE", "PR"]);
 const SMALL_WORDS = new Set(["or", "and", "w/", "to", "of", "the", "a", "with", "at", "in", "on", "for"]);
 
 function capitalise(word: string): string {
@@ -114,6 +114,20 @@ export function percentOrRpe(raw: string | null | undefined): RpeCell {
   }
   if (/^\d+(?:\.\d+)?(?:\s*-\s*\d+(?:\.\d+)?)?$/.test(t)) return { rpe: t.replace(/\s+/g, ""), loadNote: null };
   return { rpe: null, loadNote: `RPE as written: ${t}` };
+}
+
+/**
+ * A complex ("Overhead Press / Push Press", the name holding " / ")
+ * writes its reps as "a/b": one set of a of the first movement then b
+ * of the second, not a per side. Rewrite the cell to "a+b" so
+ * doseFromPdf sums it and keeps the scheme in the note. Any other name,
+ * or any other cell shape, comes back unchanged.
+ */
+export function complexReps(bareName: string, repsCell: string | null | undefined): string | null | undefined {
+  if (!/ \/ /.test(bareName)) return repsCell;
+  const t = cellText(repsCell);
+  const m = t ? /^(\d+)\s*\/\s*(\d+)$/.exec(t) : null;
+  return m ? `${m[1]}+${m[2]}` : repsCell;
 }
 
 /**

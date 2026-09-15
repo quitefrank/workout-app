@@ -18,7 +18,7 @@
 
 import type { ProgramJson, ProgramJsonBlock, ProgramJsonDay, ProgramJsonExercise, ProgramJsonWeek } from "../data/programs/schema";
 import { splitVariant } from "./exercise-variant";
-import { cellText, doseFromPdf, joinNotes, percentOrRpe, restFromPdf, sentenceCase, SUPERSET_RE, titleCaseName, type PdfTables } from "./pdf-program";
+import { cellText, complexReps, doseFromPdf, joinNotes, percentOrRpe, restFromPdf, sentenceCase, SUPERSET_RE, titleCaseName, type PdfTables } from "./pdf-program";
 import type { PplSkippedRow, SheetMeta } from "./ppl-sheet";
 
 export type PowerbuildingParseResult = { program: ProgramJson; skipped: PplSkippedRow[]; omitted: string[] };
@@ -60,7 +60,7 @@ function rowsToExercises(table: string[][], where: { block: string; week: number
     if (!rawName) continue;
     const ss = SUPERSET_RE.exec(rawName);
     const bare = rawName.replace(SUPERSET_RE, "");
-    const sd = doseFromPdf(row[3], row[4]);
+    const sd = doseFromPdf(row[3], complexReps(bare, row[4]));
     if (!sd) {
       skipped.push({ ...where, name: rawName, reason: `no dose from sets ${JSON.stringify(row[3])} and reps ${JSON.stringify(row[4])}` });
       continue;
