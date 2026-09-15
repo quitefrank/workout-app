@@ -94,12 +94,29 @@ describe("parseExerciseName", () => {
       );
     });
 
-    it("plain Row -> cardio_machine (rowing machine assumption)", () => {
-      expect(parseExerciseName("Row").equipmentType).toBe("cardio_machine");
+    it("plain Row is a pull, not cardio: other", () => {
+      expect(parseExerciseName("Row").equipmentType).toBe("other");
     });
 
     it("Rowing -> cardio_machine", () => {
       expect(parseExerciseName("Rowing").equipmentType).toBe("cardio_machine");
+    });
+
+    it("Rowing Machine -> cardio_machine, ahead of the machine rule", () => {
+      expect(parseExerciseName("Rowing Machine").equipmentType).toBe("cardio_machine");
+    });
+
+    it("Rower -> cardio_machine", () => {
+      expect(parseExerciseName("Rower").equipmentType).toBe("cardio_machine");
+    });
+
+    it("rowing exercises without an equipment word are other", () => {
+      expect(parseExerciseName("Kroc Row").equipmentType).toBe("other");
+      expect(parseExerciseName("Pendlay Row").equipmentType).toBe("other");
+    });
+
+    it("Machine Low Row -> machine", () => {
+      expect(parseExerciseName("Machine Low Row").equipmentType).toBe("machine");
     });
   });
 

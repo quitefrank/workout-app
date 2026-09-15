@@ -10,7 +10,7 @@
  *      "Cable"            -> cable
  *      arrow present      -> machine (forced)
  *      "Elliptical"       -> cardio_machine
- *      "Row" (word)       -> cardio_machine
+ *      "Rowing"/"Rower"   -> cardio_machine (a bare "Row" is a pull, not cardio)
  *      "Machine"          -> machine
  *      bodyweight markers -> bodyweight
  *      else               -> other (flagged for hand-fix)
@@ -87,7 +87,8 @@ function inferEquipmentType(
   if (hasArrow) return "machine";
 
   if (/\belliptical\b/i.test(name)) return "cardio_machine";
-  if (/\brow(?:ing)?\b/i.test(name)) return "cardio_machine";
+  // Stays ahead of the machine check so "Rowing Machine" is cardio.
+  if (/\b(?:rowing|rower)\b/i.test(name)) return "cardio_machine";
   if (/\bmachine\b/i.test(name)) return "machine";
 
   if (BODYWEIGHT_RE.test(name)) return "bodyweight";
