@@ -702,6 +702,7 @@ export type Database = {
           prescribed_sets_min: number | null
           template_id: string
           updated_at: string
+          variant: string | null
           warm_up_sets_max: number | null
           warm_up_sets_min: number | null
         }
@@ -726,6 +727,7 @@ export type Database = {
           prescribed_sets_min?: number | null
           template_id: string
           updated_at?: string
+          variant?: string | null
           warm_up_sets_max?: number | null
           warm_up_sets_min?: number | null
         }
@@ -750,6 +752,7 @@ export type Database = {
           prescribed_sets_min?: number | null
           template_id?: string
           updated_at?: string
+          variant?: string | null
           warm_up_sets_max?: number | null
           warm_up_sets_min?: number | null
         }

@@ -96,6 +96,7 @@ describe("supabase migrations on PGlite", () => {
       "0004_programs.sql",
       "0005_recovery.sql",
       "0006_programs_weekly.sql",
+      "0007_template_exercise_variant.sql",
     ]);
   });
 
@@ -133,6 +134,28 @@ describe("supabase migrations on PGlite", () => {
        values ($1, $2, 2)`,
       [templateId, exerciseId],
     );
+  });
+
+  it("a template row can carry a set-type variant", async () => {
+    const { rows: templateRows } = await pg.query<IdRow>(
+      "insert into templates (name) values ('Variant template') returning id",
+    );
+    const templateId = templateRows[0].id;
+    const { rows: exerciseRows } = await pg.query<IdRow>(
+      "insert into exercises (name) values ('Variant exercise') returning id",
+    );
+    const exerciseId = exerciseRows[0].id;
+
+    await pg.query(
+      `insert into template_exercises (template_id, exercise_id, position, variant)
+       values ($1, $2, 1, 'Top Set')`,
+      [templateId, exerciseId],
+    );
+    const { rows } = await pg.query<{ variant: string | null }>(
+      "select variant from template_exercises where template_id = $1",
+      [templateId],
+    );
+    expect(rows[0].variant).toBe("Top Set");
   });
 
   it("exercises.slug is unique among non-null values", async () => {
