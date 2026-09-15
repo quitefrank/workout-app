@@ -64,8 +64,6 @@ describe("parseDose", () => {
     expect(parseDose("")).toBeNull();
     expect(parseDose("3 sets of 10")).toBeNull();
     expect(parseDose("3 x 12-10")).toBeNull();
-    expect(parseDose("3 x 1 min")).toBeNull();
-    expect(parseDose("3 x 20 seconds")).toBeNull();
     expect(parseDose("3 x 8 RIR 2")).toBeNull();
     expect(parseDose("3 x 10 leave 2 in reserve")).toBeNull();
     expect(parseDose("3 x 10-12 x 2")).toBeNull();
@@ -76,6 +74,32 @@ describe("parseDose", () => {
   it("keeps word-only modifiers", () => {
     expect(parseDose("3 x 20 sec hold")?.modifier).toBe("hold");
     expect(parseDose("3 x 10 super slow")?.modifier).toBe("super slow");
+  });
+
+  it("accepts the long unit words", () => {
+    expect(parseDose("3 x 1 min")).toMatchObject({ seconds: { min: 60, max: 60 } });
+    expect(parseDose("3 x 20 seconds")).toMatchObject({ seconds: { min: 20, max: 20 } });
+  });
+
+  it("reads minutes as seconds", () => {
+    expect(parseDose("1 x 45 min")).toEqual({
+      sets: { min: 1, max: 1 },
+      reps: null,
+      rir: null,
+      seconds: { min: 2700, max: 2700 },
+      modifier: null,
+    });
+    expect(parseDose("1 x 5-10 mins easy")).toMatchObject({ seconds: { min: 300, max: 600 }, modifier: "easy" });
+  });
+
+  it("reads AMRAP as a sets-only dose with the modifier", () => {
+    expect(parseDose("1 x AMRAP")).toEqual({
+      sets: { min: 1, max: 1 },
+      reps: null,
+      rir: null,
+      seconds: null,
+      modifier: "AMRAP",
+    });
   });
 });
 
@@ -98,5 +122,14 @@ describe("formatDose", () => {
 
   it("trims a hand-built modifier", () => {
     expect(formatDose({ sets: { min: 3, max: 3 }, reps: { min: 10, max: 10 }, rir: null, seconds: null, modifier: "  slow  " })).toBe("3 x 10 slow");
+  });
+
+  it("renders minutes when the seconds divide evenly", () => {
+    expect(formatDose(parseDose("1 x 45 min")!)).toBe("1 x 45 min");
+    expect(formatDose(parseDose("3 x 90 sec")!)).toBe("3 x 90 sec");
+  });
+
+  it("renders AMRAP", () => {
+    expect(formatDose(parseDose("1 x AMRAP")!)).toBe("1 x AMRAP");
   });
 });
