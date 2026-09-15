@@ -16,6 +16,10 @@ bun run lint             # ESLint
 bun run seed:notion      # One-time Notion -> Supabase seed
 bun run seed:achilles    # Achilles program, exercises, templates, personal rows
 bun run convert:ppl      # Vault workbook -> programme JSON (gitignored)
+bun run extract:pdfs     # Vault PDFs -> page dumps under scripts/data/programs/raw/ (gitignored; needs python3 with pdfplumber)
+bun run convert:ppl1     # PPL 1.0 dump -> programme JSON (gitignored)
+bun run convert:powerbuilding   # Powerbuilding 4x dump -> programme JSON (gitignored)
+bun run convert:arm      # Arm Hypertrophy dump -> programme JSON (gitignored)
 bun run seed:programs    # Every programme JSON -> programs, phases, templates
 bun run icons:generate   # Re-render placeholder PWA icons
 supabase db push         # Apply migrations to linked cloud project
@@ -24,6 +28,9 @@ supabase db push         # Apply migrations to linked cloud project
 The dev and build commands explicitly pass `--webpack` because
 `@ducanh2912/next-pwa` ships a webpack config that conflicts with
 Next 16's default Turbopack.
+
+`extract:pdfs` shells out to `scripts/extract-pdf-tables.py`, which
+needs pdfplumber on the system Python: `python3 -m pip install pdfplumber`.
 
 ## Stack
 
@@ -98,7 +105,7 @@ rewrites only its own rows. The column stays.
 
 ## Parsers
 
-Seven pure modules with full unit-test coverage:
+Eleven pure modules with full unit-test coverage:
 
 - `scripts/parse-weight-csv.ts` Parse the Notion Sessions Weight CSV
   (`"50, 70, 90, 100(5), 100(4)"`) into structured set rows.
@@ -118,8 +125,21 @@ Seven pure modules with full unit-test coverage:
   base exercise and its set type ("Bench Press (Top Set)"), drop a rep
   or seconds hint the dose already carries, and split an "A + B"
   superset cell into two rows.
+- `scripts/lib/pdf-program.ts` Shared helpers for the PDF converters:
+  read a page dump, collapse cells, title-case names and sentence-case
+  notes, normalise rest, split RPE from %1RM, and turn sets and reps
+  cells into a dose plus a note for what the dose cannot carry.
+- `scripts/lib/ppl1-pdf.ts` Parse the PPL 1.0 dump: block from the
+  cover pages, week from the "WEEK N: DAYS a-b" line, one table per day.
+- `scripts/lib/powerbuilding-pdf.ts` Parse the Powerbuilding 4x dump:
+  week from the page banner, one table per workout, option A for week
+  10, the optional arm day appended to the odd weeks, "X OR Y" names
+  split by `NAME_CHOICES`.
+- `scripts/lib/arm-pdf.ts` Parse the Arm Hypertrophy dump: one page per
+  week, three tables per page, tempo into the notes, decimal rest, and
+  the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 251 tests across 17 files.
+Run `bun run test` to exercise them. 281 tests across 21 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -236,9 +256,38 @@ for row counts, exercises inserted versus matched (with the fuzzy
 matches listed), exercises removed, `handFix`, alternates in place,
 already matching, kept and removed, orphans and stale rows removed.
 
-The other four Nippard PDFs in `Personal/raw/training/` are next. Each
-gets its own converter or a hand-written JSON in the same contract, and
-the same seed loads it without changes.
+Three Nippard PDFs in `Personal/raw/training/` go through a second
+pipeline into the same contract. `bun run extract:pdfs` runs
+`scripts/extract-pdf-tables.py` (pdfplumber) over each PDF and writes
+one page dump per file, text lines plus tables with cells as written,
+to `scripts/data/programs/raw/` (gitignored). One tested parser per
+programme walks its dump (`scripts/lib/ppl1-pdf.ts`,
+`powerbuilding-pdf.ts`, `arm-pdf.ts`, on the shared helpers in
+`pdf-program.ts`) and one thin CLI per programme (`convert:ppl1`,
+`convert:powerbuilding`, `convert:arm`) writes the gitignored JSON,
+exiting 1 on any row it could not dose. Names are title-cased from the
+PDF's capitals, notes sentence-cased, a superset prefix ("A1:") becomes
+a "Superset A" note, a percentage of 1RM becomes a "Load: 70% 1RM" note
+and tempo becomes a "Tempo 2:0:1:0" note, so nothing the PDF wrote is
+lost. What each became:
+
+- PPL 1.0: 2 blocks, 16 weeks (8 per block, counted globally), 96 days
+  (Legs, Push, Pull, twice a week), 704 rows.
+- Powerbuilding 4x: 3 blocks (Powerbuilding weeks 1 to 9, Max Testing
+  week 10, Deload week 11), 48 days, 320 rows. Odd weeks are four full
+  body days plus the optional arm and pump day as a fifth; even weeks
+  and the deload are Lower and Upper twice; week 10 is the three test
+  days of option A (option B, for competitive powerlifters, is reported
+  as omitted and not loaded).
+- Arm Hypertrophy: 2 blocks of 4 weeks, 24 days (Arm Day, Supplemental
+  A, Supplemental B), 144 rows. The four rows written as 0 sets and 0
+  reps are an open-ended set to failure and are dosed `1 x AMRAP` with
+  a note saying so.
+
+`nippard-get-ready-manual.pdf` holds no programme (gear checklist, 1RM
+testing, nutrition) and stays a reference. `nippard-ultimate-ppl-4x.xlsx`
+still goes through `convert:ppl`. The same seed loads all four JSONs
+without changes.
 
 ## What's done (Milestone 1)
 
@@ -247,7 +296,7 @@ the same seed loads it without changes.
 - Analytics views migration
 - Notion seed script with verification report
 - PWA manifest, icons, service worker config
-- Parser tests passing (suite now 251)
+- Parser tests passing (suite now 281)
 - Production build clean
 
 ## What's next (Milestone 2)

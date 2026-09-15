@@ -31,7 +31,7 @@ PWA shell. No screens. No auth UI. No analytics page.
 
 Run `bun run build` to confirm the project compiles. Run `bun run test`
 to exercise the parsers, the recovery domain, the programme contract and
-the migrations (251 tests across 17 files).
+the migrations (281 tests across 21 files).
 
 **Milestone 2 (next).** Screens: calendar home, active workout, template
 detail, exercise library, history, analytics.
@@ -158,6 +158,10 @@ recorded.
 
 ```bash
 bun run convert:ppl      # vault workbook -> scripts/data/programs/<name>.json
+bun run extract:pdfs     # vault PDFs -> scripts/data/programs/raw/<name>.json (needs python3 + pdfplumber)
+bun run convert:ppl1     # PPL 1.0 dump -> programme JSON
+bun run convert:powerbuilding   # Powerbuilding 4x dump -> programme JSON
+bun run convert:arm      # Arm Hypertrophy dump -> programme JSON
 bun run seed:programs    # every programme JSON -> Supabase
 ```
 
@@ -188,8 +192,16 @@ Idempotent. The seed writes `scripts/seed-programs-report.json` with
 row counts, exercises inserted, matched and removed, `handFix`,
 alternates in place, kept and removed, and orphans.
 
-The other four Nippard PDFs are next. Each becomes JSON in the same
-contract, by its own converter or by hand and the same seed loads it.
+Three Nippard PDFs (PPL 1.0, Powerbuilding 4x, Arm Hypertrophy) go
+through a second pipeline into the same contract. `extract:pdfs` dumps
+each PDF's pages (text lines and tables) to gitignored JSON with
+pdfplumber (`python3 -m pip install pdfplumber`); one tested parser per
+programme in `scripts/lib/` builds the contract from its dump and one
+CLI per programme writes the gitignored JSON, exiting 1 on any row it
+could not dose. Powerbuilding week 10 is max testing option A (option B
+is reported as omitted) and its optional arm day sits on the odd weeks.
+The Get Ready Manual holds no programme and stays a reference. The same
+seed loads all four JSONs.
 
 ## Project structure
 
@@ -204,6 +216,11 @@ contract, by its own converter or by hand and the same seed loads it.
 │   ├── seed-achilles.ts        # Achilles program, exercises, templates, personal rows
 │   ├── seed-programs.ts        # every programme JSON -> programs, phases, templates
 │   ├── convert-ppl-sheet.ts    # vault workbook -> programme JSON
+│   ├── extract-pdf-tables.py   # one PDF -> page dump JSON (pdfplumber)
+│   ├── extract-training-pdfs.ts # runs the extractor over the vault's three PDFs
+│   ├── convert-ppl1.ts         # PPL 1.0 dump -> programme JSON
+│   ├── convert-powerbuilding.ts # Powerbuilding 4x dump -> programme JSON
+│   ├── convert-arm.ts          # Arm Hypertrophy dump -> programme JSON
 │   ├── data/achilles/          # committed seed data + gitignored personal.local.json
 │   ├── data/programs/          # JSON contract (schema.ts), library map (library.ts), example.json, gitignored programme JSON
 │   ├── generate-icons.ts       # placeholder PWA icon generator
@@ -213,7 +230,11 @@ contract, by its own converter or by hand and the same seed loads it.
 │   │   ├── exercise-name.ts    # parse ↑↓ arrows, infer equipment_type
 │   │   ├── template-name.ts    # canonical template names, category and variant
 │   │   ├── ppl-sheet.ts        # workbook rows -> programme JSON, with skipped rows
-│   │   └── exercise-variant.ts # split a set type out of an exercise name, split "A + B" cells
+│   │   ├── exercise-variant.ts # split a set type out of an exercise name, split "A + B" cells
+│   │   ├── pdf-program.ts      # shared PDF cell helpers: names, notes, rest, RPE or %1RM, doses
+│   │   ├── ppl1-pdf.ts         # PPL 1.0 dump -> programme JSON
+│   │   ├── powerbuilding-pdf.ts # Powerbuilding 4x dump -> programme JSON
+│   │   └── arm-pdf.ts          # Arm Hypertrophy dump -> programme JSON
 │   └── __tests__/              # Vitest unit tests for the parsers
 ├── src/
 │   └── app/                    # Next.js App Router
