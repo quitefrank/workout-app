@@ -223,6 +223,18 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
       return hit.id as string;
     }
     if (!insertIfMissing) return null;
+    // A near-duplicate spelling already resolved this run (inserted or
+    // matched) takes precedence over a fresh insert.
+    const resolvedCandidate = candidates.find((c) => exerciseId.has(c));
+    if (resolvedCandidate) {
+      const id = exerciseId.get(resolvedCandidate) as string;
+      const matched = librarySlug.get(resolvedCandidate) ?? resolvedCandidate;
+      exerciseId.set(slug, id);
+      librarySlug.set(slug, matched);
+      report.exercisesMatched.push(slug);
+      report.fuzzyMatches.push({ wanted: slug, matched });
+      return id;
+    }
     const parsed = parseExerciseName(name);
     const { data, error } = await sb
       .from("exercises")

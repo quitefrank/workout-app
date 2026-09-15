@@ -226,7 +226,7 @@ the same seed loads it without changes.
 - Analytics views migration
 - Notion seed script with verification report
 - PWA manifest, icons, service worker config
-- 63 parser tests passing (suite now 153)
+- Parser tests passing (suite now 234)
 - Production build clean
 
 ## What's next (Milestone 2)
