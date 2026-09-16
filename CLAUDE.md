@@ -141,11 +141,14 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 284 tests across 21 files.
+Run `bun run test` to exercise them. 286 tests across 21 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
-  Supabase import.
+  Supabase import. Templates are ordered by training logic (biggest
+  compound first, isolation after, core last); rule 8 keeps core in one
+  block at the end. Floor transfers and bench transitions never order a
+  template.
 - `scripts/__tests__/migrations.test.ts` Applies every migration on
   PGlite with Supabase roles stubbed.
 
@@ -305,7 +308,7 @@ without changes.
 - Analytics views migration
 - Notion seed script with verification report
 - PWA manifest, icons, service worker config
-- Parser tests passing (suite now 284)
+- Parser tests passing (suite now 286)
 - Production build clean
 
 ## What's next (Milestone 2)

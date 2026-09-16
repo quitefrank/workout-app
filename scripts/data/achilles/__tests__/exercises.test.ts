@@ -54,6 +54,7 @@ function toAuthoring(slug: string): AuthoringExercise {
   return {
     id: e.slug,
     name: e.name,
+    muscleGroup: e.muscleGroup,
     supportRequired: e.supportRequired,
     loadDirection: e.loadDirection,
     loadsBootedFoot: e.loadsBootedFoot,
@@ -149,7 +150,7 @@ describe("template seed integrity", () => {
     for (const t of TEMPLATES) for (const ph of t.phases) expect(positions.has(ph), t.name).toBe(true);
   });
 
-  it("blocks nothing with the boot on unless the row records an override for that rule, and keeps floor work first", () => {
+  it("blocks nothing with the boot on unless the row records an override for that rule, and keeps core work last", () => {
     for (const t of TEMPLATES) {
       t.exercises.forEach((te, i) => {
         const previous = i === 0 ? null : toAuthoring(t.exercises[i - 1].slug);

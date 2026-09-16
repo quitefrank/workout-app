@@ -24,6 +24,18 @@ export type TemplateForAuthoring = {
 
 const LEVEL_RANK: Record<VerdictLevel, number> = { ok: 0, warn: 1, blocked: 2 };
 
+/**
+ * Muscle groups that count as core work for rule 8. Order in a template
+ * follows training logic: the biggest compound first, isolation after,
+ * core last. Floor transfers and bench transitions are not an ordering
+ * input; the person in the boot chooses when to take them.
+ */
+export const CORE_MUSCLE_GROUPS: ReadonlySet<string> = new Set(["Abs"]);
+
+function isCore(ex: AuthoringExercise): boolean {
+  return ex.muscleGroup !== null && CORE_MUSCLE_GROUPS.has(ex.muscleGroup);
+}
+
 /** The most severe level among a set of verdicts. */
 export function worstLevel(verdicts: Verdict[]): VerdictLevel {
   let worst: VerdictLevel = "ok";
@@ -38,8 +50,8 @@ export function worstLevel(verdicts: Verdict[]): VerdictLevel {
  * @param position 1-based position of the exercise inside its template.
  * @param equipmentAvailable null when no inventory is known; the check is skipped.
  * @param previous the exercise in the slot before this one, or null in
- *   slot 1. Rule 8 reads it: floor work is one block at the start, so a
- *   floor row directly after another floor row is fine.
+ *   slot 1. Rule 8 reads it: core work is one block at the end, so the
+ *   row that follows a core row must be core too.
  */
 export function checkExercise(
   ex: AuthoringExercise,
@@ -100,15 +112,11 @@ export function checkExercise(
     });
   }
 
-  if (
-    ex.floorTransferRequired === true &&
-    position !== 1 &&
-    previous?.floorTransferRequired !== true
-  ) {
+  if (previous !== null && isCore(previous) && !isCore(ex)) {
     out.push({
       level: "warn",
       rule: 8,
-      reason: "Floor transfer follows a non-floor exercise; keep floor work in one block at the start",
+      reason: "Follows core work; keep core in one block at the end of the template",
     });
   }
 
@@ -124,6 +132,7 @@ export function checkExercise(
   }
 
   const inputs = [
+    ex.muscleGroup,
     ex.supportRequired,
     ex.loadDirection,
     ex.loadsBootedFoot,

@@ -13,6 +13,7 @@ import type {
 function ex(partial: Partial<AuthoringExercise> & { id: string }): AuthoringExercise {
   return {
     name: partial.id,
+    muscleGroup: "Back",
     supportRequired: "seated_supported",
     loadDirection: "vertical",
     loadsBootedFoot: false,
@@ -122,23 +123,30 @@ describe("checkExercise, the hard-won rules", () => {
     expect(levels(v)).toEqual(["ok:0"]);
   });
 
-  it("rule 8: floor work warns unless it is first", () => {
-    const deadBug = ex({ id: "dead bug", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
+  it("rule 8: a non-core exercise after core work warns on the non-core row", () => {
+    const deadBug = ex({ id: "dead bug", muscleGroup: "Abs", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
+    const row = ex({ id: "seated row", loadDirection: "sagittal" });
+    expect(levels(checkExercise(row, PARTIAL, GYM, 2, deadBug))).toContain("warn:8");
+  });
+
+  it("rule 8: core work in slot 1 does not warn by itself", () => {
+    const deadBug = ex({ id: "dead bug", muscleGroup: "Abs", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
     expect(levels(checkExercise(deadBug, PARTIAL, GYM, 1))).toEqual(["ok:0"]);
-    expect(levels(checkExercise(deadBug, PARTIAL, GYM, 4))).toContain("warn:8");
   });
 
-  it("rule 8: a floor row directly after another floor row passes", () => {
-    const bridge = ex({ id: "glute bridge", supportRequired: "lying", loadDirection: "vertical", floorTransferRequired: true });
-    const deadBug = ex({ id: "dead bug", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
-    const v = checkExercise(deadBug, PARTIAL, GYM, 2, bridge);
-    expect(v.map((x) => x.rule)).not.toContain(8);
+  it("rule 8: core after core passes, and core after a non-core row passes", () => {
+    const plank = ex({ id: "front plank", muscleGroup: "Abs", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
+    const deadBug = ex({ id: "dead bug", muscleGroup: "Abs", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
+    const row = ex({ id: "seated row", loadDirection: "sagittal" });
+    expect(checkExercise(deadBug, PARTIAL, GYM, 2, plank).map((x) => x.rule)).not.toContain(8);
+    expect(checkExercise(plank, PARTIAL, GYM, 2, row).map((x) => x.rule)).not.toContain(8);
   });
 
-  it("rule 8: a floor row after a non-floor row warns", () => {
-    const seatedPress = ex({ id: "seated press" });
-    const deadBug = ex({ id: "dead bug", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
-    expect(levels(checkExercise(deadBug, PARTIAL, GYM, 2, seatedPress))).toContain("warn:8");
+  it("rule 8: floor work anywhere in the template is not an ordering fault", () => {
+    const squat = ex({ id: "sit to stand", muscleGroup: "Quadriceps", supportRequired: "standing_supported" });
+    const bridge = ex({ id: "glute bridge", muscleGroup: "Glutes", supportRequired: "lying", loadDirection: "vertical", floorTransferRequired: true });
+    expect(checkExercise(bridge, PARTIAL, GYM, 3, squat).map((x) => x.rule)).not.toContain(8);
+    expect(checkExercise(bridge, PARTIAL, GYM, 5).map((x) => x.rule)).not.toContain(8);
   });
 
   it("rule 9: missing equipment warns and names it", () => {
@@ -154,6 +162,11 @@ describe("checkExercise, the hard-won rules", () => {
 
   it("rule 10: an unrated exercise warns", () => {
     const v = checkExercise(ex({ id: "mystery", supportRequired: null }), PARTIAL, GYM, 1);
+    expect(levels(v)).toContain("warn:10");
+  });
+
+  it("rule 10: a missing muscle group is unrated too, since rule 8 cannot place it", () => {
+    const v = checkExercise(ex({ id: "mystery", muscleGroup: null }), PARTIAL, GYM, 1);
     expect(levels(v)).toContain("warn:10");
   });
 
@@ -179,8 +192,8 @@ describe("checkTemplate", () => {
       name: "Pull",
       spacingNote: null,
       exercises: [
+        ex({ id: "dead bug", muscleGroup: "Abs", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true }),
         ex({ id: "pull-ups", supportRequired: "hanging" }),
-        ex({ id: "dead bug", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true }),
       ],
     };
     const r = checkTemplate(t, PARTIAL, GYM);
@@ -194,24 +207,24 @@ describe("checkTemplate", () => {
     expect(checkTemplate(t, PARTIAL, GYM).worst).toBe("ok");
   });
 
-  it("rule 8: a floor block at the top passes; a floor row at the end warns on that row only", () => {
-    const floor = (id: string) =>
-      ex({ id, supportRequired: "lying", loadDirection: "vertical", floorTransferRequired: true });
-    const seated = (id: string) => ex({ id });
+  it("rule 8: a core block at the end passes; core in the middle warns on the row after it only", () => {
+    const core = (id: string) =>
+      ex({ id, muscleGroup: "Abs", supportRequired: "lying", loadDirection: "none", floorTransferRequired: true });
+    const seated = (id: string) => ex({ id, muscleGroup: "Quadriceps" });
     const block = {
       name: "Legs",
       spacingNote: null,
-      exercises: [floor("bridge"), floor("straight leg raise"), floor("dead bug"), seated("leg extension"), seated("sit to stand")],
+      exercises: [seated("sit to stand"), seated("leg extension"), core("dead bug"), core("front plank")],
     };
     const r = checkTemplate(block, PARTIAL, GYM);
     expect(r.perExercise.flat().map((v) => v.rule)).not.toContain(8);
     expect(r.worst).toBe("ok");
 
-    const trailing = { ...block, exercises: [...block.exercises, floor("front plank")] };
-    const r2 = checkTemplate(trailing, PARTIAL, GYM);
+    const early = { ...block, exercises: [seated("sit to stand"), core("dead bug"), seated("leg extension"), core("front plank")] };
+    const r2 = checkTemplate(early, PARTIAL, GYM);
     r2.perExercise.forEach((verdicts, i) => {
       const rules = verdicts.map((v) => v.rule);
-      if (i === r2.perExercise.length - 1) expect(rules).toContain(8);
+      if (i === 2) expect(rules).toContain(8);
       else expect(rules).not.toContain(8);
     });
     expect(r2.worst).toBe("warn");

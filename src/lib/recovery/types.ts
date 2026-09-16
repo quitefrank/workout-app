@@ -81,6 +81,8 @@ export type RestrictionState = {
 export type AuthoringExercise = {
   id: string;
   name: string;
+  /** The library muscle group by name, as `muscle_groups.name` spells it. Rule 8 reads it: core work goes last. */
+  muscleGroup: string | null;
   supportRequired: SupportType | null;
   loadDirection: LoadDirection | null;
   loadsBootedFoot: boolean | null;

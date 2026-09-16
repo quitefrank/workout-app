@@ -5,6 +5,7 @@ import type { AuthoringExercise } from "../types";
 const pullUps: AuthoringExercise = {
   id: "pull-ups",
   name: "Pull-ups",
+  muscleGroup: "Back",
   supportRequired: "hanging",
   loadDirection: "vertical",
   loadsBootedFoot: false,
