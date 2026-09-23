@@ -105,6 +105,37 @@ rewrites only its own rows. The column stays. The programme seed also
 stamps the muscle groups it adds (`program:muscle-group:<slug>`, so far
 Forearms and Neck) when `LIBRARY_ATTRIBUTES` names one Notion never had.
 
+### Grants (required on new tables from 2026-10-30)
+
+Supabase stops auto-granting Data API access to new tables in `public` on
+2026-10-30. Existing tables keep the grants they already have, so none of
+the eighteen above needs changing. Every table created from here on needs
+its grants in the same migration, or PostgREST answers permission denied
+and the table is invisible to `supabase-js`.
+
+Library table (any authenticated user reads, service role writes):
+
+    grant select on public.<table> to authenticated;
+    grant select, insert, update, delete on public.<table> to service_role;
+
+Per-user table (RLS on `auth.uid()`):
+
+    grant select, insert, update, delete on public.<table> to authenticated;
+    grant select, insert, update, delete on public.<table> to service_role;
+
+Do not grant to `anon`. Supabase's own example in the announcement includes
+it, but no policy in this schema targets `anon`, so adding it would widen
+access past what RLS expects.
+
+A grant is not a policy. The grant says whether a role may touch the table
+at all, the policy says which rows. Both are needed, and `service_role`
+needs its grant even though it bypasses RLS.
+
+The same deadline applies to `supabase db reset`, preview branches, and any
+new project, since each one replays these migrations from scratch. Reset is
+never run against `health` regardless, because that project also holds
+meal-prep's `app_state` table.
+
 ## Parsers
 
 Eleven pure modules with full unit-test coverage:

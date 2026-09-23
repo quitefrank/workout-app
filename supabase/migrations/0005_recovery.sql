@@ -237,8 +237,13 @@ create policy "clearances_owner_void" on clearances
     )
   );
 
--- Supabase grants all privileges to authenticated by default. Narrow
--- update on clearances to the one column that may change.
+-- Supabase granted all privileges to authenticated by default when this
+-- migration was written, which is why the narrowing below is a revoke.
+-- That default ends 2026-10-30. A table created after that date gets no
+-- automatic grant, so copying this pattern onto a new table would revoke
+-- a grant that was never made and leave it unreachable. On a new table,
+-- grant only what it should have. See CLAUDE.md, Database, Grants.
+-- Narrow update on clearances to the one column that may change.
 revoke update on clearances from authenticated;
 grant update (voided_at) on clearances to authenticated;
 revoke delete on clearances from authenticated;
