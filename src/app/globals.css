@@ -1,26 +1,286 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/*
+ * Liquid Glass, Preset 1 (Glass Lab V3, saved 2026-10-11), in CSS.
+ *
+ * The lab draws glass with a WebGL shader that samples the page under
+ * it. An app cannot hand its live DOM to a shader every frame, so the
+ * material here is the lab's CSS path with Preset 1's numbers: frost as
+ * a backdrop blur (sigma = frost x 2.5/6), Haze as a luminosity layer
+ * toward a grey, the lift and fills as normal layers, the kit's inner
+ * shadows (edge glow, top shade) and its outer ring, end slivers and
+ * cast shadow. Refraction and dispersion have no CSS equivalent and
+ * are left out.
+ *
+ * Bars and buttons use Preset 1. Sheets and menus use the lab's
+ * "iOS 26 device, measured" sheet, because Preset 1 was never saved
+ * for them.
+ */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  color-scheme: light;
+
+  /* Page, as the lab's light theme (Photos, light): a white page and #eeeef0 cards */
+  --bg: #ffffff;
+  --card: #eeeef0;
+  --card-2: #e3e3e6;
+  --ink: #000000;
+  --ink-2: rgba(60, 60, 67, 0.6);
+  --ink-3: rgba(60, 60, 67, 0.3);
+  --sep: rgba(60, 60, 67, 0.29);
+  --fill: rgba(118, 118, 128, 0.12);
+  --fill-2: rgba(118, 118, 128, 0.2);
+  --blue: #007aff;
+  --red: #ff3b30;
+  --green: #34c759;
+  --orange: #ff9500;
+  --seg-on: #ffffff;
+  --seg-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+
+  /* Preset 1, light: Fill #f8f8f8 20% Luminosity, Fill 2 #fefefe 50% Normal, Light 25%,
+     Edge glow 16% depth 10, Top shade 10% depth 36, ring 14%, sides 10% at 1pt, cast 3% */
+  --glass-blur: 1.67px;
+  --glass-sat: 140%;
+  --glass-lum-color: #f8f8f8;
+  --glass-lum: 0.2;
+  --glass-fill: rgba(254, 254, 254, 0.5);
+  --glass-floor-color: transparent;
+  --glass-floor: 0;
+  --glass-inner:
+    inset 0 1px 0 rgba(255, 255, 255, 0.37), inset 0 -1px 0 rgba(255, 255, 255, 0.15),
+    inset 1px 0 0 rgba(255, 255, 255, 0.1), inset -1px 0 0 rgba(255, 255, 255, 0.1),
+    inset 0 40px 10px -40px rgba(255, 255, 255, 0.16), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.16),
+    inset 0 40px 36px -40px rgba(0, 0, 0, 0.1);
+  --glass-outer:
+    0 0 0 0.5px rgba(0, 0, 0, 0.14), -1px 0 0 0 rgba(0, 0, 0, 0.1), 1px 0 0 0 rgba(0, 0, 0, 0.1),
+    0 8px 15px rgba(0, 0, 0, 0.03);
+  --glass-ink: #1a1a1a;
+  --glass-ink-on: #007aff;
+  --glass-pill: rgba(0, 0, 0, 0.07);
+
+  /* Sheet (device measured, light): frost 30, Haze 85% toward 0.92, floor 70% lighten */
+  --sheet-blur: 12.5px;
+  --sheet-lum-color: #ebebeb;
+  --sheet-lum: 0.85;
+  --sheet-fill: transparent;
+  --sheet-floor-color: #ebebeb;
+  --sheet-floor: 0.7;
+  --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.37), inset 0 -1px 0 rgba(255, 255, 255, 0.15);
+  --sheet-outer: 0 0 0 0.5px rgba(219, 219, 219, 0.9), 0 8px 48px rgba(0, 0, 0, 0.25);
+
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* The floating tab bar: 62 tall, 21 off the bottom, plus the home indicator */
+  --dock-h: calc(62px + 21px + env(safe-area-inset-bottom, 0px));
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: dark;
+
+    --bg: #000000;
+    --card: #1c1c1e;
+    --card-2: #2c2c2e;
+    --ink: #ffffff;
+    --ink-2: rgba(235, 235, 245, 0.6);
+    --ink-3: rgba(235, 235, 245, 0.3);
+    --sep: rgba(84, 84, 88, 0.65);
+    --fill: rgba(118, 118, 128, 0.24);
+    --fill-2: rgba(118, 118, 128, 0.36);
+    --blue: #0a84ff;
+    --red: #ff453a;
+    --green: #30d158;
+    --orange: #ff9f0a;
+    --seg-on: #636366;
+    --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
+
+    /* Preset 1, dark: Haze 50% toward 0.2 (black lift 0.1), Light 35%, Edge glow 16% depth 10,
+       ring 35%, sides 35% at 0.5pt, cast 4% */
+    --glass-lum-color: #333333;
+    --glass-lum: 0.5;
+    --glass-fill: rgba(255, 255, 255, 0.1);
+    --glass-inner:
+      inset 0 1px 0 rgba(255, 255, 255, 0.53), inset 0 -1px 0 rgba(255, 255, 255, 0.21),
+      inset 1px 0 0 rgba(255, 255, 255, 0.14), inset -1px 0 0 rgba(255, 255, 255, 0.14),
+      inset 0 40px 10px -40px rgba(255, 255, 255, 0.16), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.16);
+    --glass-outer:
+      0 0 0 0.5px rgba(0, 0, 0, 0.35), -0.5px 0 0 0 rgba(0, 0, 0, 0.35), 0.5px 0 0 0 rgba(0, 0, 0, 0.35),
+      0 8px 15px rgba(0, 0, 0, 0.04);
+    --glass-ink: #f5f5f5;
+    --glass-ink-on: #0a84ff;
+    --glass-pill: rgba(0, 0, 0, 0.4);
+
+    /* Sheet (device measured, dark): Haze 85% toward 0.12, floor 70% lighten */
+    --sheet-lum-color: #1f1f1f;
+    --sheet-floor-color: #1f1f1f;
+    --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+    --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-sep: var(--sep);
+  --color-fill: var(--fill);
+  --color-fill-2: var(--fill-2);
+  --color-blue: var(--blue);
+  --color-red: var(--red);
+  --color-green: var(--green);
+  --color-orange: var(--orange);
+  --font-sans: var(--font);
+  --font-mono: var(--mono);
+}
+
+html {
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+@layer base {
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+}
+
+/* Components layer, so Tailwind utilities on the same element (fixed, text-blue, ...) win */
+@layer components {
+  /* ------------------------------------------------------------
+     Glass material. Layers, bottom to top: the blurred backdrop, the
+     element's own fill, a luminosity layer (Haze or Fill 1), a floor
+     layer with its blend, then the rim and inner shadows. Content sits
+     above all of it.
+     ------------------------------------------------------------ */
+
+  .glass,
+  .glass-sheet {
+    position: relative;
+    isolation: isolate;
+    border-radius: var(--r, 9999px);
+    color: var(--glass-ink);
+  }
+
+  .glass {
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
+    box-shadow: var(--glass-outer);
+  }
+
+  .glass-sheet {
+    color: var(--ink);
+    background: var(--sheet-fill);
+    -webkit-backdrop-filter: blur(var(--sheet-blur)) saturate(140%);
+    backdrop-filter: blur(var(--sheet-blur)) saturate(140%);
+    box-shadow: var(--sheet-outer);
+  }
+
+  .glass::before,
+  .glass::after,
+  .glass-sheet::before,
+  .glass-sheet::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  .glass::before {
+    background: var(--glass-lum-color);
+    opacity: var(--glass-lum);
+    mix-blend-mode: luminosity;
+  }
+
+  .glass::after {
+    box-shadow: var(--glass-inner);
+  }
+
+  .glass-sheet::before {
+    background: var(--sheet-lum-color);
+    opacity: var(--sheet-lum);
+    mix-blend-mode: luminosity;
+  }
+
+  .glass-sheet::after {
+    background: color-mix(in srgb, var(--sheet-floor-color) calc(var(--sheet-floor) * 100%), transparent);
+    mix-blend-mode: lighten;
+    box-shadow: var(--sheet-inner);
+  }
+
+  /* Pressed glass dims a touch, as UIKit's does */
+  .glass:where(button, a):active {
+    filter: brightness(0.92);
+  }
+
+  /* Without backdrop-filter, give the glass an opaque body so labels stay legible */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass {
+      background: color-mix(in srgb, var(--card) 92%, transparent);
+    }
+    .glass-sheet {
+      background: var(--card);
+    }
+  }
+
+  /* ------------------------------------------------------------
+     Content patterns
+     ------------------------------------------------------------ */
+
+  .grouped {
+    background: var(--card);
+    border-radius: 26px;
+    overflow: hidden;
+  }
+
+  .grouped > * + * {
+    box-shadow: inset 0 0.5px 0 var(--sep);
+  }
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+/* Number inputs without spinners: the keypad does the work */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }
