@@ -36,7 +36,7 @@ needs pdfplumber on the system Python: `python3 -m pip install pdfplumber`.
 
 - Next.js 16 + React 19 (App Router)
 - Tailwind 4
-- Supabase Postgres + Supabase Auth (no UI yet)
+- Supabase Postgres, no sign-in (one user, server-only access)
 - TanStack Query
 - @ducanh2912/next-pwa
 - Sonner for toasts
@@ -172,7 +172,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 286 tests across 21 files.
+Run `bun run test` to exercise them. 305 tests across 22 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -332,6 +332,32 @@ testing, nutrition) and stays a reference. `nippard-ultimate-ppl-4x.xlsx`
 still goes through `convert:ppl`. The same seed loads all four JSONs
 without changes.
 
+## App
+
+Single user, no sign-in, by choice. The browser never talks to Supabase:
+server components read through `src/lib/data/queries.ts` and every write
+is a server action in `src/app/actions.ts`, both on the service-role
+client in `src/lib/supabase/server.ts` (server-only), with the user fixed
+by `APP_USER_ID`. Because that client bypasses RLS, every query filters
+by the user and every action checks the row belongs to them first. The
+deployed URL is open: anyone who has it can read and log workouts.
+
+Screens follow `docs/planning.md`: Calendar (`/`, with History at
+`/workouts`), Templates (the 18 Notion day templates, `program_id` null),
+Library (`/exercises`), Progress (`/analytics`), Settings. The active
+workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight
+string through `parseWeightCsv`, swaps upstairs and downstairs machines
+by name (`src/lib/workout/machine-location.ts`), and runs a rest timer
+kept in localStorage. Pure helpers for dates, formatting and PRs live in
+`src/lib/workout/` with tests.
+
+The look is Liquid Glass Preset 1 from the Glass Lab V3 artifact, in
+CSS (`.glass` in `globals.css`, dark and light): the lab's shader
+refraction cannot sample a live page, so blur, haze, fills, rim, inner
+shadows and outer ring carry it. Sheets use the lab's measured iOS sheet
+material (`.glass-sheet`). Both live in `@layer components` so Tailwind
+utilities on the same element win; keep new global rules layered too.
+
 ## What's done (Milestone 1)
 
 - Scaffold + deps
@@ -342,10 +368,10 @@ without changes.
 - Parser tests passing (suite now 286)
 - Production build clean
 
-## What's next (Milestone 2)
+## Milestone 2
 
-- Auth UI (Supabase magic link)
-- Screens per `docs/planning.md`: calendar home, template detail,
-  active workout, history, exercise library, analytics, settings
+- Done: every screen in `docs/planning.md` in Liquid Glass Preset 1.
+- Not built: programme days (PPL, Powerbuilding, Arm, recovery) in the
+  UI; adding or swapping an exercise mid-workout.
 - `_notion_id` stays: it is the ownership key for the three seeds
   (`template:`, `achilles:`, `program:`), not a temporary import column
