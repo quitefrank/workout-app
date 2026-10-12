@@ -31,6 +31,19 @@ export function userId(): string {
   return id;
 }
 
+/**
+ * The settings the app cannot run without, by name, so a fresh deploy
+ * can say what is missing instead of failing with a bare server error.
+ * Names only: values never leave the server.
+ */
+export function missingConfig(): string[] {
+  const missing: string[] = [];
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) missing.push("NEXT_PUBLIC_SUPABASE_URL");
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missing.push("SUPABASE_SERVICE_ROLE_KEY");
+  if (!process.env.APP_USER_ID && !process.env.SEED_USER_ID) missing.push("APP_USER_ID");
+  return missing;
+}
+
 export function timeZone(): string {
   return process.env.APP_TIME_ZONE ?? "America/New_York";
 }

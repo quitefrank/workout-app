@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { TabBar } from "@/components/tab-bar";
+import { SetupNeeded } from "@/components/setup-needed";
 import { getInProgress } from "@/lib/data/queries";
+import { missingConfig } from "@/lib/supabase/server";
 import "./globals.css";
 
 const APP_NAME = "Workout";
@@ -53,7 +55,26 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const inProgress = await getInProgress();
+  // A deploy without its settings, or one Supabase refuses, explains itself instead of a bare 500
+  const missing = missingConfig();
+  let problem: string | null = null;
+  let inProgress: Awaited<ReturnType<typeof getInProgress>> = null;
+  if (missing.length === 0) {
+    try {
+      inProgress = await getInProgress();
+    } catch (e) {
+      problem = e instanceof Error ? e.message : String(e);
+    }
+  }
+  if (missing.length > 0 || problem) {
+    return (
+      <html lang="en" className="h-full antialiased">
+        <body className="flex min-h-full flex-col">
+          <SetupNeeded missing={missing} problem={problem} />
+        </body>
+      </html>
+    );
+  }
   return (
     <html lang="en" className="h-full antialiased">
       <body className="flex min-h-full flex-col">
