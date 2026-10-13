@@ -32,7 +32,10 @@ export function SettingsForm({ settings }: { settings: Settings }) {
   };
 
   return (
-    <div className={cn("mt-4 flex flex-col gap-6 px-4", pending && "opacity-90")}>
+    <div
+      aria-busy={pending}
+      // not dimmed under the WebGPU stage: opacity would make a stacking context and sink the live select under the canvas
+      className={cn("mt-4 flex flex-col gap-6 px-4", pending && "[html:not(.gpu)_&]:opacity-90")}>
       <Group title="Units" footer="Machine and cardio readings always show the raw number, with no unit.">
         <Segmented
           value={s.weight_unit}

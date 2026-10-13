@@ -50,7 +50,7 @@ export function TrendChart({ points, height = 180, unit }: { points: Point[]; he
             <CartesianGrid vertical={false} stroke="var(--sep)" strokeOpacity={0.5} />
             <XAxis dataKey="label" tick={axis} tickLine={false} axisLine={false} minTickGap={24} />
             <YAxis tick={axis} tickLine={false} axisLine={false} width={40} domain={["auto", "auto"]} />
-            <Tooltip content={<Tip />} cursor={{ stroke: "var(--ink-3)", strokeWidth: 1 }} />
+            <Tooltip wrapperStyle={{ zIndex: 6 }} content={<Tip />} cursor={{ stroke: "var(--ink-3)", strokeWidth: 1 }} />
             <Area
               type="monotone"
               dataKey="value"
@@ -81,7 +81,7 @@ export function WeeklyBars({ points, height = 160 }: { points: Point[]; height?:
           <CartesianGrid vertical={false} stroke="var(--sep)" strokeOpacity={0.5} />
           <XAxis dataKey="label" tick={axis} tickLine={false} axisLine={false} minTickGap={16} />
           <YAxis tick={axis} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
-          <Tooltip content={<Tip />} cursor={{ fill: "var(--fill)" }} />
+          <Tooltip wrapperStyle={{ zIndex: 6 }} content={<Tip />} cursor={{ fill: "var(--fill)" }} />
           <Bar dataKey="value" fill="var(--blue)" radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
