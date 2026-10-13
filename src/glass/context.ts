@@ -31,8 +31,10 @@ export function blendSides(A: Material, B: Material, t: number): Material {
   for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) {
     const a = A[k];
     const b = B[k];
-    if (typeof a !== "number" || typeof b !== "number") o[k] = t < 0.5 ? a : b;
-    else if (/Color$/.test(k)) o[k] = lerpRgb(a, b, t);
+    if (typeof a !== "number" || typeof b !== "number") {
+      const v = t < 0.5 ? a : b;
+      if (v !== undefined) o[k] = v;
+    } else if (/Color$/.test(k)) o[k] = lerpRgb(a, b, t);
     else if (/Blend$|Srgb$|^lensMode$/.test(k)) o[k] = t < 0.5 ? a : b;
     else o[k] = a + (b - a) * t;
   }

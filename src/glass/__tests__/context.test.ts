@@ -32,4 +32,18 @@ describe("context rule", () => {
     expect(o.fillBlend).toBe(1);
     expect(o.fillColor).toBe(lerpRgb(0xf8f8f8, 0x999999, 0.4));
   });
+
+  it("the first reading at exactly 0.45 is light", () => {
+    expect(decideDark(null, 0.45)).toBe(false);
+  });
+
+  it("lens mode and sRGB flags switch at 0.5", () => {
+    expect(blendSides({ lensMode: 0, pillSrgb: 1 }, { lensMode: 1, pillSrgb: 0 }, 0.5)).toEqual({ lensMode: 1, pillSrgb: 0 });
+  });
+
+  it("a key on only one side is skipped when the other side is chosen", () => {
+    const o = blendSides({ onlyA: 1, light: 0.25 }, { light: 0.35 }, 0.7);
+    expect("onlyA" in o).toBe(false);
+    expect(blendSides({ onlyA: 1 }, {}, 0.2).onlyA).toBe(1);
+  });
 });

@@ -50,8 +50,8 @@ export const bezelFor = (P: Material, w: number, h: number) => Math.max(0.01, P.
 /** One material family (bars and buttons, or the sheet): the live values for the page's appearance, and both sides. */
 export type Family = {
   P: Material;
-  onParams: (fn: (P: Material) => void) => void;
-  sideValues: (side: Side) => Material;
+  onParams: (fn: (P: Material) => void) => () => void;
+  sideValues: (side: Side) => Readonly<Material>;
   setAppearance: (side: Side) => void;
 };
 
@@ -61,9 +61,16 @@ export function createFamily(dark: Material, light: Material, appearance: Side):
   const listeners: ((P: Material) => void)[] = [];
   return {
     P,
-    onParams: (fn) => listeners.push(fn),
+    onParams: (fn) => {
+      listeners.push(fn);
+      return () => {
+        const i = listeners.indexOf(fn);
+        if (i >= 0) listeners.splice(i, 1);
+      };
+    },
     sideValues: (side) => sides[side],
     setAppearance: (side) => {
+      for (const k of Object.keys(P)) delete P[k];
       Object.assign(P, sides[side]);
       listeners.forEach((fn) => fn(P));
     },

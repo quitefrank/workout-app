@@ -29,6 +29,29 @@ describe("presets", () => {
     expect(seen).toEqual([0.35]);
   });
 
+  it("an unsubscribed listener is not called on setAppearance", () => {
+    const fam = createFamily(PRESET1_BARS, PRESET1_LIGHT, "light");
+    const seen: number[] = [];
+    const off = fam.onParams((P) => seen.push(P.light));
+    off();
+    fam.setAppearance("dark");
+    expect(seen).toEqual([]);
+  });
+
+  it("P is a copy, and switching sides restores and does not leak keys", () => {
+    const fam = createFamily({ ...PRESET1_BARS, onlyDark: 1 }, PRESET1_LIGHT, "dark");
+    expect(fam.P.onlyDark).toBe(1);
+    fam.P.light = 99;
+    expect(fam.sideValues("dark").light).toBe(0.35);
+    expect(fam.sideValues("light").light).toBe(0.25);
+    fam.setAppearance("light");
+    expect(fam.P.light).toBe(0.25);
+    expect("onlyDark" in fam.P).toBe(false);
+    fam.setAppearance("dark");
+    fam.setAppearance("light");
+    expect(fam.P).toEqual(fam.sideValues("light"));
+  });
+
   it("the sheet is the measured device sheet", () => {
     expect(SHEET_DARK.frost).toBe(30);
     expect(SHEET_DARK.hazeL).toBe(0.12);
