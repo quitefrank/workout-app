@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { gradientLine, parseBoxShadows, parseColor, parseLinearGradients, splitTopLevel } from "../paint/css";
+import { afterEach, describe, expect, it } from "vitest";
+import { gradientLine, parseBoxShadows, parseColor, parseLinearGradients, resolveStops, setColorResolver, splitTopLevel } from "../paint/css";
 
 describe("computed CSS parsers", () => {
   it("splits on top-level commas only", () => {
@@ -52,5 +52,76 @@ describe("computed CSS parsers", () => {
     ]);
     expect(parseBoxShadows("rgba(0, 0, 0, 0.12) 0px 3px 8px 0px, rgba(0, 0, 0, 0.04) 0px 3px 1px 0px")).toHaveLength(2);
     expect(parseBoxShadows("none")).toEqual([]);
+  });
+
+  describe("real-world computed values", () => {
+    afterEach(() => setColorResolver(null));
+
+    it("parses color(srgb) directly, without a canvas", () => {
+      expect(parseColor("color(srgb 0 0 0 / 0.5)")).toEqual([0, 0, 0, 0.5]);
+      expect(parseColor("color(srgb 1 0 1)")).toEqual([255, 0, 255, 1]);
+    });
+
+    it("resolves other colour spaces through the injected resolver and caches them", () => {
+      let calls = 0;
+      setColorResolver((c) => { calls++; return c.startsWith("oklab(") ? [0, 0, 0, 0.2] : null; });
+      expect(parseColor("oklab(0 0 0 / 0.2)")).toEqual([0, 0, 0, 0.2]);
+      expect(parseColor("oklab(0 0 0 / 0.2)")).toEqual([0, 0, 0, 0.2]);
+      expect(calls).toBe(1);
+      expect(parseColor("nonsense")).toBeNull();
+    });
+
+    it("returns null for unknown colours when no canvas exists (jsdom)", () => {
+      expect(parseColor("oklch(0.7 0.1 30)")).toBeNull();
+    });
+
+    it("keeps the rgb space-separated alpha form as a stop colour", () => {
+      const [g] = parseLinearGradients("linear-gradient(rgb(0 0 0 / 0.889), rgb(0 0 0 / 0) 50%)");
+      expect(g.stops).toEqual([
+        { color: "rgb(0 0 0 / 0.889)", pos: 0 },
+        { color: "rgb(0 0 0 / 0)", pos: 0.5 },
+      ]);
+    });
+
+    it("reads px stops and resolves them against the line length", () => {
+      const [g] = parseLinearGradients("linear-gradient(rgb(0, 0, 0) 10px, rgb(1, 1, 1))");
+      expect(g.stops[0].posPx).toBe(10);
+      expect(resolveStops(g.stops, 200)).toEqual([
+        { color: "rgb(0, 0, 0)", pos: 0.05 },
+        { color: "rgb(1, 1, 1)", pos: 1 },
+      ]);
+    });
+
+    it("resolves a px stop between percentage stops and fills the gap", () => {
+      const [g] = parseLinearGradients("linear-gradient(red 0%, blue, green 50px, black 100%)");
+      expect(resolveStops(g.stops, 100).map((s) => s.pos)).toEqual([0, 0.25, 0.5, 1]);
+    });
+
+    it("clamps stops non-decreasing", () => {
+      const [g] = parseLinearGradients("linear-gradient(red 60%, blue 30%)");
+      expect(resolveStops(g.stops, 100).map((s) => s.pos)).toEqual([0.6, 0.6]);
+    });
+
+    it("strips interpolation clauses", () => {
+      expect(parseLinearGradients("linear-gradient(to right in oklab, rgb(0, 0, 0), rgb(1, 1, 1))")[0].angle).toBe(90);
+      expect(parseLinearGradients("linear-gradient(160deg in oklab, rgb(0, 0, 0), rgb(1, 1, 1))")[0].angle).toBe(160);
+      const [g] = parseLinearGradients("linear-gradient(in oklab, rgb(0, 0, 0), rgb(1, 1, 1))");
+      expect(g.angle).toBe(180);
+      expect(g.stops).toHaveLength(2);
+      expect(parseLinearGradients("linear-gradient(in oklch longer hue, red, blue)")[0].stops).toHaveLength(2);
+    });
+
+    it("expands a two-position stop and skips a bare hint", () => {
+      const [g] = parseLinearGradients("linear-gradient(red, rgba(0, 0, 0, 0) 25% 45%, 70%, blue)");
+      expect(g.stops.map((s) => s.pos)).toEqual([0, 0.25, 0.45, 1]);
+      expect(g.stops.map((s) => s.color)).toEqual(["red", "rgba(0, 0, 0, 0)", "rgba(0, 0, 0, 0)", "blue"]);
+    });
+
+    it("keeps an oklab shadow colour", () => {
+      expect(parseBoxShadows("oklab(0 0 0 / 0.2) 0px 4px 8px 0px")).toEqual([
+        { color: "oklab(0 0 0 / 0.2)", x: 0, y: 4, blur: 8, spread: 0, inset: false },
+      ]);
+      expect(parseBoxShadows("0px 4px 8px 0px inset color(srgb 0 0 0 / 0.5)")[0]).toMatchObject({ color: "color(srgb 0 0 0 / 0.5)", inset: true, blur: 8 });
+    });
   });
 });
