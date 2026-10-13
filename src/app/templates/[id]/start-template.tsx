@@ -43,7 +43,7 @@ export function StartTemplate({
         type="button"
         disabled={pending}
         onClick={() => (askLocation ? setOpen(true) : go(null))}
-        className="glass flex h-[50px] flex-1 items-center justify-center gap-2 px-5 text-[17px] font-semibold [--glass-ink:#fff] disabled:opacity-50"
+        className="glass flex h-[50px] flex-1 items-center justify-center gap-2 px-5 text-[17px] font-semibold disabled:opacity-50"
       >
         <PlayIcon size={18} />
         {pending ? "Starting…" : "Start Workout"}

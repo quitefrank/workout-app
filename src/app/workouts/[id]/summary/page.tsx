@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GlassCircleLink } from "@/components/glass";
+import { TopBar } from "@/components/top-bar";
 import { ChevronLeft, TrophyIcon } from "@/components/icons";
 import { hueStyle, Screen, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
@@ -27,17 +28,22 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
 
   return (
     <Screen className="max-w-none">
+      <TopBar
+        edge="dim"
+        spacer={false}
+        leading={
+          <GlassCircleLink href="/workouts" label="Back to history">
+            <ChevronLeft size={20} />
+          </GlassCircleLink>
+        }
+      />
       <div style={hueStyle(workout.templates?.category)} className={cn("relative text-white", tileGradient)}>
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.3),transparent_30%,rgba(0,0,0,0.55))]" />
         <div className="relative mx-auto max-w-[640px] px-4 pb-5" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)" }}>
-          <div className="flex h-11 items-center">
-            <GlassCircleLink href="/workouts" label="Back to history" className="[--glass-ink:#fff]">
-              <ChevronLeft size={20} />
-            </GlassCircleLink>
-          </div>
+          <div aria-hidden className="h-11" />
           <div className="mt-10 text-[15px] font-medium text-white/75">{workout.day && dayLabel(workout.day, { year: true })}</div>
           <h1 className="text-[34px] font-bold leading-[41px] tracking-[-0.01em]">{workout.templates?.name ?? "Workout"}</h1>
-          <div className="mt-4 grid grid-cols-3 gap-2.5">
+          <div data-glass-unit="box" className="mt-4 grid grid-cols-3 gap-2.5">
             <Stat label="Time" value={minutes != null ? (minutes < 1 ? "<1m" : `${minutes}m`) : "–"} />
             <Stat label="Sets" value={String(working.length)} />
             <Stat label="Effort" value={workout.perceived_effort ? `${workout.perceived_effort}/10` : "–"} />
@@ -95,7 +101,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="glass flex flex-col items-center py-2.5 [--glass-ink:#fff] [--r:20px]">
+    <div className="glass flex flex-col items-center py-2.5 [--r:20px]">
       <span className="tabular text-[22px] font-bold leading-7">{value}</span>
       <span className="text-[11px] font-semibold uppercase tracking-[0.06em] opacity-75">{label}</span>
     </div>

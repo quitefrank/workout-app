@@ -37,26 +37,51 @@
   --seg-on: #ffffff;
   --seg-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
 
-  /* Preset 1, light: Fill #f8f8f8 20% Luminosity, Fill 2 #fefefe 50% Normal, Light 25%,
-     Edge glow 16% depth 10, Top shade 10% depth 36, ring 14%, sides 10% at 1pt, cast 3% */
+  /* Glass material, both sides of Preset 1. Small glass takes the side its
+     unit reads behind it (`ctx-dark` / `ctx-light`, set by GlassContext),
+     whatever the page's appearance; with no reading yet it takes the page's.
+     Frost belongs to the family, so both sides share it. */
   --glass-blur: 1.67px;
   --glass-sat: 140%;
-  --glass-lum-color: #f8f8f8;
-  --glass-lum: 0.2;
-  --glass-fill: rgba(254, 254, 254, 0.5);
-  --glass-floor-color: transparent;
-  --glass-floor: 0;
-  --glass-inner:
+
+  /* Light side: Fill #f8f8f8 20% Luminosity, Fill 2 #fefefe 50% Normal, Light 25%,
+     Edge glow 16% depth 10, Top shade 10% depth 36, ring 14%, sides 10% at 1pt, cast 3%,
+     Edge darkening 3% */
+  --gl-lum-color: #f8f8f8;
+  --gl-lum: 0.2;
+  --gl-fill: rgba(254, 254, 254, 0.5);
+  --gl-inner:
     inset 0 1px 0 rgba(255, 255, 255, 0.37), inset 0 -1px 0 rgba(255, 255, 255, 0.15),
     inset 1px 0 0 rgba(255, 255, 255, 0.1), inset -1px 0 0 rgba(255, 255, 255, 0.1),
     inset 0 40px 10px -40px rgba(255, 255, 255, 0.16), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.16),
-    inset 0 40px 36px -40px rgba(0, 0, 0, 0.1);
-  --glass-outer:
+    inset 0 40px 36px -40px rgba(0, 0, 0, 0.1),
+    /* Edge darkening: the lens slope, half at 2.8pt in, gone by 8pt */
+    inset 0 0 6px 1px rgba(0, 0, 0, 0.03);
+  --gl-outer:
     0 0 0 0.5px rgba(0, 0, 0, 0.14), -1px 0 0 0 rgba(0, 0, 0, 0.1), 1px 0 0 0 rgba(0, 0, 0, 0.1),
     0 8px 15px rgba(0, 0, 0, 0.03);
-  --glass-ink: #1a1a1a;
-  --glass-ink-on: #007aff;
-  --glass-pill: rgba(0, 0, 0, 0.07);
+  --gl-ink: #1a1a1a;
+  --gl-ink-on: #007aff;
+  --gl-pill: rgba(0, 0, 0, 0.07);
+
+  /* Dark side: Haze 50% toward 0.2 + 0.7 x what is behind, black lift 1, Light 35%,
+     Edge glow 16% depth 10, ring 35%, sides 35% at 0.5pt, cast 4%, Edge darkening 35%.
+     These two are the level over black; a unit that has measured its backdrop
+     overrides them in .ctx-dark with --haze-grey and --haze-lift. */
+  --gd-lum-color: #333333;
+  --gd-lum: 0.5;
+  --gd-fill: rgba(255, 255, 255, 0.1);
+  --gd-inner:
+    inset 0 1px 0 rgba(255, 255, 255, 0.53), inset 0 -1px 0 rgba(255, 255, 255, 0.21),
+    inset 1px 0 0 rgba(255, 255, 255, 0.14), inset -1px 0 0 rgba(255, 255, 255, 0.14),
+    inset 0 40px 10px -40px rgba(255, 255, 255, 0.16), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.16),
+    inset 0 0 6px 1px rgba(0, 0, 0, 0.3);
+  --gd-outer:
+    0 0 0 0.5px rgba(0, 0, 0, 0.35), -0.5px 0 0 0 rgba(0, 0, 0, 0.35), 0.5px 0 0 0 rgba(0, 0, 0, 0.35),
+    0 8px 15px rgba(0, 0, 0, 0.04);
+  --gd-ink: #f5f5f5;
+  --gd-ink-on: #0a84ff;
+  --gd-pill: rgba(0, 0, 0, 0.4);
 
   /* Sheet (device measured, light): frost 30, Haze 85% toward 0.92, floor 70% lighten */
   --sheet-blur: 12.5px;
@@ -70,6 +95,9 @@
 
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* The top toolbar's controls row starts 8pt under the status bar */
+  --bar-top: calc(env(safe-area-inset-top, 0px) + 8px);
 
   /* The floating tab bar: 62 tall, 21 off the bottom, plus the home indicator */
   --dock-h: calc(62px + 21px + env(safe-area-inset-bottom, 0px));
@@ -95,28 +123,58 @@
     --seg-on: #636366;
     --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
 
-    /* Preset 1, dark: Haze 50% toward 0.2 (black lift 0.1), Light 35%, Edge glow 16% depth 10,
-       ring 35%, sides 35% at 0.5pt, cast 4% */
-    --glass-lum-color: #333333;
-    --glass-lum: 0.5;
-    --glass-fill: rgba(255, 255, 255, 0.1);
-    --glass-inner:
-      inset 0 1px 0 rgba(255, 255, 255, 0.53), inset 0 -1px 0 rgba(255, 255, 255, 0.21),
-      inset 1px 0 0 rgba(255, 255, 255, 0.14), inset -1px 0 0 rgba(255, 255, 255, 0.14),
-      inset 0 40px 10px -40px rgba(255, 255, 255, 0.16), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.16);
-    --glass-outer:
-      0 0 0 0.5px rgba(0, 0, 0, 0.35), -0.5px 0 0 0 rgba(0, 0, 0, 0.35), 0.5px 0 0 0 rgba(0, 0, 0, 0.35),
-      0 8px 15px rgba(0, 0, 0, 0.04);
-    --glass-ink: #f5f5f5;
-    --glass-ink-on: #0a84ff;
-    --glass-pill: rgba(0, 0, 0, 0.4);
-
     /* Sheet (device measured, dark): Haze 85% toward 0.12, floor 70% lighten */
     --sheet-lum-color: #1f1f1f;
     --sheet-floor-color: #1f1f1f;
     --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
   }
+}
+
+/* The page's side, until a unit has read what is behind it */
+:root {
+  --glass-lum-color: var(--gl-lum-color);
+  --glass-lum: var(--gl-lum);
+  --glass-fill: var(--gl-fill);
+  --glass-inner: var(--gl-inner);
+  --glass-outer: var(--gl-outer);
+  --glass-ink: var(--gl-ink);
+  --glass-ink-on: var(--gl-ink-on);
+  --glass-pill: var(--gl-pill);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --glass-lum-color: var(--gd-lum-color);
+    --glass-lum: var(--gd-lum);
+    --glass-fill: var(--gd-fill);
+    --glass-inner: var(--gd-inner);
+    --glass-outer: var(--gd-outer);
+    --glass-ink: var(--gd-ink);
+    --glass-ink-on: var(--gd-ink-on);
+    --glass-pill: var(--gd-pill);
+  }
+}
+/* A unit's own reading wins */
+.ctx-dark {
+  /* Read here, not on :root, so each unit's own measurement applies */
+  --glass-lum-color: var(--haze-grey, var(--gd-lum-color));
+  --glass-lum: var(--gd-lum);
+  --glass-fill: rgb(255 255 255 / var(--haze-lift, 0.1));
+  --glass-inner: var(--gd-inner);
+  --glass-outer: var(--gd-outer);
+  --glass-ink: var(--gd-ink);
+  --glass-ink-on: var(--gd-ink-on);
+  --glass-pill: var(--gd-pill);
+}
+.ctx-light {
+  --glass-lum-color: var(--gl-lum-color);
+  --glass-lum: var(--gl-lum);
+  --glass-fill: var(--gl-fill);
+  --glass-inner: var(--gl-inner);
+  --glass-outer: var(--gl-outer);
+  --glass-ink: var(--gl-ink);
+  --glass-ink-on: var(--gl-ink-on);
+  --glass-pill: var(--gl-pill);
 }
 
 @theme inline {
@@ -183,6 +241,18 @@ body {
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
     box-shadow: var(--glass-outer);
+    /* A unit changing sides crossfades */
+    transition:
+      background-color 0.25s linear,
+      color 0.25s linear,
+      box-shadow 0.25s linear;
+  }
+
+  .glass::before,
+  .glass::after {
+    transition:
+      background-color 0.25s linear,
+      box-shadow 0.25s linear;
   }
 
   .glass-sheet {
@@ -239,6 +309,85 @@ body {
     }
     .glass-sheet {
       background: var(--card);
+    }
+  }
+
+
+  /* ------------------------------------------------------------
+     Scroll edge effect under the pinned top bar (the lab's page pass).
+     Weight w = 1 - smoothstep(0.2R, R, y) over R = 34pt past the bar.
+     The page blurs at sigma 5pt by min(1.3w, 1), then the light side
+     mixes toward white by 0.6w and the dark side dims by 0.55w. The
+     side follows the bar's unit, crossfading over 0.25s. Stops are w
+     sampled at tenths.
+     ------------------------------------------------------------ */
+
+  .top-edge {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: calc(var(--bar-top) + 44px + 34px);
+    opacity: var(--scrolled, 0);
+  }
+
+  [data-edge="dim"] > .top-edge {
+    opacity: 1;
+  }
+
+  .top-edge > span {
+    position: absolute;
+    inset: 0;
+  }
+
+  .top-edge-blur {
+    -webkit-backdrop-filter: blur(5px);
+    backdrop-filter: blur(5px);
+    --m: linear-gradient(
+      to bottom,
+      #000 0%, #000 40%, rgb(0 0 0 / 0.889) 50%, rgb(0 0 0 / 0.65) 60%,
+      rgb(0 0 0 / 0.411) 70%, rgb(0 0 0 / 0.203) 80%, rgb(0 0 0 / 0.056) 90%, transparent 100%
+    );
+    -webkit-mask-image: var(--m);
+    mask-image: var(--m);
+  }
+
+  .top-edge-light {
+    background: linear-gradient(
+      to bottom,
+      rgb(255 255 255 / 0.6) 0%, rgb(255 255 255 / 0.6) 20%, rgb(255 255 255 / 0.574) 30%,
+      rgb(255 255 255 / 0.506) 40%, rgb(255 255 255 / 0.41) 50%, rgb(255 255 255 / 0.3) 60%,
+      rgb(255 255 255 / 0.19) 70%, rgb(255 255 255 / 0.094) 80%, rgb(255 255 255 / 0.026) 90%,
+      rgb(255 255 255 / 0) 100%
+    );
+    transition: opacity 0.25s linear;
+  }
+
+  .top-edge-dark {
+    background: linear-gradient(
+      to bottom,
+      rgb(0 0 0 / 0.55) 0%, rgb(0 0 0 / 0.55) 20%, rgb(0 0 0 / 0.526) 30%, rgb(0 0 0 / 0.464) 40%,
+      rgb(0 0 0 / 0.376) 50%, rgb(0 0 0 / 0.275) 60%, rgb(0 0 0 / 0.174) 70%, rgb(0 0 0 / 0.086) 80%,
+      rgb(0 0 0 / 0.024) 90%, rgb(0 0 0 / 0) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.25s linear;
+  }
+
+  .ctx-dark > .top-edge > .top-edge-light {
+    opacity: 0;
+  }
+
+  .ctx-dark > .top-edge > .top-edge-dark {
+    opacity: 1;
+  }
+
+  /* Before the first reading, the page's own side */
+  @media (prefers-color-scheme: dark) {
+    :not(.ctx-light) > .top-edge > .top-edge-light {
+      opacity: 0;
+    }
+    :not(.ctx-light) > .top-edge > .top-edge-dark {
+      opacity: 1;
     }
   }
 

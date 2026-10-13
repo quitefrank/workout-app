@@ -1,10 +1,12 @@
 import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
+import { TopBar } from "./top-bar";
 
 /**
  * Screen scaffolding: the kit's Large Title toolbar (controls row 44pt
- * under the status bar, title 34 Bold), section headers at 22 Bold,
+ * under the status bar, pinned; title 34 Bold scrolls under it),
+ * section headers at 22 Bold,
  * and grouped rows at 17/15.
  */
 
@@ -31,11 +33,8 @@ export function LargeTitle({
   trailing?: ReactNode;
 }) {
   return (
-    <header className="px-4" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)" }}>
-      <div className="flex h-11 items-center justify-between gap-2.5">
-        <div className="flex items-center gap-2.5">{leading}</div>
-        <div className="flex items-center gap-2.5">{trailing}</div>
-      </div>
+    <header className="px-4">
+      <TopBar leading={leading} trailing={trailing} />
       <h1 className="mt-1 text-[34px] font-bold leading-[41px] tracking-[-0.01em] [text-wrap:balance]">{title}</h1>
       {subtitle && <div className="text-[15px] font-medium leading-5 text-ink-2">{subtitle}</div>}
     </header>

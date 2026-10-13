@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { completeWorkout, discardWorkout, setMachineLocation } from "@/app/actions";
 import { GlassButton, GlassCircleButton, GlassCircleLink } from "@/components/glass";
+import { TopBar } from "@/components/top-bar";
 import { CheckIcon, ChevronLeft, TrashIcon } from "@/components/icons";
 import { Sheet } from "@/components/sheet";
 import { useElapsed } from "@/components/tab-bar";
@@ -55,21 +56,24 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
 
   return (
     <main className="mx-auto w-full max-w-[640px] flex-1" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 180px)" }}>
-      <header
-        className="sticky top-0 z-30 bg-[linear-gradient(to_bottom,var(--bg)_55%,transparent)] px-4 pb-3"
-        style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)" }}
-      >
-        <div className="flex h-11 items-center justify-between gap-2.5">
-          <GlassCircleLink href="/" label="Back to calendar">
-            <ChevronLeft size={20} />
-          </GlassCircleLink>
-          <div className="glass flex h-11 items-center gap-2 px-4 text-[17px] font-semibold">
-            <span className="tabular">{elapsed == null ? "0:00" : formatClock(elapsed)}</span>
-          </div>
-          <GlassCircleButton label="Discard workout" onClick={() => setConfirmDiscard(true)}>
-            <TrashIcon size={19} />
-          </GlassCircleButton>
-        </div>
+      <header className="px-4 pb-3">
+        <TopBar
+          leading={
+            <GlassCircleLink href="/" label="Back to calendar">
+              <ChevronLeft size={20} />
+            </GlassCircleLink>
+          }
+          center={
+            <div className="glass flex h-11 items-center gap-2 px-4 text-[17px] font-semibold">
+              <span className="tabular">{elapsed == null ? "0:00" : formatClock(elapsed)}</span>
+            </div>
+          }
+          trailing={
+            <GlassCircleButton label="Discard workout" onClick={() => setConfirmDiscard(true)}>
+              <TrashIcon size={19} />
+            </GlassCircleButton>
+          }
+        />
         <h1 className="mt-3 text-[34px] font-bold leading-[41px] tracking-[-0.01em]">{workout.templates?.name ?? "Workout"}</h1>
         <div className="flex items-center justify-between gap-3 text-[15px] font-medium text-ink-2">
           <span>
@@ -104,6 +108,7 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
       </div>
 
       <div
+        data-glass-unit="dock"
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col gap-2.5 px-[21px]"
         style={{ paddingBottom: "calc(21px + env(safe-area-inset-bottom, 0px))" }}
       >

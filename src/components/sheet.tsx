@@ -56,6 +56,7 @@ export function Sheet({
         ref={panel}
         role="dialog"
         aria-modal="true"
+        data-glass-skip
         aria-labelledby={titleId}
         tabIndex={-1}
         className="glass-sheet fixed inset-x-1.5 z-50 mx-auto flex max-h-[calc(100dvh-60px)] max-w-[540px] flex-col outline-none transition-transform duration-[450ms] ease-[cubic-bezier(0.32,0.72,0,1)]"

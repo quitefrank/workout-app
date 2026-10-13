@@ -31,6 +31,7 @@ export function TabBar({ inProgress }: { inProgress: InProgress }) {
   return (
     <nav
       aria-label="Main"
+      data-glass-unit="dock"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-stretch gap-2.5 px-[21px]"
       style={{ paddingBottom: "calc(21px + env(safe-area-inset-bottom, 0px))" }}
     >

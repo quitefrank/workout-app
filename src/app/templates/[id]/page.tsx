@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GlassCircleLink } from "@/components/glass";
+import { TopBar } from "@/components/top-bar";
 import { ChevronLeft } from "@/components/icons";
 import { hueStyle, Row, Screen, SectionHeader, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
@@ -22,21 +23,26 @@ export default async function TemplatePage({
 
   return (
     <Screen className="max-w-none">
+      <TopBar
+        edge="dim"
+        spacer={false}
+        leading={
+          <GlassCircleLink href="/templates" label="Back">
+            <ChevronLeft size={20} />
+          </GlassCircleLink>
+        }
+      />
       <div style={hueStyle(template.category)} className={cn("relative overflow-hidden text-white", tileGradient)}>
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.3),transparent_25%,transparent_45%,rgba(0,0,0,0.6))]" />
         <div className="relative mx-auto max-w-[640px] px-4 pb-5" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)" }}>
-          <div className="flex h-11 items-center">
-            <GlassCircleLink href="/templates" label="Back" className="[--glass-ink:#fff]">
-              <ChevronLeft size={20} />
-            </GlassCircleLink>
-          </div>
+          <div aria-hidden className="h-11" />
           <div className="mt-16 text-[15px] font-medium text-white/70">
             {[CATEGORY_LABELS[template.category ?? ""], template.estimated_minutes && `${template.estimated_minutes} min`]
               .filter(Boolean)
               .join(" · ")}
           </div>
           <h1 className="text-[34px] font-bold leading-[41px] tracking-[-0.01em]">{template.name}</h1>
-          <div className="mt-5 flex items-center gap-3">
+          <div data-glass-unit="box" className="mt-5 flex items-center gap-3">
             <StartTemplate
               templateId={template.id}
               askLocation={hasMachines}
@@ -48,7 +54,7 @@ export default async function TemplatePage({
                 href={template.tutorial_url}
                 target="_blank"
                 rel="noreferrer"
-                className="glass flex h-[50px] items-center px-5 text-[17px] font-semibold [--glass-ink:#fff]"
+                className="glass flex h-[50px] items-center px-5 text-[17px] font-semibold"
               >
                 Tutorial
               </a>

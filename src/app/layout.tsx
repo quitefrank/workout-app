@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
+import { GlassContext } from "@/components/glass-context";
 import { TabBar } from "@/components/tab-bar";
 import { SetupNeeded } from "@/components/setup-needed";
 import { getInProgress } from "@/lib/data/queries";
@@ -82,6 +83,7 @@ export default async function RootLayout({
         <TabBar
           inProgress={inProgress && { id: inProgress.id, name: inProgress.name, startedAt: inProgress.startedAt }}
         />
+        <GlassContext />
         <Toaster position="top-center" theme="system" toastOptions={{ className: "!rounded-[20px]" }} />
       </body>
     </html>

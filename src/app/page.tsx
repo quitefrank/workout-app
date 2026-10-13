@@ -164,7 +164,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             <div className="mt-1 text-[15px] text-white/80">
               {[`${last.exerciseCount} exercises`, minutes(last)].filter(Boolean).join(" · ")}
             </div>
-            <div className="glass mt-5 inline-flex h-11 items-center gap-1 pl-4 pr-3 text-[15px] font-semibold [--glass-ink:#fff]">
+            <div className="glass mt-5 inline-flex h-11 items-center gap-1 pl-4 pr-3 text-[15px] font-semibold">
               View summary <ChevronRight size={16} />
             </div>
           </Link>
