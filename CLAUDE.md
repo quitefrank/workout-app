@@ -42,6 +42,8 @@ needs pdfplumber on the system Python: `python3 -m pip install pdfplumber`.
 - Sonner for toasts
 - DialKit (dialkit.dev, with motion) for live tuning controls; the Glass
   Lab loads its vanilla build from jsdelivr
+- three 0.186.0 (`three/webgpu`, `three/tsl`) for the Glass Lab's
+  renderer over the app
 - Vitest
 - bun
 
@@ -174,7 +176,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 305 tests across 22 files.
+Run `bun run test` to exercise them. 373 tests across 29 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -353,17 +355,44 @@ by name (`src/lib/workout/machine-location.ts`), and runs a rest timer
 kept in localStorage. Pure helpers for dates, formatting and PRs live in
 `src/lib/workout/` with tests.
 
-The look is Liquid Glass Preset 1 from the Glass Lab V3 artifact, in
-CSS (`.glass` in `globals.css`, dark and light): the lab's shader
-refraction cannot sample a live page, so blur, haze, fills, rim, inner
-shadows and outer ring carry it. Sheets use the lab's measured iOS sheet
-material (`.glass-sheet`). Both live in `@layer components` so Tailwind
-utilities on the same element win; keep new global rules layered too.
+The look is Liquid Glass Preset 1 from the Glass Lab V3 artifact. Sheets
+use the lab's measured iOS sheet material (`.glass-sheet`). It runs two
+ways.
+
+With WebGPU, `src/glass/glass-stage.tsx` puts the lab's renderer over
+the app. The HTML stays where it is for layout, taps and VoiceOver; an
+opaque canvas sits over it with pointer events off and shows the page
+painted from that HTML, with every `.glass` and `.glass-sheet` element
+drawn by the lab's shader. `src/glass/paint/` walks the DOM into a
+display list and paints it to a 2D canvas (`UNPAINTED` in
+`display-list.ts` names what it skips: glass, the sheet, live inputs,
+toasts). `src/glass/engine/` is the lab's GPU surface: the content
+texture, the frosts, the glass and cast materials, the top edge effect
+and the context rule on the page's own pixels. Values come from
+`src/glass/presets.ts`, copied from the lab's database row; change them
+only by copying a newer row. The stage adds `gpu` to `<html>` once every
+glass element on screen has its shaders built, and removes it on any
+failure, so the CSS material holds the screen until then. A lost device
+gets one fresh start. A resize restarts the stage only when the width or
+the pixel ratio changes; the canvas is sized to the large viewport
+(`100lvh`), so Safari's toolbar collapsing only repaints.
+
+Without WebGPU (or before the stage is ready) the CSS material carries
+it: `.glass` in `globals.css`, dark and light, with blur, haze, fills,
+rim, inner shadows and outer ring, and `src/components/glass-context.tsx`
+runs the context rule by sampling the DOM. Both paths share the rule's
+numbers (`CTXV` in `presets.ts`, `decideDark` in `src/glass/context.ts`).
+The CSS lives in `@layer components` so Tailwind utilities on the same
+element win; keep new global rules layered too.
+
+Under `html.gpu`, anything the canvas must not cover needs a z-index
+above 5: glass in the page's flow is lifted to 6, live inputs carry
+`data-live`, and the sheet keeps z-50 over its scrim (`data-scrim`).
 
 ## Glass context rule
 
 Applies to every glass control in the lab (`docs/lab/glass-lab-v3.html`)
-and in the app's UI when it is built. Sources: Apple's WWDC25 "Meet
+and in the app, on both the WebGPU and the CSS path. Sources: Apple's WWDC25 "Meet
 Liquid Glass" (219) and "Build a SwiftUI app with the new design"
 (323), the HIG Materials and Toolbars pages, `ScrollEdgeEffectStyle`.
 
@@ -382,10 +411,11 @@ Liquid Glass" (219) and "Build a SwiftUI app with the new design"
   unit reads the box round its controls. Average sRGB luminance, dark
   below 0.40, light again above 0.50. The move is a 0.25s crossfade.
 - The pinned top bar has a scroll edge effect (Apple's soft style)
-  behind it; the bottom dock has none (Frank's call, 2026-10-11): a progressive blur plus, on the light side, a fade
-  toward white, and on the dark side, a dimming (0.45 of the page at
-  the screen edge, gone about 140pt down).
-  The soft effect appears once content has scrolled under the bar.
+  behind it: a progressive blur plus, on the light side, a fade toward
+  white, and on the dark side, a dimming (0.45 of the page at the
+  screen edge, gone about 140pt down). The soft effect appears once
+  content has scrolled under the bar. The bottom dock has no edge
+  effect (Frank's call, 2026-10-11).
 - A media page (a photo grid, as Photos draws its Library) gets a
   dimming edge at all times, and its top bar sits on the dark side.
 - Text that belongs to a bar (a large title over media) is drawn
@@ -412,7 +442,7 @@ measurements in `docs/lab/glass-presets.md`.
 - Analytics views migration
 - Notion seed script with verification report
 - PWA manifest, icons, service worker config
-- Parser tests passing (suite now 286)
+- Parser tests passing (suite now 373)
 - Production build clean
 
 ## Milestone 2
