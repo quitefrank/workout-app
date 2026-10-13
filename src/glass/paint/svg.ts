@@ -1,8 +1,9 @@
 /**
  * An inline <svg> as an image the canvas can draw. The clone carries each element's computed paint and font, since a
  * detached image cannot read the page's CSS. Rendered at layout size times devicePixelRatio. Cached by the serialised
- * clone (LRU); `onLoad` fires when a new image finishes decoding so the stage repaints. While a changed svg decodes,
- * the last image decoded for that element is returned so icons do not blank.
+ * clone (LRU); `onLoad` fires when a new image finishes decoding, or fails to, so the stage rebuilds. While a changed
+ * svg decodes, the last image decoded for that element is returned so icons do not blank. `loading` is true only while
+ * a decode is in flight: a failed decode is not retried and is never pending.
  */
 const PAINT = [
   "fill", "fill-opacity", "fill-rule", "stroke", "stroke-opacity", "stroke-width", "stroke-linecap", "stroke-linejoin",
@@ -19,7 +20,7 @@ function localUrl(v: string): string {
   return v.replace(/url\(\s*["']?[^"')]*?(#[^"')]+)["']?\s*\)/g, "url($1)");
 }
 
-export function svgImage(svg: SVGSVGElement, onLoad: () => void): HTMLImageElement | null {
+export function svgImage(svg: SVGSVGElement, onLoad: () => void): { img: HTMLImageElement | null; loading: boolean } {
   const r = svg.getBoundingClientRect();
   const w = svg.clientWidth || r.width;
   const h = svg.clientHeight || r.height;
@@ -48,9 +49,9 @@ export function svgImage(svg: SVGSVGElement, onLoad: () => void): HTMLImageEleme
     cache.set(xml, hit); // refresh LRU order
     if (!hit.failed && hit.img.complete && hit.img.naturalWidth) {
       last.set(svg, hit.img);
-      return hit.img;
+      return { img: hit.img, loading: false };
     }
-    return last.get(svg) ?? null;
+    return { img: last.get(svg) ?? null, loading: !hit.failed && !hit.img.complete };
   }
   const img = new Image();
   const entry: Entry = { img, failed: false };
@@ -58,9 +59,10 @@ export function svgImage(svg: SVGSVGElement, onLoad: () => void): HTMLImageEleme
   img.onerror = () => {
     entry.failed = true; // not retried: the entry stays in the cache
     console.warn("glass: an inline svg failed to decode as an image");
+    onLoad();
   };
   img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
   cache.set(xml, entry);
   if (cache.size > 400) cache.delete(cache.keys().next().value!);
-  return last.get(svg) ?? null;
+  return { img: last.get(svg) ?? null, loading: true };
 }

@@ -147,9 +147,9 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
           if (!waiting.has(el)) { waiting.add(el); el.addEventListener("load", () => { waiting.delete(el); onAsset(); }, { once: true }); }
         }
       } else if (el instanceof SVGSVGElement) {
-        const img = svgImage(el, onAsset);
+        const { img, loading } = svgImage(el, onAsset);
         if (img) items.push({ k: "image", x, y, w, h, img, ...base });
-        else pending = true;
+        if (loading) pending = true;
       }
     }
     if (el instanceof SVGElement || el instanceof HTMLImageElement) return;
