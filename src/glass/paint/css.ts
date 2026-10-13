@@ -173,3 +173,37 @@ export function parseBoxShadows(value: string): Shadow[] {
     return { color, x: nums[0] ?? 0, y: nums[1] ?? 0, blur: nums[2] ?? 0, spread: nums[3] ?? 0, inset: t.includes("inset") };
   });
 }
+
+export type Linear = [number, number, number, number];
+
+const ANGLE: Record<string, number> = { deg: Math.PI / 180, rad: 1, turn: 2 * Math.PI, grad: Math.PI / 200 };
+
+/** a then b, as canvas `transform(a, b, c, d)` coefficients */
+function then(first: Linear, next: Linear): Linear {
+  const [a, b, c, d] = next, [e, f, g, h] = first;
+  return [a * e + c * f, b * e + d * f, a * g + c * h, b * g + d * h];
+}
+
+/** The 2x2 linear part of an element's computed `rotate`, `scale` and `transform`, or null for none. As in CSS
+ *  Transforms 2, a point goes through `transform` first, then `scale`, then `rotate`. A turn about the x or y axis and any translation are ignored. */
+export function parseLinearTransform(rotate: string, scale: string, transform: string): Linear | null {
+  let m: Linear = [1, 0, 0, 1];
+  const t = transform.match(/^matrix(3d)?\(([^)]*)\)$/);
+  if (t) {
+    const v = t[2].split(",").map(parseFloat);
+    m = t[1] ? [v[0], v[1], v[4], v[5]] : [v[0], v[1], v[2], v[3]];
+  }
+  if (scale && scale !== "none") {
+    const v = scale.trim().split(/\s+/).map((x) => (x.endsWith("%") ? parseFloat(x) / 100 : parseFloat(x)));
+    m = then(m, [v[0], 0, 0, v[1] ?? v[0]]);
+  }
+  const r = rotate.trim().split(/\s+/);
+  const z = r.length === 1 || r[0] === "z" || (r.length === 4 && parseFloat(r[0]) === 0 && parseFloat(r[1]) === 0);
+  const ang = r[r.length - 1].match(/^(-?[\d.]+)(deg|rad|turn|grad)$/);
+  if (rotate !== "none" && z && ang) {
+    const a = parseFloat(ang[1]) * ANGLE[ang[2]];
+    m = then(m, [Math.cos(a), Math.sin(a), -Math.sin(a), Math.cos(a)]);
+  }
+  if (m.some((v) => !Number.isFinite(v))) return null;
+  return m.every((v, i) => Math.abs(v - [1, 0, 0, 1][i]) < 1e-9) ? null : m;
+}

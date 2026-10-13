@@ -198,4 +198,32 @@ describe("buildDisplayList (jsdom, stubbed geometry)", () => {
     place(root.querySelector("#s")!, rect(0, 0, 10, 10));
     expect(buildDisplayList(root, () => {}).sticky).toBe(true);
   });
+
+  it("records an inner scroller and its scroll on the clip, so a swipe needs no rebuild", () => {
+    root.innerHTML = `<div id="rail" style="overflow-x: auto"><div id="tile" style="background-color: rgb(9, 9, 9)"></div></div><div id="cut" style="overflow-x: clip"><div></div></div>`;
+    const rail = root.querySelector("#rail")!;
+    Object.defineProperty(rail, "scrollLeft", { value: 40 });
+    place(rail, rect(0, 0, 200, 100));
+    place(root.querySelector("#tile")!, rect(-20, 0, 120, 100));
+    const tile = buildDisplayList(root, () => {}).items[0];
+    expect(tile.clip).toMatchObject({ scroller: rail, sx0: 40, sy0: 0 });
+    expect(tile.x).toBe(-20);
+  });
+
+  it("gives a rotated image its untransformed size, centre and matrix", () => {
+    root.innerHTML = `<img id="chev" style="width: 18px; height: 18px">`;
+    const chev = root.querySelector("#chev")!;
+    // the bounding rect of a 18 x 10 image turned 90deg
+    place(chev, rect(100, 50, 10, 18));
+    for (const [k, v] of Object.entries({ complete: true, naturalWidth: 18, offsetWidth: 18, offsetHeight: 10 })) Object.defineProperty(chev, k, { value: v });
+    const real = window.getComputedStyle;
+    vi.spyOn(window, "getComputedStyle").mockImplementation((el: Element) => {
+      const cs = real(el);
+      if (el !== chev) return cs;
+      return new Proxy(cs, { get: (t, k) => (k === "getPropertyValue" ? (p: string) => (p === "rotate" ? "90deg" : t.getPropertyValue(p)) : Reflect.get(t, k)) });
+    });
+    const [img] = buildDisplayList(root, () => {}).items;
+    expect(img).toMatchObject({ k: "image", x: 100, y: 50, w: 10, h: 18, tf: { cx: 105, cy: 59, w: 18, h: 10 } });
+    expect(img.k === "image" && img.tf!.m.map((v) => Math.round(v))).toEqual([0, 1, -1, 0]);
+  });
 });

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { gradientLine, parseBoxShadows, parseColor, parseLinearGradients, resolveStops, setColorResolver, splitTopLevel } from "../paint/css";
+import { gradientLine, parseBoxShadows, parseColor, parseLinearGradients, parseLinearTransform, resolveStops, setColorResolver, splitTopLevel } from "../paint/css";
 
 describe("computed CSS parsers", () => {
   it("splits on top-level commas only", () => {
@@ -145,5 +145,21 @@ describe("computed CSS parsers", () => {
       ]);
       expect(parseBoxShadows("0px 4px 8px 0px inset color(srgb 0 0 0 / 0.5)")[0]).toMatchObject({ color: "color(srgb 0 0 0 / 0.5)", inset: true, blur: 8 });
     });
+  });
+
+  it("combines rotate, scale and transform into one 2x2 matrix", () => {
+    const close = (m: number[] | null) => m && m.map((v) => Math.round(v * 1e6) / 1e6 + 0);
+    expect(parseLinearTransform("none", "none", "none")).toBeNull();
+    expect(close(parseLinearTransform("180deg", "none", "none"))).toEqual([-1, 0, 0, -1]);
+    expect(close(parseLinearTransform("z 0.25turn", "none", "none"))).toEqual([0, 1, -1, 0]);
+    expect(close(parseLinearTransform("none", "2 0.5", "none"))).toEqual([2, 0, 0, 0.5]);
+    expect(close(parseLinearTransform("none", "150%", "none"))).toEqual([1.5, 0, 0, 1.5]);
+    expect(close(parseLinearTransform("none", "none", "matrix(0, 1, -1, 0, 5, 5)"))).toEqual([0, 1, -1, 0]);
+    expect(close(parseLinearTransform("none", "none", "matrix3d(2, 0, 0, 0, 0, 3, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)"))).toEqual([2, 0, 0, 3]);
+    // a point is stretched 2x horizontally first, then turned 90deg: (1, 0) goes to (0, 2)
+    expect(close(parseLinearTransform("90deg", "2 1", "none"))).toEqual([0, 2, -1, 0]);
+    // a pure translate leaves the linear part alone; a turn about the x axis is ignored
+    expect(parseLinearTransform("none", "none", "matrix(1, 0, 0, 1, 10, 0)")).toBeNull();
+    expect(parseLinearTransform("x 45deg", "none", "none")).toBeNull();
   });
 });

@@ -1,14 +1,24 @@
-import { parseBoxShadows, parseColor, parseLinearGradients, type Gradient, type Shadow } from "./css";
+/**
+ * Walks the live DOM into a display list: document coordinates (viewport coordinates for fixed elements), per-item
+ * alpha, overflow clips with radii. Scrolling the window only moves the items, and so does scrolling an inner
+ * scroller (a horizontal rail): its clip records the element and its scroll at build time and the painter subtracts
+ * the change, so inner scroll never requires a rebuild. Layout changes, sticky elements (`sticky`) and assets still
+ * decoding (`pending`) do.
+ */
+import { parseBoxShadows, parseColor, parseLinearGradients, parseLinearTransform, type Gradient, type Linear, type Shadow } from "./css";
 import { svgImage } from "./svg";
 
-/** A clip rectangle with per-corner radii; `parent` chains the clips of outer overflow containers. */
-export type Clip = { x: number; y: number; w: number; h: number; radii: number[]; fixed: boolean; parent: Clip | null };
+/** A clip rectangle with per-corner radii; `parent` chains the clips of outer overflow containers. `scroller` is the
+ *  clipping element when it can scroll, with its scroll offsets at build time. */
+export type Clip = { x: number; y: number; w: number; h: number; radii: number[]; fixed: boolean; parent: Clip | null; scroller: Element | null; sx0: number; sy0: number };
+/** A transformed image: drawn at its untransformed size about the centre of its bounding rect. */
+export type ImageTransform = { cx: number; cy: number; w: number; h: number; m: Linear };
 type Base = { fixed: boolean; clip: Clip | null; alpha: number };
 export type Item =
   | (Base & { k: "box"; x: number; y: number; w: number; h: number; radii: number[]; color: string | null; gradients: Gradient[]; shadows: Shadow[]; border: { w: number; color: string } | null })
   | (Base & { k: "line"; x: number; y: number; w: number; h: number; color: string })
   | (Base & { k: "text"; x: number; y: number; text: string; font: string; color: string; letterSpacing: string; maxWidth: number | null; shadow: Shadow | null })
-  | (Base & { k: "image"; x: number; y: number; w: number; h: number; img: CanvasImageSource });
+  | (Base & { k: "image"; x: number; y: number; w: number; h: number; img: CanvasImageSource; tf: ImageTransform | null });
 
 /** `sticky`: the list holds a sticky element, whose place depends on the scroll, so the stage rebuilds on scroll. */
 export type DisplayList = { items: Item[]; bg: string; pending: boolean; sticky: boolean };
@@ -168,15 +178,19 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
         if (s.y > 0) items.push({ k: "line", x, y, w, h: s.y, color: s.color, ...base });
         if (s.y < 0) items.push({ k: "line", x, y: y + h + s.y, w, h: -s.y, color: s.color, ...base });
       }
+      // Tailwind's rotate-180 and scale-* are the `rotate` and `scale` properties, not `transform`
+      const m = parseLinearTransform(cs.getPropertyValue("rotate") || "none", cs.getPropertyValue("scale") || "none", cs.transform || "none");
+      const uw = el instanceof HTMLElement ? el.offsetWidth : el.clientWidth, uh = el instanceof HTMLElement ? el.offsetHeight : el.clientHeight;
+      const tf = m && { cx: x + w / 2, cy: y + h / 2, w: uw || w, h: uh || h, m };
       if (el instanceof HTMLImageElement) {
-        if (el.complete && el.naturalWidth) items.push({ k: "image", x, y, w, h, img: el, ...base });
+        if (el.complete && el.naturalWidth) items.push({ k: "image", x, y, w, h, img: el, tf, ...base });
         else if (!el.complete) {
           pending = true;
           if (!waiting.has(el)) { waiting.add(el); el.addEventListener("load", () => { waiting.delete(el); onAsset(); }, { once: true }); }
         }
       } else if (el instanceof SVGSVGElement) {
         const { img, loading } = svgImage(el, onAsset);
-        if (img) items.push({ k: "image", x, y, w, h, img, ...base });
+        if (img) items.push({ k: "image", x, y, w, h, img, tf, ...base });
         if (loading) pending = true;
       }
     }
@@ -186,7 +200,8 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     if (cs.overflowX !== "visible" || cs.overflowY !== "visible") {
       // overflow clips to the padding box, whose corners are the outer radii less the borders
       const inner = radii.map((v, i) => Math.max(0, v - Math.max(bw[(i + 3) % 4], bw[i])));
-      childClip = { x: x + bw[3], y: y + bw[0], w: w - bw[1] - bw[3], h: h - bw[0] - bw[2], radii: inner, fixed: isFixed, parent: clip };
+      const scrolls = !/^(visible|clip)$/.test(cs.overflowX) || !/^(visible|clip)$/.test(cs.overflowY);
+      childClip = { x: x + bw[3], y: y + bw[0], w: w - bw[1] - bw[3], h: h - bw[0] - bw[2], radii: inner, fixed: isFixed, parent: clip, scroller: scrolls ? el : null, sx0: el.scrollLeft, sy0: el.scrollTop };
     }
     for (const node of Array.from(el.childNodes)) {
       if (node.nodeType === Node.TEXT_NODE) {

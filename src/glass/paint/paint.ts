@@ -1,21 +1,48 @@
 import { gradientLine, parseColor, resolveStops, type Gradient, type Shadow } from "./css";
 import type { Clip, DisplayList, Item } from "./display-list";
 
-const ELLIPSIS = "…";
+const ELLIPSIS = "\u2026";
+const SENTINEL = "#010203";
+const graphemes = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+
+/** Set a colour, falling back to the parsed rgba() when the canvas rejects the string (an invalid colour leaves the
+ *  property as it was, so the sentinel survives). */
+function setColor(c: CanvasRenderingContext2D, prop: "fillStyle" | "strokeStyle" | "shadowColor", color: string) {
+  c[prop] = SENTINEL;
+  c[prop] = color;
+  if (String(c[prop]) !== SENTINEL) return;
+  const col = parseColor(color);
+  if (col) c[prop] = `rgba(${col[0]}, ${col[1]}, ${col[2]}, ${col[3]})`;
+}
+
+type Shift = [number, number];
 
 /** Paint a display list into the content canvas at the current scroll. The context's transform maps CSS px to device
  *  pixels; W and H are the viewport in CSS px. */
 export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scrollX: number, scrollY: number, W: number, H: number) {
   // canvas shadow blur and offsets are in device pixels and ignore the transform, so they are scaled by hand
   const s = c.getTransform().a || 1;
-  c.fillStyle = list.bg;
+  setColor(c, "fillStyle", list.bg);
   c.fillRect(0, 0, W, H);
+  // how far each clip's contents moved since the build: the sum of the scroll deltas of the scrollers around them
+  const shifts = new Map<Clip, Shift>();
+  const shiftOf = (clip: Clip | null): Shift => {
+    if (!clip) return [0, 0];
+    let v = shifts.get(clip);
+    if (!v) {
+      const p = shiftOf(clip.parent);
+      v = clip.scroller ? [p[0] + clip.sx0 - clip.scroller.scrollLeft, p[1] + clip.sy0 - clip.scroller.scrollTop] : p;
+      shifts.set(clip, v);
+    }
+    return v;
+  };
   for (const it of list.items) {
-    const dx = it.fixed ? 0 : -scrollX, dy = it.fixed ? 0 : -scrollY;
+    const [ix, iy] = shiftOf(it.clip);
+    const dx = (it.fixed ? 0 : -scrollX) + ix, dy = (it.fixed ? 0 : -scrollY) + iy;
     if (!onScreen(it, dx, dy, W, H)) continue;
     c.save();
     c.globalAlpha = it.alpha;
-    if (it.clip) applyClip(c, it.clip, scrollX, scrollY);
+    if (it.clip) applyClip(c, it.clip, scrollX, scrollY, shiftOf);
     draw(c, it, dx, dy, s);
     c.restore();
   }
@@ -27,9 +54,11 @@ function onScreen(it: Item, dx: number, dy: number, W: number, H: number) {
   return it.y + dy - m < H && it.y + dy + it.h + m > 0 && it.x + dx - m < W && it.x + dx + it.w + m > 0;
 }
 
-function applyClip(c: CanvasRenderingContext2D, clip: Clip, sx: number, sy: number) {
-  if (clip.parent) applyClip(c, clip.parent, sx, sy);
-  const dx = clip.fixed ? 0 : -sx, dy = clip.fixed ? 0 : -sy;
+/** A clip moves with the scrollers around it, not with its own scroller. */
+function applyClip(c: CanvasRenderingContext2D, clip: Clip, sx: number, sy: number, shiftOf: (clip: Clip | null) => Shift) {
+  if (clip.parent) applyClip(c, clip.parent, sx, sy, shiftOf);
+  const [px, py] = shiftOf(clip.parent);
+  const dx = (clip.fixed ? 0 : -sx) + px, dy = (clip.fixed ? 0 : -sy) + py;
   c.beginPath();
   c.roundRect(clip.x + dx, clip.y + dy, Math.max(0, clip.w), Math.max(0, clip.h), clip.radii);
   c.clip();
@@ -49,16 +78,19 @@ export function gradientGeometry(g: Gradient, w: number, h: number) {
   };
 }
 
-/** The longest prefix of `t` that fits `max` with an ellipsis, as text-overflow: ellipsis draws it. */
+/** The longest prefix of `t` that fits `max` with an ellipsis, as text-overflow: ellipsis draws it, cut only between
+ *  graphemes so an emoji is never split. */
 export function fitText(t: string, max: number, measure: (s: string) => number): string {
   if (measure(t) <= max) return t;
-  let lo = 0, hi = t.length - 1; // the prefix length; 0 leaves the ellipsis alone
+  const g = graphemes ? Array.from(graphemes.segment(t), (x) => x.segment) : Array.from(t);
+  const prefix = (n: number) => g.slice(0, n).join("").trimEnd() + ELLIPSIS;
+  let lo = 0, hi = g.length - 1; // the prefix length in graphemes; 0 leaves the ellipsis alone
   while (lo < hi) {
     const mid = Math.ceil((lo + hi) / 2);
-    if (measure(t.slice(0, mid).trimEnd() + ELLIPSIS) <= max) lo = mid;
+    if (measure(prefix(mid)) <= max) lo = mid;
     else hi = mid - 1;
   }
-  return t.slice(0, lo).trimEnd() + ELLIPSIS;
+  return prefix(lo);
 }
 
 /** A CSS outer box shadow: only outside the box (so a translucent box does not show it through), with spread. The
@@ -72,7 +104,7 @@ function drawShadow(c: CanvasRenderingContext2D, q: Shadow, x: number, y: number
   c.rect(x - off * 2, y - off * 2, w + off * 4, h + off * 4);
   c.roundRect(x, y, w, h, radii);
   c.clip("evenodd");
-  c.shadowColor = q.color;
+  setColor(c, "shadowColor", q.color);
   c.shadowBlur = q.blur * s;
   c.shadowOffsetX = (q.x + off) * s;
   c.shadowOffsetY = q.y * s;
@@ -90,7 +122,7 @@ function draw(c: CanvasRenderingContext2D, it: Item, dx: number, dy: number, s: 
       const path = () => { c.beginPath(); c.roundRect(x, y, it.w, it.h, it.radii); };
       // CSS paints the first shadow and the first gradient layer on top
       for (const q of [...it.shadows].reverse()) drawShadow(c, q, x, y, it.w, it.h, it.radii, s);
-      if (it.color) { path(); c.fillStyle = it.color; c.fill(); }
+      if (it.color) { path(); setColor(c, "fillStyle", it.color); c.fill(); }
       for (const g of [...it.gradients].reverse()) {
         const geo = gradientGeometry(g, it.w, it.h);
         if (!geo) continue;
@@ -105,23 +137,26 @@ function draw(c: CanvasRenderingContext2D, it: Item, dx: number, dy: number, s: 
         const b = it.border.w;
         c.beginPath();
         c.roundRect(x + b / 2, y + b / 2, Math.max(0, it.w - b), Math.max(0, it.h - b), it.radii.map((r) => Math.max(0, r - b / 2)));
-        c.lineWidth = b; c.strokeStyle = it.border.color; c.stroke();
+        c.lineWidth = b; setColor(c, "strokeStyle", it.border.color); c.stroke();
       }
       return;
     }
     case "line":
-      c.fillStyle = it.color; c.fillRect(it.x + dx, it.y + dy, it.w, it.h);
+      setColor(c, "fillStyle", it.color); c.fillRect(it.x + dx, it.y + dy, it.w, it.h);
       return;
     case "text": {
-      c.font = it.font; c.fillStyle = it.color; c.textBaseline = "alphabetic"; c.textAlign = "left";
+      c.font = it.font; setColor(c, "fillStyle", it.color); c.textBaseline = "alphabetic"; c.textAlign = "left";
       if ("letterSpacing" in c) c.letterSpacing = it.letterSpacing === "normal" ? "0px" : it.letterSpacing;
-      if (it.shadow) { c.shadowColor = it.shadow.color; c.shadowBlur = it.shadow.blur * s; c.shadowOffsetX = it.shadow.x * s; c.shadowOffsetY = it.shadow.y * s; }
+      if (it.shadow) { setColor(c, "shadowColor", it.shadow.color); c.shadowBlur = it.shadow.blur * s; c.shadowOffsetX = it.shadow.x * s; c.shadowOffsetY = it.shadow.y * s; }
       const t = it.maxWidth != null ? fitText(it.text, it.maxWidth, (v) => c.measureText(v).width) : it.text;
       c.fillText(t, it.x + dx, it.y + dy);
       return;
     }
     case "image":
-      c.drawImage(it.img, it.x + dx, it.y + dy, it.w, it.h);
+      if (!it.tf) { c.drawImage(it.img, it.x + dx, it.y + dy, it.w, it.h); return; }
+      c.translate(it.tf.cx + dx, it.tf.cy + dy);
+      c.transform(it.tf.m[0], it.tf.m[1], it.tf.m[2], it.tf.m[3], 0, 0);
+      c.drawImage(it.img, -it.tf.w / 2, -it.tf.h / 2, it.tf.w, it.tf.h);
       return;
   }
 }
