@@ -411,6 +411,7 @@ export type Uniforms = Record<string, any> & {
   apply: (p: Material) => void;
   setSize: (w: number, h: number, r: number) => void;
   override?: () => Material | null;
+  dispose: () => void;
 };
 
 export type GlassCtx = { THREE: any; T: any; W: number; H: number; dpr: number; contentTex: any; blurTex: any; pillTex: any | null };
@@ -435,7 +436,7 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
     // the average brightness of the page under this element (sRGB), kept up to date by the render loop, for Adapt
     avgL: uniform(0.5),
   };
-  const NOT_VALUES = new Set(["ior", "cur", "apply", "override", "setSize", "pillC", "pillS", "pillMix", "w", "h", "r", "bezel", "avgL"]);
+  const NOT_VALUES = new Set(["ior", "cur", "apply", "override", "setSize", "dispose", "pillC", "pillS", "pillMix", "w", "h", "r", "bezel", "avgL"]);
   // the fill colour travels as its sRGB components, untouched by colour management, since the blend happens in sRGB
   const toRgb = (u: any, c: number) => u.value.set(((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255);
   const setFill = (p: Material) => { toRgb(U.fillColor, p.fillColor ?? 0x999999); toRgb(U.fill2Color, p.fill2Color ?? 0xefefef); };
@@ -452,7 +453,7 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
     U.w.value = w; U.h.value = h; U.r.value = Math.min(r, w / 2, h / 2); fitBezel();
   };
   // a control showing a blend of its two sides takes the blend; the page's side alone is the family's live values
-  family.onParams((p) => U.apply((U.override && U.override()) || p));
+  U.dispose = family.onParams((p) => U.apply((U.override && U.override()) || p));
   return U as Uniforms;
 }
 
@@ -675,11 +676,11 @@ import { FROST_SIGMA, type Material } from "../presets";
    Sampling clamps at the edges, so a bar at the bottom of the screen blurs against the screen's own edge pixels, as
    backdrop-filter does. It averages the page's sRGB bytes as they are, the way the device's blur does (a blur in linear
    light comes out brighter). (Glass Lab V3, lines 4226 to 4267.) */
-export type Frost = { tex: any; touch: () => void; render: (renderer: any) => void; refit: () => void };
+export type Frost = { tex: any; touch: () => void; render: (renderer: any) => void; refit: () => void; dispose: () => void };
 
 export function makeFrost(
   THREE: any, T: any, src: any, cw: number, ch: number, dpr: number,
-  source: { P: Material; onParams?: (fn: (P: Material) => void) => void },
+  source: { P: Material; onParams?: (fn: (P: Material) => void) => () => void },
   sigmaOf: (P: Material) => number = (P) => Math.max(0, P.frost) * FROST_SIGMA,
 ): Frost {
   const { Fn, uv, vec3, float, exp, texture, uniform } = T;
@@ -708,11 +709,12 @@ export function makeFrost(
     if (s !== scale) { scale = s; const w = Math.max(4, Math.round(cw * s)), h = Math.max(4, Math.round(ch * s)); rtA.setSize(w, h); rtB.setSize(w, h); stepA.value.set(1 / w, 0); stepB.value.set(0, 1 / h); }
     sigma.value = Math.max(0.05, sd * scale); dirty = true;
   };
-  fit(); source.onParams?.(fit);
+  fit(); const off = source.onParams?.(fit);
   return {
     tex: rtB.texture,
     touch: () => { dirty = true; },
     refit: fit,
+    dispose: () => { off?.(); rtA.dispose(); rtB.dispose(); },
     // the passes run only when the page or the radius changed; the targets keep the result between frames
     render: (renderer: any) => { if (!dirty) return; dirty = false; renderer.setRenderTarget(rtA); renderer.render(sceneA, camera); renderer.setRenderTarget(rtB); renderer.render(sceneB, camera); renderer.setRenderTarget(null); },
   };
@@ -1327,6 +1329,7 @@ export async function startStage(o: StageOptions): Promise<() => void> {
     entries.set(el, { el, U, mesh, cast, family });
   };
   const remove = (e: Entry) => {
+    e.U.dispose();
     scene.remove(e.mesh); scene.remove(e.cast);
     e.mesh.material.dispose(); e.cast.material.dispose(); e.mesh.geometry.dispose(); e.cast.geometry.dispose();
     entries.delete(e.el);
@@ -1467,6 +1470,8 @@ export async function startStage(o: StageOptions): Promise<() => void> {
     stopped = true; cancelAnimationFrame(frame);
     for (const e of Array.from(entries.values())) remove(e);
     for (const f of units.values()) f.key.classList.remove("ctx-dark", "ctx-light");
+    [...frosts, edgeFrost].forEach((f) => f.dispose());
+    pageRT.dispose();
     renderer.dispose();
   };
 }
