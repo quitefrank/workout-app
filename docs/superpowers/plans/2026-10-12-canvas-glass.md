@@ -1251,7 +1251,7 @@ export type StageOptions = {
 };
 
 type Unit = { key: Element; s: number | null; onDark: boolean | null; els: Element[]; Us: Uniforms[] };
-type Entry = { el: Element; U: Uniforms; mesh: any; cast: any; family: "bars" | "sheet" };
+type Entry = { el: Element; U: Uniforms; mesh: any; cast: any; family: "bars" | "sheet"; ready: boolean };
 
 export async function startStage(o: StageOptions): Promise<() => void> {
   const { THREE, T, canvas, W, H, dpr } = o;
@@ -1326,7 +1326,10 @@ export async function startStage(o: StageOptions): Promise<() => void> {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), makeGlassMaterial(ctxFor(family), U));
     const cast = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), makeCastMaterial(THREE, T, U, dpr)); cast.renderOrder = -1;
     scene.add(mesh); scene.add(cast);
-    entries.set(el, { el, U, mesh, cast, family });
+    // each element's node graph is built once; build it off the frame (hidden until ready) so a screen change does not hitch
+    const entry: Entry = { el, U, mesh, cast, family, ready: false };
+    entries.set(el, entry);
+    renderer.compileAsync(mesh, camera, scene).then(() => renderer.compileAsync(cast, camera, scene)).then(() => { entry.ready = true; }, () => { entry.ready = true; });
   };
   const remove = (e: Entry) => {
     e.U.dispose();
@@ -1398,7 +1401,7 @@ export async function startStage(o: StageOptions): Promise<() => void> {
     }
 
     for (const e of entries.values()) {
-      const vis = shown(e.el) && !(e.family === "bars" && e.el.closest("[data-glass-unit='dock']") && document.documentElement.classList.contains("sheet-open"));
+      const vis = e.ready && shown(e.el) && !(e.family === "bars" && e.el.closest("[data-glass-unit='dock']") && document.documentElement.classList.contains("sheet-open"));
       e.mesh.visible = e.cast.visible = vis;
       if (!vis) continue;
       const r = e.el.getBoundingClientRect();
