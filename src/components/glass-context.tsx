@@ -2,6 +2,9 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { decideDark } from "@/glass/context";
+import { parseColor, type Rgba } from "@/glass/paint/css";
+import { CTXV } from "@/glass/presets";
 
 /**
  * The glass context rule (CLAUDE.md, "Glass context rule"; the lab's
@@ -23,11 +26,6 @@ import { useEffect } from "react";
  * linearised, as in the lab.
  */
 
-const DARK_BELOW = 0.4;
-const LIGHT_ABOVE = 0.5;
-const FIRST_READ = 0.45;
-const TOP_REACH = 34;
-const DOCK_ABOVE = 20;
 const CELL = 12;
 /** Preset 1 dark side: Haze level = hazeL + avg x hazeAdapt, at Haze 0.5 with black lift 1 */
 const HAZE = { amount: 0.5, level: 0.2, adapt: 0.7 };
@@ -111,12 +109,12 @@ function bandOf(unit: HTMLElement): Band | null {
   const kind = unit.dataset.glassUnit ?? "box";
   if (kind === "top") {
     const bar = unit.querySelector<HTMLElement>("[data-glass-bar]") ?? unit;
-    return { x0: 0, x1: W, y0: 0, y1: bar.getBoundingClientRect().bottom + TOP_REACH };
+    return { x0: 0, x1: W, y0: 0, y1: bar.getBoundingClientRect().bottom + CTXV.reach };
   }
   if (kind === "dock") {
     const tops = Array.from(unit.querySelectorAll<HTMLElement>(".glass")).map((g) => g.getBoundingClientRect().top);
     if (!tops.length) return null;
-    return { x0: 0, x1: W, y0: Math.min(...tops) - DOCK_ABOVE, y1: H };
+    return { x0: 0, x1: W, y0: Math.min(...tops) - CTXV.dockAbove, y1: H };
   }
   const boxes = (unit.classList.contains("glass") ? [unit] : Array.from(unit.querySelectorAll<HTMLElement>(".glass")))
     .map((g) => g.getBoundingClientRect())
@@ -137,7 +135,7 @@ function decide(unit: HTMLElement) {
   if (avg == null) return;
 
   const was = state.get(unit);
-  const onDark = was == null ? avg < FIRST_READ : was ? avg < LIGHT_ABOVE : avg < DARK_BELOW;
+  const onDark = decideDark(was ?? null, avg);
   state.set(unit, onDark);
 
   // the class is checked as well as the state: the WebGPU stage clears its classes when it stops
@@ -189,10 +187,10 @@ function lumOf(el: Element): number | null {
   else if (el instanceof HTMLImageElement || el instanceof HTMLVideoElement) l = 0.3;
   else {
     const cs = getComputedStyle(el);
-    const bg = parse(cs.backgroundColor);
+    const bg = parseColor(cs.backgroundColor);
     if (bg && bg[3] >= 0.5) l = lum(bg);
     else if (cs.backgroundImage.includes("gradient")) {
-      const stops = Array.from(cs.backgroundImage.matchAll(/rgba?\([^)]+\)/g)).map((m) => parse(m[0]));
+      const stops = Array.from(cs.backgroundImage.matchAll(/rgba?\([^)]+\)/g)).map((m) => parseColor(m[0]));
       // Only a solid gradient (the category tiles); a scrim with clear stops is skipped
       if (stops.length && stops.every((s) => s && s[3] >= 0.9)) {
         l = stops.reduce((a, s) => a + lum(s!), 0) / stops.length;
@@ -207,15 +205,7 @@ function pageLum(): number {
   return lumOf(document.body) ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? 0 : 1);
 }
 
-function parse(c: string): [number, number, number, number] | null {
-  const m = c.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+%?))?\s*\)/);
-  if (!m) return null;
-  let a = m[4] == null ? 1 : parseFloat(m[4]);
-  if (m[4]?.endsWith("%")) a /= 100;
-  return [Number(m[1]), Number(m[2]), Number(m[3]), a];
-}
-
-function lum([r, g, b]: [number, number, number, number]): number {
+function lum([r, g, b]: Rgba): number {
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 }
 

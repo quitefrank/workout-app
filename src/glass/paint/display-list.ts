@@ -24,7 +24,10 @@ export type Item =
 /** `sticky`: the list holds a sticky element, whose place depends on the scroll, so the stage rebuilds on scroll. */
 export type DisplayList = { items: Item[]; bg: string; pending: boolean; sticky: boolean };
 
-const SKIP = ".glass, .glass-sheet, [data-live], [data-sonner-toaster], [data-glass-canvas], script, style, template, noscript";
+/** Nothing under these changes the painted page (glass, the sheet, live inputs, toasts): the painter skips them and the
+ *  stage ignores their mutations, animations and scrolling. */
+export const UNPAINTED = ".glass, .glass-sheet, [data-live], [data-sonner-toaster]";
+const SKIP = `${UNPAINTED}, [data-glass-canvas], script, style, template, noscript`;
 const SCRIM = "rgba(0, 0, 0, 0.2)";
 
 /** Per-corner radii as CSS draws them: px or % of the box (an elliptical corner takes its smaller axis), then all

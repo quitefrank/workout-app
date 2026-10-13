@@ -40,7 +40,8 @@ export const SHEET_DARK: Material = { ...KIT_LENS, frost: 30, light: 0.25, haze:
 export const SHEET_LIGHT: Material = { ...KIT_LENS, frost: 30, light: 0.25, haze: 0.85, hazeL: 0.92, hazeAdapt: 0, hazeBlack: 0, bright: 1 };
 
 // The context rule's and the top edge effect's numbers, read off the phone
-export const CTXV = { dark: 0.4, light: 0.5, fade: 0.25, dim: 0.55, white: 0.6, reach: 34, blur: 5, fadeIn: 40 };
+// (`dockAbove`: the dock's band starts this far above its glass)
+export const CTXV = { dark: 0.4, light: 0.5, fade: 0.25, dim: 0.55, white: 0.6, reach: 34, dockAbove: 20, blur: 5, fadeIn: 40 };
 
 export const iorFor = (P: Material) =>
   1 + (P.refraction !== undefined ? P.refraction : P.ior !== undefined ? (P.ior - 1) / 0.00714 : 70) * 0.00714;
