@@ -76,3 +76,6 @@ case-study-raw.md
 
 # design labs: throwaway HTML prototypes, some embed Apple kit screenshots
 /docs/lab/
+
+# playwright mcp logs
+.playwright-mcp/

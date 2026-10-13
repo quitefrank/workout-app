@@ -40,6 +40,8 @@ needs pdfplumber on the system Python: `python3 -m pip install pdfplumber`.
 - TanStack Query
 - @ducanh2912/next-pwa
 - Sonner for toasts
+- DialKit (dialkit.dev, with motion) for live tuning controls; the Glass
+  Lab loads its vanilla build from jsdelivr
 - Vitest
 - bun
 
@@ -357,6 +359,51 @@ refraction cannot sample a live page, so blur, haze, fills, rim, inner
 shadows and outer ring carry it. Sheets use the lab's measured iOS sheet
 material (`.glass-sheet`). Both live in `@layer components` so Tailwind
 utilities on the same element win; keep new global rules layered too.
+
+## Glass context rule
+
+Applies to every glass control in the lab (`docs/lab/glass-lab-v3.html`)
+and in the app's UI when it is built. Sources: Apple's WWDC25 "Meet
+Liquid Glass" (219) and "Build a SwiftUI app with the new design"
+(323), the HIG Materials and Toolbars pages, `ScrollEdgeEffectStyle`.
+
+- Small glass flips between its material's light and dark sides with
+  the content behind it, in either appearance; symbols, labels, tint,
+  the selected capsule and shadows flip with it. Never switch only the
+  icon colour. Large glass (sheets, menus, popovers) keeps the page's
+  appearance.
+- The unit is the bar, not the button. A pinned top toolbar is one
+  unit, the bottom dock is one unit, and a row of controls sitting
+  together in the content (a search row, an action row) is one unit.
+  Every control in a unit decides together. A lone control is its own
+  unit.
+- A pinned bar reads the whole band its edge effect covers (full
+  width, from the screen edge to about 34pt past the bar); any other
+  unit reads the box round its controls. Average sRGB luminance, dark
+  below 0.40, light again above 0.50. The move is a 0.25s crossfade.
+- The pinned top bar has a scroll edge effect (Apple's soft style)
+  behind it; the bottom dock has none (Frank's call, 2026-10-11): a progressive blur plus, on the light side, a fade
+  toward white, and on the dark side, a dimming (0.45 of the page at
+  the screen edge, gone about 140pt down).
+  The soft effect appears once content has scrolled under the bar.
+- A media page (a photo grid, as Photos draws its Library) gets a
+  dimming edge at all times, and its top bar sits on the dark side.
+- Text that belongs to a bar (a large title over media) is drawn
+  above the edge effect, never blurred by it, and takes the bar's
+  side.
+- The glass refracts and blurs the page with the edge effect
+  applied, so a bar sits on the band it decided from.
+- No per-screen scroll thresholds. A new control or screen gets the
+  rule by joining a unit.
+
+In the lab: surfaces with `flip: true` follow the rule; `UNITS.of`
+names each control's unit, `UNITS.band` the band a pinned bar reads,
+`UNITS.edges` the edge effects (`style: "dim"` for media); the page
+with its effects is rendered to `pageTex`, which the glass and frosts
+read; bar text goes on the overlay passed to `draw` as `T.over`. The
+surface element carries `ctx-dark` or `ctx-light`, which sets
+`--sym`, `--tab-ink`, `--tab-on-ink` and `--search-ink`. Details and
+measurements in `docs/lab/glass-presets.md`.
 
 ## What's done (Milestone 1)
 
