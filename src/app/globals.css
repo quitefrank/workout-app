@@ -447,7 +447,10 @@ input[type="number"] {
 html.gpu .glass-canvas {
   display: block;
   position: fixed;
-  inset: 0;
+  /* sized by the stage (width and the large viewport's height), so it reaches below the viewport while Safari's
+     toolbar shows */
+  top: 0;
+  left: 0;
   z-index: 5;
   pointer-events: none;
 }

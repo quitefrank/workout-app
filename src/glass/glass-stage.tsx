@@ -2,16 +2,32 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
-import { buildDisplayList, type DisplayList } from "./paint/display-list";
+import { buildDisplayList, UNPAINTED, type DisplayList } from "./paint/display-list";
 import { paintList } from "./paint/paint";
 import { createFamily, PRESET1_BARS, PRESET1_LIGHT, SHEET_DARK, SHEET_LIGHT } from "./presets";
 
-/** Nothing under these changes the painted page: the painter skips them (glass, the sheet, live inputs, toasts). */
-const UNPAINTED = ".glass, .glass-sheet, [data-live], [data-sonner-toaster]";
 const unpainted = (n: EventTarget | Node | null | undefined) => {
   const el = n instanceof Element ? n : n instanceof Node ? n.parentElement : null;
   return !!el?.closest(UNPAINTED);
 };
+/**
+ * The stage's height: the large viewport (Safari's toolbar collapsed), measured once per start, so the canvas still
+ * covers the page when the toolbar collapses and the viewport grows. The canvas is fixed at the top; on a screen whose
+ * toolbar is showing, the extra height simply sits below the viewport.
+ */
+function largeViewportHeight() {
+  let lvh = 0;
+  if (typeof CSS !== "undefined" && CSS.supports?.("height", "100lvh")) {
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;top:0;left:0;width:0;height:100lvh;visibility:hidden;pointer-events:none";
+    document.documentElement.appendChild(probe);
+    lvh = probe.getBoundingClientRect().height;
+    probe.remove();
+  }
+  return Math.ceil(Math.max(window.innerHeight, lvh || Math.max(window.innerHeight, window.screen?.height || 0)));
+}
+const stageDpr = () => Math.min(window.devicePixelRatio || 1, 3);
+
 const ANIM_EVENTS = ["transitionrun", "transitionend", "transitioncancel", "animationstart", "animationend", "animationcancel"];
 
 /**
@@ -38,6 +54,8 @@ export function GlassStage() {
     let generation = 0;
     let list: DisplayList | null = null;
     let builtAt = "";
+    // the size the current stage was built at; a resize within it (Safari's toolbar) only repaints
+    let size: { W: number; H: number; dpr: number } | null = null;
     // the page signature's counters: DOM changes, inner scrollers moving, animation frames
     let dirty = 0, inner = 0, animTick = 0;
     let animating = false, rebuildFrame = false;
@@ -85,7 +103,7 @@ export function GlassStage() {
       if (cancelled) return;
       console.warn("No WebGPU glass here, keeping the CSS material:", err);
       generation++;
-      stop?.(); stop = null;
+      stop?.(); stop = null; size = null;
       html.classList.remove("gpu");
       if (deviceLost && retryAllowed) {
         retryAllowed = false;
@@ -101,7 +119,8 @@ export function GlassStage() {
         if (!(await gpu.requestAdapter())) return;
         const [THREE, T, { startStage }] = await Promise.all([import("three/webgpu"), import("three/tsl"), import("./engine/stage")]);
         if (cancelled || gen !== generation) return;
-        const W = window.innerWidth, H = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 3);
+        const W = window.innerWidth, H = largeViewportHeight(), dpr = stageDpr();
+        size = { W, H, dpr };
         canvas.style.width = W + "px"; canvas.style.height = H + "px";
         const s = await startStage({
           THREE, T, canvas, W, H, dpr, bars, sheet, appearance,
@@ -141,8 +160,12 @@ export function GlassStage() {
     let resizeTimer = 0;
     const onResize = () => {
       window.clearTimeout(resizeTimer);
-      // the CSS material holds the screen while the new stage builds its shaders; onReady hands it back
-      resizeTimer = window.setTimeout(() => { generation++; stop?.(); stop = null; html.classList.remove("gpu"); bump(); void start(); }, 150);
+      resizeTimer = window.setTimeout(() => {
+        // Safari's toolbar collapsing changes only the height, and the stage was built to the large viewport: repaint
+        if (size && window.innerWidth === size.W && stageDpr() === size.dpr && window.innerHeight <= size.H) { bump(); return; }
+        // the CSS material holds the screen while the new stage builds its shaders; onReady hands it back
+        generation++; stop?.(); stop = null; size = null; html.classList.remove("gpu"); bump(); void start();
+      }, 150);
     };
     window.addEventListener("resize", onResize);
 

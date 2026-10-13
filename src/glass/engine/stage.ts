@@ -176,7 +176,8 @@ function setup(o: StageOptions, renderer: any): () => void {
     }
     const rs = f.els.filter(shown).map((el) => el.getBoundingClientRect());
     if (!rs.length) return null;
-    if (kind === "dock") return { x0: 0, x1: W, y0: Math.min(...rs.map((q) => q.top)) - 20, y1: H };
+    // the stage can be taller than the viewport (Safari's large viewport); the dock reads down to the visible bottom
+    if (kind === "dock") return { x0: 0, x1: W, y0: Math.min(...rs.map((q) => q.top)) - CTXV.dockAbove, y1: Math.min(H, window.innerHeight) };
     return { x0: Math.min(...rs.map((q) => q.left)), x1: Math.max(...rs.map((q) => q.right)), y0: Math.min(...rs.map((q) => q.top)), y1: Math.max(...rs.map((q) => q.bottom)) };
   };
 
@@ -305,8 +306,9 @@ function setup(o: StageOptions, renderer: any): () => void {
 
   return () => {
     stopped = true; cancelAnimationFrame(frame);
-    for (const e of Array.from(entries.values())) remove(e);
+    // the units' classes first: removing the last entry of a unit drops the unit
     for (const f of units.values()) f.key.classList.remove("ctx-dark", "ctx-light");
+    for (const e of Array.from(entries.values())) remove(e);
     [...frosts, edgeFrost].forEach((f) => f.dispose());
     [pageMat, bgMat, pm, pageGeo, bgGeo, pillGeo, rawTex, pageRT].forEach((x) => x.dispose());
     renderer.dispose();
