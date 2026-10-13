@@ -1653,9 +1653,14 @@ html.gpu .glass-canvas {
   pointer-events: none;
 }
 
+/* The sheet keeps its own z-index (z-50, over its scrim); only glass in
+   the page's flow needs lifting over the canvas */
+html.gpu .glass {
+  z-index: 6;
+}
+
 html.gpu .glass,
 html.gpu .glass-sheet {
-  z-index: 6;
   background: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -1683,7 +1688,7 @@ html.gpu [data-scrim] {
   background: transparent;
 }
 
-html.sheet-open [data-glass-unit="dock"] {
+html.gpu.sheet-open [data-glass-unit="dock"] {
   visibility: hidden;
 }
 ```
