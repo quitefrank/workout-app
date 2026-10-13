@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { blendSides, decideDark, stepSide } from "../context";
 import { CTXV, type Family, type Material } from "../presets";
+import { debugState } from "../debug-state";
 import { makeFrost } from "./frost";
 import { CAST_MARGIN, GLASS_MARGIN, makeCastMaterial, makeGlassMaterial, makeUniforms, type Uniforms } from "./materials";
 
@@ -25,7 +26,7 @@ export type StageOptions = {
 };
 
 type Unit = { key: Element; s: number | null; onDark: boolean | null; els: Element[]; Us: Uniforms[] };
-type Entry = { el: Element; U: Uniforms; mesh: any; cast: any; family: "bars" | "sheet"; ready: boolean };
+type Entry = { el: Element; U: Uniforms; mesh: any; cast: any; family: "bars" | "sheet"; ready: boolean; compile: string; since: number };
 
 export async function startStage(o: StageOptions): Promise<() => void> {
   const { THREE, canvas, W, H, dpr } = o;
@@ -122,10 +123,13 @@ function setup(o: StageOptions, renderer: any): () => void {
     // each element's node graph is built once; build it off the frame (hidden until ready) so a screen change does not
     // hitch. compileAsync skips invisible objects and collects both meshes synchronously, so both start together while
     // still visible; the loop hides them until they are ready.
-    const entry: Entry = { el, U, mesh, cast, family, ready: false };
+    const entry: Entry = { el, U, mesh, cast, family, ready: false, compile: "compiling", since: performance.now() };
     entries.set(el, entry);
-    const done = () => { entry.ready = true; };
-    Promise.all([renderer.compileAsync(mesh, camera, scene), renderer.compileAsync(cast, camera, scene)]).then(done, done);
+    const took = () => `${Math.round(performance.now() - entry.since)}ms`;
+    Promise.all([renderer.compileAsync(mesh, camera, scene), renderer.compileAsync(cast, camera, scene)]).then(
+      () => { entry.ready = true; entry.compile = `ok ${took()}`; },
+      (err) => { entry.ready = true; entry.compile = `failed ${took()}: ${String((err as Error)?.message ?? err)}`; },
+    );
   };
   const remove = (e: Entry) => {
     e.U.dispose();
@@ -280,6 +284,14 @@ function setup(o: StageOptions, renderer: any): () => void {
     }
     renderer.render(scene, camera);
     if (allReady && !readySent) { readySent = true; o.onReady?.(); }
+    if (++debugState.frames % 15 === 0) {
+      debugState.entries = Array.from(entries.values()).map((e) => ({
+        label: `${(e.el.getAttribute("aria-label") ?? e.el.textContent ?? "").trim().slice(0, 18)} ${e.el.className.toString().slice(0, 24)}`,
+        family: e.family,
+        laidOut: shown(e.el),
+        compile: e.ready ? e.compile : `compiling ${Math.round(performance.now() - e.since)}ms`,
+      }));
+    }
   };
   // one report, then no more frames: a broken frame would throw on every one after it
   const halt = (err: unknown, deviceLost: boolean) => {

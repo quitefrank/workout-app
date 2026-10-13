@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { debugState } from "./debug-state";
 import { buildDisplayList, UNPAINTED, type DisplayList } from "./paint/display-list";
 import { paintList } from "./paint/paint";
 import { createFamily, PRESET1_BARS, PRESET1_LIGHT, SHEET_DARK, SHEET_LIGHT } from "./presets";
@@ -102,6 +103,8 @@ export function GlassStage() {
     const fail = (err: unknown, deviceLost = false) => {
       if (cancelled) return;
       console.warn("No WebGPU glass here, keeping the CSS material:", err);
+      debugState.phase = deviceLost ? "device lost" : "failed";
+      debugState.error = String((err as Error)?.stack ?? (err as Error)?.message ?? err).slice(0, 400);
       generation++;
       stop?.(); stop = null; size = null;
       html.classList.remove("gpu");
@@ -116,11 +119,16 @@ export function GlassStage() {
       const gen = ++generation;
       try {
         // without an adapter three would fall back to WebGL; the CSS material stays instead, quietly
-        if (!(await gpu.requestAdapter())) return;
+        debugState.phase = "adapter";
+        const adapter = (await gpu.requestAdapter()) as { info?: { vendor?: string; architecture?: string } } | null;
+        if (!adapter) { debugState.phase = "no adapter"; return; }
+        debugState.adapter = `${adapter.info?.vendor ?? ""} ${adapter.info?.architecture ?? ""}`.trim() || "yes";
+        debugState.phase = "loading three";
         const [THREE, T, { startStage }] = await Promise.all([import("three/webgpu"), import("three/tsl"), import("./engine/stage")]);
         if (cancelled || gen !== generation) return;
         const W = window.innerWidth, H = largeViewportHeight(), dpr = stageDpr();
         size = { W, H, dpr };
+        debugState.phase = "init";
         canvas.style.width = W + "px"; canvas.style.height = H + "px";
         const s = await startStage({
           THREE, T, canvas, W, H, dpr, bars, sheet, appearance,
@@ -144,6 +152,7 @@ export function GlassStage() {
           onReady: () => {
             if (cancelled || gen !== generation) return;
             retryAllowed = true;
+            debugState.phase = "ready";
             html.classList.add("gpu");
             bump();
           },
@@ -151,6 +160,7 @@ export function GlassStage() {
         });
         if (cancelled || gen !== generation) { s(); return; }
         stop = s;
+        if (debugState.phase === "init") debugState.phase = "waiting for shaders";
       } catch (err) {
         if (gen === generation) fail(err);
       }

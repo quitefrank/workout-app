@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Toaster } from "sonner";
 import { GlassContext } from "@/components/glass-context";
 import { TabBar } from "@/components/tab-bar";
+import { GlassDebug } from "@/glass/debug";
 import { GlassStage } from "@/glass/glass-stage";
 import { SetupNeeded } from "@/components/setup-needed";
 import { getInProgress } from "@/lib/data/queries";
@@ -86,6 +87,7 @@ export default async function RootLayout({
         />
         <GlassContext />
         <GlassStage />
+        <GlassDebug />
         <Toaster position="top-center" theme="system" toastOptions={{ className: "!rounded-[20px]" }} />
       </body>
     </html>
