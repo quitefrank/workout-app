@@ -234,6 +234,7 @@ function NumberField({
     <label className="flex min-w-0 flex-1 flex-col rounded-2xl bg-fill px-3 py-1.5">
       <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-2">{label}</span>
       <input
+        data-live
         type="number"
         inputMode={decimal ? "decimal" : "numeric"}
         step={decimal ? "any" : "1"}
@@ -318,6 +319,7 @@ function SetLine({
       <div className="flex items-center gap-2 px-3.5 py-1.5">
         <span className="tabular w-7 text-[15px] text-ink-3">{warm ? `W${n}` : n}</span>
         <input
+          data-live
           aria-label="Weight"
           type="number"
           inputMode="decimal"
@@ -328,6 +330,7 @@ function SetLine({
         />
         <span className="text-ink-3">×</span>
         <input
+          data-live
           aria-label="Reps"
           type="number"
           inputMode="numeric"
@@ -461,6 +464,7 @@ function QuickLogSheet({
         Saving replaces every set on this exercise.
       </p>
       <textarea
+        data-live
         value={csv}
         onChange={(e) => setCsv(e.target.value)}
         rows={3}

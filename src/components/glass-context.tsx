@@ -46,6 +46,8 @@ export function GlassContext() {
     };
     const run = () => {
       frame = 0;
+      // the WebGPU stage runs the context rule on the page's own pixels
+      if (document.documentElement.classList.contains("gpu")) return;
       document.documentElement.style.setProperty("--scrolled", String(Math.min(1, Math.max(0, window.scrollY / 40))));
       for (const unit of units()) decide(unit);
     };
@@ -66,6 +68,8 @@ export function GlassContext() {
       schedule();
     });
     observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class", "style"] });
+    // `gpu` leaving <html> (the WebGPU stage stopped) hands the rule back to this sampler
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", reset);
@@ -136,7 +140,8 @@ function decide(unit: HTMLElement) {
   const onDark = was == null ? avg < FIRST_READ : was ? avg < LIGHT_ABOVE : avg < DARK_BELOW;
   state.set(unit, onDark);
 
-  if (was !== onDark) {
+  // the class is checked as well as the state: the WebGPU stage clears its classes when it stops
+  if (was !== onDark || !unit.classList.contains(onDark ? "ctx-dark" : "ctx-light")) {
     unit.classList.toggle("ctx-dark", onDark);
     unit.classList.toggle("ctx-light", !onDark);
   }

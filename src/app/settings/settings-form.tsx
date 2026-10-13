@@ -48,6 +48,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
         <div className="flex items-center justify-between px-4 py-2.5">
           <span className="text-[17px]">Default rest</span>
           <select
+            data-live
             value={s.default_rest_seconds}
             onChange={(e) => update({ ...s, default_rest_seconds: Number(e.target.value) })}
             className="rounded-lg bg-transparent text-right text-[17px] text-ink-2 outline-none"

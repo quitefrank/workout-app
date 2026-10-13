@@ -44,6 +44,7 @@ export function TabBar({ inProgress }: { inProgress: InProgress }) {
               key={href}
               href={href}
               aria-current={on ? "page" : undefined}
+              data-glass-pill={on ? "" : undefined}
               className={cn(
                 "relative flex h-[54px] min-w-0 flex-1 flex-col items-center justify-center gap-px rounded-full px-2 pb-[7px] pt-1.5 text-[10px] font-semibold leading-3 transition-colors",
                 i > 0 && "-ml-2",

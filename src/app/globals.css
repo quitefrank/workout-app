@@ -433,3 +433,55 @@ input[type="number"] {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ------------------------------------------------------------
+   WebGPU glass (GlassStage). The canvas covers the page, opaque, with
+   taps passing through to the HTML under it. Glass elements keep only
+   their contents; the shader draws the material, the edge effect and
+   the selected capsule. Live inputs sit above the canvas.
+   ------------------------------------------------------------ */
+.glass-canvas {
+  display: none;
+}
+
+html.gpu .glass-canvas {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+html.gpu .glass,
+html.gpu .glass-sheet {
+  z-index: 6;
+  background: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+
+html.gpu .glass::before,
+html.gpu .glass::after,
+html.gpu .glass-sheet::before,
+html.gpu .glass-sheet::after {
+  display: none;
+}
+
+html.gpu .top-edge,
+html.gpu [data-glass-pill] > span:first-child {
+  display: none;
+}
+
+html.gpu [data-live] {
+  position: relative;
+  z-index: 6;
+}
+
+html.gpu [data-scrim] {
+  background: transparent;
+}
+
+html.sheet-open [data-glass-unit="dock"] {
+  visibility: hidden;
+}

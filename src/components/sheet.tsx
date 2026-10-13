@@ -39,6 +39,13 @@ export function Sheet({
     };
   }, [open, onClose]);
 
+  // The stage hides the dock and stops reading the page under it while a sheet is up
+  useEffect(() => {
+    if (!open) return;
+    document.documentElement.classList.add("sheet-open");
+    return () => document.documentElement.classList.remove("sheet-open");
+  }, [open]);
+
   // The portal needs document.body, so the server and the first client render both draw nothing
   const mounted = useSyncExternalStore(
     noop,
@@ -50,6 +57,7 @@ export function Sheet({
     <div className={open ? "" : "pointer-events-none"} aria-hidden={!open}>
       <div
         onClick={onClose}
+        data-scrim={open ? "on" : "off"}
         className={`fixed inset-0 z-50 bg-black/20 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
       />
       <div

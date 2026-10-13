@@ -240,6 +240,7 @@ function FinishSheet({
       </div>
       <h3 className="px-4 pb-1.5 pt-5 text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-2">Notes</h3>
       <textarea
+        data-live
         value={notes}
         onChange={(e) => setNotes(e.target.value)}
         rows={3}
