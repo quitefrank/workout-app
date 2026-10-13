@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { baselineOf, buildDisplayList, cornerRadii, groupLines, transformText } from "../paint/display-list";
+import { baselineOf, buildDisplayList, cornerRadii, splitLines, textUnits, transformText } from "../paint/display-list";
 
 describe("display list helpers", () => {
   it("reads px and % radii and scales overlapping corners together", () => {
@@ -21,16 +21,22 @@ describe("display list helpers", () => {
     expect(baselineOf(100, 20, null, 10)).toBe(113);
   });
 
-  it("groups character boxes into lines, whitespace never starting or ending one", () => {
-    const b = (left: number, top: number) => ({ left, top, height: 20 });
-    // "ab cd" wrapped after the space: a b _ c d
-    expect(groupLines([b(0, 0), b(8, 0), null, b(0, 22), b(8, 22)])).toEqual([
-      { start: 0, end: 2, left: 0, top: 0, height: 20 },
-      { start: 3, end: 5, left: 0, top: 22, height: 20 },
-    ]);
+  it("splits text into graphemes by UTF-16 offset, skipping whitespace", () => {
+    expect(textUnits("a\u{1F4AA}b c", 0, 6)).toEqual([{ i: 0, len: 1 }, { i: 1, len: 2 }, { i: 3, len: 1 }, { i: 5, len: 1 }]);
+    expect(textUnits("  ab", 2, 4)).toEqual([{ i: 2, len: 1 }, { i: 3, len: 1 }]);
+  });
+
+  it("finds line breaks by binary search on the units' tops", () => {
+    const tops = [0, 0, 0, 22, 22, 44];
+    expect(splitLines(tops.length, (k) => ({ top: tops[k], height: 20 }))).toEqual([[0, 3], [3, 5], [5, 6]]);
     // a glyph sitting a pixel higher (a fallback font) stays on its line
-    expect(groupLines([b(0, 0), { left: 8, top: -1, height: 22 }, b(16, 0)])).toHaveLength(1);
-    expect(groupLines([null, null])).toEqual([]);
+    expect(splitLines(3, (k) => ({ top: k === 1 ? -1 : 0, height: 20 }))).toEqual([[0, 3]]);
+    // a unit without a box joins the line after it
+    expect(splitLines(3, (k) => (k === 0 ? null : { top: 0, height: 20 }))).toEqual([[0, 3]]);
+    expect(splitLines(2, () => null)).toEqual([]);
+    let calls = 0;
+    expect(splitLines(200, (k) => { calls++; return { top: k < 120 ? 0 : 22, height: 20 }; })).toEqual([[0, 120], [120, 200]]);
+    expect(calls).toBeLessThan(20);
   });
 
   it("applies text-transform", () => {
@@ -125,10 +131,71 @@ describe("buildDisplayList (jsdom, stubbed geometry)", () => {
     expect(t).toMatchObject({ k: "text", text: "BENCH PRESS", x: 4, y: 113, color: "rgb(10, 20, 30)", maxWidth: null });
   });
 
-  afterEach(() => { delete (Range.prototype as Partial<Range>).getClientRects; });
+  afterEach(() => {
+    delete (Range.prototype as Partial<Range>).getClientRects;
+    delete (Range.prototype as Partial<Range>).getBoundingClientRect;
+  });
 
-  it("flags sticky elements so the stage knows to rebuild on scroll", () => {
-    root.innerHTML = `<div style="position: sticky"></div>`;
+  /** A fake text layout: each UTF-16 unit is 10px wide, `lineOf(i)` puts it on a 22px line. Records every range. */
+  function layout(lineOf: (i: number) => number, leftOf: (i: number) => number) {
+    const seen: [number, number][] = [];
+    const rects = (r: Range) => {
+      seen.push([r.startOffset, r.endOffset]);
+      const by = new Map<number, number[]>();
+      for (let i = r.startOffset; i < r.endOffset; i++) by.set(lineOf(i), [...(by.get(lineOf(i)) ?? []), leftOf(i)]);
+      return [...by].map(([ln, ls]) => rect(Math.min(...ls), ln * 22, Math.max(...ls) + 10 - Math.min(...ls), 20));
+    };
+    Range.prototype.getClientRects = function (this: Range) { return rects(this) as unknown as DOMRectList; };
+    Range.prototype.getBoundingClientRect = function (this: Range) {
+      const q = rects(this);
+      if (!q.length) return rect(0, 0, 0, 0);
+      const l = Math.min(...q.map((v) => v.left)), t = Math.min(...q.map((v) => v.top));
+      return rect(l, t, Math.max(...q.map((v) => v.right)) - l, Math.max(...q.map((v) => v.bottom)) - t);
+    };
+    return seen;
+  }
+  const texts = (items: ReturnType<typeof buildDisplayList>["items"]) => items.flatMap((i) => (i.k === "text" ? [[i.text, i.x, i.y]] : []));
+
+  it("wraps text with an emoji without splitting its surrogate pair", () => {
+    root.innerHTML = `<span style="font-size: 10px">a\u{1F4AA}b c</span>`;
+    // a=0, the emoji=1..2, b=3, space=4, c=5 on the next line
+    const seen = layout((i) => (i >= 5 ? 1 : 0), (i) => (i >= 5 ? (i - 5) * 10 : i * 10));
+    expect(texts(buildDisplayList(root, () => {}).items)).toEqual([["a\u{1F4AA}b", 0, 13], ["c", 0, 35]]);
+    expect(seen.flat()).not.toContain(2);
+  });
+
+  it("measures a long wrapped node by binary search, not per character", () => {
+    const words = "press ".repeat(40).trim(); // 239 characters, wrapped at 120
+    root.innerHTML = `<span style="font-size: 10px">${words}</span>`;
+    const seen = layout((i) => (i >= 120 ? 1 : 0), (i) => (i >= 120 ? i - 120 : i) * 10);
+    const out = texts(buildDisplayList(root, () => {}).items);
+    expect(out.map((t) => t[0])).toEqual([words.slice(0, 119), words.slice(120)]);
+    expect(seen.length).toBeLessThan(30);
+  });
+
+  it("places tabular figures one character at a time, and long tabular text as one run", () => {
+    root.innerHTML = `<span style="font-size: 10px; font-variant-numeric: tabular-nums">1:05</span>`;
+    layout(() => 0, (i) => i * 12);
+    expect(texts(buildDisplayList(root, () => {}).items)).toEqual([["1", 0, 13], [":", 12, 13], ["0", 24, 13], ["5", 36, 13]]);
+    root.innerHTML = `<span style="font-size: 10px; font-variant-numeric: tabular-nums">${"1".repeat(33)}</span>`;
+    expect(texts(buildDisplayList(root, () => {}).items)).toEqual([["1".repeat(33), 0, 13]]);
+  });
+
+  it("gives truncated text a max width up to the parent's content box", () => {
+    root.innerHTML = `<span id="t" style="font-size: 10px; text-overflow: ellipsis; padding-right: 8px">Bench press</span>`;
+    const t = root.querySelector("#t")!;
+    place(t, rect(0, 0, 100, 20));
+    Object.defineProperty(t, "scrollWidth", { value: 300 });
+    Object.defineProperty(t, "clientWidth", { value: 92 });
+    layout(() => 0, (i) => 4 + i * 10);
+    expect(buildDisplayList(root, () => {}).items[0]).toMatchObject({ k: "text", x: 4, maxWidth: 88 });
+  });
+
+  it("flags sticky only when the sticky subtree paints something", () => {
+    root.innerHTML = `<div style="position: sticky"><div class="glass" style="background-color: rgb(0, 0, 0)"></div></div>`;
+    expect(buildDisplayList(root, () => {}).sticky).toBe(false);
+    root.innerHTML = `<div id="s" style="position: sticky; background-color: rgb(0, 0, 0)"></div>`;
+    place(root.querySelector("#s")!, rect(0, 0, 10, 10));
     expect(buildDisplayList(root, () => {}).sticky).toBe(true);
   });
 });

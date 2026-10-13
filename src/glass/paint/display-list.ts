@@ -13,7 +13,6 @@ export type Item =
 /** `sticky`: the list holds a sticky element, whose place depends on the scroll, so the stage rebuilds on scroll. */
 export type DisplayList = { items: Item[]; bg: string; pending: boolean; sticky: boolean };
 type Metrics = { ascent: number; descent: number } | null;
-type Line = { start: number; end: number; left: number; top: number; height: number };
 
 const SKIP = ".glass, .glass-sheet, [data-live], [data-sonner-toaster], [data-glass-canvas], script, style, template, noscript";
 const SCRIM = "rgba(0, 0, 0, 0.2)";
@@ -40,23 +39,46 @@ export function baselineOf(top: number, height: number, m: Metrics, fontSize: nu
   return top + (height - (a + d)) / 2 + a;
 }
 
-/** Split a text node into lines from its characters' boxes (null for whitespace or a character with no box). A new
- *  line starts where a box's top moves by more than half the smaller height; whitespace never starts or ends a line. */
-export function groupLines(boxes: ({ left: number; top: number; height: number } | null)[]): Line[] {
-  const out: Line[] = [];
-  let cur: Line | null = null;
-  let prev: { top: number; height: number } | null = null;
-  boxes.forEach((q, i) => {
-    if (!q) return;
-    if (!cur || (prev && Math.abs(q.top - prev.top) > Math.min(q.height, prev.height) / 2)) {
-      cur = { start: i, end: i + 1, left: q.left, top: q.top, height: q.height };
-      out.push(cur);
-    } else {
-      cur.end = i + 1;
-      cur.height = Math.max(cur.height, q.top + q.height - cur.top);
+type Unit = { i: number; len: number };
+const graphemes = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(undefined, { granularity: "grapheme" }) : null;
+
+/** The visible graphemes of `s` between two UTF-16 offsets, as offset and length, so a range never splits an emoji. */
+export function textUnits(s: string, from: number, to: number): Unit[] {
+  const out: Unit[] = [];
+  if (graphemes) {
+    for (const g of graphemes.segment(s.slice(from, to))) if (/\S/.test(g.segment)) out.push({ i: from + g.index, len: g.segment.length });
+    return out;
+  }
+  for (let i = from; i < to; ) {
+    const len = s.codePointAt(i)! > 0xffff ? 2 : 1;
+    if (/\S/.test(s[i])) out.push({ i, len });
+    i += len;
+  }
+  return out;
+}
+
+/** Split n units into lines as [start, end) pairs. Tops never decrease along a text node, so each line ends at the
+ *  first unit whose top passes the line's first top by half its height, found by binary search. Units without a box
+ *  join the line after them; trailing ones are dropped. */
+export function splitLines(n: number, boxAt: (k: number) => { top: number; height: number } | null): [number, number][] {
+  const out: [number, number][] = [];
+  let k = 0;
+  while (k < n) {
+    let f = k;
+    let first = boxAt(f);
+    while (!first && ++f < n) first = boxAt(f);
+    if (!first) break;
+    const limit = first.top + first.height / 2;
+    let lo = f + 1, hi = n;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      const b = boxAt(mid);
+      if (b && b.top > limit) hi = mid;
+      else lo = mid + 1;
     }
-    prev = q;
-  });
+    out.push([k, lo]);
+    k = lo;
+  }
   return out;
 }
 
@@ -93,19 +115,25 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
   let pending = false, sticky = false;
   const bg = getComputedStyle(document.body).backgroundColor;
 
+  // a sticky element moves with the scroll; it only matters to the stage when its subtree painted something
   const walk = (el: Element, fixed: boolean, clip: Clip | null, alpha: number) => {
-    if (el.matches(SKIP)) return;
+    const n = items.length;
+    if (visit(el, fixed, clip, alpha) && items.length > n) sticky = true;
+  };
+
+  /** Push an element's items and walk its children; true when the element is sticky. */
+  const visit = (el: Element, fixed: boolean, clip: Clip | null, alpha: number): boolean => {
+    if (el.matches(SKIP)) return false;
     const cs = getComputedStyle(el);
-    if (cs.display === "none") return;
+    if (cs.display === "none") return false;
     const scrim = (el as HTMLElement).dataset?.scrim;
     if (scrim !== undefined) {
       if (scrim === "on") items.push({ k: "box", x: 0, y: 0, w: window.innerWidth, h: window.innerHeight, radii: [0, 0, 0, 0], color: SCRIM, gradients: [], shadows: [], border: null, fixed: true, clip: null, alpha: 1 });
-      return;
+      return false;
     }
     const op = parseFloat(cs.opacity);
     const a = alpha * (Number.isFinite(op) ? op : 1);
-    if (a <= 0.001) return;
-    if (cs.position === "sticky") sticky = true;
+    if (a <= 0.001) return false;
     const isFixed = fixed || cs.position === "fixed";
     const r = el.getBoundingClientRect();
     const ox = isFixed ? 0 : sx, oy = isFixed ? 0 : sy;
@@ -152,7 +180,7 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
         if (loading) pending = true;
       }
     }
-    if (el instanceof SVGElement || el instanceof HTMLImageElement) return;
+    if (el instanceof SVGElement || el instanceof HTMLImageElement) return cs.position === "sticky";
 
     let childClip = clip;
     if (cs.overflowX !== "visible" || cs.overflowY !== "visible") {
@@ -167,6 +195,7 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
         walk(node as Element, isFixed, childClip, a);
       }
     }
+    return cs.position === "sticky";
   };
 
   const text = (node: Text, parent: HTMLElement, cs: CSSStyleDeclaration, fixed: boolean, clip: Clip | null, alpha: number) => {
@@ -177,42 +206,40 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     const font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
     const fontSize = parseFloat(cs.fontSize);
     const ox = fixed ? 0 : sx, oy = fixed ? 0 : sy;
-    // canvas has no font-variant-numeric, so tabular figures are placed one character at a time where the page put them
-    const perChar = /tabular-nums/.test(cs.fontVariantNumeric);
-    const keepSpaces = /^(pre|pre-wrap|break-spaces|preserve|preserve-spaces)$/.test(cs.getPropertyValue("white-space-collapse") || cs.whiteSpace);
     const range = document.createRange();
-    range.setStart(node, i0);
-    range.setEnd(node, j0);
-    const rects = Array.from(range.getClientRects()).filter((q) => q.width > 0);
+    const measure = (from: number, to: number) => { range.setStart(node, from); range.setEnd(node, to); return range; };
+    const rects = Array.from(measure(i0, j0).getClientRects()).filter((q) => q.width > 0);
     if (!rects.length) return;
-    let lines: Line[];
-    let boxes: ({ left: number; top: number; height: number } | null)[] = [];
-    if (rects.length === 1 && !perChar) lines = [{ start: i0, end: j0, left: rects[0].left, top: rects[0].top, height: rects[0].height }];
-    else {
-      boxes = Array.from(raw, (ch, i) => {
-        if (i < i0 || i >= j0 || /\s/.test(ch)) return null;
-        range.setStart(node, i);
-        range.setEnd(node, i + 1);
-        const q = range.getBoundingClientRect();
-        return q.width === 0 && q.height === 0 ? null : { left: q.left, top: q.top, height: q.height };
-      });
-      lines = groupLines(boxes);
-    }
+    const us = textUnits(raw, i0, j0);
+    const boxes = new Map<number, DOMRect | null>();
+    const boxAt = (k: number) => {
+      if (!boxes.has(k)) {
+        const q = measure(us[k].i, us[k].i + us[k].len).getBoundingClientRect();
+        boxes.set(k, q.width === 0 && q.height === 0 ? null : q);
+      }
+      return boxes.get(k)!;
+    };
+    // canvas has no font-variant-numeric, so short tabular text is placed one grapheme at a time where the page put it
+    const perChar = /tabular-nums/.test(cs.fontVariantNumeric) && us.length <= 32;
+    const keepSpaces = /^(pre|pre-wrap|break-spaces|preserve|preserve-spaces)$/.test(cs.getPropertyValue("white-space-collapse") || cs.whiteSpace);
+    const spans = rects.length === 1 ? [[0, us.length]] : splitLines(us.length, boxAt);
     const truncate = cs.textOverflow === "ellipsis" && parent.scrollWidth > parent.clientWidth;
     const pr = parent.getBoundingClientRect();
     const contentRight = pr.right - (parseFloat(cs.paddingRight) || 0) - (parseFloat(cs.borderRightWidth) || 0);
     const shadow = parseBoxShadows(cs.textShadow)[0] ?? null;
     const m = fontMetrics(font, metrics);
-    const push = (t: string, left: number, ln: Line) => {
-      items.push({ k: "text", x: left + ox, y: baselineOf(ln.top, ln.height, m, fontSize) + oy, text: t, font, color: cs.color, letterSpacing: cs.letterSpacing, maxWidth: truncate ? contentRight - left : null, shadow, fixed, clip, alpha });
+    const push = (t: string, left: number, ln: DOMRect) => {
+      items.push({ k: "text", x: left + ox, y: baselineOf(ln.top, ln.height, m, fontSize) + oy, text: transformText(t, cs.textTransform), font, color: cs.color, letterSpacing: cs.letterSpacing, maxWidth: truncate ? contentRight - left : null, shadow, fixed, clip, alpha });
     };
-    for (const ln of lines) {
+    for (const [a, b] of spans) {
+      const start = us[a].i, end = us[b - 1].i + us[b - 1].len;
+      const ln = spans.length === 1 ? rects[0] : measure(start, end).getBoundingClientRect();
       if (perChar) {
-        for (let i = ln.start; i < ln.end; i++) if (boxes[i]) push(transformText(raw[i], cs.textTransform), boxes[i]!.left, ln);
+        for (let k = a; k < b; k++) { const q = boxAt(k); if (q) push(raw.slice(us[k].i, us[k].i + us[k].len), q.left, ln); }
         continue;
       }
-      const slice = raw.slice(ln.start, ln.end);
-      push(transformText(keepSpaces ? slice : slice.replace(/\s+/g, " "), cs.textTransform), ln.left, ln);
+      const slice = raw.slice(start, end);
+      push(keepSpaces ? slice : slice.replace(/\s+/g, " "), ln.left, ln);
     }
   };
 
