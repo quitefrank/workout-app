@@ -89,6 +89,7 @@ export function parseColor(c: string): Rgba | null {
   } catch {
     out = null;
   }
+  if (colorCache.size >= 1000) colorCache.clear();
   colorCache.set(c, out);
   return out && ([...out] as Rgba);
 }
@@ -118,6 +119,7 @@ export function parseLinearGradients(value: string): Gradient[] {
       if (!t.length || LENGTH.test(t[0])) continue; // a bare interpolation hint carries no colour
       const pos = t.slice(1).map((x) => {
         const n = parseFloat(x);
+        if (!Number.isFinite(n)) return { frac: null, px: null }; // calc() and friends: placed as unpositioned
         return x.endsWith("%") ? { frac: n / 100, px: null } : { frac: null, px: n };
       });
       if (!pos.length) raw.push({ color: t[0], frac: null, px: null });
@@ -131,14 +133,18 @@ export function parseLinearGradients(value: string): Gradient[] {
   return out;
 }
 
-/** Turn px stops into fractions of `lineLength`, fill unpositioned stops, and keep positions non-decreasing. */
+/** Turn px stops into fractions of `lineLength`, then in spec order: default the ends, make the known positions
+ *  non-decreasing, and fill unpositioned stops evenly between their neighbours. A non-finite position is unpositioned. */
 export function resolveStops(stops: Stop[], lineLength: number): Stop[] {
   const n = stops.length;
-  const pos: (number | null)[] = stops.map((s) =>
-    s.posPx != null ? (lineLength > 0 ? s.posPx / lineLength : 0) : s.auto ? null : s.pos,
-  );
+  const pos: (number | null)[] = stops.map((s) => {
+    const p = s.posPx != null ? (lineLength > 0 ? s.posPx / lineLength : 0) : s.auto ? null : s.pos;
+    return p != null && Number.isFinite(p) ? p : null;
+  });
   if (n && pos[0] == null) pos[0] = 0;
   if (n && pos[n - 1] == null) pos[n - 1] = 1;
+  let prev = -Infinity;
+  for (let i = 0; i < n; i++) if (pos[i] != null) pos[i] = prev = Math.max(prev, pos[i]!);
   for (let i = 1; i < n; i++) {
     if (pos[i] != null) continue;
     let j = i;
@@ -146,11 +152,7 @@ export function resolveStops(stops: Stop[], lineLength: number): Stop[] {
     const a = pos[i - 1]!, b = pos[j]!;
     for (let k = i; k < j; k++) pos[k] = a + ((b - a) * (k - i + 1)) / (j - i + 1);
   }
-  let prev = -Infinity;
-  return stops.map((s, i) => {
-    prev = Math.max(prev, pos[i]!);
-    return { color: s.color, pos: prev };
-  });
+  return stops.map((s, i) => ({ color: s.color, pos: pos[i]! }));
 }
 
 /** The CSS gradient line for an angle over a w x h box (CSS Images 3, linear-gradient) */

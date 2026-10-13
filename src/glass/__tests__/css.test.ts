@@ -102,6 +102,28 @@ describe("computed CSS parsers", () => {
       expect(resolveStops(g.stops, 100).map((s) => s.pos)).toEqual([0.6, 0.6]);
     });
 
+    it("makes known positions non-decreasing before filling gaps", () => {
+      const [g] = parseLinearGradients("linear-gradient(red 50%, blue 20%, green, black 100%)");
+      expect(resolveStops(g.stops, 100).map((s) => s.pos)).toEqual([0.5, 0.5, 0.75, 1]);
+    });
+
+    it("treats a non-finite position (calc) as unpositioned", () => {
+      const [g] = parseLinearGradients("linear-gradient(red, blue calc(10% + 5px), green)");
+      expect(resolveStops(g.stops, 100).map((s) => s.pos)).toEqual([0, 0.5, 1]);
+      expect(resolveStops([{ color: "red", pos: 0 }, { color: "blue", pos: 0, posPx: NaN }, { color: "green", pos: 1 }], 100).map((s) => s.pos)).toEqual([0, 0.5, 1]);
+    });
+
+    it("clears the colour cache once it passes 1000 entries", () => {
+      let calls = 0;
+      setColorResolver(() => { calls++; return [0, 0, 0, 1]; });
+      for (let i = 0; i <= 1000; i++) parseColor(`oklab(0 0 ${i})`);
+      expect(calls).toBe(1001);
+      parseColor("oklab(0 0 1000)");
+      expect(calls).toBe(1001);
+      parseColor("oklab(0 0 0)");
+      expect(calls).toBe(1002);
+    });
+
     it("strips interpolation clauses", () => {
       expect(parseLinearGradients("linear-gradient(to right in oklab, rgb(0, 0, 0), rgb(1, 1, 1))")[0].angle).toBe(90);
       expect(parseLinearGradients("linear-gradient(160deg in oklab, rgb(0, 0, 0), rgb(1, 1, 1))")[0].angle).toBe(160);
