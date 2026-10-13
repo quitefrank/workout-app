@@ -43,7 +43,7 @@ export function ExerciseLibrary({
   return (
     <>
       {/* The kit's search pill, pinned as the list scrolls under it */}
-      <div className="sticky top-0 z-20 px-4 pb-2 pt-3" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}>
+      <div className="sticky top-0 z-[31] px-4 pb-2 pt-3" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)" }}>
         <label className="glass flex h-11 items-center gap-1.5 pl-3 pr-1.5 text-[17px]">
           <SearchIcon size={19} className="shrink-0 opacity-60" />
           <input
