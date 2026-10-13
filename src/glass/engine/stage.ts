@@ -19,20 +19,32 @@ export type StageOptions = {
   signature: () => string;
   /** the first frame on which every glass element on screen has its shaders built */
   onReady?: () => void;
-  /** a frame threw: the loop has stopped and the caller should fall back to the CSS material */
-  onError?: (err: unknown) => void;
+  /** a frame threw or the GPU device was lost: the loop has stopped and the caller should fall back to the CSS
+   *  material (`deviceLost`: a fresh start may work) */
+  onError?: (err: unknown, deviceLost: boolean) => void;
 };
 
 type Unit = { key: Element; s: number | null; onDark: boolean | null; els: Element[]; Us: Uniforms[] };
 type Entry = { el: Element; U: Uniforms; mesh: any; cast: any; family: "bars" | "sheet"; ready: boolean };
 
 export async function startStage(o: StageOptions): Promise<() => void> {
-  const { THREE, T, canvas, W, H, dpr } = o;
-  const { Fn, uv, vec2, vec3, float, abs, max, min, length, clamp, mix, smoothstep, texture, uniform, sRGBTransferEOTF } = T;
+  const { THREE, canvas, W, H, dpr } = o;
   const renderer = new THREE.WebGPURenderer({ canvas, antialias: true }); renderer.setPixelRatio(dpr); renderer.setSize(W, H, false);
-  await renderer.init();
-  // three falls back to WebGL 2 without WebGPU; the app keeps its CSS material instead
-  if (!renderer.backend?.isWebGPUBackend) { renderer.dispose(); throw new Error("WebGPU is not available"); }
+  // anything below failing (init, a shader, an allocation) leaves no renderer behind
+  try {
+    await renderer.init();
+    // three falls back to WebGL 2 without WebGPU; the app keeps its CSS material instead
+    if (!renderer.backend?.isWebGPUBackend) throw new Error("WebGPU is not available");
+    return setup(o, renderer);
+  } catch (err) {
+    renderer.dispose();
+    throw err;
+  }
+}
+
+function setup(o: StageOptions, renderer: any): () => void {
+  const { THREE, T, W, H, dpr } = o;
+  const { Fn, uv, vec2, vec3, float, abs, max, min, length, clamp, mix, smoothstep, texture, uniform, sRGBTransferEOTF } = T;
   const contentCanvas = document.createElement("canvas"); contentCanvas.width = Math.round(W * dpr); contentCanvas.height = Math.round(H * dpr);
   const cctx = contentCanvas.getContext("2d")!;
   // raw sRGB bytes (no decode on sampling): the frost averages them as they are, and the optics decode where they read
@@ -202,8 +214,9 @@ export async function startStage(o: StageOptions): Promise<() => void> {
       const r = e.el.getBoundingClientRect();
       const rad = parseFloat(getComputedStyle(e.el).borderTopLeftRadius) || 0;
       e.U.setSize(r.width, r.height, rad);
-      // bars under the sheet, the sheet over them, a control on the sheet over the sheet
-      const z = e.family === "sheet" ? 0.3 : e.el.closest(".glass-sheet") ? 0.4 : 0.1;
+      // glass in the content under the pinned bars, the bars under the sheet, the sheet over them, a control on the
+      // sheet over the sheet
+      const z = e.family === "sheet" ? 0.3 : e.el.closest(".glass-sheet") ? 0.4 : e.el.closest("[data-glass-unit='top'], [data-glass-unit='dock']") ? 0.1 : 0.06;
       const cx = r.left + r.width / 2 - W / 2, cy = H / 2 - (r.top + r.height / 2);
       e.mesh.scale.set(r.width + 2 * GLASS_MARGIN, r.height + 2 * GLASS_MARGIN, 1); e.mesh.position.set(cx, cy, z);
       e.cast.scale.set(r.width + 2 * CAST_MARGIN, r.height + 2 * CAST_MARGIN, 1); e.cast.position.set(cx, cy, z - 0.05);
@@ -215,7 +228,8 @@ export async function startStage(o: StageOptions): Promise<() => void> {
     // over a media edge sits on the dimming, so it is on its dark side.
     let top: Unit | null = null;
     for (const f of units.values()) {
-      if (!f.els.some(shown)) continue;
+      // the dock steps aside under a sheet, so it reads nothing until it is back
+      if (!f.els.some(shown) || (sheetOpen && (f.key as HTMLElement).dataset?.glassUnit === "dock")) continue;
       const band = bandOf(f);
       if (!band) continue;
       const media = (f.key as HTMLElement).dataset?.edge === "dim";
@@ -266,16 +280,26 @@ export async function startStage(o: StageOptions): Promise<() => void> {
     renderer.render(scene, camera);
     if (allReady && !readySent) { readySent = true; o.onReady?.(); }
   };
+  // one report, then no more frames: a broken frame would throw on every one after it
+  const halt = (err: unknown, deviceLost: boolean) => {
+    if (stopped) return;
+    stopped = true; cancelAnimationFrame(frame);
+    o.onError?.(err, deviceLost);
+  };
   const loop = () => {
     if (stopped) return;
     frame = requestAnimationFrame(loop);
     try {
       step();
     } catch (err) {
-      // one report, then no more frames: a broken frame would throw on every one after it
-      stopped = true; cancelAnimationFrame(frame);
-      o.onError?.(err);
+      halt(err, false);
     }
+  };
+  // the GPU process restarted, the tab was backgrounded too long, a driver reset: nothing renders on this device again.
+  // Disposing the renderer destroys the device on purpose, which also lands here, after `stopped` is set.
+  renderer.onDeviceLost = (info: { message?: string; reason?: string }) => {
+    renderer._isDeviceLost = true;
+    halt(new Error(`WebGPU device lost: ${info?.reason ?? ""} ${info?.message ?? ""}`.trim()), true);
   };
   loop();
 

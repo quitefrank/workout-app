@@ -6,8 +6,8 @@ import { buildDisplayList, type DisplayList } from "./paint/display-list";
 import { paintList } from "./paint/paint";
 import { createFamily, PRESET1_BARS, PRESET1_LIGHT, SHEET_DARK, SHEET_LIGHT } from "./presets";
 
-/** Nothing under these changes the painted page: the painter skips them (glass, the sheet, live inputs). */
-const UNPAINTED = ".glass, .glass-sheet, [data-live]";
+/** Nothing under these changes the painted page: the painter skips them (glass, the sheet, live inputs, toasts). */
+const UNPAINTED = ".glass, .glass-sheet, [data-live], [data-sonner-toaster]";
 const unpainted = (n: EventTarget | Node | null | undefined) => {
   const el = n instanceof Element ? n : n instanceof Node ? n.parentElement : null;
   return !!el?.closest(UNPAINTED);
@@ -74,12 +74,24 @@ export function GlassStage() {
     fonts?.ready.then(() => { if (!cancelled) bump(); });
     fonts?.addEventListener("loadingdone", bump);
 
-    const fail = (err: unknown) => {
+    // a lost device gets one fresh start (once the tab is visible again), and another only after that start succeeded
+    let retryAllowed = true, retryTimer = 0;
+    const retryWhenVisible = () => {
+      if (document.visibilityState !== "visible" || cancelled) return;
+      document.removeEventListener("visibilitychange", retryWhenVisible);
+      retryTimer = window.setTimeout(() => { if (!cancelled) { bump(); void start(); } }, 500);
+    };
+    const fail = (err: unknown, deviceLost = false) => {
       if (cancelled) return;
       console.warn("No WebGPU glass here, keeping the CSS material:", err);
       generation++;
       stop?.(); stop = null;
       html.classList.remove("gpu");
+      if (deviceLost && retryAllowed) {
+        retryAllowed = false;
+        document.addEventListener("visibilitychange", retryWhenVisible);
+        retryWhenVisible();
+      }
     };
 
     const start = async () => {
@@ -112,10 +124,11 @@ export function GlassStage() {
           // the CSS material steps aside only once the shader has every glass element on screen built
           onReady: () => {
             if (cancelled || gen !== generation) return;
+            retryAllowed = true;
             html.classList.add("gpu");
             bump();
           },
-          onError: fail,
+          onError: (err, deviceLost) => { if (gen === generation) fail(err, deviceLost); },
         });
         if (cancelled || gen !== generation) { s(); return; }
         stop = s;
@@ -128,7 +141,8 @@ export function GlassStage() {
     let resizeTimer = 0;
     const onResize = () => {
       window.clearTimeout(resizeTimer);
-      resizeTimer = window.setTimeout(() => { stop?.(); stop = null; bump(); void start(); }, 150);
+      // the CSS material holds the screen while the new stage builds its shaders; onReady hands it back
+      resizeTimer = window.setTimeout(() => { generation++; stop?.(); stop = null; html.classList.remove("gpu"); bump(); void start(); }, 150);
     };
     window.addEventListener("resize", onResize);
 
@@ -145,6 +159,8 @@ export function GlassStage() {
       fonts?.removeEventListener("loadingdone", bump);
       window.removeEventListener("resize", onResize);
       window.clearTimeout(resizeTimer);
+      window.clearTimeout(retryTimer);
+      document.removeEventListener("visibilitychange", retryWhenVisible);
     };
   }, []);
 

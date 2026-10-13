@@ -39,11 +39,26 @@ export function Sheet({
     };
   }, [open, onClose]);
 
-  // The stage hides the dock and stops reading the page under it while a sheet is up
+  // The stage hides the dock and its capsule while a sheet is up, and keeps them hidden until the sheet has slid away
   useEffect(() => {
     if (!open) return;
-    document.documentElement.classList.add("sheet-open");
-    return () => document.documentElement.classList.remove("sheet-open");
+    holdSheetOpen(1);
+    const el = panel.current;
+    return () => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        el?.removeEventListener("transitionend", onEnd);
+        window.clearTimeout(timer);
+        holdSheetOpen(-1);
+      };
+      const onEnd = (e: TransitionEvent) => {
+        if (e.target === el && e.propertyName === "transform") finish();
+      };
+      el?.addEventListener("transitionend", onEnd);
+      const timer = window.setTimeout(finish, CLOSE_MS + 150);
+    };
   }, [open]);
 
   // The portal needs document.body, so the server and the first client render both draw nothing
@@ -90,3 +105,13 @@ export function Sheet({
 }
 
 const noop = () => () => {};
+
+/** The panel's slide, in ms (duration-[450ms] below) */
+const CLOSE_MS = 450;
+
+/** Sheets open or still closing; `sheet-open` stays on <html> while any is */
+let held = 0;
+function holdSheetOpen(delta: number) {
+  held = Math.max(0, held + delta);
+  document.documentElement.classList.toggle("sheet-open", held > 0);
+}
