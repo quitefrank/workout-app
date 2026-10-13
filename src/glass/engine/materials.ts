@@ -43,17 +43,22 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
   const toRgb = (u: any, c: number) => u.value.set(((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255);
   const setFill = (p: Material) => { toRgb(U.fillColor, p.fillColor ?? 0x999999); toRgb(U.fill2Color, p.fill2Color ?? 0xefefef); };
   const fitBezel = () => { const w = U.w.value, h = U.h.value; U.bezel.value = Math.max(1, Math.min(bezelFor(U.cur, w, h), w / 2, h / 2)); };
+  const VALUE_KEYS = Object.keys(U).filter((k) => !NOT_VALUES.has(k) && !/Color$/.test(k));
   setFill(P);
   U.cur = P;
   U.apply = (p: Material) => {
     U.cur = p;
-    for (const k of Object.keys(U)) if (!NOT_VALUES.has(k) && !/Color$/.test(k) && p[k] !== undefined) U[k].value = p[k];
+    for (const k of VALUE_KEYS) if (p[k] !== undefined) U[k].value = p[k];
     U.ior.value = iorFor(p); setFill(p); fitBezel();
   };
+  // the raw radius is tracked because U.r holds the clamped one, which differs from r whenever r exceeds half the box
+  let rawR = NaN;
   U.setSize = (w: number, h: number, r: number) => {
-    if (U.w.value === w && U.h.value === h && U.r.value === r) return;
+    if (U.w.value === w && U.h.value === h && rawR === r) return;
+    rawR = r;
     U.w.value = w; U.h.value = h; U.r.value = Math.min(r, w / 2, h / 2); fitBezel();
   };
+  // dispose unsubscribes from the family; the owner disposes the meshes' materials
   // a control showing a blend of its two sides takes the blend; the page's side alone is the family's live values
   U.dispose = family.onParams((p) => U.apply((U.override && U.override()) || p));
   return U as Uniforms;

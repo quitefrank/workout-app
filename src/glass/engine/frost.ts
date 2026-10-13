@@ -3,7 +3,7 @@ import { FROST_SIGMA, type Material } from "../presets";
 
 /* The frost: a Gaussian blur of the page on the GPU, one per family because each has its own radius. Two separable passes
    into a pair of render targets a fraction of the page's size; the fraction follows the radius (halving until the sigma is
-   under 2.5 texels) so the kernel is always 17 taps, and the page texture's mipmaps feed the small targets without aliasing.
+   under 2.5 texels) so the kernel is always 17 taps, and the raw page has mipmaps (the page render target has none), which feed the small targets without aliasing.
    Sampling clamps at the edges, so a bar at the bottom of the screen blurs against the screen's own edge pixels, as
    backdrop-filter does. It averages the page's sRGB bytes as they are, the way the device's blur does (a blur in linear
    light comes out brighter). (Glass Lab V3, lines 4226 to 4267.) */
@@ -19,6 +19,7 @@ export function makeFrost(
   const rt = () => { const t = new THREE.RenderTarget(4, 4, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false, depthBuffer: false }); t.texture.colorSpace = THREE.NoColorSpace; return t; };
   const rtA = rt(), rtB = rt();
   const sigma = uniform(1), stepA = uniform(new THREE.Vector2(1, 0)), stepB = uniform(new THREE.Vector2(0, 1));
+  const owned: { dispose: () => void }[] = [];
   const pass = (tex: any, step: any) => {
     const m = new THREE.MeshBasicNodeMaterial();
     m.colorNode = Fn(() => {
@@ -29,7 +30,8 @@ export function makeFrost(
       }
       return acc.div(wsum);
     })();
-    const scene = new THREE.Scene(); scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), m)); return scene;
+    const geo = new THREE.PlaneGeometry(2, 2); owned.push(m, geo);
+    const scene = new THREE.Scene(); scene.add(new THREE.Mesh(geo, m)); return scene;
   };
   const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); camera.position.z = 1;
   const sceneA = pass(src, stepA), sceneB = pass(rtA.texture, stepB);
@@ -45,7 +47,7 @@ export function makeFrost(
     tex: rtB.texture,
     touch: () => { dirty = true; },
     refit: fit,
-    dispose: () => { off?.(); rtA.dispose(); rtB.dispose(); },
+    dispose: () => { off?.(); rtA.dispose(); rtB.dispose(); for (const o of owned) o.dispose(); },
     // the passes run only when the page or the radius changed; the targets keep the result between frames
     render: (renderer: any) => { if (!dirty) return; dirty = false; renderer.setRenderTarget(rtA); renderer.render(sceneA, camera); renderer.setRenderTarget(rtB); renderer.render(sceneB, camera); renderer.setRenderTarget(null); },
   };
