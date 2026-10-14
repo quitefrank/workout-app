@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { blendSides, decideDark, stepSide } from "../context";
 import { CTXV, type Family, type Material } from "../presets";
+import { scrollTop } from "@/lib/scroller";
 import { debugState } from "../debug-state";
 import { makeFrost } from "./frost";
 import { CAST_MARGIN, GLASS_MARGIN, makeCastMaterial, makeGlassMaterial, makeUniforms, type Uniforms } from "./materials";
@@ -250,7 +251,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     if (top) {
       const dim = (top.key as HTMLElement).dataset.edge === "dim" ? 1 : 0;
       const bar = top.key.querySelector("[data-glass-bar]") ?? top.key;
-      EDGE.topOn.value = dim || Math.min(1, Math.max(0, window.scrollY / Math.max(1, CTXV.fadeIn)));
+      EDGE.topOn.value = dim || Math.min(1, Math.max(0, scrollTop() / Math.max(1, CTXV.fadeIn)));
       EDGE.topDim.value = dim; EDGE.topS.value = top.s ?? 0;
       EDGE.topReach.value = bar.getBoundingClientRect().bottom + CTXV.reach;
     } else EDGE.topOn.value = 0;

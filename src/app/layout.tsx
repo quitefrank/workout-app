@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { Toaster } from "sonner";
+import { AppScroller } from "@/components/app-scroller";
 import { GlassContext } from "@/components/glass-context";
 import { TabBar } from "@/components/tab-bar";
 import { GlassDebug } from "@/glass/debug";
 import { GlassStage } from "@/glass/glass-stage";
 import { SetupNeeded } from "@/components/setup-needed";
+import { THEME_COOKIE, themeFrom } from "@/lib/appearance";
 import { getInProgress } from "@/lib/data/queries";
 import { missingConfig } from "@/lib/supabase/server";
 import "./globals.css";
@@ -40,24 +43,36 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
-  ],
-  colorScheme: "light dark",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover",
-};
+/** The browser chrome follows the Settings choice when there is one, the phone's appearance otherwise */
+export async function generateViewport(): Promise<Viewport> {
+  const theme = themeFrom((await cookies()).get(THEME_COOKIE)?.value);
+  return {
+    themeColor:
+      theme === "system"
+        ? [
+            { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+            { media: "(prefers-color-scheme: dark)", color: "#000000" },
+          ]
+        : theme === "dark"
+          ? "#000000"
+          : "#ffffff",
+    colorScheme: theme === "system" ? "light dark" : theme,
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+    viewportFit: "cover",
+  };
+}
 
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The Settings choice of light or dark on this device, written onto <html> so the first paint is right
+  const theme = themeFrom((await cookies()).get(THEME_COOKIE)?.value);
+  const forced = theme === "system" ? undefined : theme;
   // A deploy without its settings, or one Supabase refuses, explains itself instead of a bare 500
   const missing = missingConfig();
   let problem: string | null = null;
@@ -71,7 +86,7 @@ export default async function RootLayout({
   }
   if (missing.length > 0 || problem) {
     return (
-      <html lang="en" className="h-full antialiased">
+      <html lang="en" data-theme={forced} className="h-full antialiased">
         <body className="flex min-h-full flex-col">
           <SetupNeeded missing={missing} problem={problem} />
         </body>
@@ -79,16 +94,16 @@ export default async function RootLayout({
     );
   }
   return (
-    <html lang="en" className="h-full antialiased">
-      <body className="flex min-h-full flex-col">
-        {children}
+    <html lang="en" data-theme={forced} className="h-full antialiased">
+      <body className="h-full">
+        <AppScroller>{children}</AppScroller>
         <TabBar
           inProgress={inProgress && { id: inProgress.id, name: inProgress.name, startedAt: inProgress.startedAt }}
         />
         <GlassContext />
         <GlassStage />
         <GlassDebug />
-        <Toaster position="top-center" theme="system" toastOptions={{ className: "!rounded-[20px]" }} />
+        <Toaster position="top-center" theme={theme} toastOptions={{ className: "!rounded-[20px]" }} />
       </body>
     </html>
   );

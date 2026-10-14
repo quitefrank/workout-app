@@ -1,8 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { saveSettings } from "@/app/actions";
+import { setTheme, type Theme } from "@/lib/appearance";
 import { cn } from "@/lib/cn";
 import type { Settings } from "@/lib/data/queries";
 import { formatRest } from "@/lib/workout/format";
@@ -10,8 +12,10 @@ import { formatRest } from "@/lib/workout/format";
 const REST_STEPS = [60, 90, 120, 150, 180, 210, 240, 300];
 
 /** Each control saves as soon as it changes, as iOS Settings does. */
-export function SettingsForm({ settings }: { settings: Settings }) {
+export function SettingsForm({ settings, theme: initialTheme }: { settings: Settings; theme: Theme }) {
   const [s, setS] = useState(settings);
+  const [theme, setThemeState] = useState(initialTheme);
+  const router = useRouter();
   const [pending, start] = useTransition();
 
   const update = (next: Settings) => {
@@ -36,6 +40,23 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       aria-busy={pending}
       // not dimmed under the WebGPU stage: opacity would make a stacking context and sink the live select under the canvas
       className={cn("mt-4 flex flex-col gap-6 px-4", pending && "[html:not(.gpu)_&]:opacity-90")}>
+      <Group title="Appearance" footer="System follows this device's light or dark setting. Saved on this device only.">
+        <Segmented
+          value={theme}
+          options={[
+            ["system", "System"],
+            ["light", "Light"],
+            ["dark", "Dark"],
+          ]}
+          onChange={(v) => {
+            setThemeState(v);
+            setTheme(v);
+            // the layout reads the choice too (status bar colour, toasts)
+            router.refresh();
+          }}
+        />
+      </Group>
+
       <Group title="Units" footer="Machine and cardio readings always show the raw number, with no unit.">
         <Segmented
           value={s.weight_unit}

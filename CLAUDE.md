@@ -389,6 +389,26 @@ Under `html.gpu`, anything the canvas must not cover needs a z-index
 above 5: glass in the page's flow is lifted to 6, live inputs carry
 `data-live`, and the sheet keeps z-50 over its scrim (`data-scrim`).
 
+The window never scrolls, as in the Glass Lab's app mode: `html` and
+`body` are locked and every screen scrolls inside `[data-app-scroller]`
+(`src/components/app-scroller.tsx`, helpers in `src/lib/scroller.ts`),
+with the canvas and the pinned bars over it. iOS's rubber-band bounce
+and its handling of fixed elements during a window scroll otherwise
+move the HTML and the painted glass apart. The scroller is
+`position: absolute`, never `fixed`: a fixed element makes a stacking
+context and would sink every glass label and live input inside it under
+the canvas. Read scroll position with `scrollTop()`, never
+`window.scrollY`.
+
+Appearance: Settings offers System, Light and Dark, saved per device in
+the `theme` cookie. The layout writes it onto `<html data-theme>` (and
+the viewport's theme colour), so the first paint is right; every dark
+token block in `globals.css` exists twice, under the phone's
+`prefers-color-scheme: dark` (unless `data-theme="light"`) and under
+`[data-theme="dark"]`. Script reads it through `appearance()` and
+`onAppearanceChange()` in `src/lib/appearance.ts`, never the media
+query directly.
+
 ## Glass context rule
 
 Applies to every glass control in the lab (`docs/lab/glass-lab-v3.html`)

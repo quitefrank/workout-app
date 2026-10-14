@@ -37,7 +37,8 @@ export function GlassDebug() {
   return (
     <pre
       data-live
-      className="pointer-events-none fixed inset-x-2 top-[calc(env(safe-area-inset-top,0px)+60px)] z-[100] max-h-[60vh] overflow-hidden whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-[10px] leading-[13px] text-white"
+      style={{ top: "calc(env(safe-area-inset-top, 0px) + 60px)" }}
+      className="pointer-events-none fixed inset-x-2 z-[100] max-h-[60vh] overflow-hidden whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-[10px] leading-[13px] text-white"
     >
       {[
         `html.gpu ${gpu}  phase ${s.phase}  frames ${s.frames}`,
@@ -67,7 +68,7 @@ function geometry(): string[] {
   const safe = `${cs.paddingTop} / ${cs.paddingBottom}`;
   probe.remove();
   return [
-    `inner ${window.innerWidth}x${window.innerHeight}  client ${document.documentElement.clientHeight}  screen ${window.screen.height}  scrollY ${Math.round(window.scrollY)}`,
+    `inner ${window.innerWidth}x${window.innerHeight}  client ${document.documentElement.clientHeight}  screen ${window.screen.height}  scroll ${Math.round(document.querySelector("[data-app-scroller]")?.scrollTop ?? 0)}`,
     `vv ${vv ? `${Math.round(vv.width)}x${Math.round(vv.height)} off ${Math.round(vv.offsetTop)} page ${Math.round(vv.pageTop)} scale ${vv.scale}` : "none"}  safe ${safe}`,
     `canvas ${r(canvas)} buffer ${canvas?.width}x${canvas?.height}`,
     `topbar ${r(document.querySelector("[data-glass-unit='top'] .glass"))}  dock ${r(document.querySelector("[data-glass-unit='dock'] .glass"))}`,

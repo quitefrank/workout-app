@@ -2,6 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { appearance as currentAppearance, onAppearanceChange } from "@/lib/appearance";
+import { scrollTop } from "@/lib/scroller";
 import { debugState } from "./debug-state";
 import { buildDisplayList, UNPAINTED, type DisplayList } from "./paint/display-list";
 import { paintList } from "./paint/paint";
@@ -61,8 +63,7 @@ export function GlassStage() {
     let dirty = 0, inner = 0, animTick = 0;
     let animating = false, rebuildFrame = false;
     const html = document.documentElement;
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const appearance = () => (media.matches ? "dark" : "light") as "dark" | "light";
+    const appearance = currentAppearance;
     const bars = createFamily(PRESET1_BARS, PRESET1_LIGHT, appearance());
     const sheet = createFamily(SHEET_DARK, SHEET_LIGHT, appearance());
     const bump = () => { dirty++; list = null; };
@@ -88,7 +89,7 @@ export function GlassStage() {
     const onInnerScroll = (e: Event) => { if (e.target !== document && !unpainted(e.target)) inner++; };
     document.addEventListener("scroll", onInnerScroll, true);
     const onAppearance = () => { bars.setAppearance(appearance()); sheet.setAppearance(appearance()); bump(); };
-    media.addEventListener("change", onAppearance);
+    const stopAppearance = onAppearanceChange(onAppearance);
     const fonts = document.fonts;
     fonts?.ready.then(() => { if (!cancelled) bump(); });
     fonts?.addEventListener("loadingdone", bump);
@@ -134,7 +135,7 @@ export function GlassStage() {
         const s = await startStage({
           THREE, T, canvas, W, H, dpr, bars, sheet, appearance,
           draw: (c) => {
-            const at = `${window.scrollX}|${window.scrollY}`;
+            const at = String(scrollTop());
             // a sticky element's place depends on the scroll; while the page animates, every other frame rebuilds
             if (list && list.sticky && builtAt !== at) list = null;
             if (list && animating && (rebuildFrame = !rebuildFrame)) list = null;
@@ -147,7 +148,7 @@ export function GlassStage() {
               if (stillAnimating()) animTick++;
               else { animating = false; bump(); }
             }
-            return `${window.scrollX}|${window.scrollY}|${dirty}|${inner}|${animTick}|${appearance()}`;
+            return `${window.scrollX}|${window.scrollY}|${scrollTop()}|${dirty}|${inner}|${animTick}|${appearance()}`;
           },
           // the CSS material steps aside only once the shader has every glass element on screen built
           onReady: () => {
@@ -189,7 +190,7 @@ export function GlassStage() {
       observer.disconnect();
       ANIM_EVENTS.forEach((t) => document.removeEventListener(t, onAnim, true));
       document.removeEventListener("scroll", onInnerScroll, true);
-      media.removeEventListener("change", onAppearance);
+      stopAppearance();
       fonts?.removeEventListener("loadingdone", bump);
       window.removeEventListener("resize", onResize);
       window.clearTimeout(resizeTimer);

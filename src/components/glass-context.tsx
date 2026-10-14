@@ -5,6 +5,8 @@ import { useEffect } from "react";
 import { decideDark } from "@/glass/context";
 import { parseColor, type Rgba } from "@/glass/paint/css";
 import { CTXV } from "@/glass/presets";
+import { appearance, onAppearanceChange } from "@/lib/appearance";
+import { scrollTop } from "@/lib/scroller";
 
 /**
  * The glass context rule (CLAUDE.md, "Glass context rule"; the lab's
@@ -46,11 +48,10 @@ export function GlassContext() {
       frame = 0;
       // the WebGPU stage runs the context rule on the page's own pixels
       if (document.documentElement.classList.contains("gpu")) return;
-      document.documentElement.style.setProperty("--scrolled", String(Math.min(1, Math.max(0, window.scrollY / 40))));
+      document.documentElement.style.setProperty("--scrolled", String(Math.min(1, Math.max(0, scrollTop() / 40))));
       for (const unit of units()) decide(unit);
     };
 
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
     const reset = () => {
       // Colours resolve differently per appearance: forget them
       bgCacheClear();
@@ -71,7 +72,7 @@ export function GlassContext() {
 
     window.addEventListener("scroll", schedule, { passive: true });
     window.addEventListener("resize", reset);
-    media.addEventListener("change", reset);
+    const stopAppearance = onAppearanceChange(reset);
     // Horizontal scrollers (template rows) move content under the glass too
     document.addEventListener("scroll", schedule, { passive: true, capture: true });
     schedule();
@@ -81,7 +82,7 @@ export function GlassContext() {
       observer.disconnect();
       window.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", reset);
-      media.removeEventListener("change", reset);
+      stopAppearance();
       document.removeEventListener("scroll", schedule, { capture: true });
     };
   }, [pathname]);
@@ -202,7 +203,7 @@ function lumOf(el: Element): number | null {
 }
 
 function pageLum(): number {
-  return lumOf(document.body) ?? (window.matchMedia("(prefers-color-scheme: dark)").matches ? 0 : 1);
+  return lumOf(document.body) ?? (appearance() === "dark" ? 0 : 1);
 }
 
 function lum([r, g, b]: Rgba): number {

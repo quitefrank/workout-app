@@ -103,8 +103,9 @@
   --dock-h: calc(62px + 21px + env(safe-area-inset-bottom, 0px));
 }
 
+/* The phone's dark appearance, unless Settings picked light on this device */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     color-scheme: dark;
 
     --bg: #000000;
@@ -130,6 +131,33 @@
     --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
   }
 }
+/* Settings picked dark */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #000000;
+  --card: #1c1c1e;
+  --card-2: #2c2c2e;
+  --ink: #ffffff;
+  --ink-2: rgba(235, 235, 245, 0.6);
+  --ink-3: rgba(235, 235, 245, 0.3);
+  --sep: rgba(84, 84, 88, 0.65);
+  --fill: rgba(118, 118, 128, 0.24);
+  --fill-2: rgba(118, 118, 128, 0.36);
+  --blue: #0a84ff;
+  --red: #ff453a;
+  --green: #30d158;
+  --orange: #ff9f0a;
+  --seg-on: #636366;
+  --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
+
+  /* Sheet (device measured, dark): Haze 85% toward 0.12, floor 70% lighten */
+  --sheet-lum-color: #1f1f1f;
+  --sheet-floor-color: #1f1f1f;
+  --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+  --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
+}
+
 
 /* The page's side, until a unit has read what is behind it */
 :root {
@@ -142,8 +170,9 @@
   --glass-ink-on: var(--gl-ink-on);
   --glass-pill: var(--gl-pill);
 }
+/* The phone's dark appearance, unless Settings picked light on this device */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --glass-lum-color: var(--gd-lum-color);
     --glass-lum: var(--gd-lum);
     --glass-fill: var(--gd-fill);
@@ -154,6 +183,18 @@
     --glass-pill: var(--gd-pill);
   }
 }
+/* Settings picked dark */
+:root[data-theme="dark"] {
+  --glass-lum-color: var(--gd-lum-color);
+  --glass-lum: var(--gd-lum);
+  --glass-fill: var(--gd-fill);
+  --glass-inner: var(--gd-inner);
+  --glass-outer: var(--gd-outer);
+  --glass-ink: var(--gd-ink);
+  --glass-ink-on: var(--gd-ink-on);
+  --glass-pill: var(--gd-pill);
+}
+
 /* A unit's own reading wins */
 .ctx-dark {
   /* Read here, not on :root, so each unit's own measurement applies */
@@ -198,6 +239,26 @@
 html {
   background: var(--bg);
   -webkit-text-size-adjust: 100%;
+}
+
+/* The Glass Lab's app mode: the window never scrolls or bounces. The screens scroll inside .app-scroller, and the
+   glass canvas and the pinned bars sit over it, so a bounce moves the content and never the glass. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* absolute, as the lab's .screen is: a fixed element always makes a stacking context, which would sink every glass
+   label and live input inside it under the canvas */
+.app-scroller {
+  position: absolute;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -383,13 +444,20 @@ body {
 
   /* Before the first reading, the page's own side */
   @media (prefers-color-scheme: dark) {
-    :not(.ctx-light) > .top-edge > .top-edge-light {
+    :root:not([data-theme="light"]) :not(.ctx-light) > .top-edge > .top-edge-light {
       opacity: 0;
     }
-    :not(.ctx-light) > .top-edge > .top-edge-dark {
+    :root:not([data-theme="light"]) :not(.ctx-light) > .top-edge > .top-edge-dark {
       opacity: 1;
     }
   }
+  :root[data-theme="dark"] :not(.ctx-light) > .top-edge > .top-edge-light {
+    opacity: 0;
+  }
+  :root[data-theme="dark"] :not(.ctx-light) > .top-edge > .top-edge-dark {
+    opacity: 1;
+  }
+
 
   /* ------------------------------------------------------------
      Content patterns
