@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { completeWorkout, discardWorkout, setMachineLocation } from "@/app/actions";
+import { Button } from "@/components/button";
 import { GlassButton, GlassCircleButton, GlassCircleLink } from "@/components/glass";
 import { TopBar } from "@/components/top-bar";
 import { CheckIcon, ChevronLeft, TrashIcon } from "@/components/icons";
@@ -132,10 +133,12 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
           Every set logged in this workout is deleted. This cannot be undone.
         </p>
         <div className="flex flex-col gap-2.5">
-          <GlassButton tone="red" disabled={pending} onClick={() => run(() => discardWorkout(workout.id))}>
+          <Button variant="filled" tone="red" disabled={pending} onClick={() => run(() => discardWorkout(workout.id))}>
             Discard Workout
-          </GlassButton>
-          <GlassButton onClick={() => setConfirmDiscard(false)}>Keep Going</GlassButton>
+          </Button>
+          <Button variant="gray" onClick={() => setConfirmDiscard(false)}>
+            Keep Going
+          </Button>
         </div>
       </Sheet>
     </main>

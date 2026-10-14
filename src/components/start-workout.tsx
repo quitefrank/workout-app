@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { TemplateSummary } from "@/lib/data/queries";
 import { CATEGORY_LABELS } from "@/lib/workout/format";
 import { groupByCategory } from "@/lib/workout/group";
-import { GlassButton } from "./glass";
+import { Button } from "./button";
 import { PlayIcon } from "./icons";
 import { Row, Thumb } from "./page";
 import { Sheet } from "./sheet";
@@ -17,10 +17,10 @@ export function StartWorkout({ templates }: { templates: TemplateSummary[] }) {
   const groups = groupByCategory(templates);
   return (
     <>
-      <GlassButton tone="blue" className="w-full" onClick={() => setOpen(true)}>
+      <Button variant="filled" className="w-full" onClick={() => setOpen(true)}>
         <PlayIcon size={18} />
         Start a Workout
-      </GlassButton>
+      </Button>
       <Sheet
         open={open}
         onClose={() => setOpen(false)}

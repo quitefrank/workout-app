@@ -57,7 +57,8 @@ export function GlassCircleButton({
 
 const cta = "glass flex h-[50px] items-center justify-center gap-2 px-5 text-[17px] font-semibold tracking-[-0.01em]";
 
-/** 50pt large button. `tone` tints the label, as the kit's prominent buttons do. */
+/** 50pt large glass button, for floating controls only (the active workout's bottom bar). Buttons in the page's
+ * content use `Button` from ./button: Apple keeps Liquid Glass out of the content layer. */
 export function GlassButton({
   tone,
   className,
@@ -72,19 +73,6 @@ export function GlassButton({
     >
       {children}
     </button>
-  );
-}
-
-export function GlassButtonLink({
-  tone,
-  className,
-  children,
-  ...rest
-}: ComponentProps<typeof Link> & { tone?: "blue" | "red" | "green" }) {
-  return (
-    <Link className={cn(cta, tone && toneClass[tone], className)} {...rest}>
-      {children}
-    </Link>
   );
 }
 

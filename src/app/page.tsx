@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { buttonLook } from "@/components/button";
 import { GlassCircleLink } from "@/components/glass";
 import { ChevronLeft, ChevronRight, GearIcon, ListIcon } from "@/components/icons";
 import { Empty, hueStyle, LargeTitle, Row, Screen, SectionHeader, Thumb, tileGradient } from "@/components/page";
@@ -17,6 +18,9 @@ import {
   shiftMonth,
 } from "@/lib/workout/dates";
 import { CATEGORY_LABELS } from "@/lib/workout/format";
+
+/** "View summary" sits on the card's colour, so it takes the over-media style; the card itself is the link */
+const veil = buttonLook("veil", "blue", true);
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -164,7 +168,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
             <div className="mt-1 text-[15px] text-white/80">
               {[`${last.exerciseCount} exercises`, minutes(last)].filter(Boolean).join(" · ")}
             </div>
-            <div className="glass mt-5 inline-flex h-11 items-center gap-1 pl-4 pr-3 text-[15px] font-semibold">
+            <div {...veil} className={cn(veil.className, "mt-5 gap-1")}>
               View summary <ChevronRight size={16} />
             </div>
           </Link>

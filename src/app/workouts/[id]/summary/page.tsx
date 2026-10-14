@@ -43,7 +43,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
           <div aria-hidden className="h-11" />
           <div className="mt-10 text-[15px] font-medium text-white/75">{workout.day && dayLabel(workout.day, { year: true })}</div>
           <h1 className="text-[34px] font-bold leading-[41px] tracking-[-0.01em]">{workout.templates?.name ?? "Workout"}</h1>
-          <div data-glass-unit="box" className="mt-4 grid grid-cols-3 gap-2.5">
+          <div className="mt-4 grid grid-cols-3 gap-2.5">
             <Stat label="Time" value={minutes != null ? (minutes < 1 ? "<1m" : `${minutes}m`) : "–"} />
             <Stat label="Sets" value={String(working.length)} />
             <Stat label="Effort" value={workout.perceived_effort ? `${workout.perceived_effort}/10` : "–"} />
@@ -101,7 +101,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="glass flex flex-col items-center py-2.5 [--r:20px]">
+    <div className="flex flex-col items-center rounded-[20px] bg-white/15 py-2.5">
       <span className="tabular text-[22px] font-bold leading-7">{value}</span>
       <span className="text-[11px] font-semibold uppercase tracking-[0.06em] opacity-75">{label}</span>
     </div>

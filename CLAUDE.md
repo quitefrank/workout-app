@@ -425,6 +425,14 @@ Liquid Glass" (219) and "Build a SwiftUI app with the new design"
   applied, so a bar sits on the band it decided from.
 - No per-screen scroll thresholds. A new control or screen gets the
   rule by joining a unit.
+- Liquid Glass is for the navigation and control layer only: the top
+  bar, the tab bar and the resume pill, the active workout's floating
+  bottom bar, the pinned search field. Buttons in the page's content
+  use the standard iOS styles in `src/components/button.tsx` (filled
+  for the view's main action, tinted or gray for the rest; white and
+  a white veil over media), per Apple's HIG ("Don't use Liquid Glass
+  in the content layer") and Frank's call (2026-10-14): glass in
+  scrolling content shows its label and its material moving apart.
 
 In the lab: surfaces with `flip: true` follow the rule; `UNITS.of`
 names each control's unit, `UNITS.band` the band a pinned bar reads,

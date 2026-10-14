@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { getSettings, getTemplate } from "@/lib/data/queries";
 import { CATEGORY_LABELS, EQUIPMENT_LABELS, prescriptionParts } from "@/lib/workout/format";
 import { StartTemplate } from "./start-template";
+import { buttonLook } from "@/components/button";
 
 export default async function TemplatePage({
   params,
@@ -42,7 +43,7 @@ export default async function TemplatePage({
               .join(" · ")}
           </div>
           <h1 className="text-[34px] font-bold leading-[41px] tracking-[-0.01em]">{template.name}</h1>
-          <div data-glass-unit="box" className="mt-5 flex items-center gap-3">
+          <div className="mt-5 flex items-center gap-3">
             <StartTemplate
               templateId={template.id}
               askLocation={hasMachines}
@@ -50,12 +51,7 @@ export default async function TemplatePage({
               autoOpen={start === "1"}
             />
             {template.tutorial_url && (
-              <a
-                href={template.tutorial_url}
-                target="_blank"
-                rel="noreferrer"
-                className="glass flex h-[50px] items-center px-5 text-[17px] font-semibold"
-              >
+              <a href={template.tutorial_url} target="_blank" rel="noreferrer" {...buttonLook("veil")}>
                 Tutorial
               </a>
             )}
