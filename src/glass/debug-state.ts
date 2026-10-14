@@ -5,7 +5,8 @@ export type GlassDebugState = {
   error: string | null;
   adapter: string;
   frames: number;
+  stage: string;
   entries: GlassEntryState[];
 };
 
-export const debugState: GlassDebugState = { phase: "idle", error: null, adapter: "", frames: 0, entries: [] };
+export const debugState: GlassDebugState = { phase: "idle", error: null, adapter: "", frames: 0, stage: "", entries: [] };

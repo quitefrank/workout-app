@@ -41,10 +41,35 @@ export function GlassDebug() {
     >
       {[
         `html.gpu ${gpu}  phase ${s.phase}  frames ${s.frames}`,
-        `adapter ${s.adapter || "?"}`,
+        `adapter ${s.adapter || "?"}  stage ${s.stage || "?"}`,
+        ...geometry(),
         s.error ? `error ${s.error}` : "error none",
         ...s.entries.map((e) => `${e.family} ${e.laidOut ? "on" : "off"} ${e.compile}  ${e.label}`),
       ].join("\n")}
     </pre>
   );
+}
+
+const r = (el: Element | null) => {
+  if (!el) return "none";
+  const b = el.getBoundingClientRect();
+  return `${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}`;
+};
+
+/** Where the browser puts the viewport, the canvas and the pinned bars, to line the glass up on the phone */
+function geometry(): string[] {
+  const vv = window.visualViewport;
+  const canvas = document.querySelector<HTMLCanvasElement>("[data-glass-canvas]");
+  const probe = document.createElement("div");
+  probe.style.cssText = "position:fixed;top:0;left:0;width:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden";
+  document.documentElement.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const safe = `${cs.paddingTop} / ${cs.paddingBottom}`;
+  probe.remove();
+  return [
+    `inner ${window.innerWidth}x${window.innerHeight}  client ${document.documentElement.clientHeight}  screen ${window.screen.height}  scrollY ${Math.round(window.scrollY)}`,
+    `vv ${vv ? `${Math.round(vv.width)}x${Math.round(vv.height)} off ${Math.round(vv.offsetTop)} page ${Math.round(vv.pageTop)} scale ${vv.scale}` : "none"}  safe ${safe}`,
+    `canvas ${r(canvas)} buffer ${canvas?.width}x${canvas?.height}`,
+    `topbar ${r(document.querySelector("[data-glass-unit='top'] .glass"))}  dock ${r(document.querySelector("[data-glass-unit='dock'] .glass"))}`,
+  ];
 }

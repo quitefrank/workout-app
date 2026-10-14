@@ -129,6 +129,7 @@ export function GlassStage() {
         const W = window.innerWidth, H = largeViewportHeight(), dpr = stageDpr();
         size = { W, H, dpr };
         debugState.phase = "init";
+        debugState.stage = `${W}x${H}@${dpr}`;
         canvas.style.width = W + "px"; canvas.style.height = H + "px";
         const s = await startStage({
           THREE, T, canvas, W, H, dpr, bars, sheet, appearance,
