@@ -250,15 +250,16 @@ body {
   overscroll-behavior: none;
 }
 
-/* absolute, as the lab's .screen is: a fixed element always makes a stacking context, which would sink every glass
-   label and live input inside it under the canvas */
+/* absolute, as the lab's .screen is, and nothing that makes a stacking context (fixed, transform, opacity,
+   -webkit-overflow-scrolling): one would sink every glass label and live input inside it under the canvas */
 .app-scroller {
   position: absolute;
   inset: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
+  /* No -webkit-overflow-scrolling: on iOS it makes a stacking context too (MDN), which sank the top bar's icons under
+     the canvas on the phone. iOS has scrolled with momentum without it since iOS 13. */
 }
 
 body {

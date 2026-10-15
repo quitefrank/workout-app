@@ -395,9 +395,10 @@ The window never scrolls, as in the Glass Lab's app mode: `html` and
 with the canvas and the pinned bars over it. iOS's rubber-band bounce
 and its handling of fixed elements during a window scroll otherwise
 move the HTML and the painted glass apart. The scroller is
-`position: absolute`, never `fixed`: a fixed element makes a stacking
-context and would sink every glass label and live input inside it under
-the canvas. Read scroll position with `scrollTop()`, never
+`position: absolute`, never `fixed`, and carries nothing else that makes
+a stacking context (`transform`, `opacity`, `-webkit-overflow-scrolling`,
+which does so on iOS only): one would sink every glass label and live
+input inside it under the canvas. Read scroll position with `scrollTop()`, never
 `window.scrollY`.
 
 Appearance: Settings offers System, Light and Dark, saved per device in
