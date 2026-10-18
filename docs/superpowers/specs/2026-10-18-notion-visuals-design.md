@@ -72,8 +72,9 @@ points:
 
 - Forearms: the Biceps drawing; existing hit cleared, the four forearm
   regions below the elbow crease filled as hit.
-- Neck: the Back drawing; existing hit cleared, the region at the top
-  centre filled as hit.
+- Neck: the Chest drawing; existing hit cleared, the front of the neck
+  (between the two neck lines) filled as hit. The Back drawing's neck
+  region runs into the whole trapezius, so it was dropped.
 - Cardio: the Chest drawing (neck to mid thigh) with every body region
   as hit.
 - Stretches: the Chest drawing with the hit cleared.
