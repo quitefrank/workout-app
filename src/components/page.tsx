@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 import { TopBar } from "./top-bar";
+import { WorkoutIcon } from "./workout-icon";
 
 /**
  * Screen scaffolding: the kit's Large Title toolbar (controls row 44pt
@@ -115,9 +116,13 @@ export function Thumb({ category, label }: { category: string | null | undefined
   return (
     <div
       style={hueStyle(category)}
-      className={cn("grid size-12 shrink-0 place-items-center rounded-[10px] text-[17px] font-bold text-white/95", tileGradient)}
+      className={cn(
+        "flex size-12 shrink-0 flex-col items-center justify-center gap-0.5 rounded-[10px] text-white/95",
+        tileGradient,
+      )}
     >
-      {label}
+      <WorkoutIcon category={category} size={20} />
+      <span className="max-w-full truncate px-1 text-[11px] font-bold leading-none">{label}</span>
     </div>
   );
 }

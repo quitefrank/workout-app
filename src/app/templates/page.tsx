@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { hueStyle, LargeTitle, Row, Screen, SectionHeader, Thumb, tileGradient } from "@/components/page";
+import { WorkoutIcon } from "@/components/workout-icon";
 import { cn } from "@/lib/cn";
 import {
   getActiveProgramId,
@@ -97,7 +98,8 @@ function Tiles({ items, weeks }: { items: (TemplateSummary & Partial<ProgramTemp
           )}
         >
           <span className="absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.55),transparent_60%)]" />
-          <span className="absolute left-2.5 top-2.5 right-2.5 text-[15px] font-semibold leading-tight">{t.name}</span>
+          <span className="absolute left-2.5 top-2.5 right-9 text-[15px] font-semibold leading-tight">{t.name}</span>
+          <WorkoutIcon category={t.category} size={18} className="absolute right-2.5 top-2.5 text-white/90" />
           <span className="absolute bottom-1 left-2.5 text-[56px] font-extrabold leading-none tracking-[-0.04em] [text-shadow:0_2px_12px_rgba(0,0,0,0.4)]">
             {tileLabel(t.variant ?? t.name.slice(0, 1))}
           </span>
