@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { SearchIcon, XIcon } from "@/components/icons";
+import { FigureIcon, SearchIcon, XIcon } from "@/components/icons";
 import { Empty, Row } from "@/components/page";
 import { cn } from "@/lib/cn";
 import { displayWeight, EQUIPMENT_LABELS, type EquipmentType, type WeightUnit } from "@/lib/workout/format";
@@ -88,7 +88,17 @@ export function ExerciseLibrary({
                     {i.location && <span className="text-ink-2"> {i.location === "upstairs" ? "↑" : "↓"}</span>}
                   </>
                 }
-                subtitle={[i.group, EQUIPMENT_LABELS[i.equipment]].filter(Boolean).join(" · ")}
+                subtitle={
+                  <>
+                    {i.group && (
+                      <>
+                        <FigureIcon size={13} className="mr-1 inline align-[-2px] opacity-70" />
+                        {i.group} ·{" "}
+                      </>
+                    )}
+                    {EQUIPMENT_LABELS[i.equipment]}
+                  </>
+                }
                 value={i.last ? `${displayWeight(i.last.weight, i.equipment, unit) || "BW"} × ${i.last.reps}` : undefined}
                 chevron
               />

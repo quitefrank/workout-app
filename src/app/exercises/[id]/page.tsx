@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GlassCircleLink } from "@/components/glass";
-import { ChevronLeft, TrophyIcon } from "@/components/icons";
+import { ChevronLeft, FigureIcon, TrophyIcon } from "@/components/icons";
 import { LargeTitle, Row, Screen, SectionHeader } from "@/components/page";
 import { getExercise, getSettings, getTopSets } from "@/lib/data/queries";
 import { dayLabel, localDate } from "@/lib/workout/dates";
@@ -23,13 +23,22 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
     <Screen>
       <LargeTitle
         title={exercise.name}
-        subtitle={[
-          exercise.muscle_groups?.name,
-          EQUIPMENT_LABELS[exercise.equipment_type],
-          exercise.machine_location && (exercise.machine_location === "upstairs" ? "Upstairs" : "Downstairs"),
-        ]
-          .filter(Boolean)
-          .join(" · ")}
+        subtitle={
+          <>
+            {exercise.muscle_groups?.name && (
+              <>
+                <FigureIcon size={14} className="mr-1 inline align-[-2px] opacity-70" />
+                {exercise.muscle_groups.name} ·{" "}
+              </>
+            )}
+            {[
+              EQUIPMENT_LABELS[exercise.equipment_type],
+              exercise.machine_location && (exercise.machine_location === "upstairs" ? "Upstairs" : "Downstairs"),
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+          </>
+        }
         leading={
           <GlassCircleLink href="/exercises" label="Back to library">
             <ChevronLeft size={20} />
