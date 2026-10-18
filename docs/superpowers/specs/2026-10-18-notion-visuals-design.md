@@ -55,7 +55,8 @@ card.
 2. Splits each PNG into three binary layers by nearest tone (outline,
    body, hit); transparent pixels belong to none.
 3. Traces each layer with the `potrace` npm package (dev dependency).
-4. Writes `src/components/muscle-art/paths.ts`, generated and
+4. Derives the four groups without a drawing (see New art).
+5. Writes `src/components/muscle-art/paths.ts`, generated and
    committed: `{ [slug]: { viewBox, line, body, hit } }` with SVG path
    data. A header comment says it is generated and how to rerun it.
 
@@ -64,14 +65,21 @@ with tests.
 
 ### New art
 
-Drawn by hand in the same three layers, in
-`src/components/muscle-art/drawn.ts`, built on the traced shapes:
+Derived in the same script from Frank's drawings, so the style matches
+exactly. A derivation names a base drawing and recolours its regions
+(areas of body tone enclosed by outline) by flood fill from seed
+points:
 
-- Forearms: the Biceps front body with the forearms as the hit layer.
-- Neck: the Back torso with the neck as the hit layer.
-- Cardio: a full front figure, the Chest torso over the Quadriceps
-  legs, every muscle in the hit layer.
-- Stretches: the same figure, hit layer empty.
+- Forearms: the Biceps drawing; existing hit cleared, the four forearm
+  regions below the elbow crease filled as hit.
+- Neck: the Back drawing; existing hit cleared, the region at the top
+  centre filled as hit.
+- Cardio: the Chest drawing (neck to mid thigh) with every body region
+  as hit.
+- Stretches: the Chest drawing with the hit cleared.
+
+Seeds are checked against a rendered preview before the paths are
+committed.
 
 ### Component
 
@@ -106,8 +114,14 @@ Placement:
 - Workout type: `workoutIcon(category)` in `src/lib/workout/icons.ts`,
   pure and tested. push hand, pull dumbbell, legs pants, full_body
   figure, cardio shoe, abs shirt, arms dumbbell, rehab figure, null
-  dumbbell. Shown before the workout or template name on Calendar,
-  History, Templates and Up Next.
+  dumbbell. Shown in `Thumb`, the gradient tile that leads every
+  workout and template row (Calendar, History, Up Next, Start a
+  workout, program pages): the icon over the variant label. The tall
+  template tiles on Templates show it top right.
+- The muscle art is rendered by the server page and passed to the
+  client Library as nodes, so the path data never ships as JS.
+- Icons that carry meaning (the prescription labels) get `role="img"`
+  and an `aria-label`, so VoiceOver reads "3 sets" rather than "3".
 - Muscle label: figure icon before the group name on Library rows and
   on the exercise detail page.
 
