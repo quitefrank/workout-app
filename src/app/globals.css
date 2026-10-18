@@ -34,6 +34,12 @@
   --red: #ff3b30;
   --green: #34c759;
   --orange: #ff9500;
+
+  /* Muscle diagrams, Notion's tones: outline, body, the worked muscle, and the tile behind them */
+  --muscle-line: #454545;
+  --muscle-body: #b1b1b1;
+  --muscle-hit: #ffffff;
+  --muscle-tile: #ffffff;
   --seg-on: #ffffff;
   --seg-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
 
@@ -121,6 +127,10 @@
     --red: #ff453a;
     --green: #30d158;
     --orange: #ff9f0a;
+    --muscle-line: #d1d1d6;
+    --muscle-body: #48484a;
+    --muscle-hit: #ffffff;
+    --muscle-tile: #1c1c1e;
     --seg-on: #636366;
     --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
 
@@ -148,6 +158,10 @@
   --red: #ff453a;
   --green: #30d158;
   --orange: #ff9f0a;
+  --muscle-line: #d1d1d6;
+  --muscle-body: #48484a;
+  --muscle-hit: #ffffff;
+  --muscle-tile: #1c1c1e;
   --seg-on: #636366;
   --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
 
