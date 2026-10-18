@@ -70,13 +70,13 @@ export function ExerciseLibrary({
               aria-pressed={on}
               onClick={() => setGroup(on ? null : g.id)}
               className={cn(
-                "overflow-hidden rounded-[18px] bg-card text-left transition-shadow active:opacity-80",
+                "overflow-hidden rounded-[18px] bg-card text-left ring-1 ring-[var(--sep)] transition-shadow active:opacity-80",
                 on && "ring-2 ring-blue",
               )}
             >
               <div className="aspect-square bg-[var(--muscle-tile)] p-2">{g.art}</div>
-              <div className="flex items-center gap-1.5 px-2.5 py-2 text-[15px] font-medium leading-5">
-                <FigureIcon size={15} className="shrink-0 opacity-60" />
+              <div className="flex items-center gap-1 px-2 py-2 text-[13px] font-semibold leading-[18px]">
+                <FigureIcon size={13} className="shrink-0 opacity-60" />
                 <span className="truncate">{g.name}</span>
               </div>
             </button>

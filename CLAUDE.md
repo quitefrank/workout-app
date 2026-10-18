@@ -22,6 +22,7 @@ bun run convert:powerbuilding   # Powerbuilding 4x dump -> program JSON (gitigno
 bun run convert:arm      # Arm Hypertrophy dump -> program JSON (gitignored)
 bun run seed:programs    # Every program JSON -> programs, phases, templates
 bun run icons:generate   # Re-render placeholder PWA icons
+bun run art:muscles      # Notion muscle diagrams -> src/components/muscle-art/paths.ts
 supabase db push         # Apply migrations to linked cloud project
 ```
 
@@ -176,7 +177,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 400 tests across 31 files.
+Run `bun run test` to exercise them. 416 tests across 35 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -436,6 +437,18 @@ a stacking context (`transform`, `opacity`, `-webkit-overflow-scrolling`,
 which does so on iOS only): one would sink every glass label and live
 input inside it under the canvas. Read scroll position with `scrollTop()`, never
 `window.scrollY`.
+
+Muscle art: Frank's Notion Muscle Groups covers, traced by
+`scripts/trace-muscle-art.ts` into `src/components/muscle-art/paths.ts`
+(generated, committed; downloads and `preview.png` gitignored in
+`scripts/data/muscles/`). Forearms, Neck, Cardio and Stretches have no
+drawing of their own and are derived from his by flood fill
+(`scripts/lib/muscle-tones.ts`). `<MuscleArt>` fills the paths from the
+`--muscle-*` tokens and renders on the server, so the path data never
+ships as JS. Library shows the groups as a card grid that filters the
+list. The icons beside prescriptions (warm-up, sets, reps, rest), on
+workout thumbs by category (`src/lib/workout/icons.ts`) and before
+muscle group names are Notion's, redrawn in `icons.tsx`.
 
 Appearance: Settings offers System, Light and Dark, saved per device in
 the `theme` cookie. The layout writes it onto `<html data-theme>` (and
