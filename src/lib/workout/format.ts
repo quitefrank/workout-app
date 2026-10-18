@@ -115,6 +115,31 @@ export function prescriptionParts(p: Prescription): string[] {
   return parts;
 }
 
+/** One column of Notion's Sessions table, as the app shows it: the value, and what it means for VoiceOver. */
+export type PrescriptionFact = {
+  kind: "warm" | "sets" | "reps" | "time" | "rir" | "rpe" | "rest";
+  text: string;
+  label: string;
+};
+
+export function prescriptionFacts(p: Prescription): PrescriptionFact[] {
+  const facts: PrescriptionFact[] = [];
+  const warm = range(p.warm_up_sets_min, p.warm_up_sets_max);
+  if (warm && warm !== "0") facts.push({ kind: "warm", text: warm, label: `${warm} warm-up` });
+  const sets = range(p.prescribed_sets_min, p.prescribed_sets_max);
+  if (sets) facts.push({ kind: "sets", text: sets, label: `${sets} ${sets === "1" ? "set" : "sets"}` });
+  const reps = range(p.prescribed_reps_min, p.prescribed_reps_max);
+  const secs = range(p.prescribed_seconds_min, p.prescribed_seconds_max);
+  const rir = range(p.prescribed_rir_min, p.prescribed_rir_max);
+  if (reps) facts.push({ kind: "reps", text: reps, label: `${reps} reps` });
+  else if (secs) facts.push({ kind: "time", text: `${secs} s`, label: `${secs} s hold` });
+  else if (rir) facts.push({ kind: "rir", text: `RIR ${rir}`, label: `RIR ${rir}` });
+  if (p.prescribed_rpe) facts.push({ kind: "rpe", text: `RPE ${p.prescribed_rpe}`, label: `RPE ${p.prescribed_rpe}` });
+  const rest = formatRest(p.prescribed_rest_seconds);
+  if (rest) facts.push({ kind: "rest", text: rest, label: `${rest} rest` });
+  return facts;
+}
+
 /** Epley, as the analytics view computes it. */
 export function epley(weight: number, reps: number): number {
   return Math.round(weight * (1 + reps / 30) * 100) / 100;
