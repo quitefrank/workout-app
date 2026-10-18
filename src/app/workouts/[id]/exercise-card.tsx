@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useOptimistic, useState, useTransition } from "react";
+import { type ReactNode, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteSet, logSet, quickLog, updateSet } from "@/app/actions";
-import { CheckIcon, ChevronDown, PencilIcon, PlusIcon, TrashIcon, XIcon } from "@/components/icons";
+import { CheckIcon, ChevronDown, DumbbellIcon, HashIcon, PencilIcon, PlusIcon, TrashIcon, XIcon } from "@/components/icons";
+import { PrescriptionLine } from "@/components/prescription-line";
 import { Sheet } from "@/components/sheet";
 import { cn } from "@/lib/cn";
 import type { LastTime, SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
@@ -13,7 +14,6 @@ import {
   displayWeight,
   formatNumber,
   isRawReading,
-  prescriptionParts,
   range,
   setsToCsv,
   type WeightUnit,
@@ -100,8 +100,6 @@ export function ExerciseCard({
     });
   };
 
-  const prescription = prescriptionParts(we);
-
   return (
     <section className={cn("overflow-hidden rounded-[26px] bg-card transition-colors", done && !expanded && "opacity-80")}>
       <button type="button" onClick={onToggle} aria-expanded={expanded} className="flex w-full items-center gap-3 px-4 py-3 text-left">
@@ -122,7 +120,9 @@ export function ExerciseCard({
               </span>
             )}
           </span>
-          <span className="block truncate text-[15px] leading-5 text-ink-2">{prescription.join(" · ") || "No prescription"}</span>
+          <span className="block truncate text-[15px] leading-5 text-ink-2">
+            <PrescriptionLine p={we} empty="No prescription" />
+          </span>
         </span>
         <span className="tabular shrink-0 text-[15px] text-ink-2">
           {working.length}
@@ -156,14 +156,14 @@ export function ExerciseCard({
             className="flex items-stretch gap-2"
           >
             <NumberField
-              label={raw ? "Weight" : unit}
+              label={<><DumbbellIcon size={12} />{raw ? "Weight" : unit}</>}
               value={weight}
               onChange={setWeight}
               placeholder={formatNumber(lastSet?.weight ?? nextFromLastTime?.weight) || "0"}
               decimal
             />
             <NumberField
-              label="Reps"
+              label={<><HashIcon size={12} />Reps</>}
               value={reps}
               onChange={setReps}
               placeholder={
@@ -224,7 +224,7 @@ function NumberField({
   placeholder,
   decimal,
 }: {
-  label: string;
+  label: ReactNode;
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
@@ -232,7 +232,7 @@ function NumberField({
 }) {
   return (
     <label className="flex min-w-0 flex-1 flex-col rounded-2xl bg-fill px-3 py-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-2">{label}</span>
+      <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-ink-2">{label}</span>
       <input
         data-live
         type="number"

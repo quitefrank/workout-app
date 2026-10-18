@@ -7,7 +7,8 @@ import { hueStyle, Row, Screen, SectionHeader, tileGradient } from "@/components
 import { cn } from "@/lib/cn";
 import { getSettings, getTemplate, getTemplateContext } from "@/lib/data/queries";
 import { weeksLabel } from "@/lib/programs/label";
-import { CATEGORY_LABELS, EQUIPMENT_LABELS, prescriptionParts } from "@/lib/workout/format";
+import { PrescriptionLine } from "@/components/prescription-line";
+import { CATEGORY_LABELS, EQUIPMENT_LABELS, prescriptionFacts } from "@/lib/workout/format";
 import { StartTemplate } from "./start-template";
 import { buttonLook } from "@/components/button";
 
@@ -115,9 +116,24 @@ export default async function TemplatePage({
                   </>
                 }
                 subtitle={
-                  [prescriptionParts(r).join(" · "), r.exercises.machine_location && cap(r.exercises.machine_location)]
-                    .filter(Boolean)
-                    .join(" · ") || (template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type])
+                  <>
+                    <PrescriptionLine
+                      p={r}
+                      empty={
+                        r.exercises.machine_location
+                          ? null
+                          : template.category === "rehab"
+                            ? "No dose given"
+                            : EQUIPMENT_LABELS[r.exercises.equipment_type]
+                      }
+                    />
+                    {r.exercises.machine_location && (
+                      <span>
+                        {prescriptionFacts(r).length > 0 ? " · " : ""}
+                        {cap(r.exercises.machine_location)}
+                      </span>
+                    )}
+                  </>
                 }
                 chevron
               />
