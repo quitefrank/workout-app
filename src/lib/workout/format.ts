@@ -135,9 +135,10 @@ export const CATEGORY_LABELS: Record<string, string> = {
   full_body: "Full Body",
   cardio: "Cardio",
   abs: "Abs",
+  rehab: "Rehab",
 };
 
-export const CATEGORY_ORDER = ["push", "pull", "legs", "arms", "full_body", "abs", "cardio"];
+export const CATEGORY_ORDER = ["push", "pull", "legs", "arms", "full_body", "abs", "cardio", "rehab"];
 
 export const EQUIPMENT_LABELS: Record<EquipmentType, string> = {
   barbell: "Barbell",

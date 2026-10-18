@@ -101,8 +101,10 @@ export type OverrideSeed = {
 
 export type TemplateExerciseSeed = {
   slug: string;
-  /** A parseDose string: "3 x 10-12", "4 x RIR 1-2", "3 x 20-40 sec each side". */
-  dose: string;
+  /** A parseDose string: "3 x 10-12", "4 x RIR 1-2", "3 x 20-40 sec each side", "45-60 sec". Null when the source gives no dose; the row is written with an empty prescription rather than a typical number. */
+  dose: string | null;
+  /** Set type or level label, written to template_exercises.variant. */
+  variant?: string | null;
   cue: string | null;
   /** Present only when the row knowingly breaks a rule. */
   override: OverrideSeed | null;
@@ -110,7 +112,11 @@ export type TemplateExerciseSeed = {
 
 export type TemplateSeed = {
   name: string;
-  category: "push" | "pull" | "legs" | "arms" | "full_body" | "cardio" | "abs";
+  /** The source the template's content comes from, by key in sources.ts. */
+  sourceKey: string | null;
+  /** Null when the content comes from the treating clinicians or the handout. Otherwise what needs the physio's sign-off before use, shown on the template. */
+  needsSignoff: string | null;
+  category: "push" | "pull" | "legs" | "arms" | "full_body" | "cardio" | "abs" | "rehab";
   variant: string | null;
   notes: string;
   /** How this template is spaced from others sharing a capped exercise. */

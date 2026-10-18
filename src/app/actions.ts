@@ -294,3 +294,40 @@ export async function saveSettings(input: {
   fail(error);
   revalidatePath("/", "layout");
 }
+
+// ------------------------------------------------------------
+// Programmes
+// ------------------------------------------------------------
+
+/** Follow a programme, or stop following with null. A new programme starts with the phase worked out, not set by hand. */
+export async function followProgram(programId: string | null): Promise<void> {
+  if (programId) {
+    const { data, error } = await db().from("programs").select("id").eq("id", programId).maybeSingle();
+    fail(error);
+    if (!data) throw new Error("No such programme.");
+  }
+  const { error } = await db()
+    .from("user_settings")
+    .upsert({ user_id: userId(), active_program_id: programId, program_phase_position: null });
+  fail(error);
+  revalidatePath("/", "layout");
+}
+
+/** Set the phase of the programme you follow by hand, or hand it back to the app with null. */
+export async function setProgramPhase(programId: string, position: number | null): Promise<void> {
+  if (position !== null) {
+    const { data, error } = await db()
+      .from("program_phases")
+      .select("id")
+      .eq("program_id", programId)
+      .eq("position", position)
+      .maybeSingle();
+    fail(error);
+    if (!data) throw new Error("No such phase.");
+  }
+  const { error } = await db()
+    .from("user_settings")
+    .upsert({ user_id: userId(), active_program_id: programId, program_phase_position: position });
+  fail(error);
+  revalidatePath("/", "layout");
+}

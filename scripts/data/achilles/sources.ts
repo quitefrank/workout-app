@@ -28,6 +28,27 @@ export const SOURCES: SourceSeed[] = [
       "Transcribed from photographs of the printed handout. Weeks count from day 0, the injury date, which the appendix footnote establishes for the non-operative group. Phases are stored exactly as printed.",
   },
   {
+    key: "physio-sheet",
+    citation:
+      "Physiotherapist's handwritten exercise sheet for the boot-weaning stage, six numbered exercises with doses.",
+    url: null,
+    kind: "handout",
+    quality:
+      "The prescription for its stage, from the physiotherapist who examined the tendon. Governs over the handout for the exercises it names; the treating surgeon governs over it.",
+    notes:
+      "Doses are as written, blank where the sheet gives none. It gives no frequency and no set counts for items 2 to 6. The resistance band in the same template comes from the handout, not the sheet.",
+  },
+  {
+    key: "e3rehab",
+    citation: "E3 Rehab. Achilles Tendon Rupture Rehab. Article and companion video.",
+    url: "https://e3rehab.com/achilles-tendon-rupture-rehab/",
+    kind: "convention",
+    quality:
+      "clinician-authored public guide, not peer-reviewed; cites a 2022 multicentre randomised trial, a 2019 meta-analysis and the University of Delaware protocol; written for operative and non-operative care together",
+    notes:
+      "Five overlapping phases with week anchors only at week 2, weeks 6 to 8, about month 3 and week 12. Outside the authority chain: every template built from it says what needs the physio's sign-off, and where it disagrees with the handout (deficit heel raises past neutral, squats in weeks 12 to 16, band work before weeks 6 to 8, jumping before the 100% gate) the handout governs. Its video covers the whole article, so no clip is attached to any one exercise.",
+  },
+  {
     key: "willits",
     citation:
       "Willits K, Amendola A, Bryant D, et al. Operative versus nonoperative treatment of acute Achilles tendon ruptures: a multicenter randomized trial using accelerated functional rehabilitation. J Bone Joint Surg Am. 2010;92(17):2767-2775.",

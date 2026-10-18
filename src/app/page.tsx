@@ -5,7 +5,9 @@ import { ChevronLeft, ChevronRight, GearIcon, ListIcon } from "@/components/icon
 import { Empty, hueStyle, LargeTitle, Row, Screen, SectionHeader, Thumb, tileGradient } from "@/components/page";
 import { StartWorkout } from "@/components/start-workout";
 import { cn } from "@/lib/cn";
-import { getLastCompleted, getMonthWorkouts, listTemplates, type WorkoutListItem } from "@/lib/data/queries";
+import { getActiveProgramId, getLastCompleted, getMonthWorkouts, getProgram, listTemplates, type WorkoutListItem } from "@/lib/data/queries";
+import { weeksLabel } from "@/lib/programs/label";
+import { programToday } from "@/lib/programs/today";
 import { timeZone } from "@/lib/supabase/server";
 import {
   dayLabel,
@@ -30,7 +32,31 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const ym = parseYearMonth(params.m) ?? parseYearMonth(today.slice(0, 7))!;
   const selected = params.d && /^\d{4}-\d{2}-\d{2}$/.test(params.d) ? params.d : today;
 
-  const [workouts, last, templates] = await Promise.all([getMonthWorkouts(ym), getLastCompleted(), listTemplates()]);
+  const [workouts, last, templates, activeId] = await Promise.all([
+    getMonthWorkouts(ym),
+    getLastCompleted(),
+    listTemplates(),
+    getActiveProgramId(),
+  ]);
+  const program = activeId ? await getProgram(activeId) : null;
+  const upNext = program
+    ? programToday({
+        kind: program.kind,
+        phases: program.phases.map((p) => ({ id: p.id, position: p.position, weekFrom: p.week_from, weekTo: p.week_to, templates: p.templates })),
+        completions: program.completions,
+        today,
+        injuryDate: program.recovery?.injuryDate ?? null,
+        clearances: program.clearances,
+        chosenPosition: program.chosenPhasePosition,
+      })
+    : null;
+  const upPhase = program?.phases.find((p) => p.id === upNext?.inForce.phase?.id) ?? null;
+  // The programme's own rows carry the variant and the sign-off note the pure model does not need.
+  const rowOf = new Map(program?.phases.flatMap((p) => p.templates.map((t) => [t.id, t] as const)) ?? []);
+  const upTemplates = (upNext ? [...(upNext.kind === "recovery" ? upNext.rehab : []), ...(upNext.next ? [upNext.next] : [])] : [])
+    .map((t) => rowOf.get(t.id))
+    .filter((t) => t !== undefined);
+  const doneToday = new Set(workouts.filter((w) => w.completedAt && w.day === today && w.templateId).map((w) => w.templateId!));
   const byDay = new Map<string, WorkoutListItem[]>();
   for (const w of workouts) byDay.set(w.day, [...(byDay.get(w.day) ?? []), w]);
   const selectedWorkouts = byDay.get(selected) ?? [];
@@ -126,6 +152,44 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       <div className="mt-5 px-4">
         <StartWorkout templates={templates} />
       </div>
+
+      {program && upNext && (
+        <>
+          <SectionHeader title="Up Next" trailing={<Link href={`/programs/${program.id}`}>Programme</Link>} />
+          <div className="grouped mx-4">
+            <Link href={`/programs/${program.id}`} className="block active:bg-fill">
+              <Row
+                title={program.recovery?.label ?? program.name}
+                subtitle={
+                  upPhase
+                    ? upNext.kind === "recovery"
+                      ? `${upNext.day !== null ? `Day ${upNext.day} · ` : ""}Phase ${upPhase.position}, ${upPhase.label} · ${weeksLabel(upPhase.week_from, upPhase.week_to)}`
+                      : [upPhase.label, upPhase.block].filter(Boolean).join(" · ")
+                    : upNext.kind === "training" && upNext.finished
+                      ? "Programme finished"
+                      : undefined
+                }
+                chevron
+              />
+            </Link>
+            {upTemplates.map((t) => (
+              <Link key={t.id} href={`/templates/${t.id}`} className="block active:bg-fill">
+                <Row
+                  leading={<Thumb category={t.category} label={t.variant ?? t.name.slice(0, 1)} />}
+                  title={t.name}
+                  subtitle={[
+                    doneToday.has(t.id) ? "Done today" : t.category === "rehab" ? "Rehab" : "Next in the rotation",
+                    t.needs_signoff && "Needs physio sign-off",
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  chevron
+                />
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
 
       <SectionHeader title={selected === today ? "Today" : dayLabel(selected)} />
       {selectedWorkouts.length ? (

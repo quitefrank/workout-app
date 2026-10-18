@@ -5,7 +5,8 @@ import { TopBar } from "@/components/top-bar";
 import { ChevronLeft } from "@/components/icons";
 import { hueStyle, Row, Screen, SectionHeader, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
-import { getSettings, getTemplate } from "@/lib/data/queries";
+import { getSettings, getTemplate, getTemplateContext } from "@/lib/data/queries";
+import { weeksLabel } from "@/lib/programs/label";
 import { CATEGORY_LABELS, EQUIPMENT_LABELS, prescriptionParts } from "@/lib/workout/format";
 import { StartTemplate } from "./start-template";
 import { buttonLook } from "@/components/button";
@@ -18,7 +19,7 @@ export default async function TemplatePage({
   searchParams: Promise<{ start?: string }>;
 }) {
   const [{ id }, { start }] = await Promise.all([params, searchParams]);
-  const [template, settings] = await Promise.all([getTemplate(id), getSettings()]);
+  const [template, settings, context] = await Promise.all([getTemplate(id), getSettings(), getTemplateContext(id)]);
   if (!template) notFound();
   const hasMachines = template.rows.some((r) => r.exercises.machine_location);
 
@@ -28,7 +29,7 @@ export default async function TemplatePage({
         edge="dim"
         spacer={false}
         leading={
-          <GlassCircleLink href="/templates" label="Back">
+          <GlassCircleLink href={context.program ? `/programs/${context.program.id}` : "/templates"} label="Back">
             <ChevronLeft size={20} />
           </GlassCircleLink>
         }
@@ -60,7 +61,47 @@ export default async function TemplatePage({
       </div>
 
       <div className="mx-auto max-w-[640px]">
-        {template.notes && <p className="px-4 pt-4 text-[15px] text-ink-2">{template.notes}</p>}
+        {context.needsSignoff && (
+          <p className="mx-4 mt-4 rounded-2xl bg-fill px-3 py-2.5 text-[15px] leading-5">
+            <span className="font-semibold">Needs physio sign-off. </span>
+            {context.needsSignoff}
+          </p>
+        )}
+        {template.notes &&
+          template.notes.split("\n\n").map((para) => (
+            <p key={para} className="px-4 pt-4 text-[15px] text-ink-2">
+              {para}
+            </p>
+          ))}
+        {(context.phases.length > 0 || context.source) && (
+          <div className="px-4 pt-3 text-[13px] leading-[18px] text-ink-2">
+            {context.phases.length > 0 && (
+              <p>
+                {context.program?.kind === "recovery" ? "Runs in" : "Part of"}{" "}
+                {context.program && (
+                  <Link href={`/programs/${context.program.id}`} className="text-blue">
+                    {context.program.kind === "recovery" ? "phase" : context.program.name}
+                  </Link>
+                )}{" "}
+                {context.program?.kind === "recovery"
+                  ? context.phases.map((p) => `${p.position} (${p.label}, ${weeksLabel(p.week_from, p.week_to).toLowerCase()})`).join(", ")
+                  : ""}
+              </p>
+            )}
+            {context.source && (
+              <p className="mt-1">
+                Source:{" "}
+                {context.source.url ? (
+                  <a href={context.source.url} target="_blank" rel="noreferrer" className="text-blue">
+                    {context.source.citation}
+                  </a>
+                ) : (
+                  context.source.citation
+                )}
+              </p>
+            )}
+          </div>
+        )}
         <SectionHeader title={`${template.rows.length} Exercises`} />
         <div className="grouped mx-4">
           {template.rows.map((r, i) => (
@@ -76,7 +117,7 @@ export default async function TemplatePage({
                 subtitle={
                   [prescriptionParts(r).join(" · "), r.exercises.machine_location && cap(r.exercises.machine_location)]
                     .filter(Boolean)
-                    .join(" · ") || EQUIPMENT_LABELS[r.exercises.equipment_type]
+                    .join(" · ") || (template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type])
                 }
                 chevron
               />

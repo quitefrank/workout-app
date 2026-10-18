@@ -814,8 +814,10 @@ export type Database = {
           estimated_minutes: number | null
           id: string
           name: string
+          needs_signoff: string | null
           notes: string | null
           program_id: string | null
+          source_id: string | null
           tutorial_url: string | null
           updated_at: string
           variant: string | null
@@ -827,8 +829,10 @@ export type Database = {
           estimated_minutes?: number | null
           id?: string
           name: string
+          needs_signoff?: string | null
           notes?: string | null
           program_id?: string | null
+          source_id?: string | null
           tutorial_url?: string | null
           updated_at?: string
           variant?: string | null
@@ -840,8 +844,10 @@ export type Database = {
           estimated_minutes?: number | null
           id?: string
           name?: string
+          needs_signoff?: string | null
           notes?: string | null
           program_id?: string | null
+          source_id?: string | null
           tutorial_url?: string | null
           updated_at?: string
           variant?: string | null
@@ -858,11 +864,13 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          active_program_id: string | null
           created_at: string
           default_machine_location:
             | Database["public"]["Enums"]["machine_location"]
             | null
           default_rest_seconds: number
+          program_phase_position: number | null
           equipment_available:
             | Database["public"]["Enums"]["equipment_item"][]
             | null
@@ -871,11 +879,13 @@ export type Database = {
           weight_unit: Database["public"]["Enums"]["weight_unit"]
         }
         Insert: {
+          active_program_id?: string | null
           created_at?: string
           default_machine_location?:
             | Database["public"]["Enums"]["machine_location"]
             | null
           default_rest_seconds?: number
+          program_phase_position?: number | null
           equipment_available?:
             | Database["public"]["Enums"]["equipment_item"][]
             | null
@@ -884,11 +894,13 @@ export type Database = {
           weight_unit?: Database["public"]["Enums"]["weight_unit"]
         }
         Update: {
+          active_program_id?: string | null
           created_at?: string
           default_machine_location?:
             | Database["public"]["Enums"]["machine_location"]
             | null
           default_rest_seconds?: number
+          program_phase_position?: number | null
           equipment_available?:
             | Database["public"]["Enums"]["equipment_item"][]
             | null
@@ -1226,6 +1238,7 @@ export type Database = {
         | "full_body"
         | "cardio"
         | "abs"
+        | "rehab"
       weight_unit: "lbs" | "kg"
     }
     CompositeTypes: {
@@ -1431,6 +1444,7 @@ export const Constants = {
         "full_body",
         "cardio",
         "abs",
+        "rehab",
       ],
       weight_unit: ["lbs", "kg"],
     },

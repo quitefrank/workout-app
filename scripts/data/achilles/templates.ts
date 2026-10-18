@@ -26,14 +26,17 @@
  * moves to a training programme.
  */
 
+import { REHAB_TEMPLATES } from "./rehab-templates";
 import type { TemplateSeed } from "./types";
 
 const RULE_1_HANDOUT =
   "Protected weight-bearing in the boot at the cleared percentage is what the handout permits from week 2";
 
-export const TEMPLATES: TemplateSeed[] = [
+const BOOT_TEMPLATES: TemplateSeed[] = [
   {
     name: "Recovery Legs",
+    sourceKey: "physio416",
+    needsSignoff: null,
     category: "legs",
     variant: null,
     notes:
@@ -108,6 +111,8 @@ export const TEMPLATES: TemplateSeed[] = [
   },
   {
     name: "Recovery Push",
+    sourceKey: "physio416",
+    needsSignoff: null,
     category: "push",
     variant: null,
     notes:
@@ -167,6 +172,8 @@ export const TEMPLATES: TemplateSeed[] = [
   },
   {
     name: "Recovery Pull",
+    sourceKey: "physio416",
+    needsSignoff: null,
     category: "pull",
     variant: null,
     notes:
@@ -213,3 +220,6 @@ export const TEMPLATES: TemplateSeed[] = [
     ],
   },
 ];
+
+/** The strength days in the boot, then the rehab templates by phase (rehab-templates.ts). */
+export const TEMPLATES: TemplateSeed[] = [...BOOT_TEMPLATES, ...REHAB_TEMPLATES];

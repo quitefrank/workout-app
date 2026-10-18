@@ -18,6 +18,7 @@
  * block.
  */
 
+import { REHAB_EXERCISES } from "./rehab-exercises";
 import type { ExerciseSeed } from "./types";
 
 const PHYSIO_416_CREDIT =
@@ -27,7 +28,7 @@ function vimeo(id: string, hash: string): string {
   return `https://player.vimeo.com/video/${id}?h=${hash}`;
 }
 
-export const EXERCISES: ExerciseSeed[] = [
+const BOOT_EXERCISES: ExerciseSeed[] = [
   // ------------------------------------------------------------------
   // 416 Physio article rows (13). The bike is dropped: neither building
   // bike has a boot rest and both need a leg swung over the frame.
@@ -1014,3 +1015,6 @@ export const EXERCISES: ExerciseSeed[] = [
     alternates: [],
   },
 ];
+
+/** The strength work in the boot, then the rehab work (rehab-exercises.ts). */
+export const EXERCISES: ExerciseSeed[] = [...BOOT_EXERCISES, ...REHAB_EXERCISES];

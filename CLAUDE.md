@@ -176,7 +176,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 373 tests across 29 files.
+Run `bun run test` to exercise them. 400 tests across 31 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -336,6 +336,42 @@ testing, nutrition) and stays a reference. `nippard-ultimate-ppl-4x.xlsx`
 still goes through `convert:ppl`. The same seed loads all four JSONs
 without changes.
 
+## Rehab templates and following a programme
+
+The recovery programme carries rehab templates (category `rehab`, from
+migration 0008) beside its Push, Pull and Legs: one set per handout
+phase, in `scripts/data/achilles/rehab-templates.ts` with their
+exercises in `rehab-exercises.ts`. Authority order: treating surgeon,
+physio, clinic handout, Willits Table E-1, anything else.
+
+- Clinic templates (`needs_signoff` null): "Achilles Rehab, Weeks 2-6"
+  and "Weeks 6-8" from the handout, and "Weeks 8-12", the physio's sheet
+  exactly (seven exercises, doses as written, null where it gives none,
+  nothing added; a test pins it). It runs in phases 7 and 8 until the
+  physio changes it.
+- E3 Rehab templates (phases 1 to 5, running, strength tests) carry
+  `needs_signoff` text and a cue on every row where E3 disagrees with
+  the handout. The handout governs. Never merge E3 rows into a clinic
+  template.
+- A null dose in the seed writes an empty prescription. Never fill one
+  in from another protocol. `parseDose` reads a hold with no set count
+  ("45-60 sec") with `sets` null.
+- `templates.source_id` and `templates.needs_signoff` say where a
+  template comes from and what to ask before using it.
+
+Following: `user_settings.active_program_id` is the programme you
+follow and `program_phase_position` a phase set by hand.
+`src/lib/programs/` (pure, tested) works out today: a recovery phase
+comes from the hand-set phase, else the clearance log while it is not
+stale, else the calendar from day 0, and the screen also names the
+phase a week behind when that differs. Rehab templates are listed every
+day and never scheduled (no source gives a frequency); the other
+templates in the phase rotate after the last one completed. A training
+programme runs its days in sequence after the last completed day.
+
+The Achilles seed now deletes seed-owned templates the data no longer
+names, unless a workout was logged from one (`staleTemplatesKept`).
+
 ## App
 
 Single user, no sign-in, by choice. The browser never talks to Supabase:
@@ -471,13 +507,14 @@ measurements in `docs/lab/glass-presets.md`.
 - Analytics views migration
 - Notion seed script with verification report
 - PWA manifest, icons, service worker config
-- Parser tests passing (suite now 373)
+- Parser tests passing (suite now 400)
 - Production build clean
 
 ## Milestone 2
 
 - Done: every screen in `docs/planning.md` in Liquid Glass Preset 1.
-- Not built: programme days (PPL, Powerbuilding, Arm, recovery) in the
-  UI; adding or swapping an exercise mid-workout.
+- Done: programmes in the UI (`/programs/[id]`, Programs on Templates,
+  Up Next on the calendar) and the Achilles rehab templates by phase.
+- Not built: adding or swapping an exercise mid-workout.
 - `_notion_id` stays: it is the ownership key for the three seeds
   (`template:`, `achilles:`, `program:`), not a temporary import column

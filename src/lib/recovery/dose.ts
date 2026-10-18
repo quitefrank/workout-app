@@ -1,6 +1,8 @@
 /**
  * A dose is sets times one of: reps, reps in reserve, or seconds, with
- * an optional trailing modifier ("slow", "each side"). Minutes are read
+ * an optional trailing modifier ("slow", "each side"). A timed hold may
+ * come without a set count ("45-60 sec", as a physio writes it), and its
+ * sets stay null rather than a guessed 1. Minutes are read
  * as seconds ("1 x 45 min" is 2700 seconds) and AMRAP is a sets-only
  * dose whose modifier is "AMRAP". parseDose reads the strings the
  * prototype used so the seed can carry them over; formatDose renders a
@@ -14,7 +16,8 @@ import {
 } from "../../../scripts/lib/parse-prescription";
 
 export type Dose = {
-  sets: Range;
+  /** Null only for a timed hold written without a set count. */
+  sets: Range | null;
   reps: Range | null;
   rir: Range | null;
   seconds: Range | null;
@@ -40,7 +43,7 @@ function modifierOf(raw: string | undefined): string | null {
 /** Parse "3 x 10-12", "4 x RIR 1-2", "3 x 20-40 sec", "1 x 45 min", "1 x AMRAP", each with an optional trailing modifier. */
 export function parseDose(input: string): Dose | null {
   const m = SETS_RE.exec(input);
-  if (!m) return null;
+  if (!m) return parseHold(input);
   const sets = parseRange(m[1]);
   if (!sets) return null;
   const rest = m[2];
@@ -81,6 +84,19 @@ export function parseDose(input: string): Dose | null {
   return null;
 }
 
+/** A timed hold with no set count: "45-60 sec", "10-15 sec hold", "2 min". */
+function parseHold(input: string): Dose | null {
+  const rest = input.trim();
+  const sec = SECONDS_RE.exec(rest);
+  const mins = sec ? null : MINUTES_RE.exec(rest);
+  const hit = sec ?? mins;
+  if (!hit) return null;
+  const r = parseRange(hit[1]);
+  if (!r) return null;
+  const k = mins ? 60 : 1;
+  return { sets: null, reps: null, rir: null, seconds: { min: r.min * k, max: r.max * k }, modifier: modifierOf(hit[2]) };
+}
+
 function range(r: Range): string {
   return r.min === r.max ? `${r.min}` : `${r.min}-${r.max}`;
 }
@@ -102,6 +118,7 @@ export function formatDose(d: Dose): string {
   else if (d.reps) body = range(d.reps);
   else body = "";
   const mod = d.modifier?.trim();
+  if (!d.sets) return mod ? `${body} ${mod}` : body;
   if (!body && mod?.toUpperCase().startsWith("AMRAP")) return `${range(d.sets)} x ${mod}`;
   const head = body ? `${range(d.sets)} x ${body}` : `${range(d.sets)} sets`;
   return mod ? `${head} ${mod}` : head;

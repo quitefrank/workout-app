@@ -132,4 +132,25 @@ describe("formatDose", () => {
   it("renders AMRAP", () => {
     expect(formatDose(parseDose("1 x AMRAP")!)).toBe("1 x AMRAP");
   });
+
+  it("reads a timed hold with no set count, leaving sets empty", () => {
+    expect(parseDose("45-60 sec")).toEqual({
+      sets: null,
+      reps: null,
+      rir: null,
+      seconds: { min: 45, max: 60 },
+      modifier: null,
+    });
+    expect(parseDose("10-15 sec hold")?.modifier).toBe("hold");
+    expect(parseDose("5 sec each side")?.seconds).toEqual({ min: 5, max: 5 });
+    expect(formatDose(parseDose("45-60 sec")!)).toBe("45-60 sec");
+    expect(formatDose(parseDose("10-15 sec hold")!)).toBe("10-15 sec hold");
+  });
+
+  it("still needs a set count for anything but a hold", () => {
+    expect(parseDose("10")).toBeNull();
+    expect(parseDose("10-12 slow")).toBeNull();
+    expect(parseDose("RIR 2")).toBeNull();
+    expect(parseDose("AMRAP")).toBeNull();
+  });
 });

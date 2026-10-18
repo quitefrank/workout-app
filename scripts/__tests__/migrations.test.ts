@@ -97,7 +97,14 @@ describe("supabase migrations on PGlite", () => {
       "0005_recovery.sql",
       "0006_programs_weekly.sql",
       "0007_template_exercise_variant.sql",
+      "0008_rehab_templates.sql",
     ]);
+  });
+
+  it("accepts rehab as a template category", async () => {
+    await pg.query(`insert into templates (name, category) values ('Rehab check', 'rehab')`);
+    const r = await pg.query<{ category: string }>(`select category from templates where name = 'Rehab check'`);
+    expect(r.rows[0].category).toBe("rehab");
   });
 
   it("override rule and reason travel together", async () => {

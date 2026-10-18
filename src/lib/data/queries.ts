@@ -409,3 +409,257 @@ export async function getWeeklyMuscleSets(sinceWeek: string): Promise<{ week: st
     .filter((r) => r.week_start && r.muscle_group_id)
     .map((r) => ({ week: r.week_start!, muscleGroupId: r.muscle_group_id!, count: Number(r.set_count ?? 0) }));
 }
+
+// ------------------------------------------------------------
+// Programmes
+// ------------------------------------------------------------
+
+export type ProgramSummary = {
+  id: string;
+  name: string;
+  kind: "recovery" | "training";
+  description: string | null;
+  phaseCount: number;
+  templateCount: number;
+};
+
+/** Every programme in the library, recovery first. */
+export async function listPrograms(): Promise<ProgramSummary[]> {
+  const found = rows(
+    await db().from("programs").select("id, name, kind, description, program_phases(count), templates(count)").order("name"),
+  ) as unknown as (Omit<ProgramSummary, "phaseCount" | "templateCount"> & {
+    program_phases: { count: number }[];
+    templates: { count: number }[];
+  })[];
+  return found
+    .map(({ program_phases, templates, ...p }) => ({
+      ...p,
+      phaseCount: program_phases?.[0]?.count ?? 0,
+      templateCount: templates?.[0]?.count ?? 0,
+    }))
+    .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "recovery" ? -1 : 1));
+}
+
+export type ProgramTemplateRow = {
+  id: string;
+  name: string;
+  category: string | null;
+  variant: string | null;
+  needs_signoff: string | null;
+  exerciseCount: number;
+};
+
+export type ProgramPhaseRow = {
+  id: string;
+  position: number;
+  label: string;
+  block: string | null;
+  week_from: number;
+  week_to: number | null;
+  load_pct: number | null;
+  gate: string | null;
+  guidance: { heading: string; items: string[] }[];
+  flag: string | null;
+  templates: ProgramTemplateRow[];
+};
+
+export type ProgramDetail = {
+  id: string;
+  name: string;
+  kind: "recovery" | "training";
+  description: string | null;
+  citation: string | null;
+  authority_notes: string | null;
+  phases: ProgramPhaseRow[];
+  recovery: { id: string; label: string; injuryDate: string } | null;
+  clearances: {
+    effectiveFrom: string;
+    createdAt: string;
+    kind: import("@/lib/recovery/types").ClearanceKind;
+    valuePct: number | null;
+    valueText: string | null;
+    phaseId: string | null;
+    source: import("@/lib/recovery/types").ClearanceSource;
+    voidedAt: string | null;
+  }[];
+  completions: { templateId: string; completedAt: string }[];
+  following: boolean;
+  chosenPhasePosition: number | null;
+};
+
+/** One programme with its phases, each phase's templates in order, and your history against it. */
+export async function getProgram(id: string): Promise<ProgramDetail | null> {
+  const program = check(
+    await db().from("programs").select("id, name, kind, description, citation, authority_notes").eq("id", id).maybeSingle(),
+  );
+  if (!program) return null;
+
+  const phases = rows(
+    await db()
+      .from("program_phases")
+      .select("id, position, label, block, week_from, week_to, load_pct, gate, guidance, flag")
+      .eq("program_id", id)
+      .order("position"),
+  );
+  const phaseIds = phases.map((p) => p.id);
+  const links = phaseIds.length
+    ? ((await selectAll((a, b) =>
+        db()
+          .from("template_phases")
+          .select("phase_id, position, templates(id, name, category, variant, needs_signoff, template_exercises(count))")
+          .in("phase_id", phaseIds)
+          .range(a, b),
+      )) as unknown as {
+        phase_id: string;
+        position: number | null;
+        templates: Omit<ProgramTemplateRow, "exerciseCount"> & { template_exercises: { count: number }[] };
+      }[])
+    : [];
+
+  const byPhase = new Map<string, { position: number; t: ProgramTemplateRow }[]>();
+  for (const l of links) {
+    if (!l.templates) continue;
+    const { template_exercises, ...t } = l.templates;
+    const list = byPhase.get(l.phase_id) ?? [];
+    list.push({ position: l.position ?? 0, t: { ...t, exerciseCount: template_exercises?.[0]?.count ?? 0 } });
+    byPhase.set(l.phase_id, list);
+  }
+
+  const [recovery, settings] = await Promise.all([
+    db().from("recoveries").select("id, label, injury_date").eq("user_id", userId()).eq("program_id", id).maybeSingle(),
+    db().from("user_settings").select("active_program_id, program_phase_position").eq("user_id", userId()).maybeSingle(),
+  ]);
+  const rec = check(recovery);
+  const set = check(settings);
+
+  const clearances = rec
+    ? rows(
+        await db()
+          .from("clearances")
+          .select("effective_from, created_at, kind, value_pct, value_text, phase_id, source, voided_at")
+          .eq("recovery_id", rec.id),
+      ).map((c) => ({
+        effectiveFrom: c.effective_from,
+        createdAt: c.created_at,
+        kind: c.kind,
+        valuePct: c.value_pct,
+        valueText: c.value_text,
+        phaseId: c.phase_id,
+        source: c.source,
+        voidedAt: c.voided_at,
+      }))
+    : [];
+
+  const templateIds = [...new Set(links.map((l) => l.templates?.id).filter((x): x is string => Boolean(x)))];
+  const completions = templateIds.length
+    ? (
+        (await selectAll((a, b) =>
+          db()
+            .from("workouts")
+            .select("template_id, completed_at")
+            .eq("user_id", userId())
+            .in("template_id", templateIds)
+            .not("completed_at", "is", null)
+            .range(a, b),
+        )) as { template_id: string; completed_at: string }[]
+      ).map((w) => ({ templateId: w.template_id, completedAt: w.completed_at }))
+    : [];
+
+  const following = set?.active_program_id === id;
+  return {
+    ...(program as Omit<ProgramDetail, "phases" | "recovery" | "clearances" | "completions" | "following" | "chosenPhasePosition">),
+    phases: phases.map((p) => ({
+      ...(p as unknown as Omit<ProgramPhaseRow, "templates">),
+      templates: (byPhase.get(p.id) ?? []).sort((a, b) => a.position - b.position).map((x) => x.t),
+    })),
+    recovery: rec ? { id: rec.id, label: rec.label, injuryDate: rec.injury_date } : null,
+    clearances,
+    completions,
+    following,
+    chosenPhasePosition: following ? (set?.program_phase_position ?? null) : null,
+  };
+}
+
+/** The programme you are following, if any. */
+export async function getActiveProgramId(): Promise<string | null> {
+  const row = check(await db().from("user_settings").select("active_program_id").eq("user_id", userId()).maybeSingle());
+  return row?.active_program_id ?? null;
+}
+
+export type ProgramTemplateTile = TemplateSummary & {
+  needs_signoff: string | null;
+  /** Earliest phase position the template is valid in, for ordering. */
+  firstPhase: number;
+  /** Week range it covers, from its first phase to its last. */
+  weekFrom: number;
+  weekTo: number | null;
+};
+
+/** A programme's templates once each, ordered by the first phase they appear in, clinic before outside sources. */
+export async function listProgramTemplates(programId: string): Promise<ProgramTemplateTile[]> {
+  const found = rows(
+    await db()
+      .from("templates")
+      .select(
+        "id, name, category, variant, estimated_minutes, needs_signoff, template_exercises(count), template_phases(program_phases(position, week_from, week_to))",
+      )
+      .eq("program_id", programId),
+  ) as unknown as (Omit<ProgramTemplateTile, "exerciseCount" | "firstPhase" | "weekFrom" | "weekTo"> & {
+    template_exercises: { count: number }[];
+    template_phases: { program_phases: { position: number; week_from: number; week_to: number | null } | null }[];
+  })[];
+  return found
+    .map(({ template_exercises, template_phases, ...t }) => {
+      const ph = template_phases.map((x) => x.program_phases).filter((x): x is NonNullable<typeof x> => x !== null);
+      const first = ph.reduce((a, b) => (b.position < a.position ? b : a), ph[0]);
+      const last = ph.reduce((a, b) => (b.position > a.position ? b : a), ph[0]);
+      return {
+        ...t,
+        exerciseCount: template_exercises?.[0]?.count ?? 0,
+        firstPhase: first?.position ?? 0,
+        weekFrom: first?.week_from ?? 0,
+        weekTo: last?.week_to ?? null,
+      };
+    })
+    .sort(
+      (a, b) =>
+        Number(a.needs_signoff !== null) - Number(b.needs_signoff !== null) ||
+        a.firstPhase - b.firstPhase ||
+        a.name.localeCompare(b.name),
+    );
+}
+
+export type TemplateContext = {
+  program: { id: string; name: string; kind: "recovery" | "training" } | null;
+  source: { citation: string; url: string | null } | null;
+  needsSignoff: string | null;
+  phases: { position: number; label: string; week_from: number; week_to: number | null; block: string | null }[];
+};
+
+/** Where a template sits: its programme, the phases it runs in, its source, and what still needs sign-off. */
+export async function getTemplateContext(id: string): Promise<TemplateContext> {
+  const t = check(
+    await db()
+      .from("templates")
+      .select(
+        "needs_signoff, programs(id, name, kind), sources(citation, url), template_phases(program_phases(position, label, week_from, week_to, block))",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+  ) as unknown as {
+    needs_signoff: string | null;
+    programs: TemplateContext["program"];
+    sources: TemplateContext["source"];
+    template_phases: { program_phases: TemplateContext["phases"][number] | null }[];
+  } | null;
+  if (!t) return { program: null, source: null, needsSignoff: null, phases: [] };
+  return {
+    program: t.programs,
+    source: t.sources,
+    needsSignoff: t.needs_signoff,
+    phases: t.template_phases
+      .map((x) => x.program_phases)
+      .filter((x): x is TemplateContext["phases"][number] => x !== null)
+      .sort((a, b) => a.position - b.position),
+  };
+}

@@ -69,8 +69,12 @@ type Report = {
   /** Slots holding a library row's Notion sub-option that differs from the seed's alternate; left as they were. */
   alternatesKeptExisting: { exercise: string; position: number; existing: string; wanted: string }[];
   unverifiedVideos: string[];
-  rejectedDoses: { template: string; slug: string; dose: string }[];
+  rejectedDoses: { template: string; slug: string; dose: string | null }[];
   overrides: { template: string; slug: string; rule: number }[];
+  /** Seed-owned templates no longer in the data, deleted. */
+  staleTemplatesRemoved: string[];
+  /** Seed-owned templates no longer in the data, kept because workouts were logged from them. */
+  staleTemplatesKept: string[];
   clearancesInserted: number;
   clearancesAlreadyPresent: number;
 };
@@ -118,6 +122,8 @@ async function main() {
     unverifiedVideos: [],
     rejectedDoses: [],
     overrides: [],
+    staleTemplatesRemoved: [],
+    staleTemplatesKept: [],
     clearancesInserted: 0,
     clearancesAlreadyPresent: 0,
   };
@@ -314,7 +320,16 @@ async function main() {
     const { data: tpl, error } = await sb
       .from("templates")
       .upsert(
-        { name: t.name, category: t.category, variant: t.variant, notes: t.notes, program_id: programId, _notion_id: `achilles:${t.name}` },
+        {
+          name: t.name,
+          category: t.category,
+          variant: t.variant,
+          notes: t.notes,
+          program_id: programId,
+          source_id: t.sourceKey ? (sourceId.get(t.sourceKey) ?? null) : null,
+          needs_signoff: t.needsSignoff,
+          _notion_id: `achilles:${t.name}`,
+        },
         { onConflict: "_notion_id" },
       )
       .select("id")
@@ -328,8 +343,10 @@ async function main() {
     const rows = [];
     let pos = 1;
     for (const te of t.exercises) {
-      const d = parseDose(te.dose);
-      if (!d) {
+      // A null dose is the source giving none: the row is written with an
+      // empty prescription. A dose string that does not parse is rejected.
+      const d = te.dose === null ? null : parseDose(te.dose);
+      if (te.dose !== null && !d) {
         report.rejectedDoses.push({ template: t.name, slug: te.slug, dose: te.dose });
         continue;
       }
@@ -340,15 +357,16 @@ async function main() {
         template_id: templateId,
         exercise_id: exId,
         position: pos,
-        prescribed_sets_min: d.sets.min,
-        prescribed_sets_max: d.sets.max,
-        prescribed_reps_min: d.reps?.min ?? null,
-        prescribed_reps_max: d.reps?.max ?? null,
-        prescribed_rir_min: d.rir?.min ?? null,
-        prescribed_rir_max: d.rir?.max ?? null,
-        prescribed_seconds_min: d.seconds?.min ?? null,
-        prescribed_seconds_max: d.seconds?.max ?? null,
-        notes: [te.cue, d.modifier].filter(Boolean).join(" ") || null,
+        prescribed_sets_min: d?.sets?.min ?? null,
+        prescribed_sets_max: d?.sets?.max ?? null,
+        prescribed_reps_min: d?.reps?.min ?? null,
+        prescribed_reps_max: d?.reps?.max ?? null,
+        prescribed_rir_min: d?.rir?.min ?? null,
+        prescribed_rir_max: d?.rir?.max ?? null,
+        prescribed_seconds_min: d?.seconds?.min ?? null,
+        prescribed_seconds_max: d?.seconds?.max ?? null,
+        notes: [te.cue, d?.modifier].filter(Boolean).join(" ") || null,
+        variant: te.variant ?? null,
         override_rule: te.override?.rule ?? null,
         override_reason: te.override?.reason ?? null,
         _notion_id: `achilles:${t.name}:${pos}`,
@@ -374,7 +392,26 @@ async function main() {
       if (phErr) fail(`template_phases insert failed (${t.name}): ${phErr.message}`);
     }
   }
+  // Seed-owned templates the data no longer names (a rename, a removal)
+  // are deleted, unless a workout was logged from one: that row stays so
+  // the history keeps its name, and the report lists it.
+  const wanted = new Set(TEMPLATES.map((t) => `achilles:${t.name}`));
+  const { data: owned, error: ownedErr } = await sb.from("templates").select("id, name, _notion_id").like("_notion_id", "achilles:%");
+  if (ownedErr) fail(`template lookup failed: ${ownedErr.message}`);
+  for (const t of owned ?? []) {
+    if (wanted.has(t._notion_id)) continue;
+    const { count, error: useErr } = await sb.from("workouts").select("id", { count: "exact", head: true }).eq("template_id", t.id);
+    if (useErr) fail(`workout lookup failed (${t.name}): ${useErr.message}`);
+    if ((count ?? 0) > 0) {
+      report.staleTemplatesKept.push(t.name);
+      continue;
+    }
+    const { error: delErr } = await sb.from("templates").delete().eq("id", t.id);
+    if (delErr) fail(`stale template delete failed (${t.name}): ${delErr.message}`);
+    report.staleTemplatesRemoved.push(t.name);
+  }
   console.log(`  ${TEMPLATES.length} templates, ${teCount} template_exercises, ${report.overrides.length} overrides recorded`);
+  console.log(`  ${report.staleTemplatesRemoved.length} stale templates removed, ${report.staleTemplatesKept.length} kept for their history`);
 
   // 6. Personal rows.
   console.log("\n[6/7] personal rows");

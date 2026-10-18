@@ -100,6 +100,7 @@ export const CATEGORY_HUE: Record<string, number> = {
   full_body: 40,
   abs: 330,
   cardio: 178,
+  rehab: 95,
 };
 
 export function hueStyle(category: string | null | undefined): CSSProperties {

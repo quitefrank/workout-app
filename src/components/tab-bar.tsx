@@ -15,7 +15,7 @@ import { CalendarIcon, ChevronRight, LibraryIcon, ProgressIcon, TemplatesIcon } 
 
 const TABS = [
   { href: "/", label: "Calendar", Icon: CalendarIcon, match: (p: string) => p === "/" || p.startsWith("/workouts") },
-  { href: "/templates", label: "Templates", Icon: TemplatesIcon, match: (p: string) => p.startsWith("/templates") },
+  { href: "/templates", label: "Templates", Icon: TemplatesIcon, match: (p: string) => p.startsWith("/templates") || p.startsWith("/programs") },
   { href: "/exercises", label: "Library", Icon: LibraryIcon, match: (p: string) => p.startsWith("/exercises") },
   { href: "/analytics", label: "Progress", Icon: ProgressIcon, match: (p: string) => p.startsWith("/analytics") },
 ];
