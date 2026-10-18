@@ -1,3 +1,4 @@
+import { MuscleArt } from "@/components/muscle-art/muscle-art";
 import { LargeTitle, Screen } from "@/components/page";
 import { getSettings, getTopSets, listExercises, listMuscleGroups } from "@/lib/data/queries";
 import { latestByExercise } from "@/lib/workout/progress";
@@ -25,12 +26,18 @@ export default async function ExercisesPage() {
       last: l ? { weight: l.weight, reps: l.reps, at: l.completed_at } : null,
     };
   });
-  // Groups with no exercises in them only add noise to the chips
+  // Groups with no exercises in them only add noise to the grid
   const used = new Set(items.map((i) => i.groupId));
   return (
     <Screen>
       <LargeTitle title="Library" subtitle={`${items.length} exercises`} />
-      <ExerciseLibrary items={items} groups={groups.filter((g) => used.has(g.id))} unit={settings.weight_unit} />
+      <ExerciseLibrary
+        items={items}
+        groups={groups
+          .filter((g) => used.has(g.id))
+          .map((g) => ({ id: g.id, name: g.name, art: <MuscleArt group={g.name} /> }))}
+        unit={settings.weight_unit}
+      />
     </Screen>
   );
 }

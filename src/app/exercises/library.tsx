@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { FigureIcon, SearchIcon, XIcon } from "@/components/icons";
 import { Empty, Row } from "@/components/page";
 import { cn } from "@/lib/cn";
@@ -23,22 +23,20 @@ export function ExerciseLibrary({
   unit,
 }: {
   items: LibraryItem[];
-  groups: { id: string; name: string }[];
+  groups: { id: string; name: string; art: ReactNode }[];
   unit: WeightUnit;
 }) {
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState<string | null>(null);
-  const [onlyLogged, setOnlyLogged] = useState(false);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter(
       (i) =>
         (!group || i.groupId === group) &&
-        (!onlyLogged || i.last) &&
         (!q || i.name.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
     );
-  }, [items, query, group, onlyLogged]);
+  }, [items, query, group]);
 
   return (
     <>
@@ -61,18 +59,29 @@ export function ExerciseLibrary({
         </label>
       </div>
 
-      <div className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-3">
-        <ChipButton on={onlyLogged} onClick={() => setOnlyLogged(!onlyLogged)}>
-          Logged
-        </ChipButton>
-        <ChipButton on={!group} onClick={() => setGroup(null)}>
-          All
-        </ChipButton>
-        {groups.map((g) => (
-          <ChipButton key={g.id} on={group === g.id} onClick={() => setGroup(group === g.id ? null : g.id)}>
-            {g.name}
-          </ChipButton>
-        ))}
+      {/* Notion's Muscle Groups gallery: tap a card to filter, tap it again to clear */}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5 px-4 pb-4">
+        {groups.map((g) => {
+          const on = group === g.id;
+          return (
+            <button
+              key={g.id}
+              type="button"
+              aria-pressed={on}
+              onClick={() => setGroup(on ? null : g.id)}
+              className={cn(
+                "overflow-hidden rounded-[18px] bg-card text-left transition-shadow active:opacity-80",
+                on && "ring-2 ring-blue",
+              )}
+            >
+              <div className="aspect-square bg-[var(--muscle-tile)] p-2">{g.art}</div>
+              <div className="flex items-center gap-1.5 px-2.5 py-2 text-[15px] font-medium leading-5">
+                <FigureIcon size={15} className="shrink-0 opacity-60" />
+                <span className="truncate">{g.name}</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       {shown.length === 0 ? (
@@ -107,21 +116,5 @@ export function ExerciseLibrary({
         </div>
       )}
     </>
-  );
-}
-
-function ChipButton({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={on}
-      onClick={onClick}
-      className={cn(
-        "shrink-0 whitespace-nowrap rounded-full px-3.5 py-1.5 text-[15px] font-medium",
-        on ? "bg-ink text-bg" : "bg-fill text-ink",
-      )}
-    >
-      {children}
-    </button>
   );
 }
