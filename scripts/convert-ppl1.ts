@@ -1,5 +1,5 @@
 /**
- * Convert the PPL 1.0 PDF dump into programme JSON under
+ * Convert the PPL 1.0 PDF dump into program JSON under
  * scripts/data/programs/ (gitignored).
  *
  *   bun run convert:ppl1 [path-to-dump.json]

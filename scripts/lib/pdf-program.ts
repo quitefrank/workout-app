@@ -1,5 +1,5 @@
 /**
- * Shared helpers for the PDF programme converters. The Python extractor
+ * Shared helpers for the PDF program converters. The Python extractor
  * (scripts/extract-pdf-tables.py) dumps each page's text lines and
  * tables; these turn table cells into contract values the way
  * ppl-sheet.ts does for the workbook.
@@ -139,7 +139,7 @@ export function complexReps(bareName: string, repsCell: string | null | undefine
 export function doseFromPdf(setsCell: string | null | undefined, repsCell: string | null | undefined): SheetDose | null {
   const sets = (cellText(setsCell) ?? "").replace(/[^0-9-]/g, "");
   let reps = cellText(repsCell) ?? "";
-  // "0 / 0" is how the arm programme writes an open-ended set; the
+  // "0 / 0" is how the arm program writes an open-ended set; the
   // converter decides what to do with it, not the dose.
   if (/^0+$/.test(sets) || /^0+$/.test(reps)) return null;
   let note: string | null = null;

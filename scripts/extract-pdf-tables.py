@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Dump a PDF's pages to JSON for the programme converters.
+"""Dump a PDF's pages to JSON for the program converters.
 
     python3 scripts/extract-pdf-tables.py <input.pdf> <output.json>
 

@@ -381,7 +381,7 @@ export const SOURCES: SourceSeed[] = [
     quality:
       "moderate for feasibility; absent for insertional ruptures and high ruptures at the musculotendinous junction, which the trial excluded.",
     notes:
-      "Nine-week in-boot progressive resistance programme for non-surgically treated rupture: isometric plantarflexion in a closed boot every waking hour, seated heel-rise five times daily in an open boot with wedges by week, elastic band resistance five times daily. Progression by Borg CR10 at 2 to 5 out of 10, dorsiflexion restricted beyond neutral. Sixteen completers, no re-ruptures, one DVT at 7 to 10 days. Trial registration NCT04121377.",
+      "Nine-week in-boot progressive resistance program for non-surgically treated rupture: isometric plantarflexion in a closed boot every waking hour, seated heel-rise five times daily in an open boot with wedges by week, elastic band resistance five times daily. Progression by Borg CR10 at 2 to 5 out of 10, dorsiflexion restricted beyond neutral. Sixteen completers, no re-ruptures, one DVT at 7 to 10 days. Trial registration NCT04121377.",
   },
 
   // ------------------------------------------------------------

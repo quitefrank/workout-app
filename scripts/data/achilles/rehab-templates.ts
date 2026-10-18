@@ -1,7 +1,7 @@
 /**
- * The rehab templates, one set per phase of the recovery programme, the
- * way the training programmes have one set of days per week. Category
- * "rehab", so the programme screen lists them apart from the strength
+ * The rehab templates, one set per phase of the recovery program, the
+ * way the training programs have one set of days per week. Category
+ * "rehab", so the program screen lists them apart from the strength
  * rotation and never schedules them: no source gives a frequency for the
  * clinic's exercises.
  *

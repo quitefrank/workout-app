@@ -56,9 +56,9 @@ describe("validateProgramJson", () => {
     expect(p.blocks[0].weeks[0].days[0].exercises[0].notes).toBe("keep it");
   });
 
-  it("rejects a colon in programme, block and day names, which become seed keys", () => {
+  it("rejects a colon in program, block and day names, which become seed keys", () => {
     const badName = structuredClone(example);
-    badName.name = "Test: programme";
+    badName.name = "Test: program";
     expect(() => validateProgramJson(badName)).toThrow(/^name: must not contain ":"/);
     const badBlock = structuredClone(example);
     badBlock.blocks[0].name = "Block: one";

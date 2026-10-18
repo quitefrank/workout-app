@@ -73,7 +73,7 @@ describe("doseFromSheet", () => {
   });
 });
 
-const META = { name: "Test programme", description: "d", citation: null, sourceUrl: null };
+const META = { name: "Test program", description: "d", citation: null, sourceUrl: null };
 
 describe("parsePplRows", () => {
   const { program: p, skipped } = parsePplRows([PHASE_ONE, PHASE_TWO], META);
@@ -128,7 +128,7 @@ describe("parsePplRows", () => {
     expect(squat.notes).toBe("Sit back and down. Load: Example load cue");
   });
 
-  it("produces doses parseDose accepts and a programme the validator accepts", () => {
+  it("produces doses parseDose accepts and a program the validator accepts", () => {
     for (const b of p.blocks) for (const w of b.weeks) for (const d of w.days) for (const e of d.exercises) {
       expect(parseDose(e.dose), `${d.name}: ${e.name} ${e.dose}`).not.toBeNull();
     }

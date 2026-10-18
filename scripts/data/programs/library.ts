@@ -1,9 +1,9 @@
 /**
- * How programme exercises map onto Frank's library.
+ * How program exercises map onto Frank's library.
  *
- * LIBRARY_ALIASES: a programme spelling (as a slug) that is one of the
+ * LIBRARY_ALIASES: a program spelling (as a slug) that is one of the
  * curated Notion rows under another name, or the same movement another
- * programme spells differently (the target is the spelling that keeps
+ * program spells differently (the target is the spelling that keeps
  * the seed row). The seed resolves the alias before the slug itself and
  * before near-duplicate matching, so no seed row is inserted for it. A
  * target is never itself an alias key.

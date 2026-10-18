@@ -2,7 +2,7 @@
 -- protocol prescribes, filed by phase alongside the strength days that
 -- run with them.
 --
--- A template category for that work. The recovery programme's Push,
+-- A template category for that work. The recovery program's Push,
 -- Pull and Legs keep their own categories.
 
 alter type template_category add value if not exists 'rehab';
@@ -19,9 +19,9 @@ alter table templates
 
 create index templates_source_id_idx on templates(source_id);
 
--- The programme you are following, so the app can put its next workout
+-- The program you are following, so the app can put its next workout
 -- in front of you, and the phase you set by hand for a recovery
--- programme. A null phase means the app works the phase out: the
+-- program. A null phase means the app works the phase out: the
 -- clearance log while it is current, else the calendar. Existing
 -- per-user table, already granted and filtered by auth.uid().
 

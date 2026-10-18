@@ -1,5 +1,5 @@
 /**
- * Parse the Ultimate Push Pull Legs workbook into the programme JSON
+ * Parse the Ultimate Push Pull Legs workbook into the program JSON
  * contract. One sheet per phase; rows are arrays as returned by
  * XLSX.utils.sheet_to_json with header: 1.
  *
@@ -95,7 +95,7 @@ export function formatSkippedRow(s: PplSkippedRow): string {
 }
 
 /**
- * Parse one or more phase sheets (rows as arrays) into a programme.
+ * Parse one or more phase sheets (rows as arrays) into a program.
  * Rows that do not map are returned in `skipped`, never dropped silently.
  */
 export function parsePplRows(sheets: unknown[][][], meta: SheetMeta): PplParseResult {

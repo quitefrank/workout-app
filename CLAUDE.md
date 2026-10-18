@@ -15,12 +15,12 @@ bun run test:watch       # Vitest watch mode
 bun run lint             # ESLint
 bun run seed:notion      # One-time Notion -> Supabase seed
 bun run seed:achilles    # Achilles program, exercises, templates, personal rows
-bun run convert:ppl      # Vault workbook -> programme JSON (gitignored)
+bun run convert:ppl      # Vault workbook -> program JSON (gitignored)
 bun run extract:pdfs     # Vault PDFs -> page dumps under scripts/data/programs/raw/ (gitignored; needs python3 with pdfplumber)
-bun run convert:ppl1     # PPL 1.0 dump -> programme JSON (gitignored)
-bun run convert:powerbuilding   # Powerbuilding 4x dump -> programme JSON (gitignored)
-bun run convert:arm      # Arm Hypertrophy dump -> programme JSON (gitignored)
-bun run seed:programs    # Every programme JSON -> programs, phases, templates
+bun run convert:ppl1     # PPL 1.0 dump -> program JSON (gitignored)
+bun run convert:powerbuilding   # Powerbuilding 4x dump -> program JSON (gitignored)
+bun run convert:arm      # Arm Hypertrophy dump -> program JSON (gitignored)
+bun run seed:programs    # Every program JSON -> programs, phases, templates
 bun run icons:generate   # Re-render placeholder PWA icons
 supabase db push         # Apply migrations to linked cloud project
 ```
@@ -104,8 +104,8 @@ and phases in 0004, recovery tables in 0005) is specified in
 Every seeded table has a `_notion_id` text column. It began as the
 Notion upsert key and is now the ownership key for three seeds
 (`template:` for Notion-derived templates, `achilles:` for the recovery
-seed, `program:` for the programme seed), so each seed clears and
-rewrites only its own rows. The column stays. The programme seed also
+seed, `program:` for the program seed), so each seed clears and
+rewrites only its own rows. The column stays. The program seed also
 stamps the muscle groups it adds (`program:muscle-group:<slug>`, so far
 Forearms and Neck) when `LIBRARY_ATTRIBUTES` names one Notion never had.
 
@@ -155,10 +155,10 @@ Eleven pure modules with full unit-test coverage:
   category and variant inference from a template name.
 - `scripts/lib/session-order.ts` Order a workout's Sessions rows by the
   workout page's relation, reversed, with unlisted rows appended.
-- `scripts/lib/ppl-sheet.ts` Parse a programme workbook's rows (as
-  arrays) into the programme JSON contract; returns the rows it could
-  not place or dose alongside the programme, never drops them.
-- `scripts/lib/exercise-variant.ts` Split a programme spelling into the
+- `scripts/lib/ppl-sheet.ts` Parse a program workbook's rows (as
+  arrays) into the program JSON contract; returns the rows it could
+  not place or dose alongside the program, never drops them.
+- `scripts/lib/exercise-variant.ts` Split a program spelling into the
   base exercise and its set type ("Bench Press (Top Set)"), drop a rep
   or seconds hint the dose already carries, and split an "A + B"
   superset cell into two rows.
@@ -228,17 +228,17 @@ for row counts, which exercises matched versus inserted, alternate
 slots kept as they were, unverified videos, rejected doses, and the
 overrides recorded.
 
-## Programmes
+## Programs
 
-A training programme is blocks of weeks; each week has ordered days;
+A training program is blocks of weeks; each week has ordered days;
 each day has ordered exercises with a prescription. That shape is the
 JSON contract in `scripts/data/programs/schema.ts` (types plus
 `validateProgramJson`) and `scripts/data/programs/example.json` is a
-tiny made-up programme in it. Every seeded programme and, later, every
-programme imported through the app arrives in this contract. Programme,
+tiny made-up program in it. Every seeded program and, later, every
+program imported through the app arrives in this contract. Program,
 block and day names become seed keys, so they cannot contain a colon.
 
-Programme content is copyrighted, so `scripts/data/programs/*.json` is
+Program content is copyrighted, so `scripts/data/programs/*.json` is
 gitignored except the example and the seed loads whatever JSON files
 are present. The purchased sources (the Nippard workbook and PDFs)
 live in `scripts/data/programs/sources/`, also gitignored, so they stay
@@ -248,13 +248,13 @@ reads the push-pull-legs workbook from `sources/` and writes its JSON;
 the converter exits 1 and writes nothing when any exercise row could
 not be placed or turned into a dose and prints every such row.
 
-`bun run seed:programs` loads every programme JSON. It validates every
+`bun run seed:programs` loads every program JSON. It validates every
 file and parses every dose before the first write, so a bad file fails
 the run with nothing changed (the report is still written, so the
-rejected doses are on disk), and it refuses a programme whose name
+rejected doses are on disk), and it refuses a program whose name
 belongs to a row of another kind. One `programs` row per file; one
 `program_phases` row per week with the block name in `block`; one
-template per day per week, keyed `program:<programme>:<block>:<week>:<day>`
+template per day per week, keyed `program:<program>:<block>:<week>:<day>`
 in `_notion_id`, with `variant` set to the week (`W1`, `W2`, ...) and
 ordered inside its phase by `template_phases.position`.
 
@@ -275,8 +275,8 @@ the set type, so history and alternates attach to one library row. A
 workbook cell naming two movements with "+" becomes two rows sharing
 the prescription.
 
-`scripts/data/programs/library.ts` is the committed map from programme
-spellings to the library: `LIBRARY_ALIASES` sends a programme slug to
+`scripts/data/programs/library.ts` is the committed map from program
+spellings to the library: `LIBRARY_ALIASES` sends a program slug to
 the curated Notion row it really is (`bench-press` to
 `bench-press-flat`), tried before near-duplicate matching; and
 `LIBRARY_ATTRIBUTES` gives muscle group and equipment to the exercises
@@ -289,14 +289,14 @@ modified and none is ever deleted. The report lists `aliasMatches`,
 `muscleGroupsInserted`; `handFix` is now the seed-owned rows the table
 does not cover.
 
-A programme's substitutions become alternates on the exercise row,
-keyed `program:<programme>:<slug>:<position>`; a slot already holding a
-Notion sub-option or another programme's alternate is left alone and
-reported. For each loaded programme, its templates, phases and
+A program's substitutions become alternates on the exercise row,
+keyed `program:<program>:<slug>:<position>`; a slot already holding a
+Notion sub-option or another program's alternate is left alone and
+reported. For each loaded program, its templates, phases and
 alternates that the JSON no longer has are removed. The Notion-derived
 templates (`template:` keys), the Achilles rows (`achilles:` keys) and
-any programme not among the loaded files are never touched; orphaned
-programmes and alternates are reported.
+any program not among the loaded files are never touched; orphaned
+programs and alternates are reported.
 
 Idempotent. After running, check `scripts/seed-programs-report.json`
 for row counts, exercises inserted versus matched (with the fuzzy
@@ -308,9 +308,9 @@ second pipeline into the same contract. `bun run extract:pdfs` runs
 `scripts/extract-pdf-tables.py` (pdfplumber) over each PDF and writes
 one page dump per file, text lines plus tables with cells as written,
 to `scripts/data/programs/raw/` (gitignored). One tested parser per
-programme walks its dump (`scripts/lib/ppl1-pdf.ts`,
+program walks its dump (`scripts/lib/ppl1-pdf.ts`,
 `powerbuilding-pdf.ts`, `arm-pdf.ts`, on the shared helpers in
-`pdf-program.ts`) and one thin CLI per programme (`convert:ppl1`,
+`pdf-program.ts`) and one thin CLI per program (`convert:ppl1`,
 `convert:powerbuilding`, `convert:arm`) writes the gitignored JSON,
 exiting 1 on any row it could not dose. Names are title-cased from the
 PDF's capitals, notes sentence-cased, a superset prefix ("A1:") becomes
@@ -331,14 +331,14 @@ lost. What each became:
   reps are an open-ended set to failure and are dosed `1 x AMRAP` with
   a note saying so.
 
-`nippard-get-ready-manual.pdf` holds no programme (gear checklist, 1RM
+`nippard-get-ready-manual.pdf` holds no program (gear checklist, 1RM
 testing, nutrition) and stays a reference. `nippard-ultimate-ppl-4x.xlsx`
 still goes through `convert:ppl`. The same seed loads all four JSONs
 without changes.
 
-## Rehab templates and following a programme
+## Rehab templates and following a program
 
-The recovery programme carries rehab templates (category `rehab`, from
+The recovery program carries rehab templates (category `rehab`, from
 migration 0008) beside its Push, Pull and Legs: one set per handout
 phase, in `scripts/data/achilles/rehab-templates.ts` with their
 exercises in `rehab-exercises.ts`. Authority order: treating surgeon,
@@ -359,7 +359,7 @@ physio, clinic handout, Willits Table E-1, anything else.
 - `templates.source_id` and `templates.needs_signoff` say where a
   template comes from and what to ask before using it.
 
-Following: `user_settings.active_program_id` is the programme you
+Following: `user_settings.active_program_id` is the program you
 follow and `program_phase_position` a phase set by hand.
 `src/lib/programs/` (pure, tested) works out today: a recovery phase
 comes from the hand-set phase, else the clearance log while it is not
@@ -367,7 +367,7 @@ stale, else the calendar from day 0, and the screen also names the
 phase a week behind when that differs. Rehab templates are listed every
 day and never scheduled (no source gives a frequency); the other
 templates in the phase rotate after the last one completed. A training
-programme runs its days in sequence after the last completed day.
+program runs its days in sequence after the last completed day.
 
 The Achilles seed now deletes seed-owned templates the data no longer
 names, unless a workout was logged from one (`staleTemplatesKept`).
@@ -513,7 +513,7 @@ measurements in `docs/lab/glass-presets.md`.
 ## Milestone 2
 
 - Done: every screen in `docs/planning.md` in Liquid Glass Preset 1.
-- Done: programmes in the UI (`/programs/[id]`, Programs on Templates,
+- Done: programs in the UI (`/programs/[id]`, Programs on Templates,
   Up Next on the calendar) and the Achilles rehab templates by phase.
 - Not built: adding or swapping an exercise mid-workout.
 - `_notion_id` stays: it is the ownership key for the three seeds

@@ -1,7 +1,7 @@
 /**
  * Convert the Ultimate Push Pull Legs workbook from
  * scripts/data/programs/sources/ (gitignored, purchased content) into
- * programme JSON under scripts/data/programs/ (gitignored).
+ * program JSON under scripts/data/programs/ (gitignored).
  *
  *   bun run convert:ppl [path-to-workbook.xlsx]
  *

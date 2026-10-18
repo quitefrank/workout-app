@@ -51,7 +51,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
       })
     : null;
   const upPhase = program?.phases.find((p) => p.id === upNext?.inForce.phase?.id) ?? null;
-  // The programme's own rows carry the variant and the sign-off note the pure model does not need.
+  // The program's own rows carry the variant and the sign-off note the pure model does not need.
   const rowOf = new Map(program?.phases.flatMap((p) => p.templates.map((t) => [t.id, t] as const)) ?? []);
   const upTemplates = (upNext ? [...(upNext.kind === "recovery" ? upNext.rehab : []), ...(upNext.next ? [upNext.next] : [])] : [])
     .map((t) => rowOf.get(t.id))
@@ -155,7 +155,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
 
       {program && upNext && (
         <>
-          <SectionHeader title="Up Next" trailing={<Link href={`/programs/${program.id}`}>Programme</Link>} />
+          <SectionHeader title="Up Next" trailing={<Link href={`/programs/${program.id}`}>Program</Link>} />
           <div className="grouped mx-4">
             <Link href={`/programs/${program.id}`} className="block active:bg-fill">
               <Row
@@ -166,7 +166,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
                       ? `${upNext.day !== null ? `Day ${upNext.day} · ` : ""}Phase ${upPhase.position}, ${upPhase.label} · ${weeksLabel(upPhase.week_from, upPhase.week_to)}`
                       : [upPhase.label, upPhase.block].filter(Boolean).join(" · ")
                     : upNext.kind === "training" && upNext.finished
-                      ? "Programme finished"
+                      ? "Program finished"
                       : undefined
                 }
                 chevron

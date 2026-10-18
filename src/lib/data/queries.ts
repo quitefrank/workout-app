@@ -158,7 +158,7 @@ export type TemplateSummary = {
   exerciseCount: number;
 };
 
-/** The day templates you pick from freestyle: the Notion ones, not programme weeks. */
+/** The day templates you pick from freestyle: the Notion ones, not program weeks. */
 export async function listTemplates(): Promise<TemplateSummary[]> {
   const found = check(
     await db()
@@ -411,7 +411,7 @@ export async function getWeeklyMuscleSets(sinceWeek: string): Promise<{ week: st
 }
 
 // ------------------------------------------------------------
-// Programmes
+// Programs
 // ------------------------------------------------------------
 
 export type ProgramSummary = {
@@ -423,7 +423,7 @@ export type ProgramSummary = {
   templateCount: number;
 };
 
-/** Every programme in the library, recovery first. */
+/** Every program in the library, recovery first. */
 export async function listPrograms(): Promise<ProgramSummary[]> {
   const found = rows(
     await db().from("programs").select("id, name, kind, description, program_phases(count), templates(count)").order("name"),
@@ -487,7 +487,7 @@ export type ProgramDetail = {
   chosenPhasePosition: number | null;
 };
 
-/** One programme with its phases, each phase's templates in order, and your history against it. */
+/** One program with its phases, each phase's templates in order, and your history against it. */
 export async function getProgram(id: string): Promise<ProgramDetail | null> {
   const program = check(
     await db().from("programs").select("id, name, kind, description, citation, authority_notes").eq("id", id).maybeSingle(),
@@ -580,7 +580,7 @@ export async function getProgram(id: string): Promise<ProgramDetail | null> {
   };
 }
 
-/** The programme you are following, if any. */
+/** The program you are following, if any. */
 export async function getActiveProgramId(): Promise<string | null> {
   const row = check(await db().from("user_settings").select("active_program_id").eq("user_id", userId()).maybeSingle());
   return row?.active_program_id ?? null;
@@ -595,7 +595,7 @@ export type ProgramTemplateTile = TemplateSummary & {
   weekTo: number | null;
 };
 
-/** A programme's templates once each, ordered by the first phase they appear in, clinic before outside sources. */
+/** A program's templates once each, ordered by the first phase they appear in, clinic before outside sources. */
 export async function listProgramTemplates(programId: string): Promise<ProgramTemplateTile[]> {
   const found = rows(
     await db()
@@ -636,7 +636,7 @@ export type TemplateContext = {
   phases: { position: number; label: string; week_from: number; week_to: number | null; block: string | null }[];
 };
 
-/** Where a template sits: its programme, the phases it runs in, its source, and what still needs sign-off. */
+/** Where a template sits: its program, the phases it runs in, its source, and what still needs sign-off. */
 export async function getTemplateContext(id: string): Promise<TemplateContext> {
   const t = check(
     await db()

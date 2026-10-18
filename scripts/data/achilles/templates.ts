@@ -1,8 +1,8 @@
 /**
  * The approved recovery templates, transcribed from
  * docs/achilles-exercise-review.md after sign-off: the recovery
- * programme's own Push, Pull and Legs in the boot, separate from any
- * training programme that follows.
+ * program's own Push, Pull and Legs in the boot, separate from any
+ * training program that follows.
  *
  * Order inside each template follows training logic: the biggest
  * compound first while fresh, isolation after, core last (rule 8 checks
@@ -23,7 +23,7 @@
  * Phases by position in the handout: Push and Pull from phase 1, Legs
  * from phase 2 because its three overrides rely on a cleared percentage
  * above zero. Nothing is valid past phase 7; out of the boot the user
- * moves to a training programme.
+ * moves to a training program.
  */
 
 import { REHAB_TEMPLATES } from "./rehab-templates";
@@ -40,7 +40,7 @@ const BOOT_TEMPLATES: TemplateSeed[] = [
     category: "legs",
     variant: null,
     notes:
-      "The recovery programme's leg session in the boot. Squat patterns first (sit to stand, then the wall squat), the bridge, then the sound-leg calf raises, the highest-value items of the week: cross-education against the primary long-term deficit. Isolation after that, the supine marches last. Three rows load the booted foot at the cleared percentage and record a rule 1 override, which is why this template starts at phase 2.",
+      "The recovery program's leg session in the boot. Squat patterns first (sit to stand, then the wall squat), the bridge, then the sound-leg calf raises, the highest-value items of the week: cross-education against the primary long-term deficit. Isolation after that, the supine marches last. Three rows load the booted foot at the cleared percentage and record a rule 1 override, which is why this template starts at phase 2.",
     spacingNote: null,
     phases: [2, 3, 4, 5, 6, 7],
     exercises: [
@@ -116,7 +116,7 @@ const BOOT_TEMPLATES: TemplateSeed[] = [
     category: "push",
     variant: null,
     notes:
-      "The recovery programme's push session in the boot. Compounds first: the dumbbell bench, the shoulder press and the modified push-ups, then the fly from the mat at the towers, the lateral raise and the supine triceps extension, and the two core holds last. Nothing loads the booted foot.",
+      "The recovery program's push session in the boot. Compounds first: the dumbbell bench, the shoulder press and the modified push-ups, then the fly from the mat at the towers, the lateral raise and the supine triceps extension, and the two core holds last. Nothing loads the booted foot.",
     spacingNote: null,
     phases: [1, 2, 3, 4, 5, 6, 7],
     exercises: [
@@ -177,7 +177,7 @@ const BOOT_TEMPLATES: TemplateSeed[] = [
     category: "pull",
     variant: null,
     notes:
-      "The recovery programme's pull session in the boot. Pull-ups first while fresh, then the row and the face pull from the mat at the towers, curls, and the two core rows last. Pull-ups are capped at two sessions a week, 72 hours apart, and this is the only template that carries them, so it runs at most twice a week with the second run at the light dose: 3 x leave 2-3 in reserve on the pull-ups and lighter curls.",
+      "The recovery program's pull session in the boot. Pull-ups first while fresh, then the row and the face pull from the mat at the towers, curls, and the two core rows last. Pull-ups are capped at two sessions a week, 72 hours apart, and this is the only template that carries them, so it runs at most twice a week with the second run at the light dose: 3 x leave 2-3 in reserve on the pull-ups and lighter curls.",
     spacingNote: null,
     phases: [1, 2, 3, 4, 5, 6, 7],
     exercises: [

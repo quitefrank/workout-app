@@ -1,7 +1,7 @@
 /**
- * The programme contract. A programme is blocks of weeks; each week has
+ * The program contract. A program is blocks of weeks; each week has
  * ordered days; each day has ordered exercises with a prescription.
- * Every seeded training programme and, later, every programme imported
+ * Every seeded training program and, later, every program imported
  * through the app, arrives in this shape.
  *
  * Doses are strings parseDose accepts ("1 x 3-5", "1 x 45 min",
@@ -60,7 +60,7 @@ function str(v: unknown, path: string): string {
 }
 
 /**
- * A name that becomes part of a seed key ("program:<programme>:<block>:
+ * A name that becomes part of a seed key ("program:<program>:<block>:
  * <week>:<day>"), so a colon inside it would make the key ambiguous.
  */
 function keyName(v: unknown, path: string): string {
@@ -77,11 +77,11 @@ function strOrNull(v: unknown, path: string): string | null {
 }
 
 /**
- * Throws with a path on the first shape error. Returns the typed programme.
+ * Throws with a path on the first shape error. Returns the typed program.
  * Shape only: whether each dose parses is checked at seed time, not here.
  */
 export function validateProgramJson(input: unknown): ProgramJson {
-  if (!isRecord(input)) throw new Error("programme: expected an object");
+  if (!isRecord(input)) throw new Error("program: expected an object");
   const name = keyName(input.name, "name");
   if (input.kind !== "training") throw new Error("kind: expected \"training\"");
   const description = str(input.description, "description");

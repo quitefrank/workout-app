@@ -1,6 +1,6 @@
 /**
- * Parse the Powerbuilding System (4x) PDF dump into the programme
- * contract. Programme pages carry "POWERBUILDING SYSTEM WEEK N" (or
+ * Parse the Powerbuilding System (4x) PDF dump into the program
+ * contract. Program pages carry "POWERBUILDING SYSTEM WEEK N" (or
  * "WEEK 10A", "WEEK 10B", "OPTIONAL DAY"); each table is one workout
  * whose name sits in the WORKOUT cell of its first row.
  *

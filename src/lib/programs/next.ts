@@ -1,7 +1,7 @@
 /**
- * What a programme puts in front of you today. Pure, no Supabase import.
+ * What a program puts in front of you today. Pure, no Supabase import.
  *
- * A recovery programme runs by phase: the phase in force comes from the
+ * A recovery program runs by phase: the phase in force comes from the
  * one you chose, else the clearance log while it is current, else the
  * calendar counted from the injury. Inside a phase, rehab templates are
  * kept apart from the training rotation, because neither the physio
@@ -9,7 +9,7 @@
  * every day and never schedules them. The training templates rotate:
  * the next one is the template after the last one you completed.
  *
- * A training programme runs in sequence: weeks of ordered days, and the
+ * A training program runs in sequence: weeks of ordered days, and the
  * next day is the one after the most recent day you completed.
  */
 
@@ -46,7 +46,7 @@ function calendarPhase(phases: ProgramPhase[], week: number): ProgramPhase | nul
 }
 
 /**
- * @param week whole weeks since day 0, or null for a programme with no
+ * @param week whole weeks since day 0, or null for a program with no
  *   start date.
  */
 export function phaseInForce(

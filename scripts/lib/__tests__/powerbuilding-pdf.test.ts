@@ -88,7 +88,7 @@ describe("parsePowerbuilding", () => {
     expect(all).not.toContain("Example");
   });
 
-  it("produces a valid programme whose doses all parse", () => {
+  it("produces a valid program whose doses all parse", () => {
     const { program } = parsePowerbuilding(DUMP, META);
     const valid = validateProgramJson(program);
     for (const b of valid.blocks) for (const w of b.weeks) for (const d of w.days) for (const e of d.exercises) expect(parseDose(e.dose), e.name).not.toBeNull();

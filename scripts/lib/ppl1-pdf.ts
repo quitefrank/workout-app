@@ -1,5 +1,5 @@
 /**
- * Parse the Legs/Push/Pull (PPL 1.0) PDF dump into the programme
+ * Parse the Legs/Push/Pull (PPL 1.0) PDF dump into the program
  * contract. Cover pages carry the block ("B L O C K 1"); table pages
  * carry "WEEK N: DAYS a-b" and one table per day whose header starts
  * with the day name ("LEGS #1"). Weeks restart per block, so the

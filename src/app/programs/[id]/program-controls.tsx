@@ -18,7 +18,7 @@ function useAction() {
   return [pending, run] as const;
 }
 
-/** Follow this programme, so the calendar shows its next workout, or stop. */
+/** Follow this program, so the calendar shows its next workout, or stop. */
 export function FollowButton({ programId, following }: { programId: string; following: boolean }) {
   const [pending, run] = useAction();
   return following ? (
@@ -32,7 +32,7 @@ export function FollowButton({ programId, following }: { programId: string; foll
   );
 }
 
-/** Set the phase by hand, or give it back to the app. Following the programme is implied. */
+/** Set the phase by hand, or give it back to the app. Following the program is implied. */
 export function PhaseButton({
   programId,
   position,

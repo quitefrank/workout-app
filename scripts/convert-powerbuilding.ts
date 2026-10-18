@@ -1,5 +1,5 @@
 /**
- * Convert the Powerbuilding 4x PDF dump into programme JSON under
+ * Convert the Powerbuilding 4x PDF dump into program JSON under
  * scripts/data/programs/ (gitignored).
  *
  *   bun run convert:powerbuilding [path-to-dump.json]

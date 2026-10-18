@@ -80,7 +80,7 @@ describe("parsePpl1", () => {
     expect(program.blocks[1].weeks[0].days[0].exercises[0]).toMatchObject({ name: "Deadlift", dose: "1 x 1", notes: "As written: RPE 9 TEST" });
   });
 
-  it("produces a valid programme whose doses all parse", () => {
+  it("produces a valid program whose doses all parse", () => {
     const { program } = parsePpl1(DUMP, META);
     const valid = validateProgramJson(program);
     for (const b of valid.blocks) for (const w of b.weeks) for (const d of w.days) for (const e of d.exercises) expect(parseDose(e.dose), e.name).not.toBeNull();

@@ -20,7 +20,7 @@ export const RECOVERY_PROGRAM: ProgramSeed = {
   name: "Achilles rupture, accelerated functional rehabilitation (non-operative, modified Willits)",
   kind: "recovery",
   description:
-    "The treating clinic's accelerated functional rehabilitation programme for a non-operatively managed Achilles tendon rupture. It is a modified version of the protocol from Willits and colleagues' multicentre randomised trial, issued as a two-page handout with the first page of the trial's Table E-1 appendix. Day 0 is the injury date. Weight-bearing steps up in the boot from week 2, wedges come out from week 6, the boot is weaned from week 8, and the two return-to-sport gates are strength-based rather than calendar-based.",
+    "The treating clinic's accelerated functional rehabilitation program for a non-operatively managed Achilles tendon rupture. It is a modified version of the protocol from Willits and colleagues' multicentre randomised trial, issued as a two-page handout with the first page of the trial's Table E-1 appendix. Day 0 is the injury date. Weight-bearing steps up in the boot from week 2, wedges come out from week 6, the boot is weaned from week 8, and the two return-to-sport gates are strength-based rather than calendar-based.",
   citation:
     "Willits K, Amendola A, Bryant D, et al. Operative versus nonoperative treatment of acute Achilles tendon ruptures: a multicenter randomized trial using accelerated functional rehabilitation. J Bone Joint Surg Am. 2010;92(17):2767-2775.",
   authorityNotes:

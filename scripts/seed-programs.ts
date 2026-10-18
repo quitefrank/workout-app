@@ -1,5 +1,5 @@
 /**
- * Load every programme JSON under scripts/data/programs/ (except the
+ * Load every program JSON under scripts/data/programs/ (except the
  * example) into Supabase. One program row, one program_phases row per
  * week (block name in `block`), one template per day per week, ordered
  * inside the phase by template_phases.position.
@@ -11,31 +11,31 @@
  * report is still written, so the rejected doses are on disk).
  *
  * Ownership is the _notion_id column. This seed stamps:
- *   program:<programme>:<block>:<week>:<day>        templates
- *   program:<programme>:<block>:<week>:<day>:<n>    template_exercises
- *   program:<programme>:<slug>:<position>           exercise_alternates
+ *   program:<program>:<block>:<week>:<day>        templates
+ *   program:<program>:<block>:<week>:<day>:<n>    template_exercises
+ *   program:<program>:<slug>:<position>           exercise_alternates
  *   program:exercise:<slug>                         exercises it inserted
  *   program:muscle-group:<slug>                     muscle_groups it inserted
  *
- * For each programme in the loaded files, the seed clears and rewrites
+ * For each program in the loaded files, the seed clears and rewrites
  * its template_exercises and template_phases, removes its templates and
  * phases the JSON no longer has, and removes its alternate rows that
- * are no longer wanted. After all programmes, exercises the seed
+ * are no longer wanted. After all programs, exercises the seed
  * inserted that nothing references any more are removed. Nothing else
  * is cleared: the Notion-derived templates ("template:" keys), the
  * Achilles rows ("achilles:" keys), Notion sub-options (null key) and
- * any programme not in the loaded files are left as they are; the last
+ * any program not in the loaded files are left as they are; the last
  * two are only reported.
  *
  * Exercises match the library by the alias LIBRARY_ALIASES gives the
  * slug (a curated Notion row under another name, or the spelling
- * another programme keeps), then by slug, then by near-duplicate slugs
+ * another program keeps), then by slug, then by near-duplicate slugs
  * (plural, "db"/"dumbbell", "bb"/"barbell"). A row this seed inserted
  * never shadows a curated library row: candidates are tried against
  * Notion and Achilles rows first, then against seed-owned rows.
  * Aliased spellings are resolved after every other prescribed name, so
  * an alias whose target is a row this run inserts for another
- * programme finds it. Unknown exercises are inserted unrated (no authoring
+ * program finds it. Unknown exercises are inserted unrated (no authoring
  * inputs), which the recovery rules report as unrated; an unknown
  * substitution is inserted only when the slot it fills will actually be
  * written. After the unreferenced rows go, LIBRARY_ATTRIBUTES gives
@@ -87,17 +87,17 @@ type Report = {
   rejectedDoses: { program: string; block: string; week: number; day: string; name: string; dose: string }[];
   /** Seed-owned alternate rows that now say what the JSON says. */
   alternatesInPlace: number;
-  /** Rows the seed does not own (Notion sub-options, another programme) that already named the same alternate. */
+  /** Rows the seed does not own (Notion sub-options, another program) that already named the same alternate. */
   alternatesAlreadyMatching: number;
-  /** Slots holding a Notion sub-option (or another programme's alternate) that differs from this programme's; left as they were. */
+  /** Slots holding a Notion sub-option (or another program's alternate) that differs from this program's; left as they were. */
   alternatesKeptExisting: { program: string; exercise: string; position: number; existing: string; wanted: string }[];
   /** The same exercise listed with a different substitution in a later week; the first one wins. */
   alternateConflicts: { program: string; exercise: string; position: number; kept: string; ignored: string }[];
-  /** Seed-owned alternate rows of a loaded programme that its JSON no longer wants; deleted. */
+  /** Seed-owned alternate rows of a loaded program that its JSON no longer wants; deleted. */
   alternatesRemoved: number;
-  /** Training programmes in the database that are not among the loaded files; reported only. */
+  /** Training programs in the database that are not among the loaded files; reported only. */
   orphanPrograms: string[];
-  /** Seed-owned alternate keys whose programme is not among the loaded files; reported only. */
+  /** Seed-owned alternate keys whose program is not among the loaded files; reported only. */
   orphanAlternates: string[];
   staleTemplatesDeleted: number;
   stalePhasesDeleted: number;
@@ -106,7 +106,7 @@ type Report = {
 
 type Loaded = { file: string; program: ProgramJson };
 
-/** One substitution slot per (programme, exercise slug, position), first occurrence wins. */
+/** One substitution slot per (program, exercise slug, position), first occurrence wins. */
 type AlternateSlot = { exerciseSlug: string; exerciseName: string; position: number; alternateSlug: string; alternateName: string };
 
 const REPORT_PATH = fileURLToPath(new URL("./seed-programs-report.json", import.meta.url));
@@ -156,7 +156,7 @@ async function preflight(sb: SupabaseClient, files: string[], report: Report): P
       fail(`${basename(file)}: ${e instanceof Error ? e.message : String(e)}`);
     }
     const dup = seenNames.get(program.name);
-    if (dup) fail(`${basename(file)}: programme "${program.name}" is also in ${basename(dup)}`);
+    if (dup) fail(`${basename(file)}: program "${program.name}" is also in ${basename(dup)}`);
     seenNames.set(program.name, file);
 
     for (const block of program.blocks) {
@@ -181,7 +181,7 @@ async function preflight(sb: SupabaseClient, files: string[], report: Report): P
     process.exit(1);
   }
 
-  // A programme name that already belongs to a row of another kind (the
+  // A program name that already belongs to a row of another kind (the
   // recovery program) must not be upserted over.
   const { data: named, error: namedErr } = await sb
     .from("programs")
@@ -189,13 +189,13 @@ async function preflight(sb: SupabaseClient, files: string[], report: Report): P
     .in("name", loaded.map((l) => l.program.name));
   if (namedErr) fail(`programs lookup failed: ${namedErr.message}`);
   for (const row of named ?? []) {
-    if (row.kind !== "training") fail(`programme "${row.name}" already exists with kind "${row.kind}"; refusing to overwrite it`);
+    if (row.kind !== "training") fail(`program "${row.name}" already exists with kind "${row.kind}"; refusing to overwrite it`);
   }
   return loaded;
 }
 
 /**
- * Every distinct exercise name the programmes prescribe (not the
+ * Every distinct exercise name the programs prescribe (not the
  * substitutions), keyed by slug, first spelling wins. Substitutions are
  * resolved at the slot, so one is only inserted when its slot will
  * actually be written.
@@ -231,7 +231,7 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
     const alias = LIBRARY_ALIASES[slug];
     const fuzzy = slugCandidates(slug);
     // The alias goes first: its target may be a seed-owned row (the
-    // spelling another programme keeps), and the slug's own seed row
+    // spelling another program keeps), and the slug's own seed row
     // from an earlier run must not win over it.
     const candidates = alias ? [alias, slug, ...fuzzy.filter((c) => c !== slug && c !== alias)] : fuzzy;
     const { data: rows, error: lookupErr } = await sb.from("exercises").select("id,slug,_notion_id").in("slug", candidates);
@@ -286,7 +286,7 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
   return { resolve, exerciseId, librarySlug };
 }
 
-/** The substitution slots one programme wants, one per (exercise, position). */
+/** The substitution slots one program wants, one per (exercise, position). */
 function collectAlternates(program: ProgramJson, report: Report): AlternateSlot[] {
   const slots = new Map<string, AlternateSlot>();
   for (const block of program.blocks) for (const week of block.weeks) for (const day of week.days) {
@@ -346,7 +346,7 @@ async function main() {
   // 0. Pre-flight: files, shape, doses, names, library present.
   console.log("\n[0/7] pre-flight");
   const files = programFiles();
-  if (files.length === 0) fail("no programme JSON found under scripts/data/programs/ (the example is skipped)");
+  if (files.length === 0) fail("no program JSON found under scripts/data/programs/ (the example is skipped)");
   const { count: mgCount, error: mgErr } = await sb.from("muscle_groups").select("*", { count: "exact", head: true });
   if (mgErr) fail(`muscle_groups count failed: ${mgErr.message}`);
   if (!mgCount) fail("muscle_groups is empty. Run the Notion seed first.");
@@ -363,7 +363,7 @@ async function main() {
   console.log("\n[1/7] exercises");
   const { resolve, exerciseId, librarySlug } = await makeResolver(sb, report);
   // Aliased spellings last (stable order otherwise), so an alias whose
-  // target is a row this run inserts for another programme finds it
+  // target is a row this run inserts for another program finds it
   // instead of reporting the target missing and inserting a duplicate.
   const prescribed = [...collectPrescribedNames(loaded)].sort(([a], [b]) => Number(a in LIBRARY_ALIASES) - Number(b in LIBRARY_ALIASES));
   for (const [slug, name] of prescribed) {
@@ -371,14 +371,14 @@ async function main() {
   }
   console.log(`  ${report.exercisesMatched.length} matched the library (${report.fuzzyMatches.length} through a near-duplicate slug), ${report.exercisesInserted.length} inserted`);
 
-  // 2. Alternates. Each programme's rows carry
-  // "program:<programme>:<library slug>:<position>" in _notion_id and
+  // 2. Alternates. Each program's rows carry
+  // "program:<program>:<library slug>:<position>" in _notion_id and
   // are corrected in place when the JSON changes. A slot holding a
-  // library row's Notion sub-option, or another programme's alternate,
+  // library row's Notion sub-option, or another program's alternate,
   // is left as it is and reported with what it holds and what was
   // wanted; the substitution exercise is not inserted for such a slot,
   // so nothing is added that the run would then find unreferenced.
-  // Seed-owned rows of this programme that are no longer wanted are
+  // Seed-owned rows of this program that are no longer wanted are
   // removed.
   console.log("\n[2/7] alternates");
   const readSlot = async (ownId: string, position: number, label: string) => {
@@ -405,7 +405,7 @@ async function main() {
       let altId = await resolve(a.alternateSlug, a.alternateName, false);
       if (current && !currentSeedOwned) {
         if (altId && current.alternate_exercise_id === altId) {
-          // A Notion sub-option (or another programme) already says this; leave it with its own key.
+          // A Notion sub-option (or another program) already says this; leave it with its own key.
           report.alternatesAlreadyMatching++;
           continue;
         }
@@ -582,7 +582,7 @@ async function main() {
       }
     }
 
-    // Rows this programme wrote on an earlier run that the JSON no
+    // Rows this program wrote on an earlier run that the JSON no
     // longer has: templates keyed under it, phases past its last week.
     // Deleting a template cascades to its template_exercises and
     // template_phases. The "template:" and "achilles:" rows have no
@@ -717,7 +717,7 @@ async function main() {
       };
     })
     .filter((r) => r.muscleGroup === null || !(r.slug in LIBRARY_ATTRIBUTES));
-  console.log(`  ${report.orphanPrograms.length} orphan programmes, ${report.orphanAlternates.length} orphan alternates, ${report.handFix.length} exercises to hand-fix`);
+  console.log(`  ${report.orphanPrograms.length} orphan programs, ${report.orphanAlternates.length} orphan alternates, ${report.handFix.length} exercises to hand-fix`);
 
   // 7. Report.
   console.log("\n[7/7] report");
@@ -732,7 +732,7 @@ async function main() {
   console.log(`  aliases: ${report.aliasMatches.length} matched, ${report.aliasesMissing.length} missing; attributes: ${report.attributesApplied.length} applied, ${report.attributesUnused.length} unused`);
   console.log(`  alternates in place: ${report.alternatesInPlace}, already matching: ${report.alternatesAlreadyMatching}, kept existing: ${report.alternatesKeptExisting.length}, removed: ${report.alternatesRemoved}, conflicts: ${report.alternateConflicts.length}`);
   console.log(`  stale rows removed: ${report.staleTemplatesDeleted} templates, ${report.stalePhasesDeleted} phases`);
-  console.log(`  orphans: ${report.orphanPrograms.length} programmes, ${report.orphanAlternates.length} alternates`);
+  console.log(`  orphans: ${report.orphanPrograms.length} programs, ${report.orphanAlternates.length} alternates`);
   console.log(`\nReport written to ${REPORT_PATH}`);
 }
 

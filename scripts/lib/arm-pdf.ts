@@ -1,5 +1,5 @@
 /**
- * Parse the Arm Hypertrophy PDF dump into the programme contract. One
+ * Parse the Arm Hypertrophy PDF dump into the program contract. One
  * page per week ("PROGRAM: WEEK N", block from the BLOCK table), three
  * tables per page (Arm Day, Supplemental A, Supplemental B) whose
  * second row is the column header and whose last rows may be weekly

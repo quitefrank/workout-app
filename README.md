@@ -30,7 +30,7 @@ Mirrors the conventions in `Personal/projects/nutrition-app/v1/` (Plately).
 PWA shell. No screens. No auth UI. No analytics page.
 
 Run `bun run build` to confirm the project compiles. Run `bun run test`
-to exercise the parsers, the recovery domain, the programme contract and
+to exercise the parsers, the recovery domain, the program contract and
 the migrations (284 tests across 21 files).
 
 **Milestone 2 (next).** Screens: calendar home, active workout, template
@@ -154,21 +154,21 @@ row counts, which exercises matched versus inserted, alternate slots
 kept as they were, unverified videos, rejected doses, and the overrides
 recorded.
 
-## Programmes
+## Programs
 
 ```bash
 bun run convert:ppl      # vault workbook -> scripts/data/programs/<name>.json
 bun run extract:pdfs     # vault PDFs -> scripts/data/programs/raw/<name>.json (needs python3 + pdfplumber)
-bun run convert:ppl1     # PPL 1.0 dump -> programme JSON
-bun run convert:powerbuilding   # Powerbuilding 4x dump -> programme JSON
-bun run convert:arm      # Arm Hypertrophy dump -> programme JSON
-bun run seed:programs    # every programme JSON -> Supabase
+bun run convert:ppl1     # PPL 1.0 dump -> program JSON
+bun run convert:powerbuilding   # Powerbuilding 4x dump -> program JSON
+bun run convert:arm      # Arm Hypertrophy dump -> program JSON
+bun run seed:programs    # every program JSON -> Supabase
 ```
 
-A programme is blocks of weeks, each week ordered days, each day
+A program is blocks of weeks, each week ordered days, each day
 ordered exercises with a prescription. The JSON contract lives in
 `scripts/data/programs/schema.ts`; `example.json` next to it shows the
-shape with made-up content. Programme content is copyrighted, so every
+shape with made-up content. Program content is copyrighted, so every
 other JSON in that folder is gitignored and the seed loads whatever is
 present.
 
@@ -184,8 +184,8 @@ name implies and no authoring inputs, and the report's `handFix` field
 lists the seed's exercises still at `other` or without a muscle group.
 Substitutions become alternates on the exercise row; a slot that
 already holds a Notion sub-option is left alone and reported. Each
-loaded programme's rows the JSON no longer has are removed. The Notion
-and Achilles templates and any programme not in the loaded files are
+loaded program's rows the JSON no longer has are removed. The Notion
+and Achilles templates and any program not in the loaded files are
 never touched.
 
 Idempotent. The seed writes `scripts/seed-programs-report.json` with
@@ -196,11 +196,11 @@ Three Nippard PDFs (PPL 1.0, Powerbuilding 4x, Arm Hypertrophy) go
 through a second pipeline into the same contract. `extract:pdfs` dumps
 each PDF's pages (text lines and tables) to gitignored JSON with
 pdfplumber (`python3 -m pip install pdfplumber`); one tested parser per
-programme in `scripts/lib/` builds the contract from its dump and one
-CLI per programme writes the gitignored JSON, exiting 1 on any row it
+program in `scripts/lib/` builds the contract from its dump and one
+CLI per program writes the gitignored JSON, exiting 1 on any row it
 could not dose. Powerbuilding week 10 is max testing option A (option B
 is reported as omitted) and its optional arm day sits on the odd weeks.
-The Get Ready Manual holds no programme and stays a reference. The same
+The Get Ready Manual holds no program and stays a reference. The same
 seed loads all four JSONs.
 
 ## Project structure
@@ -214,27 +214,27 @@ seed loads all four JSONs.
 │   ├── parse-weight-csv.ts     # pure parser, used by seed
 │   ├── seed-from-notion.ts     # one-time Notion -> Supabase migration
 │   ├── seed-achilles.ts        # Achilles program, exercises, templates, personal rows
-│   ├── seed-programs.ts        # every programme JSON -> programs, phases, templates
-│   ├── convert-ppl-sheet.ts    # vault workbook -> programme JSON
+│   ├── seed-programs.ts        # every program JSON -> programs, phases, templates
+│   ├── convert-ppl-sheet.ts    # vault workbook -> program JSON
 │   ├── extract-pdf-tables.py   # one PDF -> page dump JSON (pdfplumber)
 │   ├── extract-training-pdfs.ts # runs the extractor over the vault's three PDFs
-│   ├── convert-ppl1.ts         # PPL 1.0 dump -> programme JSON
-│   ├── convert-powerbuilding.ts # Powerbuilding 4x dump -> programme JSON
-│   ├── convert-arm.ts          # Arm Hypertrophy dump -> programme JSON
+│   ├── convert-ppl1.ts         # PPL 1.0 dump -> program JSON
+│   ├── convert-powerbuilding.ts # Powerbuilding 4x dump -> program JSON
+│   ├── convert-arm.ts          # Arm Hypertrophy dump -> program JSON
 │   ├── data/achilles/          # committed seed data + gitignored personal.local.json
-│   ├── data/programs/          # JSON contract (schema.ts), library map (library.ts), example.json, gitignored programme JSON
+│   ├── data/programs/          # JSON contract (schema.ts), library map (library.ts), example.json, gitignored program JSON
 │   ├── generate-icons.ts       # placeholder PWA icon generator
 │   ├── lib/
 │   │   ├── env.ts              # env var loader and validator
 │   │   ├── parse-prescription.ts # parse "3-5", "3 mins" etc
 │   │   ├── exercise-name.ts    # parse ↑↓ arrows, infer equipment_type
 │   │   ├── template-name.ts    # canonical template names, category and variant
-│   │   ├── ppl-sheet.ts        # workbook rows -> programme JSON, with skipped rows
+│   │   ├── ppl-sheet.ts        # workbook rows -> program JSON, with skipped rows
 │   │   ├── exercise-variant.ts # split a set type out of an exercise name, split "A + B" cells
 │   │   ├── pdf-program.ts      # shared PDF cell helpers: names, notes, rest, RPE or %1RM, doses
-│   │   ├── ppl1-pdf.ts         # PPL 1.0 dump -> programme JSON
-│   │   ├── powerbuilding-pdf.ts # Powerbuilding 4x dump -> programme JSON
-│   │   └── arm-pdf.ts          # Arm Hypertrophy dump -> programme JSON
+│   │   ├── ppl1-pdf.ts         # PPL 1.0 dump -> program JSON
+│   │   ├── powerbuilding-pdf.ts # Powerbuilding 4x dump -> program JSON
+│   │   └── arm-pdf.ts          # Arm Hypertrophy dump -> program JSON
 │   └── __tests__/              # Vitest unit tests for the parsers
 ├── src/
 │   └── app/                    # Next.js App Router

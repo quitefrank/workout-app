@@ -34,7 +34,7 @@ describe("phaseInForce", () => {
     expect(r).toMatchObject({ phase: { position: 7 }, reason: "calendar" });
   });
 
-  it("starts a programme with no calendar at its first phase", () => {
+  it("starts a program with no calendar at its first phase", () => {
     const r = phaseInForce(RECOVERY, { chosenPosition: null, loggedPhaseId: null, logStale: false, week: null });
     expect(r).toMatchObject({ phase: { position: 1 }, reason: "start" });
   });
@@ -67,7 +67,7 @@ describe("nextInSequence", () => {
     expect(r.template?.id).toBe("w1b");
   });
 
-  it("says the programme is finished after its last day", () => {
+  it("says the program is finished after its last day", () => {
     const r = nextInSequence(weeks, [{ templateId: "w2b", completedAt: "2026-10-10T10:00:00Z" }]);
     expect(r).toMatchObject({ template: null, finished: true });
   });

@@ -1,5 +1,5 @@
 /**
- * Split a programme's exercise spelling into the base exercise and the
+ * Split a program's exercise spelling into the base exercise and the
  * set type it carries, so "Bench Press (Top Set)" resolves to the same
  * library row as "Bench Press" and the set type lives on the template
  * row (template_exercises.variant).

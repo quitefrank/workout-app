@@ -55,7 +55,7 @@ describe("parseArm", () => {
     expect(b[0]).toMatchObject({ name: "Heavy Negative Concentration Curls", dose: "1 x AMRAP", notes: "Control the negative. Sets and reps as written: 0 / 0, an open-ended set; see the notes" });
   });
 
-  it("produces a valid programme whose doses all parse", () => {
+  it("produces a valid program whose doses all parse", () => {
     const { program } = parseArm(DUMP, META);
     const valid = validateProgramJson(program);
     for (const bl of valid.blocks) for (const w of bl.weeks) for (const d of w.days) for (const e of d.exercises) expect(parseDose(e.dose), e.name).not.toBeNull();

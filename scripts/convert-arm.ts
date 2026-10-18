@@ -1,5 +1,5 @@
 /**
- * Convert the Arm Hypertrophy PDF dump into programme JSON under
+ * Convert the Arm Hypertrophy PDF dump into program JSON under
  * scripts/data/programs/ (gitignored).
  *
  *   bun run convert:arm [path-to-dump.json]

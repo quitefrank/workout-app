@@ -1,5 +1,5 @@
 /**
- * Today on a programme, for the programme screen and the calendar's up
+ * Today on a program, for the program screen and the calendar's up
  * next card. Pure: the page passes in what it read.
  *
  * Recovery: the phase in force (see phaseInForce), the week by the
