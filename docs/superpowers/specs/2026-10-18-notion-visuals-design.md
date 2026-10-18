@@ -23,7 +23,10 @@ more visually without leaving the Liquid Glass look.
 - Workout page icons: Push `hand`, Pull `gym`, Legs `pants`, Full Body
   `accessibility`, Run `shoe`, Abs `tshirt`.
 
-Notion's icon artwork is not copied. Every icon is redrawn.
+> Updated 2026-10-18: Frank wants Notion's icons exactly, so they are
+> copied from notion.so/icons into `icons.tsx` (fill set to currentColor),
+> replacing the redrawn line icons. The sections below that say "redrawn"
+> are superseded.
 
 ## 1. Muscle group grid on Library
 

@@ -448,7 +448,9 @@ drawing of their own and are derived from his by flood fill
 ships as JS. Library shows the groups as a card grid that filters the
 list. The icons beside prescriptions (warm-up, sets, reps, rest), on
 workout thumbs by category (`src/lib/workout/icons.ts`) and before
-muscle group names are Notion's, redrawn in `icons.tsx`.
+muscle group names are Notion's own icons (its `fire`, `repeat`,
+`hashtag`, `clock`, `accessibility`, `gym`, `hand`, `pants`, `shoe`,
+`tshirt`), copied into `icons.tsx` with the fill set to currentColor.
 
 Appearance: Settings offers System, Light and Dark, saved per device in
 the `theme` cookie. The layout writes it onto `<html data-theme>` (and
