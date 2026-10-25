@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { appearance as currentAppearance, onAppearanceChange } from "@/lib/appearance";
-import { scrollTop } from "@/lib/scroller";
+import { SCROLLER, scrollTop } from "@/lib/scroller";
 import { debugState } from "./debug-state";
 import { buildDisplayList, UNPAINTED, type DisplayList } from "./paint/display-list";
 import { paintList } from "./paint/paint";
@@ -13,6 +13,25 @@ const unpainted = (n: EventTarget | Node | null | undefined) => {
   const el = n instanceof Element ? n : n instanceof Node ? n.parentElement : null;
   return !!el?.closest(UNPAINTED);
 };
+/**
+ * The rule the drift fixes come down to: nothing in the scrolling content stays on the live layer at rest. The
+ * compositor moves live HTML the moment the finger does and the canvas a frame or more later, so anything live inside
+ * the scroller (glass, a data-live element, a native control left unpainted) slides against the painted page around it.
+ * A control is painted at rest and live only while in use (a focused input), or it is a painted face with the real
+ * control invisible over it (the Settings select). In development every rebuild warns about what breaks the rule.
+ */
+const warned = new WeakSet<Element>();
+function warnLiveInScroll() {
+  const scroller = document.querySelector(SCROLLER);
+  if (!scroller) return;
+  const pinned = (el: Element) => { for (let e: Element | null = el; e && e !== scroller; e = e.parentElement) if (getComputedStyle(e).position === "fixed") return true; return false; };
+  for (const el of Array.from(scroller.querySelectorAll(UNPAINTED))) {
+    if (warned.has(el) || el.parentElement?.closest(UNPAINTED) || el.matches(":focus") || pinned(el)) continue;
+    warned.add(el);
+    console.warn("Live element in the scrolling content: it will drift from the painted page while scrolling. Paint it at rest, or pin it.", el);
+  }
+}
+
 /**
  * The stage's height: the large viewport (Safari's toolbar collapsed), measured once per start, so the canvas still
  * covers the page when the toolbar collapses and the viewport grows. The canvas is fixed at the top; on a screen whose
@@ -155,6 +174,7 @@ export function GlassStage() {
             if (!list) {
               list = buildDisplayList(document.body, bump); builtAt = at;
               painted = Array.from(document.querySelectorAll<HTMLInputElement>(PAINTED_INPUTS)).filter((el) => !unpainted(el.parentElement));
+              if (process.env.NODE_ENV !== "production") warnLiveInScroll();
             }
             paintList(c, list, window.scrollX, window.scrollY, W, H, origin);
             if (list.pending) list = null;

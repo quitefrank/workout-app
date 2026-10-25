@@ -432,6 +432,18 @@ above 5: glass in the page's flow is lifted to 6, live elements carry
 with its box, and lifted over the canvas only while it has focus. Its
 value is in the stage's signature, so a value set by script repaints.
 
+The rule behind every drift fix: nothing in the scrolling content stays
+on the live layer at rest. The compositor moves live HTML with the
+finger and the canvas a frame or more later, so glass, a `data-live`
+element or an unpainted native control inside the scroller slides
+against the painted page around it. A control is painted at rest and
+live only while in use (a focused input), or it is a painted face with
+the real control invisible over it (the Settings select: a painted value
+and chevron, a transparent `<select>` on top). Glass belongs in the
+pinned layer only. In development the stage warns in the console about
+anything live in the scroller (`warnLiveInScroll` in
+`src/glass/glass-stage.tsx`).
+
 The window never scrolls, as in the Glass Lab's app mode: `html` and
 `body` are locked and every screen scrolls inside `[data-app-scroller]`
 (`src/components/app-scroller.tsx`, helpers in `src/lib/scroller.ts`),

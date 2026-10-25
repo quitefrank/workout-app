@@ -79,6 +79,13 @@ export const ChevronDown = (p: IconProps) => (
   </Svg>
 );
 
+/** chevron.up.chevron.down, the mark a pop-up button carries */
+export const ChevronUpDown = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M7.5 9.5L12 5l4.5 4.5M7.5 14.5L12 19l4.5-4.5" />
+  </Svg>
+);
+
 export const PlusIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 4.5v15M4.5 12h15" />

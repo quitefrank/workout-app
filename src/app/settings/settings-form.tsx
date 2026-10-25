@@ -5,6 +5,7 @@ import { useState, useSyncExternalStore, useTransition } from "react";
 import { toast } from "sonner";
 import { saveSettings } from "@/app/actions";
 import { debugSetting, setDebugSetting } from "@/glass/debug";
+import { ChevronUpDown } from "@/components/icons";
 import { setTheme, type Theme } from "@/lib/appearance";
 import { cn } from "@/lib/cn";
 import type { Settings } from "@/lib/data/queries";
@@ -43,7 +44,7 @@ export function SettingsForm({ settings, theme: initialTheme }: { settings: Sett
   return (
     <div
       aria-busy={pending}
-      // not dimmed under the WebGPU stage: opacity would make a stacking context and sink the live select under the canvas
+      // not dimmed under the WebGPU stage: the painted page is already what shows
       className={cn("mt-4 flex flex-col gap-6 px-4", pending && "[html:not(.gpu)_&]:opacity-90")}>
       <Group title="Appearance" footer="System follows this device's light or dark setting. Saved on this device only.">
         <Segmented
@@ -74,13 +75,19 @@ export function SettingsForm({ settings, theme: initialTheme }: { settings: Sett
       </Group>
 
       <Group title="Rest timer" footer="Used when an exercise has no prescribed rest. The timer starts after each working set.">
-        <div className="flex items-center justify-between px-4 py-2.5">
+        {/* The value and chevron are painted with the page; the real select lies over the row, invisible, so a tap opens
+            the iOS picker. A live select in scrolling content drifts from its painted row (see the glass rules). */}
+        <div className="relative flex items-center justify-between px-4 py-2.5">
           <span className="text-[17px]">Default rest</span>
+          <span aria-hidden className="flex items-center gap-1 text-[17px] text-ink-2">
+            {formatRest(s.default_rest_seconds)}
+            <ChevronUpDown size={16} strokeWidth={2.2} />
+          </span>
           <select
-            data-live
+            aria-label="Default rest"
             value={s.default_rest_seconds}
             onChange={(e) => update({ ...s, default_rest_seconds: Number(e.target.value) })}
-            className="rounded-lg bg-transparent text-right text-[17px] text-ink-2 outline-none"
+            className="absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
           >
             {[...new Set([...REST_STEPS, s.default_rest_seconds])]
               .sort((a, b) => a - b)
