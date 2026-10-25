@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blendSides, decideDark, lerpRgb, stepSide } from "../context";
+import { averageUnder, blendSides, decideDark, lerpRgb, stepSide, unpadRows } from "../context";
 
 describe("context rule", () => {
   it("first reading splits at 0.45", () => {
@@ -39,6 +39,27 @@ describe("context rule", () => {
 
   it("lens mode and sRGB flags switch at 0.5", () => {
     expect(blendSides({ lensMode: 0, pillSrgb: 1 }, { lensMode: 1, pillSrgb: 0 }, 0.5)).toEqual({ lensMode: 1, pillSrgb: 0 });
+  });
+
+  it("readback rows lose their 256-byte padding and flip when asked", () => {
+    // 2 x 2 texels: 8 bytes a row, padded to 256
+    const padded = new Uint8Array(256 + 8);
+    padded.set([1, 1, 1, 1, 2, 2, 2, 2], 0);
+    padded.set([3, 3, 3, 3, 4, 4, 4, 4], 256);
+    expect(Array.from(unpadRows(padded, 2, 2, false))).toEqual([1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4]);
+    expect(Array.from(unpadRows(padded, 2, 2, true))).toEqual([3, 3, 3, 3, 4, 4, 4, 4, 1, 1, 1, 1, 2, 2, 2, 2]);
+    // exactly 256 bytes a row: no padding
+    const tight = new Uint8Array(256 * 2).map((_, i) => (i < 256 ? 5 : 6));
+    expect(unpadRows(tight, 64, 2, false)[256]).toBe(6);
+  });
+
+  it("averages the grid cells a rect covers, clamped to the grid", () => {
+    // 2 x 1 cells of 8px: black, white
+    const grid = new Uint8ClampedArray([0, 0, 0, 255, 255, 255, 255, 255]);
+    expect(averageUnder(grid, 2, 1, 8, { x0: 0, x1: 16, y0: 0, y1: 8 })).toBeCloseTo(0.5);
+    expect(averageUnder(grid, 2, 1, 8, { x0: 9, x1: 40, y0: -5, y1: 3 })).toBeCloseTo(1);
+    expect(averageUnder(grid, 2, 1, 8, { x0: 100, x1: 120, y0: 0, y1: 8 })).toBe(0.5);
+    expect(averageUnder(null, 2, 1, 8, { x0: 0, x1: 16, y0: 0, y1: 8 })).toBe(0.5);
   });
 
   it("a key on only one side is skipped when the other side is chosen", () => {

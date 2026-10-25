@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { blendSides, decideDark, stepSide } from "../context";
+import { averageUnder, blendSides, decideDark, stepSide, unpadRows } from "../context";
 import { CTXV, type Family, type Material } from "../presets";
 import { scrollTop } from "@/lib/scroller";
 import { debugState } from "../debug-state";
@@ -46,7 +46,7 @@ export async function startStage(o: StageOptions): Promise<() => void> {
 
 function setup(o: StageOptions, renderer: any): () => void {
   const { THREE, T, W, H, dpr } = o;
-  const { Fn, uv, vec2, vec3, float, abs, max, min, length, clamp, mix, smoothstep, texture, uniform, sRGBTransferEOTF } = T;
+  const { Fn, uv, vec2, vec3, float, int, ivec2, abs, max, min, floor, length, clamp, mix, smoothstep, texture, textureLoad, uniform, sRGBTransferEOTF, screenCoordinate, Loop } = T;
   const contentCanvas = document.createElement("canvas"); contentCanvas.width = Math.round(W * dpr); contentCanvas.height = Math.round(H * dpr);
   const cctx = contentCanvas.getContext("2d")!;
   // raw sRGB bytes (no decode on sampling): the frost averages them as they are, and the optics decode where they read
@@ -157,19 +157,40 @@ function setup(o: StageOptions, renderer: any): () => void {
   const pillGeo = new THREE.PlaneGeometry(1, 1);
   const pillMesh = new THREE.Mesh(pillGeo, pm); pillMesh.renderOrder = 10; pillMesh.visible = false; scene.add(pillMesh);
 
-  // Adapt and the context rule read the page's average brightness: the page kept as a small copy (one cell per 8px,
-  // refreshed with the page), each footprint averaged from it in sRGB, as the readings were
-  const AVG_CELL = 8, aw = Math.ceil(W / AVG_CELL), ah = Math.ceil(H / AVG_CELL);
-  const avgCanvas = document.createElement("canvas"); avgCanvas.width = aw; avgCanvas.height = ah;
-  const actx = avgCanvas.getContext("2d", { willReadFrequently: true })!;
-  let avgBytes: Uint8ClampedArray | null = null;
-  const avgUnder = (r: { x0: number; x1: number; y0: number; y1: number }) => {
-    if (!avgBytes) return 0.5;
-    const x0 = Math.max(0, Math.floor(r.x0 / AVG_CELL)), x1 = Math.min(aw, Math.ceil(r.x1 / AVG_CELL)), y0 = Math.max(0, Math.floor(r.y0 / AVG_CELL)), y1 = Math.min(ah, Math.ceil(r.y1 / AVG_CELL));
-    let sum = 0, n = 0;
-    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * aw + x) * 4; sum += avgBytes[i] * 0.2126 + avgBytes[i + 1] * 0.7152 + avgBytes[i + 2] * 0.0722; n++; }
-    return n ? sum / n / 255 : 0.5;
+  // Adapt and the context rule read the page's average brightness: the raw page (no edge effect, so the rule never reads
+  // its own dimming) kept as a small grid, one cell per 8px, each footprint averaged from it in sRGB, as the readings
+  // were. The grid is a box average on the GPU read back asynchronously, one read in flight, so it lands a frame or two
+  // after the page; a synchronous read here stalled every scroll frame on the GPU.
+  const AVG_CELL = 8, aw = Math.ceil(W / AVG_CELL), ah = Math.ceil(H / AVG_CELL), cellPx = AVG_CELL * dpr;
+  const avgRT = new THREE.RenderTarget(aw, ah, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false, depthBuffer: false });
+  avgRT.texture.colorSpace = THREE.NoColorSpace;
+  const avgMat = new THREE.MeshBasicNodeMaterial();
+  avgMat.colorNode = Fn(() => {
+    // this fragment's cell, and the exact block of content texels it covers (the last row and column clamped)
+    const cx = floor(screenCoordinate.x), cy = floor(screenCoordinate.y);
+    const x0 = int(floor(cx.mul(cellPx))), x1 = int(min(floor(cx.add(1).mul(cellPx)), float(cw)));
+    const y0 = int(floor(cy.mul(cellPx))), y1 = int(min(floor(cy.add(1).mul(cellPx)), float(ch)));
+    const sum = vec3(0, 0, 0).toVar(), n = float(0).toVar();
+    Loop({ start: y0, end: y1, type: "int", name: "py" }, ({ py }: any) => {
+      Loop({ start: x0, end: x1, type: "int", name: "px" }, ({ px }: any) => {
+        // the canvas texture is uploaded bottom row first
+        sum.addAssign(textureLoad(rawTex, ivec2(px, int(ch - 1).sub(py)), int(0)).rgb);
+        n.addAssign(1);
+      });
+    });
+    return sum.div(max(n, float(1)));
+  })();
+  const avgScene = new THREE.Scene(); avgScene.add(new THREE.Mesh(pageGeo, avgMat));
+  let avgBytes: Uint8ClampedArray | null = null, avgWanted = true, avgInFlight = false;
+  const readAverages = () => {
+    avgWanted = false; avgInFlight = true;
+    renderer.setRenderTarget(avgRT); renderer.render(avgScene, pageCam); renderer.setRenderTarget(null);
+    renderer.readRenderTargetPixelsAsync(avgRT, 0, 0, aw, ah).then(
+      (b: Uint8Array) => { if (!stopped) avgBytes = unpadRows(b, aw, ah, false); },
+      () => { avgWanted = true; },
+    ).finally(() => { avgInFlight = false; });
   };
+  const avgUnder = (r: { x0: number; x1: number; y0: number; y1: number }) => averageUnder(avgBytes, aw, ah, AVG_CELL, r);
   // laid out at all (no display: none on it or above it); a fixed element has no offsetParent, so that cannot be the test
   const shown = (el: Element) => el.getClientRects().length > 0;
   const html = document.documentElement;
@@ -204,9 +225,9 @@ function setup(o: StageOptions, renderer: any): () => void {
       lastSig = sig;
       cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       o.draw(cctx);
-      rawTex.needsUpdate = true; edgeFrost.touch(); pageDirty = true;
-      actx.drawImage(contentCanvas, 0, 0, aw, ah); avgBytes = actx.getImageData(0, 0, aw, ah).data;
+      rawTex.needsUpdate = true; edgeFrost.touch(); pageDirty = true; avgWanted = true;
     }
+    if (avgWanted && !avgInFlight) readAverages();
 
     const sheetOpen = html.classList.contains("sheet-open");
     let allReady = true;
@@ -284,7 +305,8 @@ function setup(o: StageOptions, renderer: any): () => void {
       bar.U.pillC.value.set(x - bar.mesh.position.x, y - bar.mesh.position.y); bar.U.pillS.value.set(w, h);
     }
     renderer.render(scene, camera);
-    if (allReady && !readySent) { readySent = true; o.onReady?.(); }
+    // the bars take their side from the first grid, so the CSS material holds the screen until one has arrived
+    if (allReady && avgBytes && !readySent) { readySent = true; o.onReady?.(); }
     if (++debugState.frames % 15 === 0) {
       debugState.entries = Array.from(entries.values()).map((e) => ({
         label: `${(e.el.getAttribute("aria-label") ?? e.el.textContent ?? "").trim().slice(0, 18)} ${e.el.className.toString().slice(0, 24)}`,
@@ -323,7 +345,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     for (const f of units.values()) f.key.classList.remove("ctx-dark", "ctx-light");
     for (const e of Array.from(entries.values())) remove(e);
     [...frosts, edgeFrost].forEach((f) => f.dispose());
-    [pageMat, bgMat, pm, pageGeo, bgGeo, pillGeo, rawTex, pageRT].forEach((x) => x.dispose());
+    [pageMat, bgMat, avgMat, pm, pageGeo, bgGeo, pillGeo, rawTex, pageRT, avgRT].forEach((x) => x.dispose());
     renderer.dispose();
   };
 }
