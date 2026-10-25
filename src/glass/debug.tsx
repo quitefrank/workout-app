@@ -5,21 +5,34 @@ import { debugState } from "./debug-state";
 
 /**
  * A readout of the glass renderer's state, for checking it on the phone where there is no console. Off unless the URL
- * carries `?glassdebug=1` (remembered in this browser; `?glassdebug=0` turns it off).
+ * carries `?glassdebug=1` when the page loads (it stays on across screens until the next load), or while Settings >
+ * Developer has it on for this device.
  */
 
 const KEY = "glassdebug";
 
+// The Developer switch in Settings, kept on this device (the home screen app has no address bar to type the link in)
+const SETTING = "glass-debug-setting";
+
+export function debugSetting(): boolean {
+  try { return localStorage.getItem(SETTING) === "1"; } catch { return false; }
+}
+
+export function setDebugSetting(on: boolean) {
+  try { if (on) localStorage.setItem(SETTING, "1"); else localStorage.removeItem(SETTING); } catch {}
+}
+
+// The link decides once per page load and holds while moving between screens (they change the URL without reloading)
+let fromLink: boolean | null = null;
+
 export function debugEnabled(): boolean {
   if (typeof window === "undefined") return false;
-  try {
-    const q = new URLSearchParams(window.location.search).get(KEY);
-    if (q === "1") localStorage.setItem(KEY, "1");
-    if (q === "0") localStorage.removeItem(KEY);
-    return localStorage.getItem(KEY) === "1";
-  } catch {
-    return false;
+  if (fromLink === null) {
+    fromLink = new URLSearchParams(window.location.search).get(KEY) === "1";
+    // the link's setting once lived in localStorage and outlived the link
+    try { localStorage.removeItem(KEY); } catch {}
   }
+  return fromLink || debugSetting();
 }
 
 export function GlassDebug() {

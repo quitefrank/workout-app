@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useSyncExternalStore, useTransition } from "react";
 import { toast } from "sonner";
 import { saveSettings } from "@/app/actions";
+import { debugSetting, setDebugSetting } from "@/glass/debug";
 import { setTheme, type Theme } from "@/lib/appearance";
 import { cn } from "@/lib/cn";
 import type { Settings } from "@/lib/data/queries";
@@ -17,6 +18,10 @@ export function SettingsForm({ settings, theme: initialTheme }: { settings: Sett
   const [theme, setThemeState] = useState(initialTheme);
   const router = useRouter();
   const [pending, start] = useTransition();
+  // a device setting: the server renders it off, the device reads its own
+  const stored = useSyncExternalStore(noop, debugSetting, () => false);
+  const [debug, setDebug] = useState<boolean | null>(null);
+  const debugOn = debug ?? stored;
 
   const update = (next: Settings) => {
     const prev = s;
@@ -99,9 +104,25 @@ export function SettingsForm({ settings, theme: initialTheme }: { settings: Sett
           onChange={(v) => update({ ...s, default_machine_location: v === "none" ? null : v })}
         />
       </Group>
+
+      <Group title="Developer" footer="Shows the glass renderer's readout at the bottom of the screen. Saved on this device only.">
+        <Segmented
+          value={debugOn ? "on" : "off"}
+          options={[
+            ["off", "Off"],
+            ["on", "Glass readout"],
+          ]}
+          onChange={(v) => {
+            setDebug(v === "on");
+            setDebugSetting(v === "on");
+          }}
+        />
+      </Group>
     </div>
   );
 }
+
+const noop = () => () => {};
 
 function Group({ title, footer, children }: { title: string; footer?: string; children: React.ReactNode }) {
   return (
