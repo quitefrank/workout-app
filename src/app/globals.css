@@ -578,3 +578,8 @@ html.gpu [data-scrim] {
 html.gpu.sheet-open [data-glass-unit="dock"] {
   visibility: hidden;
 }
+
+/* a full-screen mode with its own controls (the Library's search) takes the dock away, on either path */
+html.dock-hidden [data-glass-unit="dock"] {
+  display: none;
+}

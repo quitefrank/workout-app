@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useMemo, useRef, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { GlassCircleButton } from "@/components/glass";
 import { FigureIcon, SearchIcon, XIcon } from "@/components/icons";
@@ -54,6 +54,11 @@ export function ExerciseLibrary({
   const field = useRef<HTMLInputElement>(null);
   const q = query.trim().toLowerCase();
   const [recents, setRecents] = useState<string[]>([]);
+  // search mode is its own screen: the dock steps away until it closes (or the page goes)
+  useEffect(() => {
+    document.documentElement.classList.toggle("dock-hidden", searching);
+    return () => document.documentElement.classList.remove("dock-hidden");
+  }, [searching]);
   // a search counts once it is submitted or one of its results is opened
   const remember = () => {
     const term = query.trim();
