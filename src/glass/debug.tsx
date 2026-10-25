@@ -59,7 +59,8 @@ export function GlassDebug() {
       // fixed over the canvas already, so it takes no live lift (whose position: relative would pull it to the top)
       data-glass-debug
       // at the bottom, over the dock, so it never covers the top bar or the search field
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
+      // while typing, just above the keyboard: the top of what is on screen plus its height (src/lib/scroller.ts)
+      style={typing ? { top: "calc(var(--vv-h, 100vh) - 84px)" } : { bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
       className={`pointer-events-none fixed inset-x-2 z-[100] overflow-hidden whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-white ${typing ? "text-[9px] leading-[11px]" : "max-h-[45vh] text-[10px] leading-[13px]"}`}
     >
       {lines.join("\n")}

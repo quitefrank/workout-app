@@ -161,7 +161,9 @@ export function GlassStage() {
             }
             const values = painted.map((el) => (el === document.activeElement ? "" : el.value)).join("\u0000");
             if (values !== paintedValues) { paintedValues = values; bump(); }
-            return `${window.scrollX}|${window.scrollY}|${scrollTop()}|${dirty}|${inner}|${animTick}|${appearance()}`;
+            // the keyboard's slide moves every rect on screen without a scroll (src/lib/scroller.ts)
+            const vv = window.visualViewport;
+            return `${window.scrollX}|${window.scrollY}|${scrollTop()}|${vv?.offsetTop}|${vv?.height}|${dirty}|${inner}|${animTick}|${appearance()}`;
           },
           // the CSS material steps aside only once the shader has every glass element on screen built
           onReady: () => {

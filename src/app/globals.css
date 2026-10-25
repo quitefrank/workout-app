@@ -579,6 +579,17 @@ html.gpu.sheet-open [data-glass-unit="dock"] {
   visibility: hidden;
 }
 
+/* The keyboard's slide (--vv-top, src/lib/scroller.ts) moves the whole pinned layer back over what is on screen, the
+   canvas with it, so the bars stay put and the glass stays under them. iOS reports rects relative to what is on
+   screen, which is where the canvas then draws. */
+.glass-canvas,
+[data-glass-unit],
+.glass-sheet[role="dialog"],
+[data-scrim],
+[data-glass-debug] {
+  translate: 0 var(--vv-top, 0px);
+}
+
 /* a full-screen mode with its own controls (the Library's search) takes the dock away, on either path */
 html.dock-hidden [data-glass-unit="dock"] {
   display: none;
