@@ -96,6 +96,11 @@ export function GlassStage() {
     const onFocusMove = (e: Event) => { if ((e.target as Element | null)?.matches?.(PAINTED_INPUTS)) bump(); };
     document.addEventListener("focusin", onFocusMove, true);
     document.addEventListener("focusout", onFocusMove, true);
+    // the keyboard resizes the scroller and slides the pinned layer through <html>, outside what the observer watches
+    // (src/lib/scroller.ts), so a viewport change rebuilds the list too
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", bump);
+    vv?.addEventListener("scroll", bump);
     const onAppearance = () => { bars.setAppearance(appearance()); sheet.setAppearance(appearance()); bump(); };
     const stopAppearance = onAppearanceChange(onAppearance);
     const fonts = document.fonts;
@@ -205,6 +210,8 @@ export function GlassStage() {
       observer.disconnect();
       ANIM_EVENTS.forEach((t) => document.removeEventListener(t, onAnim, true));
       document.removeEventListener("scroll", onInnerScroll, true);
+      vv?.removeEventListener("resize", bump);
+      vv?.removeEventListener("scroll", bump);
       document.removeEventListener("focusin", onFocusMove, true);
       document.removeEventListener("focusout", onFocusMove, true);
       stopAppearance();
