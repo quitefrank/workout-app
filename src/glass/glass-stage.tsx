@@ -88,6 +88,14 @@ export function GlassStage() {
     // a horizontal rail scrolling moves content under the glass: the painter follows it without a rebuild
     const onInnerScroll = (e: Event) => { if (e.target !== document && !unpainted(e.target)) inner++; };
     document.addEventListener("scroll", onInnerScroll, true);
+    // Inputs are painted at rest. Focus moving in or out changes which one is painted; a value set by script (React
+    // clearing Reps after a set is logged) fires no event and no mutation, so the painted inputs' values are part of the
+    // signature. The focused one is left out, so typing does not rebuild the page on every key.
+    let painted: HTMLInputElement[] = [], paintedValues = "";
+    const PAINTED_INPUTS = "input[data-live]";
+    const onFocusMove = (e: Event) => { if ((e.target as Element | null)?.matches?.(PAINTED_INPUTS)) bump(); };
+    document.addEventListener("focusin", onFocusMove, true);
+    document.addEventListener("focusout", onFocusMove, true);
     const onAppearance = () => { bars.setAppearance(appearance()); sheet.setAppearance(appearance()); bump(); };
     const stopAppearance = onAppearanceChange(onAppearance);
     const fonts = document.fonts;
@@ -139,7 +147,10 @@ export function GlassStage() {
             // a sticky element's place depends on the scroll; while the page animates, every other frame rebuilds
             if (list && list.sticky && builtAt !== at) list = null;
             if (list && animating && (rebuildFrame = !rebuildFrame)) list = null;
-            if (!list) { list = buildDisplayList(document.body, bump); builtAt = at; }
+            if (!list) {
+              list = buildDisplayList(document.body, bump); builtAt = at;
+              painted = Array.from(document.querySelectorAll<HTMLInputElement>(PAINTED_INPUTS)).filter((el) => !unpainted(el.parentElement));
+            }
             paintList(c, list, window.scrollX, window.scrollY, W, H);
             if (list.pending) list = null;
           },
@@ -148,6 +159,8 @@ export function GlassStage() {
               if (stillAnimating()) animTick++;
               else { animating = false; bump(); }
             }
+            const values = painted.map((el) => (el === document.activeElement ? "" : el.value)).join("\u0000");
+            if (values !== paintedValues) { paintedValues = values; bump(); }
             return `${window.scrollX}|${window.scrollY}|${scrollTop()}|${dirty}|${inner}|${animTick}|${appearance()}`;
           },
           // the CSS material steps aside only once the shader has every glass element on screen built
@@ -190,6 +203,8 @@ export function GlassStage() {
       observer.disconnect();
       ANIM_EVENTS.forEach((t) => document.removeEventListener(t, onAnim, true));
       document.removeEventListener("scroll", onInnerScroll, true);
+      document.removeEventListener("focusin", onFocusMove, true);
+      document.removeEventListener("focusout", onFocusMove, true);
       stopAppearance();
       fonts?.removeEventListener("loadingdone", bump);
       window.removeEventListener("resize", onResize);

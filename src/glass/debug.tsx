@@ -57,6 +57,12 @@ const r = (el: Element | null) => {
   return `${Math.round(b.left)},${Math.round(b.top)} ${Math.round(b.width)}x${Math.round(b.height)}`;
 };
 
+const focused = () => {
+  const el = document.activeElement;
+  if (!el || el === document.body) return "none";
+  return `${el.tagName.toLowerCase()}${el.getAttribute("aria-label") ? ` "${el.getAttribute("aria-label")}"` : ""} ${r(el)}`;
+};
+
 /** Where the browser puts the viewport, the canvas and the pinned bars, to line the glass up on the phone */
 function geometry(): string[] {
   const vv = window.visualViewport;
@@ -71,6 +77,8 @@ function geometry(): string[] {
     `inner ${window.innerWidth}x${window.innerHeight}  client ${document.documentElement.clientHeight}  screen ${window.screen.height}  scroll ${Math.round(document.querySelector("[data-app-scroller]")?.scrollTop ?? 0)}`,
     `vv ${vv ? `${Math.round(vv.width)}x${Math.round(vv.height)} off ${Math.round(vv.offsetTop)} page ${Math.round(vv.pageTop)} scale ${vv.scale}` : "none"}  safe ${safe}`,
     `canvas ${r(canvas)} buffer ${canvas?.width}x${canvas?.height}`,
+    // the keyboard check: iOS may scroll the window or pan the visual viewport on focus though the window never scrolls
+    `window scroll ${Math.round(window.scrollX)},${Math.round(window.scrollY)}  focus ${focused()}`,
     `topbar ${r(document.querySelector("[data-glass-unit='top'] .glass"))}  dock ${r(document.querySelector("[data-glass-unit='dock'] .glass"))}`,
   ];
 }

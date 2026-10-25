@@ -86,6 +86,49 @@ function fontMetrics(font: string, cache: Map<string, Metrics>): Metrics {
 /** Where a text node sits: the scroll offset to add (0 for fixed), its clip, alpha, and the build's metrics cache. */
 export type TextContext = { ox: number; oy: number; fixed: boolean; clip: Clip | null; alpha: number; metrics: Map<string, Metrics> };
 
+/** An input's placeholder colour. Where the engine cannot report ::placeholder (it answers with the input's own colour),
+ *  the app's placeholder token, which every placeholder here uses. */
+function placeholderColor(el: HTMLInputElement, cs: CSSStyleDeclaration): string {
+  const p = getComputedStyle(el, "::placeholder").color;
+  if (p && p !== cs.color) return p;
+  return getComputedStyle(document.documentElement).getPropertyValue("--ink-3").trim() || cs.color;
+}
+
+/** The one line of text an input shows at rest (its value, else its placeholder), clipped to its content box with the
+ *  line centred in it, as the engines draw a single-line field. Canvas has no font-variant-numeric, so tabular digits
+ *  are placed one at a time at the width of a "0", centred in it. Empty for inputs that show no text. */
+export function inputTextItems(el: HTMLInputElement, cs: CSSStyleDeclaration, { ox, oy, fixed, clip, alpha, metrics }: TextContext): TextItem[] {
+  if (/^(hidden|checkbox|radio|range|color|file|submit|button|reset|image)$/.test(el.type)) return [];
+  const value = el.type === "password" ? "•".repeat(el.value.length) : el.value;
+  const text = transformText(value || el.placeholder, cs.textTransform);
+  if (!text.trim()) return [];
+  const px = (v: string) => parseFloat(v) || 0;
+  const r = el.getBoundingClientRect();
+  const left = r.left + px(cs.borderLeftWidth) + px(cs.paddingLeft), top = r.top + px(cs.borderTopWidth) + px(cs.paddingTop);
+  const w = r.width - px(cs.borderLeftWidth) - px(cs.paddingLeft) - px(cs.paddingRight) - px(cs.borderRightWidth);
+  const h = r.height - px(cs.borderTopWidth) - px(cs.paddingTop) - px(cs.paddingBottom) - px(cs.borderBottomWidth);
+  if (w <= 0 || h <= 0) return [];
+  const font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  const m = fontMetrics(font, metrics);
+  const y = baselineOf(top, h, m, parseFloat(cs.fontSize)) + oy;
+  const color = value ? cs.color : placeholderColor(el, cs);
+  const box: Clip = { x: left + ox, y: top + oy, w, h, radii: [0, 0, 0, 0], fixed, parent: clip, scroller: null, sx0: 0, sy0: 0 };
+  const item = (t: string, x: number): TextItem => ({ k: "text", x: x + ox, y, text: t, font, color, letterSpacing: cs.letterSpacing, maxWidth: null, shadow: null, fixed, clip: box, alpha });
+  // without a canvas to measure with, one run from the left edge
+  if (!measureCtx) return [item(text, left)];
+  measureCtx.font = font;
+  const width = (t: string) => measureCtx!.measureText(t).width;
+  const spacing = parseFloat(cs.letterSpacing) || 0;
+  const tabular = /tabular-nums/.test(cs.fontVariantNumeric);
+  const runs = tabular ? Array.from(text).map((ch) => ({ t: ch, adv: (/\d/.test(ch) ? width("0") : width(ch)) + spacing })) : [{ t: text, adv: width(text) }];
+  const total = runs.reduce((s, r) => s + r.adv, 0);
+  let x = cs.textAlign === "center" ? left + (w - total) / 2 : /^(right|end)$/.test(cs.textAlign) ? left + w - total : left;
+  if (!tabular) return [item(text, x)];
+  const out: TextItem[] = [];
+  for (const r of runs) { out.push(item(r.t, x + (r.adv - spacing - width(r.t)) / 2)); x += r.adv; }
+  return out;
+}
+
 /** The text items for one text node: one per line, or one per grapheme for short tabular text. */
 export function textItems(node: Text, parent: HTMLElement, cs: CSSStyleDeclaration, { ox, oy, fixed, clip, alpha, metrics }: TextContext): TextItem[] {
   const items: TextItem[] = [];

@@ -564,7 +564,9 @@ html.gpu [data-glass-pill] > span:first-child {
   display: none;
 }
 
-html.gpu [data-live] {
+/* a live input is painted at rest and lifted over the canvas only while it has focus (see UNPAINTED) */
+html.gpu [data-live]:not(input),
+html.gpu input[data-live]:focus {
   position: relative;
   z-index: 6;
 }

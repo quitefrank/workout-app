@@ -7,7 +7,7 @@
  */
 import { parseBoxShadows, parseColor, parseLinearGradients, parseLinearTransform, type Gradient, type Linear, type Shadow } from "./css";
 import { svgImage } from "./svg";
-import { textItems, type Metrics } from "./text";
+import { inputTextItems, textItems, type Metrics } from "./text";
 
 /** A clip rectangle with per-corner radii; `parent` chains the clips of outer overflow containers. `scroller` is the
  *  clipping element when it can scroll, with its scroll offsets at build time. */
@@ -24,9 +24,10 @@ export type Item =
 /** `sticky`: the list holds a sticky element, whose place depends on the scroll, so the stage rebuilds on scroll. */
 export type DisplayList = { items: Item[]; bg: string; pending: boolean; sticky: boolean };
 
-/** Nothing under these changes the painted page (glass, the sheet, live inputs, toasts): the painter skips them and the
- *  stage ignores their mutations, animations and scrolling. */
-export const UNPAINTED = ".glass, .glass-sheet, [data-live], [data-sonner-toaster]";
+/** Nothing under these changes the painted page (glass, the sheet, live elements, toasts): the painter skips them and
+ *  the stage ignores their mutations, animations and scrolling. A live input is painted at rest, so it scrolls with the
+ *  page around it, and is live only while it has focus (caret, selection, typing). */
+export const UNPAINTED = ".glass, .glass-sheet, [data-live]:not(input), input[data-live]:focus, [data-sonner-toaster]";
 const SKIP = `${UNPAINTED}, [data-glass-canvas], script, style, template, noscript`;
 const SCRIM = "rgba(0, 0, 0, 0.2)";
 
@@ -121,6 +122,10 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
         if (img) items.push({ k: "image", x, y, w, h, img, tf, ...base });
         if (loading) pending = true;
       }
+    }
+    if (el instanceof HTMLInputElement) {
+      if (visible) items.push(...inputTextItems(el, cs, { ox, oy, fixed: isFixed, clip, alpha: a, metrics }));
+      return cs.position === "sticky";
     }
     if (el instanceof SVGElement || el instanceof HTMLImageElement) return cs.position === "sticky";
 

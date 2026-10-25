@@ -402,10 +402,13 @@ opaque canvas sits over it with pointer events off and shows the page
 painted from that HTML, with every `.glass` and `.glass-sheet` element
 drawn by the lab's shader. `src/glass/paint/` walks the DOM into a
 display list and paints it to a 2D canvas (`UNPAINTED` in
-`display-list.ts` names what it skips: glass, the sheet, live inputs,
-toasts). `src/glass/engine/` is the lab's GPU surface: the content
-texture, the frosts, the glass and cast materials, the top edge effect
-and the context rule on the page's own pixels. Values come from
+`display-list.ts` names what it skips: glass, the sheet, live elements,
+the focused input, toasts). `src/glass/engine/` is the lab's GPU
+surface: the content texture, the frosts, the glass and cast materials,
+the top edge effect and the context rule on the page's own pixels. The
+rule's brightness grid is a box average of the raw page on the GPU, read
+back asynchronously; never read the canvas back synchronously, which
+stalls every scroll frame on the GPU. Values come from
 `src/glass/presets.ts`, copied from the lab's database row; change them
 only by copying a newer row. The stage adds `gpu` to `<html>` once every
 glass element on screen has its shaders built, and removes it on any
@@ -423,8 +426,11 @@ The CSS lives in `@layer components` so Tailwind utilities on the same
 element win; keep new global rules layered too.
 
 Under `html.gpu`, anything the canvas must not cover needs a z-index
-above 5: glass in the page's flow is lifted to 6, live inputs carry
-`data-live`, and the sheet keeps z-50 over its scrim (`data-scrim`).
+above 5: glass in the page's flow is lifted to 6, live elements carry
+`data-live`, and the sheet keeps z-50 over its scrim (`data-scrim`). A
+`data-live` input is the exception: it is painted at rest, so it scrolls
+with its box, and lifted over the canvas only while it has focus. Its
+value is in the stage's signature, so a value set by script repaints.
 
 The window never scrolls, as in the Glass Lab's app mode: `html` and
 `body` are locked and every screen scrolls inside `[data-app-scroller]`

@@ -176,6 +176,34 @@ describe("buildDisplayList (jsdom, stubbed geometry)", () => {
     expect(tile.x).toBe(-20);
   });
 
+  it("paints a live input at rest with its own box and its value, clipped to its content box", () => {
+    root.innerHTML = `<input id="w" data-live value="80" style="background-color: rgb(9, 9, 9); padding: 4px 8px; font-size: 20px; color: rgb(255, 255, 255)">`;
+    const w = root.querySelector("#w")!;
+    place(w, rect(10, 100, 80, 36));
+    const items = buildDisplayList(root, () => {}).items;
+    expect(items[0]).toMatchObject({ k: "box", x: 10, y: 100, w: 80, h: 36, color: "rgb(9, 9, 9)" });
+    // no metrics in jsdom: the baseline estimate, centred in the 28px tall content box
+    expect(items[1]).toMatchObject({ k: "text", text: "80", x: 18, y: 104 + 14 + 6, color: "rgb(255, 255, 255)", clip: { x: 18, y: 104, w: 64, h: 28 } });
+  });
+
+  it("paints an empty input's placeholder in the placeholder token, and nothing for an empty one without", () => {
+    document.documentElement.style.setProperty("--ink-3", "rgba(235, 235, 245, 0.3)");
+    root.innerHTML = `<input id="r" data-live placeholder="8-10" style="color: rgb(255, 255, 255)"><input id="e" data-live>`;
+    place(root.querySelector("#r")!, rect(0, 0, 60, 30));
+    place(root.querySelector("#e")!, rect(0, 40, 60, 30));
+    const texts = buildDisplayList(root, () => {}).items.filter((i) => i.k === "text");
+    expect(texts).toHaveLength(1);
+    expect(texts[0]).toMatchObject({ text: "8-10", color: "rgba(235, 235, 245, 0.3)" });
+    document.documentElement.style.removeProperty("--ink-3");
+  });
+
+  it("leaves the focused input, a live select and other live elements to the HTML", () => {
+    root.innerHTML = `<input id="f" data-live value="5" style="background-color: rgb(9, 9, 9)"><select data-live style="background-color: rgb(9, 9, 9)"><option>2 min</option></select><pre data-live style="background-color: rgb(9, 9, 9)">debug</pre>`;
+    for (const el of Array.from(root.children)) place(el, rect(0, 0, 60, 30));
+    (root.querySelector("#f") as HTMLInputElement).focus();
+    expect(buildDisplayList(root, () => {}).items).toEqual([]);
+  });
+
   it("gives a rotated image its untransformed size, centre and matrix", () => {
     root.innerHTML = `<img id="chev" style="width: 18px; height: 18px">`;
     const chev = root.querySelector("#chev")!;
