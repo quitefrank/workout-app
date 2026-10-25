@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
 import { Toaster } from "sonner";
 import { AppScroller } from "@/components/app-scroller";
+import { AppUpdate } from "@/components/app-update";
 import { GlassContext } from "@/components/glass-context";
 import { TabBar } from "@/components/tab-bar";
 import { GlassDebug } from "@/glass/debug";
@@ -103,6 +104,7 @@ export default async function RootLayout({
         <GlassContext />
         <GlassStage />
         <GlassDebug />
+        <AppUpdate />
         <Toaster position="top-center" theme={theme} toastOptions={{ className: "!rounded-[20px]" }} />
       </body>
     </html>
