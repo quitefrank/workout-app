@@ -72,16 +72,19 @@ export function ExerciseLibrary({
     writeRecents([]);
   };
 
-  const shown = useMemo(
-    () =>
-      items.filter(
-        (i) =>
-          // search mode searches the whole library; the muscle group filter is the resting screen's
-          (searching || !group || i.groupId === group) &&
-          (!q || i.name.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
-      ),
-    [items, q, group, searching],
+  // search mode has its own muscle group pills, as Figma's results have Folders and Files; the gallery's filter is
+  // the resting screen's
+  const [pick, setPick] = useState<string | null>(null);
+  const matches = useMemo(
+    () => items.filter((i) => !q || i.name.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
+    [items, q],
   );
+  const shown = useMemo(() => (group ? matches.filter((i) => i.groupId === group) : matches), [matches, group]);
+  // only the groups the typed text finds, so a pill never leads to nothing
+  const pills = useMemo(() => groups.filter((g) => matches.some((i) => i.groupId === g.id)), [groups, matches]);
+  const picked = pick && pills.some((g) => g.id === pick) ? pick : null;
+  const results = picked ? matches.filter((i) => i.groupId === picked) : matches;
+  const artOf = useMemo(() => new Map(groups.map((g) => [g.id, g.art])), [groups]);
 
   // the field is rendered and focused inside the tap itself, so iOS raises the keyboard
   const openSearch = () => {
@@ -95,6 +98,7 @@ export function ExerciseLibrary({
   const closeSearch = () => {
     field.current?.blur();
     setQuery("");
+    setPick(null);
     setSearching(false);
     appScroller()?.scrollTo(0, 0);
   };
@@ -130,9 +134,12 @@ export function ExerciseLibrary({
                     setQuery("");
                     field.current?.focus();
                   }}
-                  className="grid size-8 place-items-center opacity-60"
+                  className="grid size-8 shrink-0 place-items-center"
                 >
-                  <XIcon size={16} />
+                  {/* iOS's xmark.circle.fill: a filled disc in the glass ink, the cross cut out of it */}
+                  <span className="grid size-[19px] place-items-center rounded-full bg-[var(--glass-ink)] opacity-45">
+                    <XIcon size={11} className="text-[var(--bg)] [.ctx-dark_&]:text-black [.ctx-light_&]:text-white" />
+                  </span>
                 </button>
               )}
             </label>
@@ -187,12 +194,6 @@ export function ExerciseLibrary({
         </div>
       )}
 
-      {searching && q && (
-        <div className="px-4 pb-2 pt-1 text-[15px] font-semibold text-ink-2">
-          {shown.length === 1 ? "1 result" : `${shown.length} results`}
-        </div>
-      )}
-
       {searching && !q ? (
         // an empty field in search mode shows the recent searches, as Figma does
         recents.length > 0 && (
@@ -225,6 +226,62 @@ export function ExerciseLibrary({
             </ul>
           </>
         )
+      ) : searching ? (
+        // Figma's results: filter pills, a counted header, rows with a thumbnail
+        <>
+          {pills.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto px-4 pb-1 pt-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {pills.map((g) => {
+                const on = picked === g.id;
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setPick(on ? null : g.id)}
+                    className={cn(
+                      "h-[34px] shrink-0 rounded-full border px-4 text-[16px] font-medium",
+                      on ? "border-transparent bg-[var(--ink)] text-[var(--bg)]" : "border-[var(--sep)] text-ink-2",
+                    )}
+                  >
+                    {g.name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <SectionHeader title={`Exercises (${results.length === 1 ? "1 result" : `${results.length} results`})`} className="pt-4" />
+          {results.length === 0 ? (
+            <Empty title="No matches">Try another name or muscle group.</Empty>
+          ) : (
+            <ul className="px-4">
+              {results.map((i) => (
+                <li key={i.id}>
+                  <Link href={`/exercises/${i.id}`} onClick={remember} className="flex items-center gap-4 py-2 active:opacity-60">
+                    <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-[var(--muscle-tile)] p-1.5 ring-1 ring-[var(--sep)]">
+                      {(i.groupId && artOf.get(i.groupId)) || (
+                        <div className="grid size-full place-items-center text-ink-3">
+                          <FigureIcon size={22} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[17px] font-medium">
+                        {i.name}
+                        {i.location && <span className="text-ink-2"> {i.location === "upstairs" ? "↑" : "↓"}</span>}
+                      </div>
+                      <div className="truncate text-[15px] text-ink-2">
+                        {[i.group, EQUIPMENT_LABELS[i.equipment], i.last && `${displayWeight(i.last.weight, i.equipment, unit) || "BW"} × ${i.last.reps}`]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
       ) : shown.length === 0 ? (
         <Empty title="No matches">Try another name or muscle group.</Empty>
       ) : (
