@@ -29,25 +29,40 @@ export function GlassDebug() {
     const tick = () => { setOn(debugEnabled()); setTick((t) => t + 1); };
     const first = window.setTimeout(tick, 0);
     const id = window.setInterval(tick, 500);
-    return () => { window.clearTimeout(first); window.clearInterval(id); };
+    // the keyboard coming up or going changes what the readout shows; a short wait lets the viewport settle
+    const soon = () => window.setTimeout(tick, 350);
+    document.addEventListener("focusin", soon);
+    document.addEventListener("focusout", soon);
+    return () => {
+      window.clearTimeout(first); window.clearInterval(id);
+      document.removeEventListener("focusin", soon); document.removeEventListener("focusout", soon);
+    };
   }, []);
   if (!on) return null;
   const s = debugState;
   const gpu = typeof document !== "undefined" && document.documentElement.classList.contains("gpu");
-  return (
-    <pre
-      data-live
-      // at the bottom, over the dock, so it never covers the top bar or the search field
-      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
-      className="pointer-events-none fixed inset-x-2 z-[100] max-h-[45vh] overflow-hidden whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-[10px] leading-[13px] text-white"
-    >
-      {[
+  const g = geometry();
+  // iOS lifts a bottom-pinned element above the keyboard, so while a field has focus the readout shrinks to the viewport
+  // lines, small enough to sit between the keyboard and the top bar
+  const typing = !!document.activeElement?.matches("input, textarea, select");
+  const lines = typing
+    ? [`html.gpu ${gpu}  phase ${s.phase}`, g.inner, g.vv, g.canvas, g.window]
+    : [
         `html.gpu ${gpu}  phase ${s.phase}  frames ${s.frames}`,
         `adapter ${s.adapter || "?"}  stage ${s.stage || "?"}`,
-        ...geometry(),
+        g.inner, g.vv, g.canvas, g.window, g.bars,
         s.error ? `error ${s.error}` : "error none",
         ...s.entries.map((e) => `${e.family} ${e.laidOut ? "on" : "off"} ${e.compile}  ${e.label}`),
-      ].join("\n")}
+      ];
+  return (
+    <pre
+      // fixed over the canvas already, so it takes no live lift (whose position: relative would pull it to the top)
+      data-glass-debug
+      // at the bottom, over the dock, so it never covers the top bar or the search field
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
+      className={`pointer-events-none fixed inset-x-2 z-[100] overflow-hidden whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-white ${typing ? "text-[9px] leading-[11px]" : "max-h-[45vh] text-[10px] leading-[13px]"}`}
+    >
+      {lines.join("\n")}
     </pre>
   );
 }
@@ -65,7 +80,7 @@ const focused = () => {
 };
 
 /** Where the browser puts the viewport, the canvas and the pinned bars, to line the glass up on the phone */
-function geometry(): string[] {
+function geometry() {
   const vv = window.visualViewport;
   const canvas = document.querySelector<HTMLCanvasElement>("[data-glass-canvas]");
   const probe = document.createElement("div");
@@ -74,12 +89,12 @@ function geometry(): string[] {
   const cs = getComputedStyle(probe);
   const safe = `${cs.paddingTop} / ${cs.paddingBottom}`;
   probe.remove();
-  return [
-    `inner ${window.innerWidth}x${window.innerHeight}  client ${document.documentElement.clientHeight}  screen ${window.screen.height}  scroll ${Math.round(document.querySelector("[data-app-scroller]")?.scrollTop ?? 0)}`,
-    `vv ${vv ? `${Math.round(vv.width)}x${Math.round(vv.height)} off ${Math.round(vv.offsetTop)} page ${Math.round(vv.pageTop)} scale ${vv.scale}` : "none"}  safe ${safe}`,
-    `canvas ${r(canvas)} buffer ${canvas?.width}x${canvas?.height}`,
+  return {
+    inner: `inner ${window.innerWidth}x${window.innerHeight}  client ${document.documentElement.clientHeight}  screen ${window.screen.height}  scroll ${Math.round(document.querySelector("[data-app-scroller]")?.scrollTop ?? 0)}`,
+    vv: `vv ${vv ? `${Math.round(vv.width)}x${Math.round(vv.height)} off ${Math.round(vv.offsetTop)} page ${Math.round(vv.pageTop)} scale ${vv.scale}` : "none"}  safe ${safe}`,
+    canvas: `canvas ${r(canvas)} buffer ${canvas?.width}x${canvas?.height}`,
     // the keyboard check: iOS may scroll the window or pan the visual viewport on focus though the window never scrolls
-    `window scroll ${Math.round(window.scrollX)},${Math.round(window.scrollY)}  focus ${focused()}`,
-    `topbar ${r(document.querySelector("[data-glass-unit='top'] .glass"))}  dock ${r(document.querySelector("[data-glass-unit='dock'] .glass"))}`,
-  ];
+    window: `window scroll ${Math.round(window.scrollX)},${Math.round(window.scrollY)}  focus ${focused()}`,
+    bars: `topbar ${r(document.querySelector("[data-glass-unit='top'] .glass"))}  dock ${r(document.querySelector("[data-glass-unit='dock'] .glass"))}`,
+  };
 }

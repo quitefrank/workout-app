@@ -26,8 +26,8 @@ export type DisplayList = { items: Item[]; bg: string; pending: boolean; sticky:
 
 /** Nothing under these changes the painted page (glass, the sheet, live elements, toasts): the painter skips them and
  *  the stage ignores their mutations, animations and scrolling. A live input is painted at rest, so it scrolls with the
- *  page around it, and is live only while it has focus (caret, selection, typing). */
-export const UNPAINTED = ".glass, .glass-sheet, [data-live]:not(input), input[data-live]:focus, [data-sonner-toaster]";
+ *  page around it, and is live only while it has focus (caret, selection, typing). The debug readout is never painted. */
+export const UNPAINTED = ".glass, .glass-sheet, [data-live]:not(input), input[data-live]:focus, [data-glass-debug], [data-sonner-toaster]";
 const SKIP = `${UNPAINTED}, [data-glass-canvas], script, style, template, noscript`;
 const SCRIM = "rgba(0, 0, 0, 0.2)";
 
