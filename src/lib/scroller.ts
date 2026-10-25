@@ -18,25 +18,36 @@ export function scrollTop(): number {
 /**
  * While the keyboard is up iOS keeps the layout viewport at full height and slides the visual viewport over it, and
  * fixed elements stay with the layout viewport, so the pinned bars and the glass canvas slide off the screen. This
- * writes the slide (`visualViewport.offsetTop`) to `--vv-top` and the visible height to `--vv-h` on <html>; the pinned
- * layer is moved back by `--vv-top` in globals.css. It also puts back any window scroll, since the window never scrolls.
+ * writes the slide (`visualViewport.offsetTop`) to `--vv-top` and the visible height to `--vv-h` on <html>, and sets
+ * `keyboard` while the visible height is well short of the layout's. globals.css moves the pinned layer back by the
+ * slide and fits the scroller to what is visible, always scrollable, so a drag scrolls the list and never slides the
+ * viewport; a drag that starts outside any scroller is held still. iOS's own slide to reveal the focused field is left
+ * alone: undoing it fights iOS on every frame and shakes the screen.
  */
 export function followVisualViewport(): () => void {
   const vv = window.visualViewport;
   if (!vv) return () => {};
-  const root = document.documentElement.style;
+  const html = document.documentElement;
   const update = () => {
-    if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
-    root.setProperty("--vv-top", `${Math.max(0, Math.round(vv.offsetTop))}px`);
-    root.setProperty("--vv-h", `${Math.round(vv.height)}px`);
+    html.style.setProperty("--vv-top", `${Math.max(0, Math.round(vv.offsetTop))}px`);
+    html.style.setProperty("--vv-h", `${Math.round(vv.height)}px`);
+    html.classList.toggle("keyboard", vv.height < html.clientHeight - 100);
+  };
+  const hold = (e: TouchEvent) => {
+    if (!html.classList.contains("keyboard")) return;
+    const t = e.target instanceof Element ? e.target : null;
+    if (!t?.closest(`${SCROLLER}, .glass-sheet`)) e.preventDefault();
   };
   update();
   vv.addEventListener("resize", update);
   vv.addEventListener("scroll", update);
+  document.addEventListener("touchmove", hold, { passive: false });
   return () => {
     vv.removeEventListener("resize", update);
     vv.removeEventListener("scroll", update);
-    root.removeProperty("--vv-top");
-    root.removeProperty("--vv-h");
+    document.removeEventListener("touchmove", hold);
+    html.style.removeProperty("--vv-top");
+    html.style.removeProperty("--vv-h");
+    html.classList.remove("keyboard");
   };
 }

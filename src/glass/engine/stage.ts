@@ -17,7 +17,9 @@ export type StageOptions = {
   canvas: HTMLCanvasElement; W: number; H: number; dpr: number;
   bars: Family; sheet: Family;
   appearance: () => "dark" | "light";
-  draw: (c: CanvasRenderingContext2D) => void;
+  /** paint the page; `origin` is where the canvas sits on screen, subtracted from every rect */
+  draw: (c: CanvasRenderingContext2D, origin: { x: number; y: number }) => void;
+  /** what the page looks like now; the canvas's place is added to it by the stage */
   signature: () => string;
   /** the first frame on which every glass element on screen has its shaders built */
   onReady?: () => void;
@@ -194,22 +196,31 @@ function setup(o: StageOptions, renderer: any): () => void {
   // laid out at all (no display: none on it or above it); a fixed element has no offsetParent, so that cannot be the test
   const shown = (el: Element) => el.getClientRects().length > 0;
   const html = document.documentElement;
+  // Where the canvas is, measured every frame rather than assumed at 0,0: with the keyboard up iOS slides the viewport
+  // and reports rects against what is on screen, so the canvas can sit off its own origin. Every rect the glass reads
+  // is taken relative to it, and the page is painted at the same origin.
+  const org = { x: 0, y: 0 };
+  const rectOf = (el: Element) => {
+    const b = el.getBoundingClientRect();
+    return { left: b.left - org.x, top: b.top - org.y, right: b.right - org.x, bottom: b.bottom - org.y, width: b.width, height: b.height };
+  };
   const bandOf = (f: Unit) => {
     const kind = (f.key as HTMLElement).dataset?.glassUnit;
     if (kind === "top") {
       const bar = f.key.querySelector("[data-glass-bar]") ?? f.key;
-      return { x0: 0, x1: W, y0: 0, y1: bar.getBoundingClientRect().bottom + CTXV.reach };
+      return { x0: 0, x1: W, y0: 0, y1: rectOf(bar).bottom + CTXV.reach };
     }
-    const rs = f.els.filter(shown).map((el) => el.getBoundingClientRect());
+    const rs = f.els.filter(shown).map(rectOf);
     if (!rs.length) return null;
     // the stage can be taller than the viewport (Safari's large viewport); the dock reads down to the visible bottom
-    if (kind === "dock") return { x0: 0, x1: W, y0: Math.min(...rs.map((q) => q.top)) - CTXV.dockAbove, y1: Math.min(H, window.innerHeight) };
+    if (kind === "dock") return { x0: 0, x1: W, y0: Math.min(...rs.map((q) => q.top)) - CTXV.dockAbove, y1: Math.min(H, window.innerHeight - org.y) };
     return { x0: Math.min(...rs.map((q) => q.left)), x1: Math.max(...rs.map((q) => q.right)), y0: Math.min(...rs.map((q) => q.top)), y1: Math.max(...rs.map((q) => q.bottom)) };
   };
 
   let lastSig: string | null = null, pageDirty = true, lastEdgeKey = "", lastT = performance.now(), frame = 0, stopped = false, readySent = false;
   const step = () => {
     const now = performance.now(), dt = Math.min(100, now - lastT); lastT = now;
+    const cr = o.canvas.getBoundingClientRect(); org.x = cr.left; org.y = cr.top;
 
     // the glass on screen now
     const want = new Map<Element, "bars" | "sheet">();
@@ -220,11 +231,11 @@ function setup(o: StageOptions, renderer: any): () => void {
 
     // The page is drawn to the texture (and re-blurred) only when its signature moves: scroll, DOM, appearance. Between
     // those frames only the glass is composited, which is what keeps a 3x phone at frame rate.
-    const sig = o.signature();
+    const sig = `${o.signature()}|${org.x}|${org.y}`;
     if (sig !== lastSig) {
       lastSig = sig;
       cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      o.draw(cctx);
+      o.draw(cctx, org);
       rawTex.needsUpdate = true; edgeFrost.touch(); pageDirty = true; avgWanted = true;
     }
     if (avgWanted && !avgInFlight) readAverages();
@@ -238,7 +249,7 @@ function setup(o: StageOptions, renderer: any): () => void {
       const vis = e.ready && laidOut && !(sheetOpen && e.family === "bars" && e.el.closest("[data-glass-unit='dock']"));
       e.mesh.visible = e.cast.visible = vis;
       if (!vis) continue;
-      const r = e.el.getBoundingClientRect();
+      const r = rectOf(e.el);
       const rad = parseFloat(getComputedStyle(e.el).borderTopLeftRadius) || 0;
       e.U.setSize(r.width, r.height, rad);
       // glass in the content under the pinned bars, the bars under the sheet, the sheet over them, a control on the
@@ -274,7 +285,7 @@ function setup(o: StageOptions, renderer: any): () => void {
       const bar = top.key.querySelector("[data-glass-bar]") ?? top.key;
       EDGE.topOn.value = dim || Math.min(1, Math.max(0, scrollTop() / Math.max(1, CTXV.fadeIn)));
       EDGE.topDim.value = dim; EDGE.topS.value = top.s ?? 0;
-      EDGE.topReach.value = bar.getBoundingClientRect().bottom + CTXV.reach;
+      EDGE.topReach.value = rectOf(bar).bottom + CTXV.reach;
     } else EDGE.topOn.value = 0;
 
     // the page with its effects, then every frost that reads it (only when either moved)
@@ -296,7 +307,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     for (const e of entries.values()) if (e.family === "bars") e.U.pillMix.value = 0;
     if (pillShown && pillEl && bar) {
       bar.U.pillMix.value = (P.pillBlur || 0) > 0 ? 1 : 0;
-      const r = pillEl.getBoundingClientRect(); const w = r.width + 2 * PILL_PAD, h = PILL_H;
+      const r = rectOf(pillEl); const w = r.width + 2 * PILL_PAD, h = PILL_H;
       // Pill darkening is the share of the bar's sRGB value the capsule takes away; the blend happens in linear light
       uW.value = w; uH.value = h; uAmt.value = 1 - Math.pow(1 - Math.min(1, P.pillOpacity || 0), 2.2);
       const x = r.left + r.width / 2 - W / 2, y = H / 2 - (r.top + r.height / 2);

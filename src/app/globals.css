@@ -276,6 +276,19 @@ body {
      the canvas on the phone. iOS has scrolled with momentum without it since iOS 13. */
 }
 
+/* With the keyboard up (src/lib/scroller.ts) the scroller covers only what is visible, from the top of the slid
+   viewport to the top of the keyboard, and always has a pixel to scroll, so a drag moves the list and iOS never slides
+   the viewport under the pinned bars */
+html.keyboard .app-scroller {
+  top: var(--vv-top, 0px);
+  bottom: auto;
+  height: var(--vv-h, 100%);
+}
+
+html.keyboard .app-scroller > div {
+  min-height: calc(100% + 1px);
+}
+
 body {
   background: var(--bg);
   color: var(--ink);

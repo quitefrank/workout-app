@@ -142,7 +142,7 @@ export function GlassStage() {
         canvas.style.width = W + "px"; canvas.style.height = H + "px";
         const s = await startStage({
           THREE, T, canvas, W, H, dpr, bars, sheet, appearance,
-          draw: (c) => {
+          draw: (c, origin) => {
             const at = String(scrollTop());
             // a sticky element's place depends on the scroll; while the page animates, every other frame rebuilds
             if (list && list.sticky && builtAt !== at) list = null;
@@ -151,7 +151,7 @@ export function GlassStage() {
               list = buildDisplayList(document.body, bump); builtAt = at;
               painted = Array.from(document.querySelectorAll<HTMLInputElement>(PAINTED_INPUTS)).filter((el) => !unpainted(el.parentElement));
             }
-            paintList(c, list, window.scrollX, window.scrollY, W, H);
+            paintList(c, list, window.scrollX, window.scrollY, W, H, origin);
             if (list.pending) list = null;
           },
           signature: () => {

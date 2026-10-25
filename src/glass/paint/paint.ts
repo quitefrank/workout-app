@@ -18,8 +18,9 @@ function setColor(c: CanvasRenderingContext2D, prop: "fillStyle" | "strokeStyle"
 type Shift = [number, number];
 
 /** Paint a display list into the content canvas at the current scroll. The context's transform maps CSS px to device
- *  pixels; W and H are the viewport in CSS px. */
-export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scrollX: number, scrollY: number, W: number, H: number) {
+ *  pixels; W and H are the viewport in CSS px; `origin` is where the canvas sits in the page's viewport coordinates
+ *  (0,0 unless iOS has slid the viewport under the keyboard). */
+export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scrollX: number, scrollY: number, W: number, H: number, origin = { x: 0, y: 0 }) {
   // canvas shadow blur and offsets are in device pixels and ignore the transform, so they are scaled by hand
   const s = c.getTransform().a || 1;
   setColor(c, "fillStyle", list.bg);
@@ -38,11 +39,11 @@ export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scroll
   };
   for (const it of list.items) {
     const [ix, iy] = shiftOf(it.clip);
-    const dx = (it.fixed ? 0 : -scrollX) + ix, dy = (it.fixed ? 0 : -scrollY) + iy;
+    const dx = (it.fixed ? 0 : -scrollX) + ix - origin.x, dy = (it.fixed ? 0 : -scrollY) + iy - origin.y;
     if (!onScreen(it, dx, dy, W, H)) continue;
     c.save();
     c.globalAlpha = it.alpha;
-    if (it.clip) applyClip(c, it.clip, scrollX, scrollY, shiftOf);
+    if (it.clip) applyClip(c, it.clip, scrollX, scrollY, shiftOf, origin);
     draw(c, it, dx, dy, s);
     c.restore();
   }
@@ -55,10 +56,10 @@ function onScreen(it: Item, dx: number, dy: number, W: number, H: number) {
 }
 
 /** A clip moves with the scrollers around it, not with its own scroller. */
-function applyClip(c: CanvasRenderingContext2D, clip: Clip, sx: number, sy: number, shiftOf: (clip: Clip | null) => Shift) {
-  if (clip.parent) applyClip(c, clip.parent, sx, sy, shiftOf);
+function applyClip(c: CanvasRenderingContext2D, clip: Clip, sx: number, sy: number, shiftOf: (clip: Clip | null) => Shift, origin: { x: number; y: number }) {
+  if (clip.parent) applyClip(c, clip.parent, sx, sy, shiftOf, origin);
   const [px, py] = shiftOf(clip.parent);
-  const dx = (clip.fixed ? 0 : -sx) + px, dy = (clip.fixed ? 0 : -sy) + py;
+  const dx = (clip.fixed ? 0 : -sx) + px - origin.x, dy = (clip.fixed ? 0 : -sy) + py - origin.y;
   c.beginPath();
   c.roundRect(clip.x + dx, clip.y + dy, Math.max(0, clip.w), Math.max(0, clip.h), clip.radii);
   c.clip();
