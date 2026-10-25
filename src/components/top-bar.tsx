@@ -9,16 +9,19 @@ import type { ReactNode } from "react";
  *
  * `spacer` holds the bar's height in the flow, for screens whose content
  * starts below it. A media hero runs under the bar and leaves it out.
+ * `fill` takes the width between leading and trailing (a search field).
  */
 export function TopBar({
   leading,
   center,
+  fill,
   trailing,
   edge = "soft",
   spacer = true,
 }: {
   leading?: ReactNode;
   center?: ReactNode;
+  fill?: ReactNode;
   trailing?: ReactNode;
   edge?: "soft" | "dim";
   spacer?: boolean;
@@ -36,8 +39,9 @@ export function TopBar({
           className="relative mx-auto flex h-11 max-w-[640px] items-center justify-between gap-2.5 px-4 [&>*>*]:pointer-events-auto"
           style={{ marginTop: "var(--bar-top)" }}
         >
-          <div className="flex items-center gap-2.5">{leading}</div>
+          {(leading || !fill) && <div className="flex items-center gap-2.5">{leading}</div>}
           {center && <div className="flex items-center gap-2.5">{center}</div>}
+          {fill && <div className="flex min-w-0 flex-1 items-center gap-2.5">{fill}</div>}
           <div className="flex items-center gap-2.5">{trailing}</div>
         </div>
       </div>

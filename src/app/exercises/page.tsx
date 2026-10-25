@@ -1,5 +1,5 @@
 import { MuscleArt } from "@/components/muscle-art/muscle-art";
-import { LargeTitle, Screen } from "@/components/page";
+import { Screen } from "@/components/page";
 import { getSettings, getTopSets, listExercises, listMuscleGroups } from "@/lib/data/queries";
 import { latestByExercise } from "@/lib/workout/progress";
 import { ExerciseLibrary, type LibraryItem } from "./library";
@@ -30,7 +30,6 @@ export default async function ExercisesPage() {
   const used = new Set(items.map((i) => i.groupId));
   return (
     <Screen>
-      <LargeTitle title="Library" subtitle={`${items.length} exercises`} />
       <ExerciseLibrary
         items={items}
         groups={groups
