@@ -37,8 +37,9 @@ export function GlassDebug() {
   return (
     <pre
       data-live
-      style={{ top: "calc(env(safe-area-inset-top, 0px) + 60px)" }}
-      className="pointer-events-none fixed inset-x-2 z-[100] max-h-[60vh] overflow-hidden whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-[10px] leading-[13px] text-white"
+      // at the bottom, over the dock, so it never covers the top bar or the search field
+      style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
+      className="pointer-events-none fixed inset-x-2 z-[100] max-h-[45vh] overflow-hidden whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-[10px] leading-[13px] text-white"
     >
       {[
         `html.gpu ${gpu}  phase ${s.phase}  frames ${s.frames}`,
