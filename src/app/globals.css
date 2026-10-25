@@ -105,8 +105,10 @@
   /* The top toolbar's controls row starts 8pt under the status bar */
   --bar-top: calc(env(safe-area-inset-top, 0px) + 8px);
 
-  /* The floating tab bar: 62 tall, 21 off the bottom, plus the home indicator */
-  --dock-h: calc(62px + 21px + env(safe-area-inset-bottom, 0px));
+  /* The floating tab bar: 62 tall and 21 up from the screen's bottom edge, over the home indicator, as the iOS kit
+     (node 5660:57681) and Photos measure (21.0pt on the device, 2026-10-25) */
+  --dock-bottom: 21px;
+  --dock-h: calc(62px + var(--dock-bottom));
 }
 
 /* The phone's dark appearance, unless Settings picked light on this device */
@@ -269,6 +271,8 @@ body {
 .app-scroller {
   position: absolute;
   inset: 0;
+  /* down to the screen's real bottom where iOS leaves the page short of it (--screen-gap, src/lib/scroller.ts) */
+  bottom: calc(-1 * var(--screen-gap, 0px));
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;

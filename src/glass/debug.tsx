@@ -91,7 +91,7 @@ function geometry() {
   const safe = `${cs.paddingTop} / ${cs.paddingBottom}`;
   probe.remove();
   return {
-    inner: `inner ${window.innerWidth}x${window.innerHeight}  client ${document.documentElement.clientHeight}  screen ${window.screen.height}  scroll ${Math.round(document.querySelector("[data-app-scroller]")?.scrollTop ?? 0)}`,
+    inner: `inner ${window.innerWidth}x${window.innerHeight}  client ${document.documentElement.clientHeight}  screen ${window.screen.height}  gap ${getComputedStyle(document.documentElement).getPropertyValue("--screen-gap") || "0"}  scroll ${Math.round(document.querySelector("[data-app-scroller]")?.scrollTop ?? 0)}`,
     vv: `vv ${vv ? `${Math.round(vv.width)}x${Math.round(vv.height)} off ${Math.round(vv.offsetTop)} page ${Math.round(vv.pageTop)} scale ${vv.scale}` : "none"}  safe ${safe}`,
     canvas: `canvas ${r(canvas)} buffer ${canvas?.width}x${canvas?.height}`,
     // the keyboard check: iOS may scroll the window or pan the visual viewport on focus though the window never scrolls

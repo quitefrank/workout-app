@@ -28,10 +28,16 @@ export function followVisualViewport(): () => void {
   const vv = window.visualViewport;
   if (!vv) return () => {};
   const html = document.documentElement;
+  // A home screen app should fill the screen (viewport-fit=cover), but iOS 26.0 can leave the page short of the screen's
+  // bottom edge; the shortfall goes to `--screen-gap` so the dock and the scroller reach the real edge. Measured only
+  // without the keyboard, which shrinks the window too.
+  const standalone = window.matchMedia?.("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
   const update = () => {
     html.style.setProperty("--vv-top", `${Math.max(0, Math.round(vv.offsetTop))}px`);
     html.style.setProperty("--vv-h", `${Math.round(vv.height)}px`);
-    html.classList.toggle("keyboard", vv.height < html.clientHeight - 100);
+    const keyboard = vv.height < html.clientHeight - 100;
+    html.classList.toggle("keyboard", keyboard);
+    if (standalone && !keyboard) html.style.setProperty("--screen-gap", `${Math.max(0, Math.round(window.screen.height - window.innerHeight))}px`);
   };
   const hold = (e: TouchEvent) => {
     if (!html.classList.contains("keyboard")) return;
@@ -48,6 +54,7 @@ export function followVisualViewport(): () => void {
     document.removeEventListener("touchmove", hold);
     html.style.removeProperty("--vv-top");
     html.style.removeProperty("--vv-h");
+    html.style.removeProperty("--screen-gap");
     html.classList.remove("keyboard");
   };
 }

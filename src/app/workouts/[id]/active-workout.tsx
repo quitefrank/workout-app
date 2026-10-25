@@ -111,7 +111,8 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
       <div
         data-glass-unit="dock"
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col gap-2.5 px-[21px]"
-        style={{ paddingBottom: "calc(21px + env(safe-area-inset-bottom, 0px))" }}
+        // 21pt up from the screen edge (--dock-bottom), the screen edge being below the page where iOS leaves a gap
+        style={{ paddingBottom: "var(--dock-bottom)", bottom: "calc(-1 * var(--screen-gap, 0px))" }}
       >
         <RestTimer timer={timer} />
         <GlassButton tone="green" className="pointer-events-auto w-full" onClick={() => setFinishing(true)}>
