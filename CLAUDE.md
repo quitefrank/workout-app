@@ -384,7 +384,9 @@ by the user and every action checks the row belongs to them first. The
 deployed URL is open: anyone who has it can read and log workouts.
 
 Screens follow `docs/planning.md`: Calendar (`/`, with History at
-`/workouts`), Templates (the 18 Notion day templates, `program_id` null),
+`/workouts`; a Runna-style week strip, `src/app/week-calendar.tsx`, that
+its handle drags open to the month, the selected day in `?d=` and its
+workouts below as cards that open the workout), Templates (the 18 Notion day templates, `program_id` null),
 Library (`/exercises`), Progress (`/analytics`), Settings. The active
 workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight
 string through `parseWeightCsv`, swaps upstairs and downstairs machines

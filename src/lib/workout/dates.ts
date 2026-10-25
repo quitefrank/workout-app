@@ -81,6 +81,39 @@ export function monthGrid({ year, month }: YearMonth): CalendarCell[][] {
   return weeks;
 }
 
+/** A YYYY-MM-DD moved by whole days. */
+export function shiftDate(date: string, days: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+/** A YYYY-MM-DD moved by whole months, keeping the day where the month has it (Jan 31 + 1 month is Feb 28). */
+export function shiftDateMonth(date: string, months: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const ym = shiftMonth({ year: y, month: m }, months);
+  const last = new Date(Date.UTC(ym.year, ym.month, 0)).getUTCDate();
+  return iso(ym.year, ym.month, Math.min(d, last));
+}
+
+/** The month a YYYY-MM-DD falls in. */
+export function monthOf(date: string): YearMonth {
+  return parseYearMonth(date.slice(0, 7))!;
+}
+
+/** Which week of a monthGrid holds the date (0 when it is not in the grid). */
+export function weekIndexOf(weeks: CalendarCell[][], date: string): number {
+  const i = weeks.findIndex((w) => w.some((c) => c.date === date));
+  return Math.max(0, i);
+}
+
+/** "Friday, Oct 24" for a YYYY-MM-DD. */
+export function longDayLabel(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" }).format(
+    new Date(Date.UTC(y, m - 1, d)),
+  );
+}
+
 /** First and last date shown by monthGrid, for the query window. */
 export function gridBounds(ym: YearMonth): { from: string; to: string } {
   const weeks = monthGrid(ym);

@@ -1,43 +1,25 @@
 import Link from "next/link";
-import { buttonLook } from "@/components/button";
+import { ButtonLink } from "@/components/button";
 import { GlassCircleLink } from "@/components/glass";
-import { ChevronLeft, ChevronRight, GearIcon, ListIcon } from "@/components/icons";
-import { Empty, hueStyle, LargeTitle, Row, Screen, SectionHeader, Thumb, tileGradient } from "@/components/page";
+import { CheckIcon, ChevronRight, GearIcon, ListIcon, PlayIcon } from "@/components/icons";
+import { Empty, LargeTitle, Row, Screen, SectionHeader, Thumb } from "@/components/page";
 import { StartWorkout } from "@/components/start-workout";
-import { cn } from "@/lib/cn";
-import { getActiveProgramId, getLastCompleted, getMonthWorkouts, getProgram, listTemplates, type WorkoutListItem } from "@/lib/data/queries";
+import { getActiveProgramId, getMonthWorkouts, getProgram, listTemplates, type WorkoutListItem } from "@/lib/data/queries";
 import { weeksLabel } from "@/lib/programs/label";
 import { programToday } from "@/lib/programs/today";
 import { timeZone } from "@/lib/supabase/server";
-import {
-  dayLabel,
-  durationMinutes,
-  formatYearMonth,
-  localDate,
-  monthGrid,
-  monthTitle,
-  parseYearMonth,
-  shiftMonth,
-} from "@/lib/workout/dates";
+import { durationMinutes, formatYearMonth, localDate, longDayLabel, monthGrid, monthOf, monthTitle } from "@/lib/workout/dates";
 import { CATEGORY_LABELS } from "@/lib/workout/format";
+import { WeekCalendar, type CalendarDay } from "./week-calendar";
 
-/** "View summary" sits on the card's colour, so it takes the over-media style; the card itself is the link */
-const veil = buttonLook("veil", "blue", true);
-
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
-
-export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ m?: string; d?: string }> }) {
+export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
   const params = await searchParams;
   const today = localDate(new Date(), timeZone());
-  const ym = parseYearMonth(params.m) ?? parseYearMonth(today.slice(0, 7))!;
   const selected = params.d && /^\d{4}-\d{2}-\d{2}$/.test(params.d) ? params.d : today;
+  // the month is the selected day's, so a week swiped past the month's edge brings the next month's grid
+  const ym = monthOf(selected);
 
-  const [workouts, last, templates, activeId] = await Promise.all([
-    getMonthWorkouts(ym),
-    getLastCompleted(),
-    listTemplates(),
-    getActiveProgramId(),
-  ]);
+  const [workouts, templates, activeId] = await Promise.all([getMonthWorkouts(ym), listTemplates(), getActiveProgramId()]);
   const program = activeId ? await getProgram(activeId) : null;
   const upNext = program
     ? programToday({
@@ -62,7 +44,13 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const selectedWorkouts = byDay.get(selected) ?? [];
   const monthCount = workouts.filter((w) => w.completedAt && w.day.startsWith(formatYearMonth(ym))).length;
 
-  const href = (m: string, d?: string) => `/?m=${m}${d ? `&d=${d}` : ""}`;
+  const weeks: CalendarDay[][] = monthGrid(ym).map((week) =>
+    week.map((cell) => ({
+      ...cell,
+      dots: (byDay.get(cell.date) ?? []).map((w) => ({ id: w.id, category: w.category, done: !!w.completedAt })),
+    })),
+  );
+  const next = upNext?.next ? rowOf.get(upNext.next.id) : undefined;
 
   return (
     <Screen>
@@ -81,77 +69,24 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         }
       />
 
-      <section aria-label="Month" className="mt-4 px-4">
-        <div className="mb-2 flex items-center justify-between">
-          <Link
-            href={href(formatYearMonth(shiftMonth(ym, -1)))}
-            aria-label="Previous month"
-            className="grid size-9 place-items-center rounded-full text-blue active:bg-fill"
-          >
-            <ChevronLeft size={20} />
-          </Link>
-          <Link href="/" className="rounded-full px-3 py-1.5 text-[15px] font-medium text-blue active:bg-fill">
-            Today
-          </Link>
-          <Link
-            href={href(formatYearMonth(shiftMonth(ym, 1)))}
-            aria-label="Next month"
-            className="grid size-9 place-items-center rounded-full text-blue active:bg-fill"
-          >
-            <ChevronRight size={20} />
-          </Link>
-        </div>
-        <div className="grid grid-cols-7 pb-1 text-center text-[13px] font-semibold text-ink-3">
-          {WEEKDAYS.map((d, i) => (
-            <div key={i}>{d}</div>
+      <WeekCalendar weeks={weeks} selected={selected} today={today} />
+
+      <SectionHeader
+        title={selected === today ? "Today" : longDayLabel(selected)}
+        className="pt-3"
+        trailing={selected !== today ? <Link href="/" scroll={false}>Today</Link> : undefined}
+      />
+      {selectedWorkouts.length ? (
+        <div className="flex flex-col gap-2.5 px-4">
+          {selectedWorkouts.map((w) => (
+            <DayCard key={w.id} workout={w} />
           ))}
         </div>
-        <div role="grid" className="grid grid-cols-7 gap-y-1">
-          {monthGrid(ym).flat().map((cell) => {
-            const items = byDay.get(cell.date) ?? [];
-            const isToday = cell.date === today;
-            const isSelected = cell.date === selected;
-            return (
-              <Link
-                key={cell.date}
-                role="gridcell"
-                href={href(formatYearMonth(ym), cell.date)}
-                scroll={false}
-                aria-label={`${dayLabel(cell.date)}${items.length ? `, ${items.length} workout${items.length > 1 ? "s" : ""}` : ""}`}
-                aria-selected={isSelected}
-                className="flex h-12 flex-col items-center justify-start gap-1 pt-1"
-              >
-                <span
-                  className={cn(
-                    "tabular grid size-8 place-items-center rounded-full text-[17px]",
-                    !cell.inMonth && "text-ink-3",
-                    isToday && !isSelected && "font-semibold text-red",
-                    isSelected && (isToday ? "bg-red font-semibold text-white" : "bg-ink font-semibold text-bg"),
-                  )}
-                >
-                  {cell.day}
-                </span>
-                <span className="flex h-1.5 gap-[3px]">
-                  {items.slice(0, 3).map((w) => (
-                    <span
-                      key={w.id}
-                      style={hueStyle(w.category)}
-                      className={cn(
-                        "size-1.5 rounded-full",
-                        w.completedAt ? "bg-[hsl(var(--h)_70%_52%)]" : "ring-1 ring-[hsl(var(--h)_70%_52%)] ring-inset",
-                      )}
-                    />
-                  ))}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
-      <div className="mt-5 px-4">
-        <StartWorkout templates={templates} />
-      </div>
+      ) : (
+        <Empty title={selected === today ? "Nothing logged yet" : selected > today ? "Nothing planned" : "Rest day"}>
+          {selected === today ? "Start the next workout below." : selected > today ? "Workouts you start show here." : "No workout logged."}
+        </Empty>
+      )}
 
       {program && upNext && (
         <>
@@ -191,54 +126,43 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         </>
       )}
 
-      <SectionHeader title={selected === today ? "Today" : dayLabel(selected)} />
-      {selectedWorkouts.length ? (
-        <div className="grouped mx-4">
-          {selectedWorkouts.map((w) => (
-            <Link key={w.id} href={w.completedAt ? `/workouts/${w.id}/summary` : `/workouts/${w.id}`} className="block active:bg-fill">
-              <Row
-                leading={<Thumb category={w.category} label={w.name.slice(0, 1)} />}
-                title={w.name}
-                subtitle={
-                  w.completedAt
-                    ? [CATEGORY_LABELS[w.category ?? ""], minutes(w)].filter(Boolean).join(" · ")
-                    : w.startedAt
-                      ? "In progress"
-                      : "Scheduled"
-                }
-                chevron
-              />
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <Empty title={selected === today ? "Nothing logged yet" : "No workout"}>
-          {selected === today ? "Start one from a template above." : "Rest day."}
-        </Empty>
-      )}
-
-      {last && (
-        <>
-          <SectionHeader title="Last Workout" trailing={<Link href="/workouts">History</Link>} />
-          <Link
-            href={`/workouts/${last.id}/summary`}
-            style={hueStyle(last.category)}
-            className={cn("relative mx-4 block overflow-hidden rounded-[26px] p-5 text-white", tileGradient)}
-          >
-            <div className="text-[13px] font-semibold uppercase tracking-[0.06em] text-white/75">
-              {dayLabel(last.day, { year: true })}
-            </div>
-            <div className="mt-1 text-[28px] font-bold leading-tight tracking-[-0.01em]">{last.name}</div>
-            <div className="mt-1 text-[15px] text-white/80">
-              {[`${last.exerciseCount} exercises`, minutes(last)].filter(Boolean).join(" · ")}
-            </div>
-            <div {...veil} className={cn(veil.className, "mt-5 gap-1")}>
-              View summary <ChevronRight size={16} />
-            </div>
-          </Link>
-        </>
-      )}
+      <div className="mt-5 flex flex-col gap-2.5 px-4">
+        {next && (
+          <ButtonLink href={`/templates/${next.id}?start=1`} variant="filled" className="w-full">
+            <PlayIcon size={18} />
+            Start {next.name}
+          </ButtonLink>
+        )}
+        <StartWorkout templates={templates} label={next ? "Choose Another Workout" : "Start a Workout"} variant={next ? "gray" : "filled"} />
+      </div>
     </Screen>
+  );
+}
+
+/** A workout on the selected day, as Runna lists a day's sessions: it opens the workout itself (the summary when done) */
+function DayCard({ workout: w }: { workout: WorkoutListItem }) {
+  const status = w.completedAt ? "Done" : w.startedAt ? "In progress" : "Scheduled";
+  return (
+    <Link
+      href={w.completedAt ? `/workouts/${w.id}/summary` : `/workouts/${w.id}`}
+      className="flex items-center gap-3.5 rounded-[22px] bg-card p-3.5 active:opacity-80"
+    >
+      <Thumb category={w.category} label={w.name.slice(0, 1)} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[17px] font-semibold leading-[22px]">{w.name}</div>
+        <div className="truncate text-[15px] text-ink-2">
+          {[CATEGORY_LABELS[w.category ?? ""], `${w.exerciseCount} exercises`, minutes(w)].filter(Boolean).join(" · ")}
+        </div>
+      </div>
+      {w.completedAt ? (
+        <span aria-label={status} className="grid size-7 shrink-0 place-items-center rounded-full bg-green text-white">
+          <CheckIcon size={16} strokeWidth={2.6} />
+        </span>
+      ) : (
+        <span className="shrink-0 text-[15px] font-medium text-blue">{status}</span>
+      )}
+      <ChevronRight size={18} className="shrink-0 text-ink-3" />
+    </Link>
   );
 }
 

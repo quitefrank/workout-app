@@ -16,7 +16,12 @@ import {
   durationMinutes,
   gridBounds,
   localDate,
+  longDayLabel,
   monthGrid,
+  monthOf,
+  shiftDate,
+  shiftDateMonth,
+  weekIndexOf,
   parseYearMonth,
   shiftMonth,
   weekStarts,
@@ -155,6 +160,33 @@ describe("dates", () => {
     expect(dayLabel("2026-10-12")).toBe("Mon, Oct 12");
     expect(durationMinutes("2026-10-12T10:00:00Z", "2026-10-12T11:05:00Z")).toBe(65);
     expect(durationMinutes(null, "2026-10-12T11:05:00Z")).toBeNull();
+  });
+});
+
+describe("calendar navigation", () => {
+  it("moves dates by days across month and year ends", () => {
+    expect(shiftDate("2026-10-31", 1)).toBe("2026-11-01");
+    expect(shiftDate("2026-01-03", -7)).toBe("2025-12-27");
+    expect(shiftDate("2028-02-28", 1)).toBe("2028-02-29");
+  });
+
+  it("moves dates by months, keeping the day where the month has it", () => {
+    expect(shiftDateMonth("2026-10-24", 1)).toBe("2026-11-24");
+    expect(shiftDateMonth("2026-01-31", 1)).toBe("2026-02-28");
+    expect(shiftDateMonth("2026-01-15", -1)).toBe("2025-12-15");
+  });
+
+  it("finds the month and the grid week a date sits in", () => {
+    expect(monthOf("2026-10-24")).toEqual({ year: 2026, month: 10 });
+    const weeks = monthGrid({ year: 2026, month: 10 });
+    // October 2026 starts on a Thursday: Sep 27 to Oct 3 is week 0, Oct 24 closes week 3
+    expect(weekIndexOf(weeks, "2026-09-27")).toBe(0);
+    expect(weekIndexOf(weeks, "2026-10-24")).toBe(3);
+    expect(weekIndexOf(weeks, "2026-12-25")).toBe(0);
+  });
+
+  it("labels a day in full", () => {
+    expect(longDayLabel("2026-10-24")).toBe("Saturday, Oct 24");
   });
 });
 

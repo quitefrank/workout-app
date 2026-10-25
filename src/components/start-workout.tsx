@@ -5,21 +5,30 @@ import { useState } from "react";
 import type { TemplateSummary } from "@/lib/data/queries";
 import { CATEGORY_LABELS } from "@/lib/workout/format";
 import { groupByCategory } from "@/lib/workout/group";
-import { Button } from "./button";
+import { Button, type ButtonStyle } from "./button";
 import { PlayIcon } from "./icons";
 import { Row, Thumb } from "./page";
 import { Sheet } from "./sheet";
 
-/** "Start a workout": a sheet of the day templates, grouped by category. */
-export function StartWorkout({ templates }: { templates: TemplateSummary[] }) {
+/** "Start a workout": a sheet of the day templates, grouped by category. Filled when it is the view's main action,
+ *  gray beside a button that starts the next workout outright. */
+export function StartWorkout({
+  templates,
+  label = "Start a Workout",
+  variant = "filled",
+}: {
+  templates: TemplateSummary[];
+  label?: string;
+  variant?: ButtonStyle;
+}) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const groups = groupByCategory(templates);
   return (
     <>
-      <Button variant="filled" className="w-full" onClick={() => setOpen(true)}>
-        <PlayIcon size={18} />
-        Start a Workout
+      <Button variant={variant} className="w-full" onClick={() => setOpen(true)}>
+        {variant === "filled" && <PlayIcon size={18} />}
+        {label}
       </Button>
       <Sheet
         open={open}
