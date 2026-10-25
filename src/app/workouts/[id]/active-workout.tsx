@@ -111,9 +111,8 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
       <div
         data-glass-unit="dock"
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col gap-2.5 px-[21px]"
-        // 21pt up from the screen edge (--dock-bottom); where iOS ends the page short of the screen (--screen-gap)
-        // nothing draws below the page, so the bar sits as near the edge as the page allows
-        style={{ paddingBottom: "max(0px, calc(var(--dock-bottom) - var(--screen-gap, 0px)))" }}
+        // 21pt up from the screen edge (--dock-bottom); a home screen app places it from the top instead (globals.css)
+        style={{ paddingBottom: "var(--dock-bottom)" }}
       >
         <RestTimer timer={timer} />
         <GlassButton tone="green" className="pointer-events-auto w-full" onClick={() => setFinishing(true)}>

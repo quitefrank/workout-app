@@ -278,6 +278,22 @@ body {
      the canvas on the phone. iOS has scrolled with momentum without it since iOS 13. */
 }
 
+/* A home screen app on iOS 26 flips its window between the full screen and 50pt short of it, unprompted, so anything
+   pinned to the window's bottom jumps. There the screen's own height (--screen-h, src/lib/scroller.ts), which never
+   changes, places the docks from the top (bottom edge 21pt above the screen's, as Photos) and sizes the scroller, so
+   the content runs under the dock to the screen edge. Unlayered, so it beats the bottom-0 utilities. */
+html.standalone [data-glass-unit="dock"] {
+  top: 0;
+  bottom: auto;
+  height: var(--screen-h);
+  justify-content: flex-end;
+}
+
+html.standalone .app-scroller {
+  bottom: auto;
+  height: var(--screen-h);
+}
+
 /* With the keyboard up (src/lib/scroller.ts) the scroller covers only what is visible, from the top of the slid
    viewport to the top of the keyboard, and always has a pixel to scroll, so a drag moves the list and iOS never slides
    the viewport under the pinned bars */

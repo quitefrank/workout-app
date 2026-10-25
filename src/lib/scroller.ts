@@ -28,21 +28,17 @@ export function followVisualViewport(): () => void {
   const vv = window.visualViewport;
   if (!vv) return () => {};
   const html = document.documentElement;
-  // A home screen app should fill the screen (viewport-fit=cover), but iOS 26.0 can end the page short of the screen's
-  // bottom edge, and nothing draws below the page. The shortfall goes to `--screen-gap`, which the dock takes off its
-  // distance from the edge. It is measured once per width (a rotation) and without the keyboard (which shrinks the
-  // window too), never again from the viewport events that follow: re-measuring on every event moved the dock on its own.
+  // A home screen app (iOS 26) flips its window between the full screen and 50pt short of it with nothing touched, so
+  // the pinned layer is placed from the top with the screen's height, which never changes (the app is portrait only).
   const standalone = window.matchMedia?.("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  let gapWidth = 0;
+  if (standalone) {
+    html.classList.add("standalone");
+    html.style.setProperty("--screen-h", `${window.screen.height}px`);
+  }
   const update = () => {
     html.style.setProperty("--vv-top", `${Math.max(0, Math.round(vv.offsetTop))}px`);
     html.style.setProperty("--vv-h", `${Math.round(vv.height)}px`);
-    const keyboard = vv.height < html.clientHeight - 100;
-    html.classList.toggle("keyboard", keyboard);
-    if (standalone && !keyboard && window.innerWidth !== gapWidth) {
-      gapWidth = window.innerWidth;
-      html.style.setProperty("--screen-gap", `${Math.max(0, Math.round(window.screen.height - window.innerHeight))}px`);
-    }
+    html.classList.toggle("keyboard", vv.height < html.clientHeight - 100);
   };
   const hold = (e: TouchEvent) => {
     if (!html.classList.contains("keyboard")) return;
@@ -59,7 +55,8 @@ export function followVisualViewport(): () => void {
     document.removeEventListener("touchmove", hold);
     html.style.removeProperty("--vv-top");
     html.style.removeProperty("--vv-h");
-    html.style.removeProperty("--screen-gap");
+    html.style.removeProperty("--screen-h");
+    html.classList.remove("standalone");
     html.classList.remove("keyboard");
   };
 }
