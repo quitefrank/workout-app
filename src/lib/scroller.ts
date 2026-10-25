@@ -28,16 +28,21 @@ export function followVisualViewport(): () => void {
   const vv = window.visualViewport;
   if (!vv) return () => {};
   const html = document.documentElement;
-  // A home screen app should fill the screen (viewport-fit=cover), but iOS 26.0 can leave the page short of the screen's
-  // bottom edge; the shortfall goes to `--screen-gap` so the dock and the scroller reach the real edge. Measured only
-  // without the keyboard, which shrinks the window too.
+  // A home screen app should fill the screen (viewport-fit=cover), but iOS 26.0 can end the page short of the screen's
+  // bottom edge, and nothing draws below the page. The shortfall goes to `--screen-gap`, which the dock takes off its
+  // distance from the edge. It is measured once per width (a rotation) and without the keyboard (which shrinks the
+  // window too), never again from the viewport events that follow: re-measuring on every event moved the dock on its own.
   const standalone = window.matchMedia?.("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  let gapWidth = 0;
   const update = () => {
     html.style.setProperty("--vv-top", `${Math.max(0, Math.round(vv.offsetTop))}px`);
     html.style.setProperty("--vv-h", `${Math.round(vv.height)}px`);
     const keyboard = vv.height < html.clientHeight - 100;
     html.classList.toggle("keyboard", keyboard);
-    if (standalone && !keyboard) html.style.setProperty("--screen-gap", `${Math.max(0, Math.round(window.screen.height - window.innerHeight))}px`);
+    if (standalone && !keyboard && window.innerWidth !== gapWidth) {
+      gapWidth = window.innerWidth;
+      html.style.setProperty("--screen-gap", `${Math.max(0, Math.round(window.screen.height - window.innerHeight))}px`);
+    }
   };
   const hold = (e: TouchEvent) => {
     if (!html.classList.contains("keyboard")) return;

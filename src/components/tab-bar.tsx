@@ -33,8 +33,9 @@ export function TabBar({ inProgress }: { inProgress: InProgress }) {
       aria-label="Main"
       data-glass-unit="dock"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex flex-col items-stretch gap-2.5 px-[21px]"
-      // 21pt up from the screen edge (--dock-bottom), the screen edge being below the page where iOS leaves a gap
-        style={{ paddingBottom: "var(--dock-bottom)", bottom: "calc(-1 * var(--screen-gap, 0px))" }}
+      // 21pt up from the screen edge (--dock-bottom); where iOS ends the page short of the screen (--screen-gap)
+        // nothing draws below the page, so the bar sits as near the edge as the page allows
+        style={{ paddingBottom: "max(0px, calc(var(--dock-bottom) - var(--screen-gap, 0px)))" }}
     >
       {inProgress && <ResumePill workout={inProgress} />}
       <div className="glass pointer-events-auto mx-auto flex h-[62px] w-full max-w-[420px] items-center px-1.5 py-1">

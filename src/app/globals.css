@@ -271,8 +271,6 @@ body {
 .app-scroller {
   position: absolute;
   inset: 0;
-  /* down to the screen's real bottom where iOS leaves the page short of it (--screen-gap, src/lib/scroller.ts) */
-  bottom: calc(-1 * var(--screen-gap, 0px));
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior-y: contain;
