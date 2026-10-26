@@ -2,11 +2,21 @@ import { describe, expect, it } from "vitest";
 import { LENS, lensGoal, lensSettled, lensShape, nearestIndex, restingLens, rubberBand, spring, stepLens, type LensInput, type LensState } from "../tab-lens";
 
 const idle: LensInput = { pressed: false, dragX: null };
-const run = (s: LensState, goal: number, input = idle, ms = 1000) => {
-  let peak = -Infinity;
-  for (let t = 0; t < ms; t += 16) { s = stepLens(s, goal, input, LENS, 16, false); peak = Math.max(peak, s.x ?? 0); }
-  return { s, peak };
-};
+
+/** Replay a tap the way the recording has it: the finger down for `press` ms, the lens sent `distance` px, 1 ms steps. */
+function tap(distance = 86, press = 106, ms = 900) {
+  let s = stepLens(restingLens(), 0, idle, LENS, 1, false);
+  const frames: { t: number; s: LensState; p: number; scale: number; clear: number; swell: number }[] = [];
+  for (let t = 0; t < ms; t++) {
+    const input = { pressed: t < press, dragX: null };
+    s = stepLens(s, distance, input, LENS, 1, false);
+    const shape = lensShape(s, 100, 54, LENS);
+    frames.push({ t, s, p: (s.x ?? 0) / distance, scale: shape.w / 100, clear: shape.lift, swell: shape.swell - 1 });
+  }
+  return frames;
+}
+const first = (f: ReturnType<typeof tap>, ok: (x: ReturnType<typeof tap>[number]) => boolean) => f.find(ok)?.t ?? Infinity;
+const last = (f: ReturnType<typeof tap>, ok: (x: ReturnType<typeof tap>[number]) => boolean) => [...f].reverse().find(ok)?.t ?? -Infinity;
 
 describe("spring", () => {
   it("comes to rest on its goal", () => {
@@ -47,55 +57,96 @@ describe("rubberBand and nearestIndex", () => {
   });
 });
 
+// The recording, measured frame by frame (30 fps, so about one frame of slack on every time): docs/lab/glass-presets.md
+describe("a one-tab tap matches the iOS 26 recording", () => {
+  const f = tap();
+  it("travels 50% by about 65 ms and 90% by about 150 ms, without overshooting", () => {
+    expect(first(f, (x) => x.p >= 0.5)).toBeGreaterThan(50);
+    expect(first(f, (x) => x.p >= 0.5)).toBeLessThan(80);
+    expect(first(f, (x) => x.p >= 0.9)).toBeGreaterThan(130);
+    expect(first(f, (x) => x.p >= 0.9)).toBeLessThan(170);
+    expect(Math.max(...f.map((x) => x.p))).toBeLessThanOrEqual(1.0001);
+  });
+  it("swells the bar about 4.3% at about 110 ms and lets it go by about 240 ms", () => {
+    const peak = f.reduce((a, b) => (b.swell > a.swell ? b : a));
+    expect(peak.swell).toBeGreaterThan(0.04);
+    expect(peak.swell).toBeLessThan(0.048);
+    expect(peak.t).toBeGreaterThan(90);
+    expect(peak.t).toBeLessThan(135);
+    expect(last(f, (x) => x.swell > 0.002)).toBeLessThan(265);
+  });
+  it("dips the bar about 0.9% while the lens drops back, from about 300 to 470 ms", () => {
+    const low = f.reduce((a, b) => (b.swell < a.swell ? b : a));
+    expect(low.swell).toBeLessThan(-0.006);
+    expect(low.swell).toBeGreaterThan(-0.012);
+    expect(first(f, (x) => x.swell < -0.004)).toBeGreaterThan(260);
+    expect(first(f, (x) => x.swell < -0.004)).toBeLessThan(330);
+    expect(last(f, (x) => x.swell < -0.004)).toBeGreaterThan(400);
+    expect(last(f, (x) => x.swell < -0.004)).toBeLessThan(490);
+  });
+  it("grows the lens to about 1.3x at 150 to 180 ms and back to rest by about 410 ms", () => {
+    const peak = f.reduce((a, b) => (b.scale > a.scale ? b : a));
+    expect(peak.scale).toBeGreaterThan(1.27);
+    expect(peak.scale).toBeLessThan(1.36);
+    expect(peak.t).toBeGreaterThan(140);
+    expect(peak.t).toBeLessThan(205);
+    for (const [t, want] of [[80, 1.23], [144, 1.3], [244, 1.2], [312, 1.06]] as const) expect(f[t].scale).toBeCloseTo(want, 1);
+    expect(last(f, (x) => x.scale > 1.01)).toBeLessThan(440);
+  });
+  it("is clear glass from about 60 ms to about 280 ms", () => {
+    expect(first(f, (x) => x.clear > 0.5)).toBeLessThan(80);
+    expect(last(f, (x) => x.clear > 0.5)).toBeGreaterThan(250);
+    expect(last(f, (x) => x.clear > 0.5)).toBeLessThan(310);
+  });
+  it("shows nothing moving after about 500 ms, and lets the frame loop stop soon after", () => {
+    expect(last(f, (x) => x.scale > 1.005 || Math.abs(x.swell) > 0.0005 || x.p < 0.998)).toBeLessThan(510);
+    expect(lensSettled(f[f.length - 1].s, 86, idle)).toBe(true);
+    expect(last(f, (x) => !lensSettled(x.s, 86, idle))).toBeLessThan(700);
+  });
+});
+
 describe("stepLens", () => {
   it("starts on its goal at rest", () => {
-    expect(stepLens(restingLens(), -40, idle, LENS, 16, false)).toEqual({ x: -40, vx: 0, lift: 0, vl: 0 });
+    expect(stepLens(restingLens(), -40, idle, LENS, 16, false)).toEqual({ ...restingLens(), x: -40 });
   });
-  it("lifts while pressed, even without moving", () => {
+  it("lifts and swells while pressed, even without moving", () => {
     let s = stepLens(restingLens(), 0, idle, LENS, 16, false);
-    for (let t = 0; t < 300; t += 16) s = stepLens(s, 0, { pressed: true, dragX: null }, LENS, 16, false);
-    expect(s.lift).toBeGreaterThan(0.95);
+    for (let t = 0; t < 600; t += 16) s = stepLens(s, 0, { pressed: true, dragX: null }, LENS, 16, false);
+    expect(s.lift).toBeGreaterThan(0.98);
+    expect(s.swell).toBeCloseTo(LENS.lensSwell, 3);
     expect(s.x).toBe(0);
-  });
-  it("lifts to travel, arrives with a small overshoot, and settles back into the capsule", () => {
-    const start = stepLens(restingLens(), -120, idle, LENS, 16, false);
-    const mid = run(start, 40, idle, 100).s;
-    expect(mid.lift).toBeGreaterThan(0.5);
-    const { s, peak } = run(start, 40, idle, 1500);
-    expect(peak).toBeGreaterThan(40.5);
-    expect(peak).toBeLessThan(60);
-    expect(s.x).toBeCloseTo(40, 1);
-    expect(lensSettled(s, 40, idle)).toBe(true);
   });
   it("follows a drag closely and stays lifted", () => {
     const drag = { pressed: true, dragX: 80 };
-    const { s } = run(stepLens(restingLens(), -120, idle, LENS, 16, false), 80, drag, 400);
+    let s = stepLens(restingLens(), -120, idle, LENS, 16, false);
+    for (let t = 0; t < 400; t += 16) s = stepLens(s, 80, drag, LENS, 16, false);
     expect(s.x).toBeCloseTo(80, 0);
     expect(s.lift).toBeGreaterThan(0.95);
     expect(lensSettled(s, 80, drag)).toBe(false);
   });
-  it("jumps without lifting under reduced motion", () => {
-    const s = stepLens({ x: -120, vx: 0, lift: 0, vl: 0 }, 40, { pressed: true, dragX: null }, LENS, 16, true);
-    expect(s).toEqual({ x: 40, vx: 0, lift: 0, vl: 0 });
+  it("jumps without lifting, swelling or dipping under reduced motion", () => {
+    const s = stepLens({ ...restingLens(), x: -120 }, 40, { pressed: true, dragX: null }, LENS, 16, true);
+    expect(s).toEqual({ ...restingLens(), x: 40 });
   });
 });
 
 describe("lensShape", () => {
   it("is the capsule at rest", () => {
-    expect(lensShape({ x: 10, vx: 0, lift: 0, vl: 0 }, 90, 54, LENS)).toEqual({ x: 10, w: 90, h: 54, lift: 0, swell: 1 });
+    expect(lensShape({ ...restingLens(), x: 10 }, 90, 54, LENS)).toEqual({ x: 10, w: 90, h: 54, lift: 0, swell: 1 });
   });
-  it("grows and swells the bar when lifted, and stretches with speed", () => {
-    const lifted = lensShape({ x: 0, vx: 0, lift: 1, vl: 0 }, 90, 54, LENS);
-    expect(lifted.w).toBeCloseTo(108);
-    expect(lifted.h).toBeCloseTo(54 * 1.12);
-    expect(lifted.swell).toBeCloseTo(1.035);
-    const fast = lensShape({ x: 0, vx: 2000, lift: 1, vl: 0 }, 90, 54, LENS);
-    expect(fast.w).toBeCloseTo(108 * 1.3);
-    expect(fast.h).toBeLessThan(lifted.h);
+  it("scales both ways with the lift and turns clear on a steep curve", () => {
+    const lifted = lensShape({ ...restingLens(), x: 0, lift: 1 }, 90, 54, LENS);
+    expect(lifted.w / 90).toBeCloseTo(LENS.lensLift);
+    expect(lifted.h / 54).toBeCloseTo(LENS.lensLift);
+    expect(lifted.lift).toBe(1);
+    expect(lensShape({ ...restingLens(), x: 0, lift: 0.15 }, 90, 54, LENS).lift).toBe(0);
+    expect(lensShape({ ...restingLens(), x: 0, lift: 0.45 }, 90, 54, LENS).lift).toBe(1);
   });
-  it("clamps an overshooting lift for the optics but lets the size follow it", () => {
-    const s = lensShape({ x: 0, vx: 0, lift: 1.1, vl: 0 }, 90, 54, LENS);
-    expect(s.lift).toBe(1);
-    expect(s.w).toBeGreaterThan(108);
+  it("does not stretch with speed at the measured setting", () => {
+    const fast = lensShape({ ...restingLens(), x: 0, vx: 2000, lift: 1 }, 90, 54, LENS);
+    expect(fast.w / 90).toBeCloseTo(LENS.lensLift);
+  });
+  it("carries the swell and the dip on the bar's scale", () => {
+    expect(lensShape({ ...restingLens(), x: 0, swell: 0.04, dip: 1 }, 90, 54, LENS).swell).toBeCloseTo(1 + 0.04 - LENS.lensDip);
   });
 });

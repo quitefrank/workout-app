@@ -177,7 +177,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 439 tests across 36 files.
+Run `bun run test` to exercise them. 445 tests across 36 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -435,12 +435,16 @@ with its box, and lifted over the canvas only while it has focus. Its
 value is in the stage's signature, so a value set by script repaints.
 
 The tab bar's selection is iOS 26's lens, read off Frank's screen
-recording (measurements in `docs/lab/glass-presets.md`, Tab lens). A
-touch lifts the capsule into clear glass that swells the bar; a tap
-travels it to the tab on a spring, stretching with speed, and it settles
-back into the capsule; a drag past 6pt carries it under the finger and
+recording, measured frame by frame (`docs/lab/glass-presets.md`, Tab
+lens). Four springs: the lens's place (critically damped, no overshoot);
+its lift, held while touched or still more than 4px from its tab, which
+scales it both ways to about 1.3x and turns it clear above about 1.1x;
+the bar's swell, which follows the finger alone, so on a tap the bar has
+deflated before the lens lands; and a small dip of the bar as the lens
+drops back in. A drag past 6pt carries the lens under the finger and
 selects the nearest tab on release, navigating at once. The motion is
-pure and tested in `src/lib/tab-lens.ts`, whose `LENS` values are the
+pure and tested in `src/lib/tab-lens.ts` (the tests replay the recorded
+tap and check its timings), whose `LENS` values are the
 lab's Tab lens dials (copy a tuned row there). `tab-bar.tsx` steps it in
 its own animation frame loop, which stops once the lens settles, and
 writes each frame to `src/glass/lens-state.ts`. Each tab is drawn twice,
