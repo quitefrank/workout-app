@@ -177,7 +177,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 416 tests across 35 files.
+Run `bun run test` to exercise them. 439 tests across 36 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -433,6 +433,25 @@ above 5: glass in the page's flow is lifted to 6, live elements carry
 `data-live` input is the exception: it is painted at rest, so it scrolls
 with its box, and lifted over the canvas only while it has focus. Its
 value is in the stage's signature, so a value set by script repaints.
+
+The tab bar's selection is iOS 26's lens, read off Frank's screen
+recording (measurements in `docs/lab/glass-presets.md`, Tab lens). A
+touch lifts the capsule into clear glass that swells the bar; a tap
+travels it to the tab on a spring, stretching with speed, and it settles
+back into the capsule; a drag past 6pt carries it under the finger and
+selects the nearest tab on release, navigating at once. The motion is
+pure and tested in `src/lib/tab-lens.ts`, whose `LENS` values are the
+lab's Tab lens dials (copy a tuned row there). `tab-bar.tsx` steps it in
+its own animation frame loop, which stops once the lens settles, and
+writes each frame to `src/glass/lens-state.ts`. Each tab is drawn twice,
+once in the bar's ink and once in the tint clipped to the lens, so a
+lens half over a tab tints half of it. On the CSS path that is all
+there is (the lens is `[data-tab-lens]`, the swell a `scale` on the
+bar). On the WebGPU path the stage's tabs layer (`src/glass/engine/tabs.ts`)
+draws the capsule, the lens and the ink from one mask of the tabs'
+symbols and labels, magnified and split at the rim inside the lens, and
+`html.tabs-gpu` makes the HTML ink transparent, kept for taps and
+VoiceOver. Taps still select through the tab's link.
 
 The rule behind every drift fix: nothing in the scrolling content stays
 on the live layer at rest. The compositor moves live HTML with the

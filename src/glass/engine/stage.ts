@@ -5,6 +5,8 @@ import { scrollTop } from "@/lib/scroller";
 import { debugState } from "../debug-state";
 import { makeFrost } from "./frost";
 import { CAST_MARGIN, GLASS_MARGIN, makeCastMaterial, makeGlassMaterial, makeUniforms, type Uniforms } from "./materials";
+import { lensState } from "../lens-state";
+import { makeTabsLayer } from "./tabs";
 
 /* The Glass Lab V3's GPU surface (makeGpu, lines 4275 to 4501), for the app: a canvas, a content texture the painter
    draws into, glass meshes placed from DOM rects, for whatever glass the current screen holds. Changes from the lab:
@@ -48,7 +50,7 @@ export async function startStage(o: StageOptions): Promise<() => void> {
 
 function setup(o: StageOptions, renderer: any): () => void {
   const { THREE, T, W, H, dpr } = o;
-  const { Fn, uv, vec2, vec3, float, int, ivec2, abs, max, min, floor, length, clamp, mix, smoothstep, texture, textureLoad, uniform, sRGBTransferEOTF, screenCoordinate, Loop } = T;
+  const { Fn, uv, vec2, vec3, float, int, ivec2, max, min, floor, clamp, mix, smoothstep, texture, textureLoad, uniform, sRGBTransferEOTF, screenCoordinate, Loop } = T;
   const contentCanvas = document.createElement("canvas"); contentCanvas.width = Math.round(W * dpr); contentCanvas.height = Math.round(H * dpr);
   const cctx = contentCanvas.getContext("2d")!;
   // raw sRGB bytes (no decode on sampling): the frost averages them as they are, and the optics decode where they read
@@ -146,18 +148,11 @@ function setup(o: StageOptions, renderer: any): () => void {
     }
   };
 
-  // The selected tab's capsule, drawn in the canvas over the glass so the bar's content stays visible through it. On the
-  // device the capsule is darker than the bar in both appearances (measured: about 0.3x the bar over black, 0.9x in
-  // light), so it is a black capsule at the opacity Preset 1 sets rather than the kit's plus blend, which lifts instead
-  // of darkening.
-  const PILL_PAD = 2, PILL_H = 54;
-  const uW = uniform(80), uH = uniform(PILL_H), uAmt = uniform(0.6);
-  const capsule = (p: any) => { const half = vec2(uW.mul(0.5), uH.mul(0.5)); const rad = uH.mul(0.5); const q = abs(p).sub(half).add(rad); return length(max(q, vec2(0, 0))).add(min(max(q.x, q.y), float(0))).sub(rad); };
-  const pm = new THREE.MeshBasicNodeMaterial(); pm.transparent = true; pm.depthTest = false; pm.depthWrite = false;
-  pm.colorNode = vec3(0, 0, 0);
-  pm.opacityNode = Fn(() => { const p = uv().sub(0.5).mul(vec2(uW, uH)); return float(1).sub(smoothstep(float(-0.8), float(0.8), capsule(p))).mul(uAmt); })();
-  const pillGeo = new THREE.PlaneGeometry(1, 1);
-  const pillMesh = new THREE.Mesh(pillGeo, pm); pillMesh.renderOrder = 10; pillMesh.visible = false; scene.add(pillMesh);
+  const tabs = makeTabsLayer(THREE, T, { W, H, dpr, pageTex, barsFrost: barsFrost.tex });
+  scene.add(tabs.mesh);
+  // built off the frame like the glass; the CSS material holds the screen until it is
+  let tabsReady = false;
+  renderer.compileAsync(tabs.mesh, camera, scene).then(() => { tabsReady = true; }, () => { tabsReady = true; });
 
   // Adapt and the context rule read the page's average brightness: the raw page (no edge effect, so the rule never reads
   // its own dimming) kept as a small grid, one cell per 8px, each footprint averaged from it in sRGB, as the readings
@@ -298,26 +293,23 @@ function setup(o: StageOptions, renderer: any): () => void {
     }
     frosts.forEach((f) => f.render(renderer));
 
-    const pillEl = document.querySelector("[data-glass-pill]");
-    const barEl = pillEl?.closest(".glass") ?? null;
-    const bar = barEl ? entries.get(barEl) : undefined;
-    const pillShown = !!pillEl && !!bar && bar.mesh.visible;
-    const P = bar ? bar.U.cur : o.bars.P;
-    pillMesh.visible = pillShown && (P.pillOpacity || 0) > 0;
     for (const e of entries.values()) if (e.family === "bars") e.U.pillMix.value = 0;
-    if (pillShown && pillEl && bar) {
+    const barEl = lensState.bar;
+    const bar = barEl ? entries.get(barEl) : undefined;
+    const tabsShown = tabsReady && !!barEl && !!bar && bar.mesh.visible;
+    tabs.mesh.visible = tabsShown;
+    if (tabsShown) {
+      const P = bar.U.cur;
+      tabs.place(barEl, rectOf(barEl), P, html.classList.contains("tabs-gpu"));
+      // the bar learns where its capsule is (for Pill blur), in its own px
       bar.U.pillMix.value = (P.pillBlur || 0) > 0 ? 1 : 0;
-      const r = rectOf(pillEl); const w = r.width + 2 * PILL_PAD, h = PILL_H;
-      // Pill darkening is the share of the bar's sRGB value the capsule takes away; the blend happens in linear light
-      uW.value = w; uH.value = h; uAmt.value = 1 - Math.pow(1 - Math.min(1, P.pillOpacity || 0), 2.2);
-      const x = r.left + r.width / 2 - W / 2, y = H / 2 - (r.top + r.height / 2);
-      pillMesh.scale.set(w, h, 1); pillMesh.position.set(x, y, 0.5);
-      // tell the bar where its capsule is, in the bar's own coordinates
-      bar.U.pillC.value.set(x - bar.mesh.position.x, y - bar.mesh.position.y); bar.U.pillS.value.set(w, h);
+      bar.U.pillC.value.set(lensState.x * lensState.swell, 0); bar.U.pillS.value.set(lensState.w * lensState.swell, lensState.h * lensState.swell);
+      // the HTML ink steps aside once the canvas has it
+      if (tabs.inkReady() && !html.classList.contains("tabs-gpu")) html.classList.add("tabs-gpu");
     }
     renderer.render(scene, camera);
     // the bars take their side from the first grid, so the CSS material holds the screen until one has arrived
-    if (allReady && avgBytes && !readySent) { readySent = true; o.onReady?.(); }
+    if (allReady && tabsReady && avgBytes && !readySent) { readySent = true; o.onReady?.(); }
     if (++debugState.frames % 15 === 0) {
       debugState.entries = Array.from(entries.values()).map((e) => ({
         label: `${(e.el.getAttribute("aria-label") ?? e.el.textContent ?? "").trim().slice(0, 18)} ${e.el.className.toString().slice(0, 24)}`,
@@ -354,9 +346,11 @@ function setup(o: StageOptions, renderer: any): () => void {
     stopped = true; cancelAnimationFrame(frame);
     // the units' classes first: removing the last entry of a unit drops the unit
     for (const f of units.values()) f.key.classList.remove("ctx-dark", "ctx-light");
+    html.classList.remove("tabs-gpu");
     for (const e of Array.from(entries.values())) remove(e);
     [...frosts, edgeFrost].forEach((f) => f.dispose());
-    [pageMat, bgMat, avgMat, pm, pageGeo, bgGeo, pillGeo, rawTex, pageRT, avgRT].forEach((x) => x.dispose());
+    tabs.dispose();
+    [pageMat, bgMat, avgMat, pageGeo, bgGeo, rawTex, pageRT, avgRT].forEach((x) => x.dispose());
     renderer.dispose();
   };
 }
