@@ -104,6 +104,7 @@ describe("supabase migrations on PGlite", () => {
       "0012_remove_omni.sql",
       "0013_fix_muscle_groups.sql",
       "0014_movements.sql",
+      "0015_merge_omni_grip_machine_row.sql",
     ]);
   });
 
