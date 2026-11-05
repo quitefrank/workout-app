@@ -26,8 +26,7 @@ const DATE_BACK_MS = 256;
  * panel and the panel closes back into the date. The glass starts as a pill round the date, pinned at its top-left, and
  * covers it. The date is plain text at rest, not glass, so a copy of it rides on the glass as the handoff's glyph does,
  * gone on the first frame and back at 200ms of the close, and the glass dissolves as it lands. A panel is large glass,
- * so it keeps the page's appearance. It stays mounted, hidden, so its shaders are built before it first opens, as the
- * Sheet does. There is no scrim: a clear layer catches the tap that closes it.
+ * so it keeps the page's appearance, and it is the CSS material on both paths, as the Sheet is. There is no scrim: a clear layer catches the tap that closes it.
  */
 export function MonthPanel({
   open,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bezelFor, createFamily, iorFor, PRESET1_BARS, PRESET1_LIGHT, SHADOW_OFF, SHEET_DARK, SHEET_LIGHT } from "../presets";
+import { bezelFor, createFamily, iorFor, PRESET1_BARS, PRESET1_LIGHT, SHADOW_OFF } from "../presets";
 
 describe("presets", () => {
   it("index of refraction from the Refraction slider", () => {
@@ -52,10 +52,4 @@ describe("presets", () => {
     expect(fam.P).toEqual(fam.sideValues("light"));
   });
 
-  it("the sheet is the measured device sheet", () => {
-    expect(SHEET_DARK.frost).toBe(30);
-    expect(SHEET_DARK.hazeL).toBe(0.12);
-    expect(SHEET_LIGHT.hazeL).toBe(0.92);
-    expect(SHEET_DARK.cornerSplay).toBe(2);
-  });
 });

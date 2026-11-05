@@ -11,7 +11,7 @@ export const CAST_MARGIN = 32;
 export type Uniforms = Record<string, any> & {
   cur: Material;
   apply: (p: Material) => void;
-  setSize: (w: number, h: number, r: number, rb?: number) => void;
+  setSize: (w: number, h: number, r: number) => void;
   override?: () => Material | null;
   dispose: () => void;
 };
@@ -32,19 +32,15 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
     fill2Opacity: uniform(P.fill2Opacity ?? 0), fill2Blend: uniform(P.fill2Blend ?? 1), fill2Color: uniform(new THREE.Vector3()),
     // the element's size and corner radius in px, and the bevel width they give (set by the stage every frame)
     w: uniform(1), h: uniform(1), r: uniform(0), bezel: uniform(1),
-    // the bottom corners' radius, for a shape whose top and bottom differ (the iOS 27 sheet); the same as r otherwise
-    rb: uniform(0),
     // the sheet's scrim over a bar: what its glass is multiplied by while a sheet is up (set by the stage every frame)
     dim: uniform(1),
-    // the element's own CSS opacity, for a sheet-family panel that dissolves (set by the stage every frame)
-    fade: uniform(1),
     // the selected capsule, for the bar that holds it: centre and size in the bar's own px (set by the render loop), and
     // whether the capsule takes the extra blur (Pill blur above 0)
     pillC: uniform(new THREE.Vector2(0, 0)), pillS: uniform(new THREE.Vector2(0, 0)), pillMix: uniform(0),
     // the average brightness of the page under this element (sRGB), kept up to date by the render loop, for Adapt
     avgL: uniform(0.5),
   };
-  const NOT_VALUES = new Set(["ior", "cur", "apply", "override", "setSize", "dispose", "pillC", "pillS", "pillMix", "w", "h", "r", "rb", "dim", "bezel", "avgL", "fade"]);
+  const NOT_VALUES = new Set(["ior", "cur", "apply", "override", "setSize", "dispose", "pillC", "pillS", "pillMix", "w", "h", "r", "dim", "bezel", "avgL"]);
   // the fill colour travels as its sRGB components, untouched by colour management, since the blend happens in sRGB
   const toRgb = (u: any, c: number) => u.value.set(((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255);
   const setFill = (p: Material) => { toRgb(U.fillColor, p.fillColor ?? 0x999999); toRgb(U.fill2Color, p.fill2Color ?? 0xefefef); };
@@ -58,11 +54,11 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
     U.ior.value = iorFor(p); setFill(p); fitBezel();
   };
   // the raw radius is tracked because U.r holds the clamped one, which differs from r whenever r exceeds half the box
-  let rawR = NaN, rawRb = NaN;
-  U.setSize = (w: number, h: number, r: number, rb: number = r) => {
-    if (U.w.value === w && U.h.value === h && rawR === r && rawRb === rb) return;
-    rawR = r; rawRb = rb;
-    U.w.value = w; U.h.value = h; U.r.value = Math.min(r, w / 2, h / 2); U.rb.value = Math.min(rb, w / 2, h / 2); fitBezel();
+  let rawR = NaN;
+  U.setSize = (w: number, h: number, r: number) => {
+    if (U.w.value === w && U.h.value === h && rawR === r) return;
+    rawR = r;
+    U.w.value = w; U.h.value = h; U.r.value = Math.min(r, w / 2, h / 2); fitBezel();
   };
   // dispose unsubscribes from the family; the owner disposes the meshes' materials
   // a control showing a blend of its two sides takes the blend; the page's side alone is the family's live values
@@ -74,17 +70,16 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
 // a plain black quad under the glass whose alpha is the shape pushed down 8 and blurred (sigma 7.5), outside the shape
 // only. Its own mesh, 32px past the element, so the glass shader's quad can stay tight.
 export function makeCastMaterial(THREE: any, T: any, U: Uniforms, dpr: number) {
-  const { Fn, uv, vec2, vec3, float, abs, max, min, length, smoothstep, exp, select } = T;
+  const { Fn, uv, vec2, vec3, float, abs, max, min, length, smoothstep, exp } = T;
   const AA = 1 / dpr;
-  const half = vec2(U.w.mul(0.5), U.h.mul(0.5)), quad = vec2(U.w.add(2 * CAST_MARGIN), U.h.add(2 * CAST_MARGIN));
-  // uv runs upward, so the top corners are where y is positive
-  const sdf = Fn(([p]: any[]) => { const radius = select(p.y.greaterThanEqual(0), U.r, U.rb); const q = abs(p).sub(half).add(radius); return length(max(q, vec2(0, 0))).add(min(max(q.x, q.y), float(0))).sub(radius); });
+  const half = vec2(U.w.mul(0.5), U.h.mul(0.5)), radius = U.r, quad = vec2(U.w.add(2 * CAST_MARGIN), U.h.add(2 * CAST_MARGIN));
+  const sdf = Fn(([p]: any[]) => { const q = abs(p).sub(half).add(radius); return length(max(q, vec2(0, 0))).add(min(max(q.x, q.y), float(0))).sub(radius); });
   const m = new THREE.MeshBasicNodeMaterial(); m.transparent = true; m.depthTest = false; m.depthWrite = false;
   m.colorNode = vec3(0, 0, 0);
   m.opacityNode = Fn(() => {
     const p = uv().sub(0.5).mul(quad); const d = sdf(p);
     const cov = float(1).div(float(1).add(exp(sdf(p.sub(vec2(0, -8))).mul(1.702).div(7.5))));
-    return cov.mul(smoothstep(float(-AA / 2), float(AA / 2), d)).mul(U.cast).mul(U.fade);
+    return cov.mul(smoothstep(float(-AA / 2), float(AA / 2), d)).mul(U.cast);
   })();
   return m;
 }
@@ -95,25 +90,22 @@ export function makeGlassMaterial(ctx: GlassCtx, U: Uniforms) {
   const { Fn, uv, vec2, vec3, float, abs, max, min, length, clamp, pow, mix, dot, normalize, refract, smoothstep, texture, positionWorld, exp, select, sRGBTransferEOTF } = T;
   const AA = 1 / ctx.dpr;
   const half = vec2(U.w.mul(0.5), U.h.mul(0.5));
-  // uv runs upward, so the top corners are where y is positive
-  const radiusAt = Fn(([p]: any[]) => select(p.y.greaterThanEqual(0), U.r, U.rb));
+  const radius = U.r;
   const screenPx = vec2(ctx.W, ctx.H);
   const bezel = U.bezel;
   const avgL = U.avgL;
   const sdf = Fn(([p]: any[]) => {
-    const radius = radiusAt(p);
     const q = abs(p).sub(half).add(radius);
     return length(max(q, vec2(0, 0))).add(min(max(q.x, q.y), float(0))).sub(radius);
   });
   // Along a straight edge the bevel is `bezel` wide. Where the nearest edge is a rounded corner it widens to
   // cornerSplay times that (capped at the corner radius), blending in over half a radius, so a capsule's ends and a circle's
   // whole rim dome like the real material while the long edges keep the kit's rim width.
+  const innerHalf = vec2(U.w.mul(0.5).sub(radius), U.h.mul(0.5).sub(radius));
   const bezelAt = Fn(([p]: any[]) => {
-    const radius = radiusAt(p);
-    const q = abs(p).sub(vec2(U.w.mul(0.5).sub(radius), U.h.mul(0.5).sub(radius)));
+    const q = abs(p).sub(innerHalf);
     const cw = smoothstep(radius.mul(-0.6).sub(0.5), float(0), min(q.x, q.y));
-    // never zero: a square corner (the large sheet's bottom) would divide by it in heightAt
-    return max(mix(bezel, min(bezel.mul(U.cornerSplay), radius), cw), float(0.5));
+    return mix(bezel, min(bezel.mul(U.cornerSplay), radius), cw);
   });
   const heightAt = Fn(([p]: any[]) => {
     const t = clamp(sdf(p).negate().div(bezelAt(p)), 0, 1);
@@ -252,7 +244,7 @@ export function makeGlassMaterial(ctx: GlassCtx, U: Uniforms) {
     const cov = edgeCov(p, d);
     const on = (u: any) => smoothstep(float(0), float(0.001), u);
     const edge = clamp(cov.x.mul(on(U.outline)).add(cov.y.mul(on(U.sideShadow))), 0, 1);
-    return max(inside, edge).mul(U.fade);
+    return max(inside, edge);
   })();
   return mat;
 }

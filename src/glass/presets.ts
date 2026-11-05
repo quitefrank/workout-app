@@ -35,9 +35,6 @@ export const PRESET1_LIGHT: Material = {
   refraction: 70, shade: 0.1, shadeDepth: 36, sideShadow: 0.1, sideW: 1, splay: 0.3, thickness: 30,
 };
 
-// The sheet family has no saved preset: the lab uses iOS 26 device, measured
-export const SHEET_DARK: Material = { ...KIT_LENS, frost: 30, light: 0.25, haze: 0.85, hazeL: 0.12, hazeAdapt: 0, hazeBlack: 0, bright: 1 };
-export const SHEET_LIGHT: Material = { ...KIT_LENS, frost: 30, light: 0.25, haze: 0.85, hazeL: 0.92, hazeAdapt: 0, hazeBlack: 0, bright: 1 };
 
 // Glass Prominent, the kit's filled glass button (iOS 27 kit 27.0.1, Button - Liquid Glass - Symbol, 5522:11867, read
 // 2026-11-04), layer for layer. White Backing: white at 94%, the under slot, Normal. Tint: Accents/Blue as a linear burn,
@@ -61,7 +58,7 @@ export const iorFor = (P: Material) =>
 
 export const bezelFor = (P: Material, w: number, h: number) => Math.max(0.01, P.splay) * Math.min(w, h);
 
-/** One material family (bars and buttons, or the sheet): the live values for the page's appearance, and both sides. */
+/** The bars and buttons' material family: the live values for the page's appearance, and both sides. */
 export type Family = {
   P: Material;
   onParams: (fn: (P: Material) => void) => () => void;

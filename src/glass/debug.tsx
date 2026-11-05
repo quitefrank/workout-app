@@ -65,7 +65,7 @@ export function GlassDebug() {
         `adapter ${s.adapter || "?"}  stage ${s.stage || "?"}`,
         g.inner, g.vv, g.canvas, g.window, g.bars,
         s.error ? `error ${s.error}` : "error none",
-        ...s.entries.map((e) => `${e.family} ${e.laidOut ? "on" : "off"} ${e.compile}  ${e.label}`),
+        ...s.entries.map((e) => `${e.laidOut ? "on" : "off"} ${e.compile}  ${e.label}`),
       ];
   return (
     <pre

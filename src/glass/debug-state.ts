@@ -1,5 +1,5 @@
 /** What the glass renderer is doing, for the `?glassdebug=1` readout (src/glass/debug.tsx). */
-export type GlassEntryState = { label: string; family: string; laidOut: boolean; compile: string };
+export type GlassEntryState = { label: string; laidOut: boolean; compile: string };
 export type GlassDebugState = {
   phase: string;
   error: string | null;

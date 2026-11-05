@@ -17,7 +17,7 @@ import { makeTabsLayer } from "./tabs";
 export type StageOptions = {
   THREE: any; T: any;
   canvas: HTMLCanvasElement; W: number; H: number; dpr: number;
-  bars: Family; sheet: Family;
+  bars: Family;
   appearance: () => "dark" | "light";
   /** paint the page; `origin` is where the canvas sits on screen, subtracted from every rect */
   draw: (c: CanvasRenderingContext2D, origin: { x: number; y: number }) => void;
@@ -31,7 +31,7 @@ export type StageOptions = {
 };
 
 type Unit = { key: Element; s: number | null; onDark: boolean | null; els: Element[]; Us: Uniforms[] };
-type Entry = { el: Element; U: Uniforms; mesh: any; cast: any; family: "bars" | "sheet"; ready: boolean; compile: string; since: number };
+type Entry = { el: Element; U: Uniforms; mesh: any; cast: any; ready: boolean; compile: string; since: number };
 
 export async function startStage(o: StageOptions): Promise<() => void> {
   const { THREE, canvas, W, H, dpr } = o;
@@ -64,10 +64,9 @@ function setup(o: StageOptions, renderer: any): () => void {
   pageRT.texture.colorSpace = THREE.NoColorSpace;
   const pageTex = pageRT.texture;
   const barsFrost = makeFrost(THREE, T, pageTex, cw, ch, dpr, o.bars);
-  const sheetFrost = makeFrost(THREE, T, pageTex, cw, ch, dpr, o.sheet);
   // the capsule's frost: the bar's sigma and Pill blur added in quadrature (a blur of a blur)
   const pillFrost = makeFrost(THREE, T, pageTex, cw, ch, dpr, o.bars, (P: Material) => Math.hypot(Math.max(0, P.frost) * (2.5 / 6), P.pillBlur || 0));
-  const frosts = [barsFrost, sheetFrost, pillFrost];
+  const frosts = [barsFrost, pillFrost];
   const scene = new THREE.Scene(); const camera = new THREE.OrthographicCamera(-W / 2, W / 2, H / 2, -H / 2, 0.1, 100); camera.position.z = 10;
   // The scroll edge effect (Apple's soft style) behind the pinned top bar: the page is blurred progressively toward the
   // screen edge and, while the bar is on its light side, dissolved toward white; while it is on its dark side, dimmed.
@@ -99,7 +98,7 @@ function setup(o: StageOptions, renderer: any): () => void {
   const unit = (el: Element) => el.closest("[data-glass-unit]") ?? el;
   const units = new Map<Element, Unit>();
   const entries = new Map<Element, Entry>();
-  const ctxFor = (family: "bars" | "sheet") => ({ THREE, T, W, H, dpr, contentTex: pageTex, blurTex: (family === "bars" ? barsFrost : sheetFrost).tex, pillTex: family === "bars" ? pillFrost.tex : null });
+  const ctx = { THREE, T, W, H, dpr, contentTex: pageTex, blurTex: barsFrost.tex, pillTex: pillFrost.tex };
 
   // a control showing a blend of its two sides takes the blend; at the page's own side it takes the family's live values
   const sideBlend = (f: Unit): Material | null => {
@@ -109,11 +108,9 @@ function setup(o: StageOptions, renderer: any): () => void {
     return blendSides(o.bars.sideValues("light"), o.bars.sideValues("dark"), f.s);
   };
 
-  const add = (el: Element, family: "bars" | "sheet") => {
-    const fam = family === "bars" ? o.bars : o.sheet;
-    const U = makeUniforms(THREE, T, fam);
-    // a control on a sheet sits on large glass, which keeps the page's appearance, so it does not flip
-    if (family === "bars" && !el.closest("[data-glass-skip]")) {
+  const add = (el: Element) => {
+    const U = makeUniforms(THREE, T, o.bars);
+    if (!el.closest("[data-glass-skip]")) {
       const key = unit(el);
       let f = units.get(key);
       if (!f) { f = { key, s: null, onDark: null, els: [], Us: [] }; units.set(key, f); }
@@ -127,13 +124,13 @@ function setup(o: StageOptions, renderer: any): () => void {
       U.override = () => prominentMaterial(o.appearance());
       U.apply(U.override()!);
     }
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), makeGlassMaterial(ctxFor(family), U));
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), makeGlassMaterial(ctx, U));
     const cast = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), makeCastMaterial(THREE, T, U, dpr)); cast.renderOrder = -1;
     scene.add(mesh); scene.add(cast);
     // each element's node graph is built once; build it off the frame (hidden until ready) so a screen change does not
     // hitch. compileAsync skips invisible objects and collects both meshes synchronously, so both start together while
     // still visible; the loop hides them until they are ready.
-    const entry: Entry = { el, U, mesh, cast, family, ready: false, compile: "compiling", since: performance.now() };
+    const entry: Entry = { el, U, mesh, cast, ready: false, compile: "compiling", since: performance.now() };
     entries.set(el, entry);
     const took = () => `${Math.round(performance.now() - entry.since)}ms`;
     Promise.all([renderer.compileAsync(mesh, camera, scene), renderer.compileAsync(cast, camera, scene)]).then(
@@ -223,11 +220,12 @@ function setup(o: StageOptions, renderer: any): () => void {
     const cr = o.canvas.getBoundingClientRect(); org.x = cr.left; org.y = cr.top;
 
     // the glass on screen now
-    const want = new Map<Element, "bars" | "sheet">();
-    document.querySelectorAll(".glass").forEach((el) => want.set(el, "bars"));
-    document.querySelectorAll(".glass-sheet").forEach((el) => want.set(el, "sheet"));
+    // Sheets, menus and any control on them are CSS (.glass-sheet in globals.css): the shader reads the page, so a control
+    // on a sheet would show what is behind the sheet, not the sheet.
+    const want = new Set<Element>();
+    document.querySelectorAll(".glass").forEach((el) => { if (!el.closest(".glass-sheet")) want.add(el); });
     for (const e of Array.from(entries.values())) if (!want.has(e.el)) remove(e);
-    for (const [el, fam] of want) if (!entries.has(el)) add(el, fam);
+    for (const el of want) if (!entries.has(el)) add(el);
 
     // The page is drawn to the texture (and re-blurred) only when its signature moves: scroll, DOM, appearance. Between
     // those frames only the glass is composited, which is what keeps a 3x phone at frame rate.
@@ -241,7 +239,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     if (avgWanted && !avgInFlight) readAverages();
 
     const sheetOpen = html.classList.contains("sheet-open");
-    // the scrim is painted into the page, under the glass, so glass outside a sheet takes the same dimming itself
+    // the scrim is painted into the page, under the glass, so the glass takes the same dimming itself
     const scrimOn = !!document.querySelector('[data-scrim="on"]');
     const dimBy = scrimOn ? 1 - (parseFloat(getComputedStyle(html).getPropertyValue("--scrim-alpha")) || 0.2) : 1;
     let allReady = true;
@@ -249,17 +247,14 @@ function setup(o: StageOptions, renderer: any): () => void {
       const laidOut = shown(e.el);
       if (laidOut && !e.ready) allReady = false;
       // the dock steps aside while a sheet is up (visibility hidden keeps its layout, so check the class)
-      const vis = e.ready && laidOut && !(sheetOpen && e.family === "bars" && e.el.closest("[data-glass-unit='dock']"));
+      const vis = e.ready && laidOut && !(sheetOpen && e.el.closest("[data-glass-unit='dock']"));
       e.mesh.visible = e.cast.visible = vis;
       if (!vis) continue;
       const r = rectOf(e.el);
-      const css = getComputedStyle(e.el);
-      e.U.setSize(r.width, r.height, parseFloat(css.borderTopLeftRadius) || 0, parseFloat(css.borderBottomLeftRadius) || 0);
-      if (e.family === "sheet") e.U.fade.value = parseFloat(css.opacity);
-      // glass in the content under the pinned bars, the bars under the sheet, the sheet over them, a control on the
-      // sheet over the sheet
-      e.U.dim.value = e.family === "sheet" || e.el.closest(".glass-sheet") ? 1 : dimBy;
-      const z = e.family === "sheet" ? 0.3 : e.el.closest(".glass-sheet") ? 0.4 : e.el.closest("[data-glass-unit='top'], [data-glass-unit='dock']") ? 0.1 : 0.06;
+      e.U.setSize(r.width, r.height, parseFloat(getComputedStyle(e.el).borderTopLeftRadius) || 0);
+      // glass in the content under the pinned bars
+      e.U.dim.value = dimBy;
+      const z = e.el.closest("[data-glass-unit='top'], [data-glass-unit='dock']") ? 0.1 : 0.06;
       const cx = r.left + r.width / 2 - W / 2, cy = H / 2 - (r.top + r.height / 2);
       e.mesh.scale.set(r.width + 2 * GLASS_MARGIN, r.height + 2 * GLASS_MARGIN, 1); e.mesh.position.set(cx, cy, z);
       e.cast.scale.set(r.width + 2 * CAST_MARGIN, r.height + 2 * CAST_MARGIN, 1); e.cast.position.set(cx, cy, z - 0.05);
@@ -303,7 +298,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     }
     frosts.forEach((f) => f.render(renderer));
 
-    for (const e of entries.values()) if (e.family === "bars") e.U.pillMix.value = 0;
+    for (const e of entries.values()) e.U.pillMix.value = 0;
     const barEl = lensState.bar;
     const bar = barEl ? entries.get(barEl) : undefined;
     const tabsShown = tabsReady && !!barEl && !!bar && bar.mesh.visible;
@@ -323,7 +318,6 @@ function setup(o: StageOptions, renderer: any): () => void {
     if (++debugState.frames % 15 === 0) {
       debugState.entries = Array.from(entries.values()).map((e) => ({
         label: `${(e.el.getAttribute("aria-label") ?? e.el.textContent ?? "").trim().slice(0, 18)} ${e.el.className.toString().slice(0, 24)}`,
-        family: e.family,
         laidOut: shown(e.el),
         compile: e.ready ? e.compile : `compiling ${Math.round(performance.now() - e.since)}ms`,
       }));

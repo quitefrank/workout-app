@@ -7,7 +7,7 @@ import { SCROLLER, scrollTop } from "@/lib/scroller";
 import { debugState } from "./debug-state";
 import { buildDisplayList, UNPAINTED, type DisplayList } from "./paint/display-list";
 import { paintList } from "./paint/paint";
-import { createFamily, PRESET1_BARS, PRESET1_LIGHT, SHEET_DARK, SHEET_LIGHT } from "./presets";
+import { createFamily, PRESET1_BARS, PRESET1_LIGHT } from "./presets";
 
 const unpainted = (n: EventTarget | Node | null | undefined) => {
   const el = n instanceof Element ? n : n instanceof Node ? n.parentElement : null;
@@ -84,7 +84,6 @@ export function GlassStage() {
     const html = document.documentElement;
     const appearance = currentAppearance;
     const bars = createFamily(PRESET1_BARS, PRESET1_LIGHT, appearance());
-    const sheet = createFamily(SHEET_DARK, SHEET_LIGHT, appearance());
     const bump = () => { dirty++; list = null; };
     bumpRef.current = bump;
 
@@ -120,7 +119,7 @@ export function GlassStage() {
     const vv = window.visualViewport;
     vv?.addEventListener("resize", bump);
     vv?.addEventListener("scroll", bump);
-    const onAppearance = () => { bars.setAppearance(appearance()); sheet.setAppearance(appearance()); bump(); };
+    const onAppearance = () => { bars.setAppearance(appearance()); bump(); };
     const stopAppearance = onAppearanceChange(onAppearance);
     const fonts = document.fonts;
     fonts?.ready.then(() => { if (!cancelled) bump(); });
@@ -165,7 +164,7 @@ export function GlassStage() {
         debugState.stage = `${W}x${H}@${dpr}`;
         canvas.style.width = W + "px"; canvas.style.height = H + "px";
         const s = await startStage({
-          THREE, T, canvas, W, H, dpr, bars, sheet, appearance,
+          THREE, T, canvas, W, H, dpr, bars, appearance,
           draw: (c, origin) => {
             const at = String(scrollTop());
             // a sticky element's place depends on the scroll; while the page animates, every other frame rebuilds

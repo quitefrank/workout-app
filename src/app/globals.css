@@ -104,6 +104,8 @@
   --sheet-outer: 0 0 0 0.5px rgba(219, 219, 219, 0.9), 0 8px 48px rgba(0, 0, 0, 0.25);
   /* The dimming behind a sheet, black at the kit's Overlays/Default: 20% light, 48% dark */
   --scrim-alpha: 0.2;
+  /* A full-height sheet's opaque body, the kit's Backgrounds/Primary - Elevated */
+  --sheet-solid: #ffffff;
 
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -151,6 +153,7 @@
     --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
     --scrim-alpha: 0.48;
+    --sheet-solid: #1c1c1e;
   }
 }
 /* Settings picked dark */
@@ -186,6 +189,7 @@
   --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
   --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
   --scrim-alpha: 0.48;
+  --sheet-solid: #1c1c1e;
 }
 
 
@@ -443,7 +447,7 @@ body {
   /*
      The iOS 27 sheet (Apple's kit 27.0.1, src/components/sheet.tsx). --sheet-height is its content's, up to the large
      detent; --sheet-full is 1 at the large detent; --sheet-y slides it down whole. Below large: 6pt in on three sides, 34pt
-     top and 58pt bottom corners. Large: edge to edge, 38pt top corners, square at the bottom. Size animates, never
+     top and 58pt bottom corners. Large: edge to edge, 38pt top corners, square at the bottom, opaque. Size animates, never
      `transform: scale`, which would distort the blur and the rim.
   */
   .sheet-panel {
@@ -459,6 +463,17 @@ body {
       --sheet-height 450ms cubic-bezier(0.32, 0.72, 0, 1),
       --sheet-full 450ms cubic-bezier(0.32, 0.72, 0, 1),
       transform 450ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* Over the blur and under the controls: a sheet below full height is the CSS material alone */
+  .sheet-solid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--sheet-solid);
+    opacity: var(--sheet-full);
+    pointer-events: none;
   }
 
   .sheet-panel[data-dragging] {
@@ -812,18 +827,16 @@ html.gpu .glass {
   z-index: 6;
 }
 
-html.gpu .glass,
-html.gpu .glass-sheet {
+/* The shader draws the glass in the bars. Sheets, menus and any control on them stay on the CSS material. */
+html.gpu .glass:not(.glass-sheet .glass) {
   background: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow: none;
 }
 
-html.gpu .glass::before,
-html.gpu .glass::after,
-html.gpu .glass-sheet::before,
-html.gpu .glass-sheet::after {
+html.gpu .glass:not(.glass-sheet .glass)::before,
+html.gpu .glass:not(.glass-sheet .glass)::after {
   display: none;
 }
 
