@@ -12,7 +12,7 @@ import { MonthPanel } from "./month-panel";
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
 /** Weeks reachable from 1970, past the year 2080: the strip has no end anyone reaches */
 const WEEKS = 6000;
-/** Weeks rendered either side of the one in view; a swipe stops at each week, so these are never outrun */
+/** Weeks rendered either side of the one in view, so a long drag never shows a blank */
 const RENDERED = 2;
 /** Weeks of dots kept loaded either side of the one in view */
 const LOADED = 8;
@@ -47,6 +47,10 @@ export function WeekCalendar({ selected, today, days, trailing }: { selected: st
 
   const dayWeek = weekNumber(day);
   const [inView, setInView] = useState(dayWeek);
+  // A swipe lands on a neighbour of the week it started from. A touch that starts while the last swipe is still landing
+  // starts from where that swipe was going; the day moving ends it
+  const [touched, setTouched] = useState<{ week: number; day: string } | null>(null);
+  const swipeFrom = touched?.day === day ? touched.week : dayWeek;
 
   const pick = useCallback(
     (date: string) => {
@@ -91,10 +95,13 @@ export function WeekCalendar({ selected, today, days, trailing }: { selected: st
       clearTimeout(timer);
       timer = setTimeout(settle, SETTLE_MS);
     };
+    const onTouchStart = () => setTouched({ week: Math.round(el.scrollLeft / width), day });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("scroll", onScroll, { passive: true });
     el.addEventListener("scrollend", settle);
     return () => {
       clearTimeout(timer);
+      el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("scroll", onScroll);
       el.removeEventListener("scrollend", settle);
     };
@@ -173,7 +180,13 @@ export function WeekCalendar({ selected, today, days, trailing }: { selected: st
           ) : (
             <div className="relative h-full" style={{ width: WEEKS * width }}>
               {weeks.map((week) => (
-                <div key={week} className="absolute top-0 snap-start [scroll-snap-stop:always]" style={{ left: week * width, width }}>
+                <div
+                  key={week}
+                  // one week per swipe, as MyFitnessPal: only the swipe's own week and its neighbours are landing spots,
+                  // because Chromium flings past `scroll-snap-stop: always`
+                  className={cn("absolute top-0", Math.abs(week - swipeFrom) <= 1 && "snap-start [scroll-snap-stop:always]")}
+                  style={{ left: week * width, width }}
+                >
                   {row(week)}
                 </div>
               ))}
