@@ -14,7 +14,8 @@ export const MERGED_EXERCISES: { slug: string; name?: string; oneFloor?: boolean
   { slug: "omni-grip-rows", keep: "0822e419-6bd0-45a7-a1c8-1a731b680235", merged: ["fffcb27b-d058-4d3f-b987-3a71af97f4ce"] },
   { slug: "overhead-extension-stretch-only", keep: "e22be59a-b5dd-4641-a701-98843baef197", merged: ["555a00c8-672e-4ef3-b138-6851914a22fd"] },
   { slug: "triceps-pressdown", name: "Triceps Pressdown", keep: "04439159-838d-4399-a07e-4cb6a42302f5", merged: ["7113a297-3cad-4ae3-b13c-58aa2c36ce11", "72b4194b-41a4-42a9-ba73-a635e8cf40c1"] },
-  { slug: "1-arm-half-kneeling-lat-pulldown", name: "1-Arm Half Kneeling Lat Pulldown", oneFloor: true, keep: "918ef66c-d8bd-445d-bd66-4d5469ca441f", merged: [] },
+  { slug: "1-arm-cable-pulldown", name: "1-Arm Cable Pulldown", oneFloor: true, keep: "918ef66c-d8bd-445d-bd66-4d5469ca441f", merged: [] },
+  { slug: "single-arm-tricep-pressdown", name: "1-Arm Tricep Pressdown", oneFloor: true, keep: "4adab133-6ca9-4ea4-a4c4-61b66197b77b", merged: [] },
 ];
 
 /** Notion pages removed from the library, so re-running the seed cannot bring them back: Omni, an empty stub. */

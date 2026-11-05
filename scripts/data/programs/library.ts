@@ -36,6 +36,7 @@ export type MuscleGroupName = (typeof MUSCLE_GROUP_NAMES)[number];
 export type LibraryAttributes = { muscleGroup: MuscleGroupName; equipmentType: EquipmentType; name?: string };
 
 export const LIBRARY_ALIASES: Record<string, string> = {
+  "1-arm-half-kneeling-lat-pulldown": "1-arm-cable-pulldown",
   "barbell-bench-press": "bench-press-flat",
   "barbell-floor-skull-crusher": "floor-skullcrushers",
   "barbell-hip-thrust": "hip-thrust",
@@ -89,8 +90,8 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "side-delt-static-stretch": "delt-stretch",
   "single-arm-cable-tricep-kickback": "cable-tricep-kickback",
   "single-arm-db-row": "dumbbell-rows",
-  "single-arm-lat-pulldown": "single-arm-cable-pulldown",
-  "single-arm-pulldown": "single-arm-cable-pulldown",
+  "single-arm-lat-pulldown": "1-arm-cable-pulldown",
+  "single-arm-pulldown": "1-arm-cable-pulldown",
   "single-arm-row": "dumbbell-rows",
   "squat": "back-squat",
   "arnold-press": "seated-arnold-press",
@@ -185,7 +186,7 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "round-back-dumbbell-45-hyperextension": { muscleGroup: "Glutes", equipmentType: "dumbbell" },
   "scott-curl": { muscleGroup: "Biceps", equipmentType: "barbell" },
   "seal-row": { muscleGroup: "Back", equipmentType: "other" },
-  "single-arm-cable-curl": { muscleGroup: "Biceps", equipmentType: "cable" },
+  "single-arm-cable-curl": { muscleGroup: "Biceps", equipmentType: "cable", name: "1-Arm Cable Curl" },
   "single-leg-leg-extension": { muscleGroup: "Quadriceps", equipmentType: "machine" },
   "single-leg-leg-press": { muscleGroup: "Quadriceps", equipmentType: "machine" },
   "skull-crusher": { muscleGroup: "Triceps", equipmentType: "barbell" },

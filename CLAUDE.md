@@ -374,6 +374,13 @@ the row and its sets move with it (`setExerciseOption`), and the template is unt
 the program prescribes. Different angles or positions (flat and incline) stay separate movements. Grouping is data,
 so changing it never touches a log.
 
+## Naming: 1-Arm
+
+An exercise name says "1-Arm", never "Single-Arm" (Frank's call, 2026-11-05). Names change and slugs stay, because
+the program files keep Nippard's spelling and the seed matches on the slug; `name` in `LIBRARY_ATTRIBUTES` and in
+`MERGED_EXERCISES` holds the display name through a re-seed. 1-Arm Cable Pulldown (migration 0016) is the cable
+machine, half kneeling, and took Nippard's single-arm pulldown. 1-Arm Lat Pull-In is a different exercise.
+
 ## Following a program is optional
 
 With no program followed, Home's Up Next is an empty state with Choose Program, which opens a sheet of
