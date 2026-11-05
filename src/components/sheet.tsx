@@ -20,12 +20,19 @@ export function Sheet({
   onClose,
   title,
   trailing,
+  thumbnail,
+  subtitle,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   trailing?: ReactNode;
+  /** With a thumbnail the header is the kit's Activity View header (754:26934): thumbnail, title and subtitle in one
+   *  row, the close button at the trailing edge. Without one it is the kit's toolbar (754:64541): close, centred title,
+   *  confirm. */
+  thumbnail?: ReactNode;
+  subtitle?: ReactNode;
   children: ReactNode;
 }) {
   const titleId = useId();
@@ -221,15 +228,30 @@ export function Sheet({
           <div className="flex h-4 w-full justify-center pt-[5px]">
             <span className="h-1 w-[58px] rounded-full bg-ink-3" />
           </div>
-          <div className="flex items-center gap-2 px-4 pb-2.5">
-            <GlassCircleButton label="Close" onClick={onClose}>
-              <XIcon size={18} />
-            </GlassCircleButton>
-            <h2 id={titleId} className="min-w-0 flex-1 truncate text-center text-[17px] font-semibold tracking-[-0.43px]">
-              {title}
-            </h2>
-            <div className="flex size-11 shrink-0 items-center justify-center">{trailing}</div>
-          </div>
+          {thumbnail ? (
+            <div className="flex items-start gap-4 px-4 pb-3 pt-1">
+              <div className="ml-1 size-16 shrink-0 overflow-hidden rounded-2xl bg-[var(--muscle-tile)] p-1 ring-[0.5px] ring-[var(--sep)]">{thumbnail}</div>
+              <div className="min-w-0 flex-1 pt-3">
+                <h2 id={titleId} className="truncate text-[15px] font-medium leading-5 tracking-[-0.23px]">
+                  {title}
+                </h2>
+                {subtitle && <div className="truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink-2">{subtitle}</div>}
+              </div>
+              <GlassCircleButton label="Close" onClick={onClose}>
+                <XIcon size={18} />
+              </GlassCircleButton>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 px-4 pb-2.5">
+              <GlassCircleButton label="Close" onClick={onClose}>
+                <XIcon size={18} />
+              </GlassCircleButton>
+              <h2 id={titleId} className="min-w-0 flex-1 truncate text-center text-[17px] font-semibold tracking-[-0.43px]">
+                {title}
+              </h2>
+              <div className="flex size-11 shrink-0 items-center justify-center">{trailing}</div>
+            </div>
+          )}
         </div>
         <div ref={body} className="sheet-body min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
           <div ref={content} className="flow-root">

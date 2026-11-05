@@ -429,6 +429,9 @@ only closes it. Below large: 6pt inset, 34pt top and 58pt bottom corners, glass.
 Large: edge to edge under the 62pt status bar, 38pt top corners, and the same glass
 as the menus at every height (Frank's call, 2026-11-04; Apple's goes opaque). A
 focused text field takes it to large. The confirming action is `SheetConfirm`.
+A `thumbnail` gives a sheet the kit's Activity View header (thumbnail, title and
+subtitle in one row, close at the trailing edge), as the exercise sheet uses;
+without one it has the kit's toolbar (close, centred title, confirm).
 The scrim is the kit's Overlays/Default (`--scrim-alpha`: 20% black, 48% in dark)
 and covers the bars too. On the WebGPU path it is painted into the page, so glass
 outside the sheet takes a `dim` uniform and its HTML symbols a brightness filter;

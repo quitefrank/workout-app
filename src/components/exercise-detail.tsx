@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import { dayLabel, localDate } from "@/lib/workout/dates";
 import { metricBest, metricSeries, type ExerciseMetric, type ExerciseSession, type MetricPoint } from "@/lib/workout/exercise-metrics";
 import { displayWeight, EQUIPMENT_LABELS, formatNumber } from "@/lib/workout/format";
-import { ChevronRight, FigureIcon, TrophyIcon } from "./icons";
+import { ChevronRight, TrophyIcon } from "./icons";
 import { Row } from "./page";
 
 const TABS = ["Summary", "History", "How to"] as const;
@@ -20,8 +20,22 @@ const METRICS: { key: ExerciseMetric; label: string }[] = [
   { key: "volume", label: "Best Set Volume" },
 ];
 
-/** An exercise's three tabs, in its sheet and on its own page. The tabs are the kit's segmented control. */
-export function ExerciseDetailTabs({ view, art, onAlternate }: { view: ExerciseView; art: ReactNode; onAlternate?: (id: string) => void }) {
+/** The exercise's muscle group, equipment and floor, for a subtitle. */
+export function exerciseFacts(exercise: ExerciseView["exercise"]): string {
+  return [
+    exercise.muscle_groups?.name,
+    EQUIPMENT_LABELS[exercise.equipment_type],
+    exercise.machine_location && (exercise.machine_location === "upstairs" ? "Upstairs" : "Downstairs"),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/**
+ * An exercise's three tabs, in its sheet and on its own page. The tabs are the kit's segmented control. The sheet shows
+ * the image and facts in its header, so only the page passes `art`, which puts them at the top of Summary.
+ */
+export function ExerciseDetailTabs({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNode; onAlternate?: (id: string) => void }) {
   const [tab, setTab] = useState<Tab>("Summary");
   return (
     <>
@@ -46,7 +60,7 @@ export function ExerciseDetailTabs({ view, art, onAlternate }: { view: ExerciseV
   );
 }
 
-function Summary({ view, art, onAlternate }: { view: ExerciseView; art: ReactNode; onAlternate?: (id: string) => void }) {
+function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNode; onAlternate?: (id: string) => void }) {
   const { exercise, sessions, unit } = view;
   const [metric, setMetric] = useState<ExerciseMetric>("heaviest");
   const weight = (n: number) => displayWeight(n, exercise.equipment_type, unit) || "BW";
@@ -59,22 +73,14 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art: ReactNod
       })),
     [sessions, metric],
   );
-  const facts = [
-    EQUIPMENT_LABELS[exercise.equipment_type],
-    exercise.machine_location && (exercise.machine_location === "upstairs" ? "Upstairs" : "Downstairs"),
-  ].filter(Boolean);
   return (
     <>
-      <div className="mt-3 h-[140px] overflow-hidden rounded-[20px] bg-[var(--muscle-tile)] p-2">{art}</div>
-      <p className="mt-3 text-[15px] text-ink-2">
-        {exercise.muscle_groups?.name && (
-          <>
-            <FigureIcon size={14} className="mr-1 inline align-[-2px] opacity-70" />
-            Primary: {exercise.muscle_groups.name} ·{" "}
-          </>
-        )}
-        {facts.join(" · ")}
-      </p>
+      {art && (
+        <>
+          <div className="mt-3 h-[140px] overflow-hidden rounded-[20px] bg-[var(--muscle-tile)] p-2">{art}</div>
+          <p className="mt-3 text-[15px] text-ink-2">{exerciseFacts(exercise)}</p>
+        </>
+      )}
 
       {points.length > 0 ? (
         <>

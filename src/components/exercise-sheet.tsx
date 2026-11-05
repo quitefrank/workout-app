@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import type { ExerciseView } from "@/lib/exercise-view";
-import { ExerciseDetailTabs } from "./exercise-detail";
+import { exerciseFacts, ExerciseDetailTabs } from "./exercise-detail";
 import { Sheet } from "./sheet";
 
 /** The exercise's bottom sheet. Loads when it opens; an alternate opens in place. */
@@ -35,9 +35,9 @@ export function ExerciseSheet({ open, exerciseId, title, art, onClose }: { open:
 
   const current = view && view.exercise.id === id ? view : null;
   return (
-    <Sheet open={open} onClose={onClose} title={current?.exercise.name ?? title}>
+    <Sheet open={open} onClose={onClose} title={current?.exercise.name ?? title} thumbnail={art} subtitle={current ? exerciseFacts(current.exercise) : undefined}>
       {current ? (
-        <ExerciseDetailTabs key={current.exercise.id} view={current} art={art} onAlternate={setShown} />
+        <ExerciseDetailTabs key={current.exercise.id} view={current} onAlternate={setShown} />
       ) : (
         <p className="py-10 text-center text-[15px] text-ink-2">{failed ? "Could not load this exercise." : "Loading…"}</p>
       )}
