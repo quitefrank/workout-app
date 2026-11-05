@@ -417,9 +417,10 @@ day templates (`program_id` null). Progress is `/analytics`. The active
 workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight string
 through `parseWeightCsv`, swaps upstairs and downstairs machines by name
 (`src/lib/workout/machine-location.ts`), and runs a rest timer kept in
-localStorage. A finished workout's summary ends in Delete Workout, behind a
-confirming sheet (`deleteWorkout` in `actions.ts`, which refuses one in progress;
-that one is discarded from the workout). Pure helpers for dates, formatting and PRs live in
+localStorage. Delete has one place: the trash button in the top bar's trailing
+slot, opening a confirming sheet. On the active workout it discards; on a finished
+workout's summary it deletes (`deleteWorkout` in `actions.ts`, which refuses one in
+progress). Pure helpers for dates, formatting and PRs live in
 `src/lib/workout/` with tests.
 
 Sheets are Apple's iOS 27 sheet (kit 27.0.1, `src/components/sheet.tsx`, values

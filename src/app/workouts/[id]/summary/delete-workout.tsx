@@ -4,9 +4,12 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteWorkout } from "@/app/actions";
 import { Button } from "@/components/button";
+import { GlassCircleButton } from "@/components/glass";
+import { TrashIcon } from "@/components/icons";
 import { Sheet } from "@/components/sheet";
 
-/** The end of a finished workout's summary: Delete, behind a sheet that says what goes with it, as Discard asks. */
+/** A finished workout's Delete: the trash button in the top bar's trailing slot, where the active workout has Discard,
+ *  opening a sheet that says what goes with it. */
 export function DeleteWorkout({ workoutId, setCount }: { workoutId: string; setCount: number }) {
   const [confirming, setConfirming] = useState(false);
   const [pending, start] = useTransition();
@@ -24,9 +27,9 @@ export function DeleteWorkout({ workoutId, setCount }: { workoutId: string; setC
 
   return (
     <>
-      <Button variant="gray" tone="red" className="mt-3 w-full" onClick={() => setConfirming(true)}>
-        Delete Workout
-      </Button>
+      <GlassCircleButton label="Delete workout" onClick={() => setConfirming(true)}>
+        <TrashIcon size={19} />
+      </GlassCircleButton>
       <Sheet open={confirming} onClose={() => setConfirming(false)} title="Delete Workout?">
         <p className="px-4 pb-4 text-[15px] text-ink-2">
           {setCount > 0 && `Its ${setCount === 1 ? "1 logged set goes" : `${setCount} logged sets go`} with it. `}

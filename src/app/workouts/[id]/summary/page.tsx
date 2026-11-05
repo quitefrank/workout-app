@@ -37,6 +37,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
             <ChevronLeft size={20} />
           </GlassCircleLink>
         }
+        trailing={workout.completed_at ? <DeleteWorkout workoutId={id} setCount={workout.exercises.reduce((n, we) => n + we.sets.length, 0)} /> : undefined}
       />
       <div style={hueStyle(workout.templates?.category)} className={cn("relative text-white", tileGradient)}>
         <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.3),transparent_30%,rgba(0,0,0,0.55))]" />
@@ -95,7 +96,6 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
             </section>
           );
         })}
-        {workout.completed_at && <DeleteWorkout workoutId={id} setCount={workout.exercises.reduce((n, we) => n + we.sets.length, 0)} />}
       </div>
     </Screen>
   );
