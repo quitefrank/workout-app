@@ -9,7 +9,7 @@ import { CheckIcon, XIcon } from "./icons";
 /**
  * Apple's iOS 27 sheet (Figma kit 27.0.1, Sheet - iPhone), fitted to its content up to the large detent, as Frank chose
  * over the medium one (2026-11-04); taller content scrolls. Below large: 6pt from the edges, 34pt top and 58pt bottom
- * corners, the sheet material. Large: edge to edge under the 62pt status bar, 38pt top corners, opaque. A 58 by 4
+ * corners, the sheet material. Large: edge to edge under the 62pt status bar, 38pt top corners. A 58 by 4
  * grabber, a 44pt close button, the kit's Overlays/Default scrim (20% black, 48% in dark). It never shrinks while open, so
  * tabs stay under the finger. Drag the grabber or toolbar down to close it, or the content when it is scrolled to its
  * top. A text field takes it to large, clear of the keyboard. The shape runs on --sheet-height, --sheet-full and
@@ -217,7 +217,6 @@ export function Sheet({
         }}
         className="glass-sheet sheet-panel fixed z-50 mx-auto flex max-w-[540px] flex-col outline-none"
       >
-        <div aria-hidden className="sheet-solid" />
         <div ref={header} data-sheet-header className="shrink-0 touch-none select-none">
           <div className="flex h-4 w-full justify-center pt-[5px]">
             <span className="h-1 w-[58px] rounded-full bg-ink-3" />

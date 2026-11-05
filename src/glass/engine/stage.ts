@@ -255,11 +255,7 @@ function setup(o: StageOptions, renderer: any): () => void {
       const r = rectOf(e.el);
       const css = getComputedStyle(e.el);
       e.U.setSize(r.width, r.height, parseFloat(css.borderTopLeftRadius) || 0, parseFloat(css.borderBottomLeftRadius) || 0);
-      if (e.family === "sheet") {
-        e.U.fade.value = parseFloat(css.opacity);
-        // the iOS 27 sheet is opaque at its large detent; anything else has no --sheet-full, so stays glass
-        e.U.setSolid(parseFloat(css.getPropertyValue("--sheet-full")) || 0, parseInt(css.getPropertyValue("--sheet-solid").trim().slice(1), 16) || 0);
-      }
+      if (e.family === "sheet") e.U.fade.value = parseFloat(css.opacity);
       // glass in the content under the pinned bars, the bars under the sheet, the sheet over them, a control on the
       // sheet over the sheet
       e.U.dim.value = e.family === "sheet" || e.el.closest(".glass-sheet") ? 1 : dimBy;

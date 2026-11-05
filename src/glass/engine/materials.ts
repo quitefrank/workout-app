@@ -12,7 +12,6 @@ export type Uniforms = Record<string, any> & {
   cur: Material;
   apply: (p: Material) => void;
   setSize: (w: number, h: number, r: number, rb?: number) => void;
-  setSolid: (mix: number, hex: number) => void;
   override?: () => Material | null;
   dispose: () => void;
 };
@@ -35,8 +34,6 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
     w: uniform(1), h: uniform(1), r: uniform(0), bezel: uniform(1),
     // the bottom corners' radius, for a shape whose top and bottom differ (the iOS 27 sheet); the same as r otherwise
     rb: uniform(0),
-    // the sheet's large detent: how far the glass has gone to the opaque body, and that body's sRGB colour
-    solid: uniform(0), solidColor: uniform(new THREE.Vector3()),
     // the sheet's scrim over a bar: what its glass is multiplied by while a sheet is up (set by the stage every frame)
     dim: uniform(1),
     // the element's own CSS opacity, for a sheet-family panel that dissolves (set by the stage every frame)
@@ -47,7 +44,7 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
     // the average brightness of the page under this element (sRGB), kept up to date by the render loop, for Adapt
     avgL: uniform(0.5),
   };
-  const NOT_VALUES = new Set(["ior", "cur", "apply", "override", "setSize", "setSolid", "dispose", "pillC", "pillS", "pillMix", "w", "h", "r", "rb", "solid", "dim", "bezel", "avgL", "fade"]);
+  const NOT_VALUES = new Set(["ior", "cur", "apply", "override", "setSize", "dispose", "pillC", "pillS", "pillMix", "w", "h", "r", "rb", "dim", "bezel", "avgL", "fade"]);
   // the fill colour travels as its sRGB components, untouched by colour management, since the blend happens in sRGB
   const toRgb = (u: any, c: number) => u.value.set(((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255);
   const setFill = (p: Material) => { toRgb(U.fillColor, p.fillColor ?? 0x999999); toRgb(U.fill2Color, p.fill2Color ?? 0xefefef); };
@@ -67,7 +64,6 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
     rawR = r; rawRb = rb;
     U.w.value = w; U.h.value = h; U.r.value = Math.min(r, w / 2, h / 2); U.rb.value = Math.min(rb, w / 2, h / 2); fitBezel();
   };
-  U.setSolid = (mix: number, hex: number) => { U.solid.value = mix; toRgb(U.solidColor, hex); };
   // dispose unsubscribes from the family; the owner disposes the meshes' materials
   // a control showing a blend of its two sides takes the blend; the page's side alone is the family's live values
   U.dispose = family.onParams((p) => U.apply((U.override && U.override()) || p));
@@ -244,7 +240,7 @@ export function makeGlassMaterial(ctx: GlassCtx, U: Uniforms) {
     // Past the edge the pixel is the page as it is; then the ring and the slivers darken whatever is there, glass or page
     // (linear burn: the kit's grey subtracted in sRGB), after the blend so a hairline keeps its full depth.
     const cov = edgeCov(p, d);
-    const glassS = mix(pow(max(col, 0.0), 1 / 2.2), U.solidColor, U.solid);
+    const glassS = pow(max(col, 0.0), 1 / 2.2);
     const pageS = texture(ctx.contentTex, baseUv).rgb;
     const base = mix(glassS, pageS, smoothstep(float(0), float(0.8), d));
     const dark = U.outline.mul(cov.x).add(U.sideShadow.mul(cov.y));

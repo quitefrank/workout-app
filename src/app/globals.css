@@ -102,8 +102,6 @@
   --sheet-floor: 0.7;
   --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.37), inset 0 -1px 0 rgba(255, 255, 255, 0.15);
   --sheet-outer: 0 0 0 0.5px rgba(219, 219, 219, 0.9), 0 8px 48px rgba(0, 0, 0, 0.25);
-  /* The large detent's opaque body, the kit's Backgrounds/Primary - Elevated */
-  --sheet-solid: #ffffff;
   /* The dimming behind a sheet, black at the kit's Overlays/Default: 20% light, 48% dark */
   --scrim-alpha: 0.2;
 
@@ -152,7 +150,6 @@
     --sheet-floor-color: #1f1f1f;
     --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
-    --sheet-solid: #1c1c1e;
     --scrim-alpha: 0.48;
   }
 }
@@ -188,7 +185,6 @@
   --sheet-floor-color: #1f1f1f;
   --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
   --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
-  --sheet-solid: #1c1c1e;
   --scrim-alpha: 0.48;
 }
 
@@ -447,7 +443,7 @@ body {
   /*
      The iOS 27 sheet (Apple's kit 27.0.1, src/components/sheet.tsx). --sheet-height is its content's, up to the large
      detent; --sheet-full is 1 at the large detent; --sheet-y slides it down whole. Below large: 6pt in on three sides, 34pt
-     top and 58pt bottom corners. Large: edge to edge, 38pt top corners, square at the bottom, opaque. Size animates, never
+     top and 58pt bottom corners. Large: edge to edge, 38pt top corners, square at the bottom. Size animates, never
      `transform: scale`, which would distort the blur and the rim.
   */
   .sheet-panel {
@@ -467,17 +463,6 @@ body {
 
   .sheet-panel[data-dragging] {
     transition: none;
-  }
-
-  /* Over the material and under the controls, as the WebGPU path's solid uniform is */
-  .sheet-solid {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    background: var(--sheet-solid);
-    opacity: var(--sheet-full);
-    pointer-events: none;
   }
 
   /* Clear of the home indicator; with the keyboard up, clear of the keyboard (html.keyboard below) */
@@ -907,10 +892,6 @@ html.dock-hidden [data-glass-unit="dock"] {
 html.standalone .sheet-panel {
   top: calc(var(--screen-h) - var(--sheet-gap) - var(--sheet-height));
   bottom: auto;
-}
-
-html.gpu .sheet-solid {
-  display: none;
 }
 
 /* The blanket covers the bars too. The canvas dims their glass (the stage's dim uniform); this dims their HTML symbols.

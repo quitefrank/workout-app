@@ -426,13 +426,13 @@ in `src/lib/sheet-detent.ts`), fitted to their content by Frank's call
 content's height up to the large detent, and never shrinks while open, so tabs
 stay under the finger; taller content scrolls. There is no medium stop, so a drag
 only closes it. Below large: 6pt inset, 34pt top and 58pt bottom corners, glass.
-Large: edge to edge under the 62pt status bar, 38pt top corners, opaque. A focused
-text field takes it to large. The confirming action is `SheetConfirm`.
+Large: edge to edge under the 62pt status bar, 38pt top corners, and the same glass
+as the menus at every height (Frank's call, 2026-11-04; Apple's goes opaque). A
+focused text field takes it to large. The confirming action is `SheetConfirm`.
 The scrim is the kit's Overlays/Default (`--scrim-alpha`: 20% black, 48% in dark)
 and covers the bars too. On the WebGPU path it is painted into the page, so glass
 outside the sheet takes a `dim` uniform and its HTML symbols a brightness filter;
-the sheet's glass takes the two radii and the opaque mix as uniforms (`rb`,
-`solid`). The release projection is hand-tuned, not measured, until a recording
+the sheet's glass takes its two radii as uniforms (`r`, `rb`). The release projection is hand-tuned, not measured, until a recording
 exists.
 
 The look is Liquid Glass Preset 1 from the Glass Lab V3 artifact. Sheets
