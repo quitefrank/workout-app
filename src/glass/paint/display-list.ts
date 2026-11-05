@@ -29,7 +29,8 @@ export type DisplayList = { items: Item[]; bg: string; pending: boolean; sticky:
  *  page around it, and is live only while it has focus (caret, selection, typing). The debug readout is never painted. */
 export const UNPAINTED = ".glass, .glass-sheet, [data-live]:not(input), input[data-live]:focus, [data-glass-debug], [data-sonner-toaster]";
 const SKIP = `${UNPAINTED}, [data-glass-canvas], script, style, template, noscript`;
-const SCRIM = "rgba(0, 0, 0, 0.2)";
+/** The sheet's dimming, from --scrim-alpha in globals.css (the kit's Overlays/Default); 20% if that is not there */
+const scrimColor = () => `rgba(0, 0, 0, ${parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--scrim-alpha")) || 0.2})`;
 
 /** Per-corner radii as CSS draws them: px or % of the box (an elliptical corner takes its smaller axis), then all
  *  scaled down together when two adjacent corners would overlap (CSS Backgrounds 3, "corner overlap"). */
@@ -67,7 +68,7 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     if (cs.display === "none") return false;
     const scrim = (el as HTMLElement).dataset?.scrim;
     if (scrim !== undefined) {
-      if (scrim === "on") items.push({ k: "box", x: 0, y: 0, w: window.innerWidth, h: window.innerHeight, radii: [0, 0, 0, 0], color: SCRIM, gradients: [], shadows: [], border: null, fixed: true, clip: null, alpha: 1 });
+      if (scrim === "on") items.push({ k: "box", x: 0, y: 0, w: window.innerWidth, h: window.innerHeight, radii: [0, 0, 0, 0], color: scrimColor(), gradients: [], shadows: [], border: null, fixed: true, clip: null, alpha: 1 });
       return false;
     }
     const op = parseFloat(cs.opacity);

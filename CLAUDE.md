@@ -177,7 +177,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 462 tests across 39 files.
+Run `bun run test` to exercise them. 466 tests across 39 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -416,12 +416,19 @@ localStorage. Pure helpers for dates, formatting and PRs live in
 `src/lib/workout/` with tests.
 
 Sheets are Apple's iOS 27 sheet (kit 27.0.1, `src/components/sheet.tsx`, values
-in `src/lib/sheet-detent.ts`): medium 6pt inset, 459 of 874pt, 34pt top and 58pt
-bottom corners; large edge to edge under the 62pt status bar, 38pt top corners,
-opaque. Every sheet opens at medium and drags to large; a focused text field
-takes it to large. The confirming action is `SheetConfirm`. On the WebGPU path
-the glass takes the two radii and the opaque mix as uniforms (`rb`, `solid`). The
-release projection is hand-tuned, not measured, until a recording exists.
+in `src/lib/sheet-detent.ts`), fitted to their content by Frank's call
+(2026-11-04), as Apple's `.height(_:)` detents allow. A sheet rests at its
+content's height, up to medium (459 of 874pt), and never shrinks while open, so
+tabs stay under the finger. Taller content scrolls and drags up, to its own
+height or to large. Below large: 6pt inset, 34pt top and 58pt bottom corners,
+glass. Large: edge to edge under the 62pt status bar, 38pt top corners, opaque. A
+focused text field takes it to large. The confirming action is `SheetConfirm`.
+The scrim is the kit's Overlays/Default (`--scrim-alpha`: 20% black, 48% in dark)
+and covers the bars too. On the WebGPU path it is painted into the page, so glass
+outside the sheet takes a `dim` uniform and its HTML symbols a brightness filter;
+the sheet's glass takes the two radii and the opaque mix as uniforms (`rb`,
+`solid`). The release projection is hand-tuned, not measured, until a recording
+exists.
 
 The look is Liquid Glass Preset 1 from the Glass Lab V3 artifact. Sheets
 use the lab's measured iOS sheet material (`.glass-sheet`). It runs two

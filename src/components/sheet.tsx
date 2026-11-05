@@ -7,9 +7,10 @@ import { GlassCircleButton } from "./glass";
 import { CheckIcon, XIcon } from "./icons";
 
 /**
- * Apple's iOS 27 sheet (Figma kit 27.0.1, Sheet - iPhone). Medium: 6pt in from the edges, 459 of 874pt tall, 34pt top
- * and 58pt bottom corners, the sheet material. Large: edge to edge under the 62pt status bar, 38pt top corners, opaque.
- * A 58 by 4 grabber, a 44pt close button, a 20% scrim. Drag the grabber or toolbar, or the content when it has nothing
+ * Apple's iOS 27 sheet (Figma kit 27.0.1, Sheet - iPhone), fitted to its content up to the medium detent (459 of 874pt).
+ * Taller content scrolls and drags up. Inset: 6pt from the edges, 34pt top and 58pt bottom corners, the sheet material.
+ * Large: edge to edge under the 62pt status bar, 38pt top corners, opaque. A 58 by 4 grabber, a 44pt close button, the
+ * kit's Overlays/Default scrim (20% black, 48% in dark). It never shrinks while open, so tabs stay under the finger. Drag the grabber or toolbar, or the content when it has nothing
  * to scroll that way. The shape runs on --sheet-p and --sheet-y (.sheet-panel in globals.css). Escape, the close button
  * and a tap on the scrim close it.
  */
@@ -29,6 +30,10 @@ export function Sheet({
   const titleId = useId();
   const panel = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const header = useRef<HTMLDivElement>(null);
+  /** The tallest the content has been since this sheet opened, and whether a text field needs the room */
+  const fit = useRef({ tallest: 0, raised: false });
   const stop = useRef<"medium" | "large">("medium");
   const closeRef = useRef(onClose);
   useEffect(() => {
@@ -41,6 +46,14 @@ export function Sheet({
     () => true,
     () => false,
   );
+
+  const measure = useCallback((): Detents | null => {
+    const el = panel.current;
+    if (!el || !header.current || !content.current || !body.current) return null;
+    const padding = parseFloat(getComputedStyle(body.current).paddingBottom) || 0;
+    fit.current.tallest = Math.max(fit.current.tallest, header.current.offsetHeight + content.current.offsetHeight + padding);
+    return writeDetents(el, fit.current.raised ? Infinity : Math.ceil(fit.current.tallest));
+  }, []);
 
   const goTo = useCallback((to: SheetStop) => {
     const el = panel.current;
@@ -73,8 +86,9 @@ export function Sheet({
     if (!el) return;
     if (open) {
       stop.current = "medium";
-      writeDetents(el);
+      fit.current = { tallest: 0, raised: false };
       el.setAttribute("data-dragging", "");
+      measure();
       el.style.setProperty("--sheet-p", "0");
       void el.offsetHeight;
       el.removeAttribute("data-dragging");
@@ -86,7 +100,18 @@ export function Sheet({
       el.removeAttribute("data-dragging");
       el.style.setProperty("--sheet-y", "calc(100% + 40px)");
     }
-  }, [open, mounted]);
+  }, [open, mounted, measure]);
+
+  // Content that loads or grows while the sheet is up: the sheet grows with it, on the sheet's own curve
+  useEffect(() => {
+    const inner = content.current;
+    if (!open || !inner) return;
+    const ro = new ResizeObserver(() => {
+      measure();
+    });
+    ro.observe(inner);
+    return () => ro.disconnect();
+  }, [open, measure]);
 
   // The stage hides the dock and its capsule while a sheet is up, and keeps them hidden until the sheet has slid away
   useEffect(() => {
@@ -122,7 +147,8 @@ export function Sheet({
     const begin = (x: number, y: number, target: EventTarget | null) => {
       const t = target instanceof Element ? target : null;
       if (t?.closest('input[type="range"]')) return;
-      const detents = writeDetents(el);
+      const detents = measure();
+      if (!detents) return;
       drag = { startY: y, startX: x, from: el.getBoundingClientRect().height, detents, header: !!t?.closest("[data-sheet-header]"), mode: "?", lastY: y, lastT: performance.now(), v: 0 };
     };
     const move = (x: number, y: number, cancel: () => void) => {
@@ -180,7 +206,7 @@ export function Sheet({
       el.removeEventListener("touchcancel", end);
       el.removeEventListener("pointerdown", mouseDown);
     };
-  }, [mounted, goTo]);
+  }, [mounted, goTo, measure]);
 
   if (!mounted) return null;
   return createPortal(
@@ -188,7 +214,7 @@ export function Sheet({
       <div
         onClick={onClose}
         data-scrim={open ? "on" : "off"}
-        className={`fixed inset-0 z-50 bg-black/20 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
+        className={`fixed inset-0 z-50 bg-[rgb(0_0_0/var(--scrim-alpha))] transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0"}`}
       />
       <div
         ref={panel}
@@ -199,12 +225,16 @@ export function Sheet({
         tabIndex={-1}
         // a text field raises the keyboard, which a medium sheet would sit behind, so it goes large as iOS's does
         onFocusCapture={(e) => {
-          if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) goTo("large");
+          if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) {
+            fit.current.raised = true;
+            measure();
+            goTo("large");
+          }
         }}
         className="glass-sheet sheet-panel fixed z-50 mx-auto flex max-w-[540px] flex-col outline-none"
       >
         <div aria-hidden className="sheet-solid" />
-        <div data-sheet-header className="shrink-0 touch-none select-none">
+        <div ref={header} data-sheet-header className="shrink-0 touch-none select-none">
           <button
             type="button"
             aria-label="Resize sheet"
@@ -224,7 +254,9 @@ export function Sheet({
           </div>
         </div>
         <div ref={body} className="sheet-body min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
-          {open && children}
+          <div ref={content} className="flow-root">
+            {open && children}
+          </div>
         </div>
       </div>
     </div>,
@@ -265,13 +297,14 @@ function currentSlide(el: HTMLElement): number {
   return t && t !== "none" ? new DOMMatrixReadOnly(t).m42 : 0;
 }
 
-/** Measures the screen and writes the two heights the CSS grows between. A home screen app's window flips height, so it
- *  uses the screen's, as the dock does (src/lib/scroller.ts). */
-function writeDetents(el: HTMLElement): Detents {
+/** Writes the two heights the CSS grows between, and whether the top one is the large detent. A home screen app's window
+ *  flips height, so it uses the screen's, as the dock does (src/lib/scroller.ts). */
+function writeDetents(el: HTMLElement, contentHeight: number): Detents {
   const standalone = document.documentElement.classList.contains("standalone");
-  const d = detentsFor(standalone ? window.screen.height : window.innerHeight);
+  const d = detentsFor(standalone ? window.screen.height : window.innerHeight, contentHeight);
   el.style.setProperty("--sheet-m", `${d.medium}px`);
   el.style.setProperty("--sheet-l", `${d.large}px`);
+  el.style.setProperty("--sheet-full", d.full ? "1" : "0");
   return d;
 }
 

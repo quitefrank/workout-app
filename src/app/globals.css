@@ -100,6 +100,8 @@
   --sheet-outer: 0 0 0 0.5px rgba(219, 219, 219, 0.9), 0 8px 48px rgba(0, 0, 0, 0.25);
   /* The large detent's opaque body, the kit's Backgrounds/Primary - Elevated */
   --sheet-solid: #ffffff;
+  /* The dimming behind a sheet, black at the kit's Overlays/Default: 20% light, 48% dark */
+  --scrim-alpha: 0.2;
 
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -144,6 +146,7 @@
     --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
     --sheet-solid: #1c1c1e;
+    --scrim-alpha: 0.48;
   }
 }
 /* Settings picked dark */
@@ -176,6 +179,7 @@
   --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
   --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
   --sheet-solid: #1c1c1e;
+  --scrim-alpha: 0.48;
 }
 
 
@@ -416,16 +420,20 @@ body {
   */
   .sheet-panel {
     --sheet-y: calc(100% + 40px);
-    --sheet-h: calc(var(--sheet-m, 52.5dvh) + (var(--sheet-l, 92dvh) - var(--sheet-m, 52.5dvh)) * var(--sheet-p));
-    --sheet-gap: calc(6px * (1 - var(--sheet-p)));
+    /* --sheet-p moves the height between the two stops; only a top stop that is the large detent changes the shape */
+    --sheet-s: calc(var(--sheet-p) * var(--sheet-full));
+    --sheet-h: calc(var(--sheet-m) + (var(--sheet-l) - var(--sheet-m)) * var(--sheet-p));
+    --sheet-gap: calc(6px * (1 - var(--sheet-s)));
     left: var(--sheet-gap);
     right: var(--sheet-gap);
     bottom: var(--sheet-gap);
     height: var(--sheet-h);
-    border-radius: calc(34px + 4px * var(--sheet-p)) calc(34px + 4px * var(--sheet-p)) calc(58px * (1 - var(--sheet-p))) calc(58px * (1 - var(--sheet-p)));
+    border-radius: calc(34px + 4px * var(--sheet-s)) calc(34px + 4px * var(--sheet-s)) calc(58px * (1 - var(--sheet-s))) calc(58px * (1 - var(--sheet-s)));
     transform: translateY(var(--sheet-y));
     transition:
       --sheet-p 450ms cubic-bezier(0.32, 0.72, 0, 1),
+      --sheet-m 450ms cubic-bezier(0.32, 0.72, 0, 1),
+      --sheet-l 450ms cubic-bezier(0.32, 0.72, 0, 1),
       transform 450ms cubic-bezier(0.32, 0.72, 0, 1);
   }
 
@@ -440,7 +448,7 @@ body {
     z-index: -1;
     border-radius: inherit;
     background: var(--sheet-solid);
-    opacity: var(--sheet-p);
+    opacity: var(--sheet-s);
     pointer-events: none;
   }
 
@@ -855,6 +863,24 @@ html.dock-hidden [data-glass-unit="dock"] {
   initial-value: 0;
 }
 
+@property --sheet-full {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --sheet-m {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 459px;
+}
+
+@property --sheet-l {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 459px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sheet-panel {
     transition: none;
@@ -869,6 +895,12 @@ html.standalone .sheet-panel {
 
 html.gpu .sheet-solid {
   display: none;
+}
+
+/* The blanket covers the bars too. The canvas dims their glass (the stage's dim uniform); this dims their HTML symbols.
+   Controls on the sheet sit above the blanket. */
+html.gpu:has([data-scrim="on"]) .glass:not(.glass-sheet .glass) {
+  filter: brightness(calc(1 - var(--scrim-alpha)));
 }
 
 html.keyboard .sheet-body {

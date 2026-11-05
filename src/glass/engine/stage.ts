@@ -236,6 +236,9 @@ function setup(o: StageOptions, renderer: any): () => void {
     if (avgWanted && !avgInFlight) readAverages();
 
     const sheetOpen = html.classList.contains("sheet-open");
+    // the scrim is painted into the page, under the glass, so glass outside a sheet takes the same dimming itself
+    const scrimOn = !!document.querySelector('[data-scrim="on"]');
+    const dimBy = scrimOn ? 1 - (parseFloat(getComputedStyle(html).getPropertyValue("--scrim-alpha")) || 0.2) : 1;
     let allReady = true;
     for (const e of entries.values()) {
       const laidOut = shown(e.el);
@@ -250,10 +253,11 @@ function setup(o: StageOptions, renderer: any): () => void {
       if (e.family === "sheet") {
         e.U.fade.value = parseFloat(css.opacity);
         // the iOS 27 sheet goes opaque as it grows to its large detent; anything else has no --sheet-p, so stays glass
-        e.U.setSolid(parseFloat(css.getPropertyValue("--sheet-p")) || 0, parseInt(css.getPropertyValue("--sheet-solid").trim().slice(1), 16) || 0);
+        e.U.setSolid((parseFloat(css.getPropertyValue("--sheet-p")) || 0) * (parseFloat(css.getPropertyValue("--sheet-full")) || 0), parseInt(css.getPropertyValue("--sheet-solid").trim().slice(1), 16) || 0);
       }
       // glass in the content under the pinned bars, the bars under the sheet, the sheet over them, a control on the
       // sheet over the sheet
+      e.U.dim.value = e.family === "sheet" || e.el.closest(".glass-sheet") ? 1 : dimBy;
       const z = e.family === "sheet" ? 0.3 : e.el.closest(".glass-sheet") ? 0.4 : e.el.closest("[data-glass-unit='top'], [data-glass-unit='dock']") ? 0.1 : 0.06;
       const cx = r.left + r.width / 2 - W / 2, cy = H / 2 - (r.top + r.height / 2);
       e.mesh.scale.set(r.width + 2 * GLASS_MARGIN, r.height + 2 * GLASS_MARGIN, 1); e.mesh.position.set(cx, cy, z);

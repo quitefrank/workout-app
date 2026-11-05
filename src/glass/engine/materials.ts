@@ -37,6 +37,8 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
     rb: uniform(0),
     // the sheet's large detent: how far the glass has gone to the opaque body, and that body's sRGB colour
     solid: uniform(0), solidColor: uniform(new THREE.Vector3()),
+    // the sheet's scrim over a bar: what its glass is multiplied by while a sheet is up (set by the stage every frame)
+    dim: uniform(1),
     // the element's own CSS opacity, for a sheet-family panel that dissolves (set by the stage every frame)
     fade: uniform(1),
     // the selected capsule, for the bar that holds it: centre and size in the bar's own px (set by the render loop), and
@@ -45,7 +47,7 @@ export function makeUniforms(THREE: any, T: any, family: Family): Uniforms {
     // the average brightness of the page under this element (sRGB), kept up to date by the render loop, for Adapt
     avgL: uniform(0.5),
   };
-  const NOT_VALUES = new Set(["ior", "cur", "apply", "override", "setSize", "setSolid", "dispose", "pillC", "pillS", "pillMix", "w", "h", "r", "rb", "solid", "bezel", "avgL", "fade"]);
+  const NOT_VALUES = new Set(["ior", "cur", "apply", "override", "setSize", "setSolid", "dispose", "pillC", "pillS", "pillMix", "w", "h", "r", "rb", "solid", "dim", "bezel", "avgL", "fade"]);
   // the fill colour travels as its sRGB components, untouched by colour management, since the blend happens in sRGB
   const toRgb = (u: any, c: number) => u.value.set(((c >> 16) & 255) / 255, ((c >> 8) & 255) / 255, (c & 255) / 255);
   const setFill = (p: Material) => { toRgb(U.fillColor, p.fillColor ?? 0x999999); toRgb(U.fill2Color, p.fill2Color ?? 0xefefef); };
@@ -246,7 +248,7 @@ export function makeGlassMaterial(ctx: GlassCtx, U: Uniforms) {
     const pageS = texture(ctx.contentTex, baseUv).rgb;
     const base = mix(glassS, pageS, smoothstep(float(0), float(0.8), d));
     const dark = U.outline.mul(cov.x).add(U.sideShadow.mul(cov.y));
-    return sRGBTransferEOTF(clamp(base.sub(dark), 0, 1));
+    return sRGBTransferEOTF(clamp(base.sub(dark), 0, 1).mul(U.dim));
   })();
   mat.opacityNode = Fn(() => {
     const p = uv().sub(0.5).mul(quad); const d = sdf(p);

@@ -11,11 +11,19 @@ export const SHEET_STATUS_BAR = 62;
  */
 export const SHEET_PROJECTION_MS = 200;
 
-export type Detents = { medium: number; large: number };
+/** `full` says the top stop is the kit's large detent: edge to edge and opaque. Below it a sheet stays inset glass. */
+export type Detents = { medium: number; large: number; full: boolean };
 export type SheetStop = "medium" | "large" | "dismiss";
 
-export function detentsFor(screenHeight: number): Detents {
-  return { medium: Math.round(screenHeight * SHEET_MEDIUM_FRACTION), large: screenHeight - SHEET_STATUS_BAR };
+/**
+ * A sheet fits its content. It rests at the content's height, up to the medium detent, and only content taller than that
+ * can be dragged higher, up to the content's height or the large detent. Apple's custom detents, `.height(_:)`, do this
+ * natively. With no content height (a raised keyboard needs the room), it has the kit's two detents.
+ */
+export function detentsFor(screenHeight: number, contentHeight = Infinity): Detents {
+  const medium = Math.round(screenHeight * SHEET_MEDIUM_FRACTION);
+  const large = screenHeight - SHEET_STATUS_BAR;
+  return { medium: Math.min(contentHeight, medium), large: Math.min(contentHeight, large), full: contentHeight >= large };
 }
 
 /** The sheet's shape for a visible height: above medium it grows (p 0 to 1), below it slides down whole (y px). */
