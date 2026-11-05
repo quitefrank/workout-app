@@ -98,6 +98,8 @@
   --sheet-floor: 0.7;
   --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.37), inset 0 -1px 0 rgba(255, 255, 255, 0.15);
   --sheet-outer: 0 0 0 0.5px rgba(219, 219, 219, 0.9), 0 8px 48px rgba(0, 0, 0, 0.25);
+  /* The large detent's opaque body, the kit's Backgrounds/Primary - Elevated */
+  --sheet-solid: #ffffff;
 
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -141,6 +143,7 @@
     --sheet-floor-color: #1f1f1f;
     --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
+    --sheet-solid: #1c1c1e;
   }
 }
 /* Settings picked dark */
@@ -172,6 +175,7 @@
   --sheet-floor-color: #1f1f1f;
   --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
   --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
+  --sheet-solid: #1c1c1e;
 }
 
 
@@ -402,6 +406,47 @@ body {
     background: color-mix(in srgb, var(--sheet-floor-color) calc(var(--sheet-floor) * 100%), transparent);
     mix-blend-mode: lighten;
     box-shadow: var(--sheet-inner);
+  }
+
+  /*
+     The iOS 27 sheet (Apple's kit 27.0.1, src/components/sheet.tsx). --sheet-p runs 0 at medium to 1 at large, --sheet-y
+     slides it down whole. Medium: 6pt in on three sides, 34pt top and 58pt bottom corners. Large: edge to edge, 38pt top
+     corners, square at the bottom, opaque. --sheet-m and --sheet-l are measured in px; the fallbacks are the first
+     paint's. Size animates, never `transform: scale`, which would distort the blur and the rim.
+  */
+  .sheet-panel {
+    --sheet-y: calc(100% + 40px);
+    --sheet-h: calc(var(--sheet-m, 52.5dvh) + (var(--sheet-l, 92dvh) - var(--sheet-m, 52.5dvh)) * var(--sheet-p));
+    --sheet-gap: calc(6px * (1 - var(--sheet-p)));
+    left: var(--sheet-gap);
+    right: var(--sheet-gap);
+    bottom: var(--sheet-gap);
+    height: var(--sheet-h);
+    border-radius: calc(34px + 4px * var(--sheet-p)) calc(34px + 4px * var(--sheet-p)) calc(58px * (1 - var(--sheet-p))) calc(58px * (1 - var(--sheet-p)));
+    transform: translateY(var(--sheet-y));
+    transition:
+      --sheet-p 450ms cubic-bezier(0.32, 0.72, 0, 1),
+      transform 450ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .sheet-panel[data-dragging] {
+    transition: none;
+  }
+
+  /* Over the material and under the controls, as the WebGPU path's solid uniform is */
+  .sheet-solid {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--sheet-solid);
+    opacity: var(--sheet-p);
+    pointer-events: none;
+  }
+
+  /* Clear of the home indicator; with the keyboard up, clear of the keyboard (html.keyboard below) */
+  .sheet-body {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
   }
 
   /*
@@ -801,6 +846,33 @@ html.gpu.sheet-open [data-glass-unit="dock"] {
 /* a full-screen mode with its own controls (the Library's search) takes the dock away, on either path */
 html.dock-hidden [data-glass-unit="dock"] {
   display: none;
+}
+
+/* The sheet's growth and slide: registered so the transition can run them */
+@property --sheet-p {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel {
+    transition: none;
+  }
+}
+
+/* A home screen app places the sheet from the top, as the dock: its window flips height, so a bottom edge jumps */
+html.standalone .sheet-panel {
+  top: calc(var(--screen-h) - var(--sheet-gap) - var(--sheet-h));
+  bottom: auto;
+}
+
+html.gpu .sheet-solid {
+  display: none;
+}
+
+html.keyboard .sheet-body {
+  padding-bottom: calc(100lvh - var(--vv-h, 100lvh) + 20px);
 }
 
 /* The month panel's morph progress and drop: registered so they can transition on their own curves */

@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
 import { formatClock } from "@/lib/workout/format";
 import { LENS, lensGoal, lensSettled, lensShape, nearestIndex, restingLens, stepLens, type LensInput } from "@/lib/tab-lens";
 import { lensState } from "@/glass/lens-state";
-import { CalendarIcon, ChevronRight, LibraryIcon, ProgressIcon, TemplatesIcon } from "./icons";
+import { ChevronRight, HomeIcon, ProgressIcon, TemplatesIcon } from "./icons";
 
 /**
  * The floating tab bar: the kit's Tabs=4 bar, 62pt tall, 21pt in from
@@ -20,9 +20,8 @@ import { CalendarIcon, ChevronRight, LibraryIcon, ProgressIcon, TemplatesIcon } 
 type IconType = ComponentType<{ size?: number; strokeWidth?: number }>;
 
 const TABS: { href: string; label: string; Icon: IconType; match: (p: string) => boolean }[] = [
-  { href: "/", label: "Calendar", Icon: CalendarIcon, match: (p: string) => p === "/" || p.startsWith("/workouts") },
+  { href: "/", label: "Home", Icon: HomeIcon, match: (p: string) => p === "/" || p.startsWith("/workouts") || p.startsWith("/exercises") },
   { href: "/templates", label: "Templates", Icon: TemplatesIcon, match: (p: string) => p.startsWith("/templates") || p.startsWith("/programs") },
-  { href: "/exercises", label: "Library", Icon: LibraryIcon, match: (p: string) => p.startsWith("/exercises") },
   { href: "/analytics", label: "Progress", Icon: ProgressIcon, match: (p: string) => p.startsWith("/analytics") },
 ];
 

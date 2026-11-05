@@ -7,7 +7,7 @@ import { Button } from "@/components/button";
 import { GlassButton, GlassCircleButton, GlassCircleLink } from "@/components/glass";
 import { TopBar } from "@/components/top-bar";
 import { CheckIcon, ChevronLeft, TrashIcon } from "@/components/icons";
-import { Sheet } from "@/components/sheet";
+import { Sheet, SheetConfirm } from "@/components/sheet";
 import { useElapsed } from "@/components/tab-bar";
 import { cn } from "@/lib/cn";
 import type { Settings, WorkoutDetail } from "@/lib/data/queries";
@@ -204,21 +204,7 @@ function FinishSheet({
       open={open}
       onClose={onClose}
       title="Finish Workout"
-      leading={
-        <button type="button" className="text-[17px] text-blue" onClick={onClose}>
-          Cancel
-        </button>
-      }
-      trailing={
-        <button
-          type="button"
-          disabled={pending}
-          className="text-[17px] font-semibold text-blue disabled:opacity-40"
-          onClick={() => onFinish(effort, notes)}
-        >
-          Done
-        </button>
-      }
+      trailing={<SheetConfirm label="Done" disabled={pending} onClick={() => onFinish(effort, notes)} />}
     >
       {unlogged > 0 && (
         <p className="px-4 pb-3 text-[15px] text-ink-2">

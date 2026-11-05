@@ -274,17 +274,18 @@ Mobile-first. Desktop is a wider variant of the mobile layout.
 - Per-exercise tonnage
 - Any PRs hit
 
-**`/exercises`** Library
-- Search input
-- Filter chips by muscle group
-- List of exercises with last-performance badge ("Last: 160 × 4")
-- Tap to detail
+**Library** A section of Home (`/exercises` redirects there)
+- Search input, loading its rows when opened
+- Muscle group cards, each opening its page
 
-**`/exercises/[id]`** Exercise detail
-- Name, muscle group, equipment type, video embed
-- Last 8 performances (date, top working set)
-- Lifetime PR (weight and estimated 1RM)
-- Alternates list (if any)
+**`/exercises/group/[id]`** Muscle group
+- Back arrow, group name, exercise count
+- Rows with an image, name, equipment and last top set, each opening the exercise's sheet
+
+**Exercise** A bottom sheet from the Library, and `/exercises/[id]` from anywhere else
+- Summary: image, primary muscle, chart by Heaviest Weight, One Rep Max or Best Set Volume, personal records, alternates
+- History: each workout's sets, opening its summary
+- How to: video embed and notes
 
 **`/analytics`** Charts
 - Per-exercise weight over time (pick an exercise, see top working set per workout)

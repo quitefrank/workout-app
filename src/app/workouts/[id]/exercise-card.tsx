@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { deleteSet, logSet, quickLog, updateSet } from "@/app/actions";
 import { CheckIcon, ChevronDown, DumbbellIcon, HashIcon, PencilIcon, PlusIcon, TrashIcon, XIcon } from "@/components/icons";
 import { PrescriptionLine } from "@/components/prescription-line";
-import { Sheet } from "@/components/sheet";
+import { Sheet, SheetConfirm } from "@/components/sheet";
 import { cn } from "@/lib/cn";
 import type { LastTime, SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
 import { dayLabel, localDate } from "@/lib/workout/dates";
@@ -447,16 +447,7 @@ function QuickLogSheet({
       open={open}
       onClose={onClose}
       title={name}
-      leading={
-        <button type="button" className="text-[17px] text-blue" onClick={onClose}>
-          Cancel
-        </button>
-      }
-      trailing={
-        <button type="button" disabled={pending} onClick={save} className="text-[17px] font-semibold text-blue disabled:opacity-40">
-          Save
-        </button>
-      }
+      trailing={<SheetConfirm label="Save" disabled={pending} onClick={save} />}
     >
       <p className="px-4 pb-3 text-[15px] text-ink-2">
         The Notion Weight column: weights separated by commas, reps in brackets. The first{" "}

@@ -33,6 +33,14 @@ export const CalendarIcon = (p: IconProps) => (
   </Svg>
 );
 
+export const HomeIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3.5 11 12 3.8l8.5 7.2" />
+    <path d="M5.5 9.5V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.5" />
+    <path d="M10 20.5V15a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5.5" />
+  </Svg>
+);
+
 export const TemplatesIcon = (p: IconProps) => (
   <Svg {...p}>
     <rect x="4" y="3.5" width="16" height="17" rx="3.5" />

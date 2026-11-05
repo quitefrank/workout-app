@@ -1,4 +1,5 @@
 import "server-only";
+import type { ExerciseSession } from "@/lib/workout/exercise-metrics";
 import { db, selectAll, timeZone, userId } from "@/lib/supabase/server";
 import { gridBounds, workoutDay, type YearMonth } from "@/lib/workout/dates";
 import type { EquipmentType, WeightUnit } from "@/lib/workout/format";
@@ -387,6 +388,32 @@ export async function getExercise(id: string): Promise<ExerciseDetail | null> {
     ...e,
     alternates: alts.filter((a) => a.alternate).map((a) => ({ position: a.position, exercise: a.alternate! })),
   };
+}
+
+/** Every completed workout's sets of one exercise, oldest first: the exercise sheet's history and charts. */
+export async function getExerciseSessions(exerciseId: string): Promise<ExerciseSession[]> {
+  const found = check(
+    await db()
+      .from("workout_exercises")
+      .select("workouts!inner(id, user_id, completed_at, templates(name)), sets(set_number, is_warm_up, weight, reps, seconds)")
+      .eq("exercise_id", exerciseId)
+      .eq("workouts.user_id", userId())
+      .not("workouts.completed_at", "is", null),
+  ) as unknown as {
+    workouts: { id: string; completed_at: string; templates: { name: string } | null };
+    sets: { set_number: number; is_warm_up: boolean; weight: number | string | null; reps: number | null; seconds: number | null }[];
+  }[];
+  return found
+    .map((r) => ({
+      workoutId: r.workouts.id,
+      name: r.workouts.templates?.name ?? "Workout",
+      completedAt: r.workouts.completed_at,
+      sets: r.sets
+        .map((s) => ({ number: s.set_number, warmUp: s.is_warm_up, weight: s.weight == null ? null : Number(s.weight), reps: s.reps, seconds: s.seconds }))
+        .sort((a, b) => a.number - b.number),
+    }))
+    .filter((s) => s.sets.length > 0)
+    .sort((a, b) => a.completedAt.localeCompare(b.completedAt));
 }
 
 export async function getWeeklyWorkouts(sinceWeek: string): Promise<{ week: string; count: number }[]> {

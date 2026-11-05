@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/button";
 import { GlassCircleLink } from "@/components/glass";
 import { CheckIcon, ChevronRight, GearIcon, ListIcon, PlayIcon } from "@/components/icons";
-import { Empty, Row, Screen, SectionHeader, Thumb } from "@/components/page";
+import { Row, SectionHeader, Thumb } from "@/components/page";
 import { StartWorkout } from "@/components/start-workout";
 import { getActiveProgramId, getMonthWorkouts, getProgram, listTemplates, type WorkoutListItem } from "@/lib/data/queries";
 import { weeksLabel } from "@/lib/programs/label";
@@ -11,9 +11,9 @@ import { timeZone } from "@/lib/supabase/server";
 import { dotsByDay } from "@/lib/workout/calendar";
 import { durationMinutes, gridBounds, localDate, monthOf } from "@/lib/workout/dates";
 import { CATEGORY_LABELS } from "@/lib/workout/format";
-import { WeekCalendar } from "./week-calendar";
+import { WeekCalendar } from "../week-calendar";
 
-export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
   const params = await searchParams;
   const today = localDate(new Date(), timeZone());
   const selected = params.d && /^\d{4}-\d{2}-\d{2}$/.test(params.d) ? params.d : today;
@@ -48,7 +48,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const next = upNext?.next ? rowOf.get(upNext.next.id) : undefined;
 
   return (
-    <Screen>
+    <>
       <WeekCalendar
         selected={selected}
         today={today}
@@ -65,21 +65,24 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         }
       />
 
-      <SectionHeader
-        title="Workouts"
-        className="pt-3"
-        trailing={selected !== today ? <Link href="/" scroll={false}>Today</Link> : undefined}
-      />
-      {selectedWorkouts.length ? (
-        <div className="flex flex-col gap-2.5 px-4">
-          {selectedWorkouts.map((w) => (
-            <DayCard key={w.id} workout={w} />
-          ))}
+      {selected !== today && (
+        <div className="flex justify-end px-4 pt-1 text-[15px] text-blue">
+          <Link href="/" scroll={false}>
+            Today
+          </Link>
         </div>
-      ) : (
-        <Empty title={selected === today ? "Nothing logged yet" : selected > today ? "Nothing planned" : "Rest day"}>
-          {selected === today ? "Start the next workout below." : selected > today ? "Workouts you start show here." : "No workout logged."}
-        </Empty>
+      )}
+
+      {/* only a day with something logged has this section */}
+      {selectedWorkouts.length > 0 && (
+        <>
+          <SectionHeader title="Workouts" className="pt-3" />
+          <div className="flex flex-col gap-2.5 px-4">
+            {selectedWorkouts.map((w) => (
+              <DayCard key={w.id} workout={w} />
+            ))}
+          </div>
+        </>
       )}
 
       {program && upNext && (
@@ -129,7 +132,7 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         )}
         <StartWorkout templates={templates} label={next ? "Choose Another Workout" : "Start a Workout"} variant={next ? "gray" : "filled"} />
       </div>
-    </Screen>
+    </>
   );
 }
 

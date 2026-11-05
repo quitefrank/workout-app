@@ -245,9 +245,13 @@ function setup(o: StageOptions, renderer: any): () => void {
       e.mesh.visible = e.cast.visible = vis;
       if (!vis) continue;
       const r = rectOf(e.el);
-      const rad = parseFloat(getComputedStyle(e.el).borderTopLeftRadius) || 0;
-      e.U.setSize(r.width, r.height, rad);
-      if (e.family === "sheet") e.U.fade.value = parseFloat(getComputedStyle(e.el).opacity);
+      const css = getComputedStyle(e.el);
+      e.U.setSize(r.width, r.height, parseFloat(css.borderTopLeftRadius) || 0, parseFloat(css.borderBottomLeftRadius) || 0);
+      if (e.family === "sheet") {
+        e.U.fade.value = parseFloat(css.opacity);
+        // the iOS 27 sheet goes opaque as it grows to its large detent; anything else has no --sheet-p, so stays glass
+        e.U.setSolid(parseFloat(css.getPropertyValue("--sheet-p")) || 0, parseInt(css.getPropertyValue("--sheet-solid").trim().slice(1), 16) || 0);
+      }
       // glass in the content under the pinned bars, the bars under the sheet, the sheet over them, a control on the
       // sheet over the sheet
       const z = e.family === "sheet" ? 0.3 : e.el.closest(".glass-sheet") ? 0.4 : e.el.closest("[data-glass-unit='top'], [data-glass-unit='dock']") ? 0.1 : 0.06;

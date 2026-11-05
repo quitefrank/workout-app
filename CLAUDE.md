@@ -177,7 +177,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 450 tests across 37 files.
+Run `bun run test` to exercise them. 462 tests across 39 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -383,21 +383,45 @@ by `APP_USER_ID`. Because that client bypasses RLS, every query filters
 by the user and every action checks the row belongs to them first. The
 deployed URL is open: anyone who has it can read and log workouts.
 
-Screens follow `docs/planning.md`: Calendar (`/`, with History at
-`/workouts`; MyFitnessPal's date header, `src/app/week-calendar.tsx`: the
-title is the selected day and opens the floating month panel
-(`month-panel.tsx`, Liquid Glass's menu morph, measured; see
-`Templates/liquid-glass/liquid-glass-reference.md` in the vault), and the week strip is one native sideways scroller
-with snap, Monday first, as wide as every week since 1970 with only the
-weeks near the view rendered. A swipe selects the same weekday once settled. Dots outside
-the selected month load from `/api/calendar`. The selected day is in `?d=`
-and its workouts below are cards that open the workout), Templates (the 18 Notion day templates, `program_id` null),
-Library (`/exercises`), Progress (`/analytics`), Settings. The active
-workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight
-string through `parseWeightCsv`, swaps upstairs and downstairs machines
-by name (`src/lib/workout/machine-location.ts`), and runs a rest timer
-kept in localStorage. Pure helpers for dates, formatting and PRs live in
+Screens follow `docs/planning.md`, with three tabs: Home, Templates, Progress.
+Home (`src/app/(home)/`, with History at `/workouts`) is the calendar, then
+Workouts only when the selected day has something logged, then Up Next and
+the Start buttons, then the Library section. The date header is
+MyFitnessPal's (`src/app/week-calendar.tsx`): the title is the selected day
+and opens the floating month panel (`month-panel.tsx`, Liquid Glass's menu
+morph, measured; see `Templates/liquid-glass/liquid-glass-reference.md` in the
+vault), and the week strip is one native sideways scroller with snap, Monday
+first, as wide as every week since 1970 with only the weeks near the view
+rendered. A swipe selects the same weekday once settled. Dots outside the
+selected month load from `/api/calendar`. The selected day is in `?d=` and its
+workouts are cards that open the workout.
+
+The Library section lives in the `(home)` layout, not the page, because a day
+tap re-renders the page only and the muscle art is about 150 KB of paths. It is
+a search field over the muscle group cards. A card opens
+`/exercises/group/[id]`, a list with a back arrow. An exercise row, there or in
+search, opens the exercise's bottom sheet (`src/components/exercise-sheet.tsx`,
+fetching `/api/exercises/[id]`): Summary, History, How to
+(`exercise-detail.tsx`). Search loads its rows from `/api/exercises` when it
+opens, so Home never fetches all 342. `/exercises` redirects to Home;
+`/exercises/[id]` stays for links from templates, workouts and Progress, and
+shows the same tabs. Exercises have no images of their own yet, so rows and the
+Summary hero show the muscle group's art. Going back restores the screen's
+scroll position (`src/components/app-scroller.tsx`). Templates has the 18 Notion
+day templates (`program_id` null). Progress is `/analytics`. The active
+workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight string
+through `parseWeightCsv`, swaps upstairs and downstairs machines by name
+(`src/lib/workout/machine-location.ts`), and runs a rest timer kept in
+localStorage. Pure helpers for dates, formatting and PRs live in
 `src/lib/workout/` with tests.
+
+Sheets are Apple's iOS 27 sheet (kit 27.0.1, `src/components/sheet.tsx`, values
+in `src/lib/sheet-detent.ts`): medium 6pt inset, 459 of 874pt, 34pt top and 58pt
+bottom corners; large edge to edge under the 62pt status bar, 38pt top corners,
+opaque. Every sheet opens at medium and drags to large; a focused text field
+takes it to large. The confirming action is `SheetConfirm`. On the WebGPU path
+the glass takes the two radii and the opaque mix as uniforms (`rb`, `solid`). The
+release projection is hand-tuned, not measured, until a recording exists.
 
 The look is Liquid Glass Preset 1 from the Glass Lab V3 artifact. Sheets
 use the lab's measured iOS sheet material (`.glass-sheet`). It runs two
@@ -493,8 +517,7 @@ Muscle art: Frank's Notion Muscle Groups covers, traced by
 drawing of their own and are derived from his by flood fill
 (`scripts/lib/muscle-tones.ts`). `<MuscleArt>` fills the paths from the
 `--muscle-*` tokens and renders on the server, so the path data never
-ships as JS. Library shows the groups as a card grid that filters the
-list. The icons beside prescriptions (warm-up, sets, reps, rest), on
+ships as JS. Home's Library shows the groups as a card grid. The icons beside prescriptions (warm-up, sets, reps, rest), on
 workout thumbs by category (`src/lib/workout/icons.ts`) and before
 muscle group names are Notion's own icons (its `fire`, `repeat`,
 `hashtag`, `clock`, `accessibility`, `gym`, `hand`, `pants`, `shoe`,
@@ -577,7 +600,7 @@ measurements in `docs/lab/glass-presets.md`.
 
 - Done: every screen in `docs/planning.md` in Liquid Glass Preset 1.
 - Done: programs in the UI (`/programs/[id]`, Programs on Templates,
-  Up Next on the calendar) and the Achilles rehab templates by phase.
+  Up Next on Home) and the Achilles rehab templates by phase.
 - Not built: adding or swapping an exercise mid-workout.
 - `_notion_id` stays: it is the ownership key for the three seeds
   (`template:`, `achilles:`, `program:`), not a temporary import column

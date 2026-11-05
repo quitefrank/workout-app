@@ -34,11 +34,6 @@ export function StartWorkout({
         open={open}
         onClose={() => setOpen(false)}
         title="Choose a Template"
-        trailing={
-          <button type="button" className="text-[17px] text-blue" onClick={() => setOpen(false)}>
-            Cancel
-          </button>
-        }
       >
         {groups.map(([category, items]) => (
           <section key={category} className="mb-4">

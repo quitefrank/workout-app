@@ -3,23 +3,15 @@
 import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { ExerciseRow } from "@/components/exercise-row";
+import { ExerciseSheet } from "@/components/exercise-sheet";
 import { GlassCircleButton } from "@/components/glass";
 import { FigureIcon, SearchIcon, XIcon } from "@/components/icons";
-import { Empty, LargeTitle, Row, SectionHeader } from "@/components/page";
+import { Empty, SectionHeader } from "@/components/page";
 import { TopBar } from "@/components/top-bar";
 import { cn } from "@/lib/cn";
+import type { LibraryItem } from "@/lib/exercise-items";
 import { appScroller } from "@/lib/scroller";
-import { displayWeight, EQUIPMENT_LABELS, type EquipmentType, type WeightUnit } from "@/lib/workout/format";
-
-export type LibraryItem = {
-  id: string;
-  name: string;
-  group: string | null;
-  groupId: string | null;
-  equipment: EquipmentType;
-  location: "upstairs" | "downstairs" | null;
-  last: { weight: number; reps: number; at: string } | null;
-};
 
 // Recent searches stay on this device: a convenience, so an unreadable store just means no recents
 const RECENTS_KEY = "library-recent-searches";
@@ -38,18 +30,18 @@ function writeRecents(list: string[]) {
   } catch {}
 }
 
-export function ExerciseLibrary({
-  items,
-  groups,
-  unit,
-}: {
-  items: LibraryItem[];
-  groups: { id: string; name: string; art: ReactNode }[];
-  unit: WeightUnit;
-}) {
+/**
+ * Home's Library section: a search field over the muscle group cards. A card opens that group's page; a search result
+ * opens the exercise's sheet. Search is a screen of its own, so it hides the rest of Home (`children`) while it is up.
+ */
+export function LibrarySection({ groups, children }: { groups: { id: string; name: string; art: ReactNode }[]; children: ReactNode }) {
+  const [items, setItems] = useState<LibraryItem[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [sheet, setSheet] = useState<LibraryItem | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const returnTo = useRef(0);
   const [query, setQuery] = useState("");
-  const [group, setGroup] = useState<string | null>(null);
-  // Figma's search: a plain field under the title; tapping it puts a glass field at the top and the results under it
+  // Figma's search: a plain field in the section; tapping it puts a glass field at the top and the results under it
   const [searching, setSearching] = useState(false);
   const field = useRef<HTMLInputElement>(null);
   const q = query.trim().toLowerCase();
@@ -72,14 +64,12 @@ export function ExerciseLibrary({
     writeRecents([]);
   };
 
-  // search mode has its own muscle group pills, as Figma's results have Folders and Files; the gallery's filter is
-  // the resting screen's
+  // search mode has its own muscle group pills, as Figma's results have Folders and Files
   const [pick, setPick] = useState<string | null>(null);
   const matches = useMemo(
-    () => items.filter((i) => !q || i.name.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
+    () => (items ?? []).filter((i) => !q || i.name.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
     [items, q],
   );
-  const shown = useMemo(() => (group ? matches.filter((i) => i.groupId === group) : matches), [matches, group]);
   // only the groups the typed text finds, so a pill never leads to nothing
   const pills = useMemo(() => groups.filter((g) => matches.some((i) => i.groupId === g.id)), [groups, matches]);
   const picked = pick && pills.some((g) => g.id === pick) ? pick : null;
@@ -88,24 +78,60 @@ export function ExerciseLibrary({
 
   // the field is rendered and focused inside the tap itself, so iOS raises the keyboard
   const openSearch = () => {
+    returnTo.current = appScroller()?.scrollTop ?? 0;
     flushSync(() => {
       setSearching(true);
       setRecents(readRecents());
     });
     field.current?.focus();
     appScroller()?.scrollTo(0, 0);
+    if (!items) {
+      setFailed(false);
+      fetch("/api/exercises")
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+        .then((d: { items: LibraryItem[] }) => setItems(d.items))
+        .catch(() => setFailed(true));
+    }
   };
   const closeSearch = () => {
     field.current?.blur();
     setQuery("");
     setPick(null);
-    setSearching(false);
-    appScroller()?.scrollTo(0, 0);
+    flushSync(() => setSearching(false));
+    appScroller()?.scrollTo(0, returnTo.current);
   };
 
   return (
     <>
-      {searching ? (
+      <div className={searching ? "hidden" : undefined}>
+        {children}
+        <SectionHeader title="Library" />
+        {/* at rest the field is plain content, painted and scrolled with the page; the glass one is search mode's */}
+        <div className="px-4 pb-3">
+          <button
+            type="button"
+            onClick={openSearch}
+            className="flex h-11 w-full items-center gap-1.5 rounded-full bg-fill pl-3 text-left text-[17px] font-medium text-ink-2"
+          >
+            <SearchIcon size={19} className="shrink-0 opacity-60" />
+            Search
+          </button>
+        </div>
+        {/* Notion's Muscle Groups gallery */}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5 px-4">
+          {groups.map((g) => (
+            <Link key={g.id} href={`/exercises/group/${g.id}`} className="overflow-hidden rounded-[18px] bg-card ring-1 ring-[var(--sep)] active:opacity-80">
+              <div className="aspect-square bg-[var(--muscle-tile)] p-2">{g.art}</div>
+              <div className="flex items-center gap-1 px-2 py-2 text-[13px] font-semibold leading-[18px]">
+                <FigureIcon size={13} className="shrink-0 opacity-60" />
+                <span className="truncate">{g.name}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {searching && (
         <TopBar
           fill={
             <label className="glass flex h-11 min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1.5 text-[17px]">
@@ -150,48 +176,6 @@ export function ExerciseLibrary({
             </GlassCircleButton>
           }
         />
-      ) : (
-        <>
-          <LargeTitle title="Library" subtitle={`${items.length} exercises`} />
-          {/* at rest the field is plain content, painted and scrolled with the page; the glass one is search mode's */}
-          <div className="px-4 pb-2 pt-3">
-            <button
-              type="button"
-              onClick={openSearch}
-              className="flex h-11 w-full items-center gap-1.5 rounded-full bg-fill pl-3 text-left text-[17px] font-medium text-ink-2"
-            >
-              <SearchIcon size={19} className="shrink-0 opacity-60" />
-              Search
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* Notion's Muscle Groups gallery: tap a card to filter, tap it again to clear */}
-      {!searching && (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5 px-4 pb-4">
-          {groups.map((g) => {
-            const on = group === g.id;
-            return (
-              <button
-                key={g.id}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setGroup(on ? null : g.id)}
-                className={cn(
-                  "overflow-hidden rounded-[18px] bg-card text-left ring-1 ring-[var(--sep)] transition-shadow active:opacity-80",
-                  on && "ring-2 ring-blue",
-                )}
-              >
-                <div className="aspect-square bg-[var(--muscle-tile)] p-2">{g.art}</div>
-                <div className="flex items-center gap-1 px-2 py-2 text-[13px] font-semibold leading-[18px]">
-                  <FigureIcon size={13} className="shrink-0 opacity-60" />
-                  <span className="truncate">{g.name}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
       )}
 
       {searching && !q ? (
@@ -251,68 +235,39 @@ export function ExerciseLibrary({
             </div>
           )}
           <SectionHeader title={`Exercises (${results.length === 1 ? "1 result" : `${results.length} results`})`} className="pt-4" />
-          {results.length === 0 ? (
+          {!items ? (
+            <p className="py-10 text-center text-[15px] text-ink-2">{failed ? "Could not load the exercises." : "Loading…"}</p>
+          ) : results.length === 0 ? (
             <Empty title="No matches">Try another name or muscle group.</Empty>
           ) : (
             <ul className="px-4">
               {results.map((i) => (
                 <li key={i.id}>
-                  <Link href={`/exercises/${i.id}`} onClick={remember} className="flex items-center gap-4 py-2 active:opacity-60">
-                    <div className="size-16 shrink-0 overflow-hidden rounded-xl bg-[var(--muscle-tile)] p-1.5 ring-1 ring-[var(--sep)]">
-                      {(i.groupId && artOf.get(i.groupId)) || (
-                        <div className="grid size-full place-items-center text-ink-3">
-                          <FigureIcon size={22} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[17px] font-medium">
-                        {i.name}
-                        {i.location && <span className="text-ink-2"> {i.location === "upstairs" ? "↑" : "↓"}</span>}
-                      </div>
-                      <div className="truncate text-[15px] text-ink-2">
-                        {[i.group, EQUIPMENT_LABELS[i.equipment], i.last && `${displayWeight(i.last.weight, i.equipment, unit) || "BW"} × ${i.last.reps}`]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </div>
-                    </div>
-                  </Link>
+                  <ExerciseRow
+                    item={i}
+                    art={i.groupId && artOf.get(i.groupId)}
+                    showGroup
+                    onOpen={() => {
+                      remember();
+                      field.current?.blur();
+                      setSheet(i);
+                      setSheetOpen(true);
+                    }}
+                  />
                 </li>
               ))}
             </ul>
           )}
         </>
-      ) : shown.length === 0 ? (
-        <Empty title="No matches">Try another name or muscle group.</Empty>
-      ) : (
-        <div className="grouped mx-4">
-          {shown.map((i) => (
-            <Link key={i.id} href={`/exercises/${i.id}`} onClick={remember} className="block active:bg-fill">
-              <Row
-                title={
-                  <>
-                    {i.name}
-                    {i.location && <span className="text-ink-2"> {i.location === "upstairs" ? "↑" : "↓"}</span>}
-                  </>
-                }
-                subtitle={
-                  <>
-                    {i.group && (
-                      <>
-                        <FigureIcon size={13} className="mr-1 inline align-[-2px] opacity-70" />
-                        {i.group} ·{" "}
-                      </>
-                    )}
-                    {EQUIPMENT_LABELS[i.equipment]}
-                  </>
-                }
-                value={i.last ? `${displayWeight(i.last.weight, i.equipment, unit) || "BW"} × ${i.last.reps}` : undefined}
-                chevron
-              />
-            </Link>
-          ))}
-        </div>
-      )}
+      ) : null}
+
+      <ExerciseSheet
+        open={sheetOpen}
+        exerciseId={sheet?.id ?? null}
+        title={sheet?.name ?? ""}
+        art={(sheet?.groupId && artOf.get(sheet.groupId)) || <div className="grid size-full place-items-center text-ink-3"><FigureIcon size={40} /></div>}
+        onClose={() => setSheetOpen(false)}
+      />
     </>
   );
 }
