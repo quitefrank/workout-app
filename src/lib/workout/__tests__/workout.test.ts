@@ -142,14 +142,14 @@ describe("dates", () => {
     expect(shiftMonth({ year: 2026, month: 1 }, -1)).toEqual({ year: 2025, month: 12 });
   });
 
-  it("builds whole Sunday-first weeks", () => {
+  it("builds whole Monday-first weeks", () => {
     const weeks = monthGrid({ year: 2026, month: 10 });
     // October 2026 starts on a Thursday
-    expect(weeks[0].map((c) => c.day)).toEqual([27, 28, 29, 30, 1, 2, 3]);
+    expect(weeks[0].map((c) => c.day)).toEqual([28, 29, 30, 1, 2, 3, 4]);
     expect(weeks[0][0].inMonth).toBe(false);
     expect(weeks.every((w) => w.length === 7)).toBe(true);
     expect(weeks.flat().filter((c) => c.inMonth)).toHaveLength(31);
-    expect(gridBounds({ year: 2026, month: 10 })).toEqual({ from: "2026-09-27", to: "2026-10-31" });
+    expect(gridBounds({ year: 2026, month: 10 })).toEqual({ from: "2026-09-28", to: "2026-11-01" });
   });
 
   it("lists the Mondays of recent weeks", () => {
@@ -176,18 +176,18 @@ describe("calendar navigation", () => {
     expect(monthOf("2026-10-24")).toEqual({ year: 2026, month: 10 });
   });
 
-  it("numbers weeks from Sunday to Saturday, across month and year ends", () => {
-    expect(weekNumber("1970-01-04")).toBe(0);
-    expect(weekNumber("2026-11-01")).toBe(weekNumber("2026-11-07"));
-    expect(weekNumber("2026-11-08")).toBe(weekNumber("2026-11-07") + 1);
-    expect(weekNumber("2026-12-27")).toBe(weekNumber("2027-01-02"));
+  it("numbers weeks from Monday to Sunday, across month and year ends", () => {
+    expect(weekNumber("1970-01-05")).toBe(0);
+    expect(weekNumber("2026-11-02")).toBe(weekNumber("2026-11-08"));
+    expect(weekNumber("2026-11-09")).toBe(weekNumber("2026-11-08") + 1);
+    expect(weekNumber("2026-12-28")).toBe(weekNumber("2027-01-03"));
   });
 
-  it("lists a week's seven days, Sunday first", () => {
+  it("lists a week's seven days, Monday first", () => {
     const week = weekCells(weekNumber("2026-11-04"));
-    expect(week.map((c) => c.date)).toEqual(["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"]);
-    expect(week[3].day).toBe(4);
-    expect(weekCells(weekNumber("2026-12-30")).at(-1)?.date).toBe("2027-01-02");
+    expect(week.map((c) => c.date)).toEqual(["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07", "2026-11-08"]);
+    expect(week[2].day).toBe(4);
+    expect(weekCells(weekNumber("2026-12-30")).at(-1)?.date).toBe("2027-01-03");
   });
 
   it("keeps the weekday when moved to another week, as a swipe of the strip does", () => {

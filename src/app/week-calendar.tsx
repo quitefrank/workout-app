@@ -9,7 +9,7 @@ import { dayTitle, sameWeekdayIn, shiftDate, weekCells, weekNumber } from "@/lib
 import { DayCell } from "./day-cell";
 import { MonthPanel } from "./month-panel";
 
-const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
+const WEEKDAYS = ["M", "T", "W", "T", "F", "S", "S"];
 /** Weeks reachable from 1970, past the year 2080: the strip has no end anyone reaches */
 const WEEKS = 6000;
 /** Weeks rendered either side of the one in view, so a long drag never shows a blank */
@@ -32,6 +32,7 @@ export function WeekCalendar({ selected, today, days, trailing }: { selected: st
   const title = useRef<HTMLButtonElement>(null);
   const [width, setWidth] = useState(0); // 0 until measured: the server and the first render draw the one week, in flow
   const [panelOpen, setPanelOpen] = useState(false);
+  const [dateCovered, setDateCovered] = useState(false);
 
   // The day shown leads the URL. `pending` is the day last asked for, so a slower answer to an earlier swipe cannot pull it back
   const [day, setDay] = useState(selected);
@@ -138,6 +139,14 @@ export function WeekCalendar({ selected, today, days, trailing }: { selected: st
   }, [inView, dayWeek]);
 
   const label = dayTitle(day, today);
+  const heading = (
+    <>
+      {label}
+      <svg width="14" height="9" viewBox="0 0 14 9" aria-hidden className="mt-1">
+        <path d="M7 8.2 1 1.4h12z" fill="currentColor" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      </svg>
+    </>
+  );
   const row = (week: number) => (
     <div role="row" className="grid h-12 grid-cols-7">
       {weekCells(week).map((cell) => (
@@ -158,12 +167,9 @@ export function WeekCalendar({ selected, today, days, trailing }: { selected: st
             aria-expanded={panelOpen}
             aria-label={`${label}, choose a date`}
             onClick={() => setPanelOpen((v) => !v)}
-            className="inline-flex items-center gap-2.5 active:opacity-70"
+            className={cn("inline-flex items-center gap-2.5 whitespace-nowrap active:opacity-70", dateCovered && "opacity-0")}
           >
-            {label}
-            <svg width="14" height="9" viewBox="0 0 14 9" aria-hidden className={cn("mt-1", panelOpen && "rotate-180")}>
-              <path d="M7 8.2 1 1.4h12z" fill="currentColor" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-            </svg>
+            {heading}
           </button>
         }
       />
@@ -199,6 +205,8 @@ export function WeekCalendar({ selected, today, days, trailing }: { selected: st
         open={panelOpen}
         onClose={closePanel}
         anchor={title}
+        heading={heading}
+        onCovering={setDateCovered}
         selected={day}
         today={today}
         dots={dots}

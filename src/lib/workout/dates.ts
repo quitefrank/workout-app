@@ -56,13 +56,13 @@ function iso(year: number, month: number, day: number): string {
 export type CalendarCell = { date: string; day: number; inMonth: boolean };
 
 /**
- * The month as whole weeks, Sunday first, padded with the neighbouring
+ * The month as whole weeks, Monday first, padded with the neighbouring
  * months' days so every row has seven cells.
  */
 export function monthGrid({ year, month }: YearMonth): CalendarCell[][] {
   const first = new Date(Date.UTC(year, month - 1, 1));
   const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  const lead = first.getUTCDay();
+  const lead = (first.getUTCDay() + 6) % 7;
   const cells: CalendarCell[] = [];
   for (let i = lead; i > 0; i--) {
     const d = new Date(Date.UTC(year, month - 1, 1 - i));
@@ -92,17 +92,17 @@ export function monthOf(date: string): YearMonth {
   return parseYearMonth(date.slice(0, 7))!;
 }
 
-/** Whole weeks, Sunday first, since Sunday Jan 4 1970: a stable number for the week a YYYY-MM-DD falls in. */
+/** Whole weeks, Monday first, since Monday Jan 5 1970: a stable number for the week a YYYY-MM-DD falls in. */
 export function weekNumber(date: string): number {
   const [y, m, d] = date.split("-").map(Number);
-  return Math.floor((Date.UTC(y, m - 1, d) / 86400000 - 3) / 7);
+  return Math.floor((Date.UTC(y, m - 1, d) / 86400000 - 4) / 7);
 }
 
-/** The seven days of a week by its weekNumber, Sunday first. */
+/** The seven days of a week by its weekNumber, Monday first. */
 export function weekCells(week: number): CalendarCell[] {
-  const sunday = week * 7 + 3;
+  const monday = week * 7 + 4;
   return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date((sunday + i) * 86400000);
+    const d = new Date((monday + i) * 86400000);
     return { date: d.toISOString().slice(0, 10), day: d.getUTCDate(), inMonth: true };
   });
 }

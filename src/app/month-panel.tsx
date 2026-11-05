@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type PointerEvent, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type PointerEvent, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { ChevronLeft, ChevronRight } from "@/components/icons";
 import { cn } from "@/lib/cn";
@@ -8,25 +8,33 @@ import type { CalendarDots } from "@/lib/workout/calendar";
 import { formatYearMonth, gridBounds, monthGrid, monthOf, monthTitle, shiftMonth, type YearMonth } from "@/lib/workout/dates";
 import { DayCell } from "./day-cell";
 
-const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+const WEEKDAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-/** Off the MFP screenshot, at 3x on a 375pt screen: the panel starts 13pt under the title */
-const GAP = 13;
-/** The pinned bar's foot, so a title half scrolled under it does not put the panel under the bar */
+/** The glass at its smallest: a pill round the date, B tall, this far past the date at each end */
+const PILL_PAD = 10;
+/** The B of `.month-panel` in globals.css */
+const PILL_H = 44;
+/** The pinned bar's foot, so a date half scrolled under it does not put the panel under the bar */
 const MIN_TOP = 56;
 /** The close curves in globals.css (320ms), plus a margin */
 const CLOSE_MS = 340;
+/** When the real date comes back under its copy on the glass: as the glass starts to dissolve, so it is painted in time */
+const DATE_BACK_MS = 256;
 
 /**
- * The floating month from MFP's date title, in the sheet material, opening with Liquid Glass's menu morph: the motion
- * is `.month-panel` in globals.css. A panel is large glass, so it keeps the page's appearance. It stays mounted, hidden,
- * so its shaders are built before it first opens, as the Sheet does. There is no scrim: a clear layer catches the tap
- * that closes it.
+ * The month opens with Liquid Glass's menu morph (the motion is `.month-panel` in globals.css): the date becomes the
+ * panel and the panel closes back into the date. The glass starts as a pill round the date, pinned at its top-left, and
+ * covers it. The date is plain text at rest, not glass, so a copy of it rides on the glass as the handoff's glyph does,
+ * gone on the first frame and back at 200ms of the close, and the glass dissolves as it lands. A panel is large glass,
+ * so it keeps the page's appearance. It stays mounted, hidden, so its shaders are built before it first opens, as the
+ * Sheet does. There is no scrim: a clear layer catches the tap that closes it.
  */
 export function MonthPanel({
   open,
   onClose,
   anchor,
+  heading,
+  onCovering,
   selected,
   today,
   dots,
@@ -36,6 +44,9 @@ export function MonthPanel({
   open: boolean;
   onClose: () => void;
   anchor: RefObject<HTMLElement | null>;
+  heading: ReactNode;
+  /** The panel has the date on its glass, so the real one should not show */
+  onCovering: (covering: boolean) => void;
   selected: string;
   today: string;
   dots: CalendarDots;
@@ -44,6 +55,7 @@ export function MonthPanel({
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
+  const opened = useRef(false);
   const [opens, setOpens] = useState(0); // a new count starts the contents over, on the selected month
   const [phase, setPhase] = useState<"hidden" | "open" | "closing">("hidden");
   const [wasOpen, setWasOpen] = useState(false);
@@ -68,32 +80,41 @@ export function MonthPanel({
     return () => observer.disconnect();
   }, [phase]);
 
-  // Placed under the title, then one style pass at button size, so the state change has a size to morph from
+  // Placed round the date, then one style pass at that size, so the state change has a size to morph from
   useLayoutEffect(() => {
-    const el = panel.current;
-    if (!el) return;
+    const el = panel.current, date = anchor.current;
+    if (!el || !date || (!open && !opened.current)) return;
+    opened.current = true;
+    const r = date.getBoundingClientRect();
+    const top = Math.max(r.top + r.height / 2 - PILL_H / 2, MIN_TOP), left = r.left - PILL_PAD;
+    el.style.top = `${top}px`;
+    el.style.left = `${left}px`;
+    el.style.setProperty("--W0", `${r.width + PILL_PAD * 2}px`); // measured on close too: picking a day changes the date
+    el.style.setProperty("--date-x", `${r.left - left}px`);
+    el.style.setProperty("--date-y", `${r.top - top}px`);
     if (open) {
-      const r = anchor.current?.getBoundingClientRect();
-      if (r) {
-        el.style.top = `${Math.max(r.bottom + GAP, MIN_TOP)}px`;
-        el.style.left = `${r.left}px`;
-      }
+      onCovering(true);
       el.getBoundingClientRect();
     }
     el.dataset.state = open ? "open" : "closed";
-  }, [open, anchor]);
+    if (open) return;
+    const back = setTimeout(() => {
+      onCovering(false);
+      date.focus({ preventScroll: true });
+    }, DATE_BACK_MS);
+    return () => clearTimeout(back);
+  }, [open, anchor, onCovering]);
+
+  useEffect(() => {
+    if (open) panel.current?.focus();
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    panel.current?.focus();
-    const back = anchor.current;
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      back?.focus({ preventScroll: true });
-    };
-  }, [open, onClose, anchor]);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   useEffect(() => {
     if (phase !== "closing") return;
@@ -121,9 +142,14 @@ export function MonthPanel({
         className={cn("glass-sheet month-panel fixed z-50 outline-none", phase === "hidden" && "hidden")}
       >
         {phase !== "hidden" && (
-          <div ref={content} className="month-panel-content">
-            <Contents key={opens} selected={selected} today={today} dots={dots} ensure={ensure} onPick={onPick} />
-          </div>
+          <>
+            <div ref={content} className="month-panel-content">
+              <Contents key={opens} selected={selected} today={today} dots={dots} ensure={ensure} onPick={onPick} />
+            </div>
+            <div aria-hidden className="month-panel-date inline-flex items-center gap-2.5 text-[34px] font-bold leading-[41px] tracking-[-0.01em]">
+              {heading}
+            </div>
+          </>
         )}
       </div>
     </>,
@@ -177,7 +203,7 @@ function Contents({
 
   return (
     <div className="relative px-3 pb-4 pt-3.5">
-      <div className="flex h-11 items-center justify-between pl-2">
+      <div className="flex h-11 items-center justify-between">
         <button type="button" aria-expanded={choosing} onClick={() => setChoosing(!choosing)} className="flex h-11 items-center gap-1.5 text-[17px] font-semibold active:opacity-70">
           {monthTitle(month)}
           <ChevronRight size={16} strokeWidth={2.6} className={cn("text-blue", choosing && "rotate-90")} />

@@ -247,6 +247,7 @@ function setup(o: StageOptions, renderer: any): () => void {
       const r = rectOf(e.el);
       const rad = parseFloat(getComputedStyle(e.el).borderTopLeftRadius) || 0;
       e.U.setSize(r.width, r.height, rad);
+      if (e.family === "sheet") e.U.fade.value = parseFloat(getComputedStyle(e.el).opacity);
       // glass in the content under the pinned bars, the bars under the sheet, the sheet over them, a control on the
       // sheet over the sheet
       const z = e.family === "sheet" ? 0.3 : e.el.closest(".glass-sheet") ? 0.4 : e.el.closest("[data-glass-unit='top'], [data-glass-unit='dock']") ? 0.1 : 0.06;

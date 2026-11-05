@@ -409,12 +409,12 @@ body {
      shape from first frame to last, its width and height driven by --pw and --ph on separate curves: height leads on
      open, width on close. Size animates, never `transform: scale`, which would distort the blur and the rim, and the
      contents keep their size, revealed by the growing glass. The top-left corner stays pinned; the recording's
-     top-right is mirrored, as the trigger here sits at the left.
+     top-right is mirrored, as the date here sits at the left, and it starts as a pill round the date, not a circle.
   */
   .month-panel {
     --B: 44px;
     --W: min(85vw, 340px);
-    --mw: calc(var(--B) + (var(--W) - var(--B)) * var(--pw));
+    --mw: calc(var(--W0, var(--B)) + (var(--W) - var(--W0, var(--B))) * var(--pw));
     --mh: calc(var(--B) + (var(--H, calc(var(--B) * 5.05)) - var(--B)) * var(--ph));
     width: var(--mw);
     height: var(--mh);
@@ -430,7 +430,9 @@ body {
     transition:
       --pw 600ms linear(0.000, 0.037, 0.127, 0.246, 0.375, 0.502, 0.619, 0.720, 0.806, 0.875, 0.928, 0.967, 0.995, 1.014, 1.025, 1.030, 1.032, 1.030, 1.027, 1.024, 1.020, 1.016, 1.012, 1.009, 1.006, 1.004, 1.002, 1.001, 1.000, 1.000, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 1.000, 1.000, 1.000, 1.000),
       --ph 600ms linear(0.000, 0.068, 0.222, 0.405, 0.580, 0.730, 0.846, 0.930, 0.986, 1.018, 1.034, 1.038, 1.036, 1.030, 1.023, 1.017, 1.011, 1.006, 1.003, 1.001, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000);
-    animation: month-panel-drop-open 300ms ease-in-out;
+    animation:
+      month-panel-drop-open 300ms ease-in-out,
+      month-panel-appear 40ms linear;
   }
 
   .month-panel[data-state="closed"] {
@@ -438,7 +440,9 @@ body {
     transition:
       --pw 320ms cubic-bezier(0.35, -0.1, 0.5, 1),
       --ph 320ms cubic-bezier(0.55, -0.35, 0.5, 1);
-    animation: month-panel-drop-close 200ms ease-out;
+    animation:
+      month-panel-drop-close 200ms ease-out,
+      month-panel-land 320ms linear forwards;
   }
 
   .month-panel-content {
@@ -446,6 +450,21 @@ body {
     top: 0;
     left: 0;
     width: var(--W);
+  }
+
+  /* The date riding on the glass: gone on the first frame of the open, back at 200ms of the close */
+  .month-panel-date {
+    position: absolute;
+    left: var(--date-x);
+    top: var(--date-y);
+    white-space: nowrap;
+    pointer-events: none;
+    transition: opacity 60ms linear 200ms;
+  }
+
+  .month-panel[data-state="open"] .month-panel-date {
+    opacity: 0;
+    transition: opacity 30ms linear;
   }
 
   .month-panel[data-state="open"] .month-panel-content {
@@ -462,6 +481,16 @@ body {
       opacity 100ms ease-in,
       filter 100ms ease-in,
       translate 100ms ease-in;
+  }
+
+  /* The date is not glass at rest, so the glass comes and goes at the pill: the stage reads this for the shader too */
+  @keyframes month-panel-appear {
+    from { opacity: 0; }
+  }
+
+  @keyframes month-panel-land {
+    0%, 80% { opacity: 1; }
+    100% { opacity: 0; }
   }
 
   @keyframes month-panel-content-fade {
@@ -503,6 +532,10 @@ body {
       opacity: 1;
       animation: none;
       transition: none;
+    }
+
+    .month-panel-date {
+      display: none;
     }
   }
 
