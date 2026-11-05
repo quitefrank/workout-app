@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { equipmentChoices, exerciseTitle, oneEntryPerMovement, optionForEquipment, optionForTechnique, optionTag, techniqueChoices, type MovementOption } from "../movements";
+import { byEntryName, equipmentChoices, exerciseTitle, oneEntryPerMovement, optionForEquipment, optionForTechnique, optionTag, techniqueChoices, type MovementOption } from "../movements";
 
 const o = (id: string, equipment: string, technique: string | null = null): MovementOption => ({ id, slug: id, name: id, equipment, technique, hasFloors: false });
 const BENCH = [o("bb", "Barbell"), o("pause", "Barbell", "Pause"), o("db", "Dumbbell"), o("db-nld", "Dumbbell", "No Leg Drive"), o("m", "Machine", "No Leg Drive")];
@@ -36,6 +36,17 @@ describe("titles", () => {
   });
   it("leaves a row with no movement alone", () => {
     expect(exerciseTitle({ name: "Larsen Press", movement: null, option_equipment: null, option_technique: null })).toBe("Larsen Press");
+  });
+});
+
+describe("byEntryName", () => {
+  it("sorts a movement by its own name, not its row's", () => {
+    const out = byEntryName([
+      { name: "Bottom-Half Preacher Curls", movement: "Preacher Curl" },
+      { name: "Spider Curl", movement: null },
+      { name: "Bayesian Cable Curl", movement: null },
+    ]);
+    expect(out.map((i) => i.name)).toEqual(["Bayesian Cable Curl", "Bottom-Half Preacher Curls", "Spider Curl"]);
   });
 });
 

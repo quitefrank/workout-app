@@ -4,7 +4,7 @@ import { MuscleArt } from "@/components/muscle-art/muscle-art";
 import { Empty, LargeTitle, Screen } from "@/components/page";
 import { listMuscleGroups } from "@/lib/data/queries";
 import { listExerciseItems } from "@/lib/exercise-items";
-import { oneEntryPerMovement } from "@/lib/workout/movements";
+import { byEntryName, oneEntryPerMovement } from "@/lib/workout/movements";
 import { GroupExercises } from "./group-exercises";
 
 export default async function MuscleGroupPage({ params }: { params: Promise<{ id: string }> }) {
@@ -12,7 +12,7 @@ export default async function MuscleGroupPage({ params }: { params: Promise<{ id
   const [groups, all] = await Promise.all([listMuscleGroups(), listExerciseItems()]);
   const group = groups.find((g) => g.id === id);
   if (!group) notFound();
-  const items = oneEntryPerMovement(all.filter((i) => i.groupId === id));
+  const items = byEntryName(oneEntryPerMovement(all.filter((i) => i.groupId === id)));
   return (
     <Screen>
       <LargeTitle title={group.name} subtitle={`${items.length} ${items.length === 1 ? "exercise" : "exercises"}`} leading={<BackButton label="Back to Home" />} />

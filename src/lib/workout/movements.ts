@@ -79,3 +79,8 @@ export function oneEntryPerMovement<T extends { movement: string | null; last?: 
   }
   return out;
 }
+
+/** A list in the order its entries read: a movement sorts by its own name, not by the row it opens on. */
+export function byEntryName<T extends { name: string; movement: string | null }>(items: readonly T[]): T[] {
+  return [...items].sort((a, b) => (a.movement ?? a.name).localeCompare(b.movement ?? b.name));
+}
