@@ -9,6 +9,7 @@ import { getSettings, getTopSets, getWorkout } from "@/lib/data/queries";
 import { dayLabel, durationMinutes } from "@/lib/workout/dates";
 import { displayWeight, formatNumber, isRawReading } from "@/lib/workout/format";
 import { prs } from "@/lib/workout/progress";
+import { DeleteWorkout } from "./delete-workout";
 
 export const metadata = { title: "Summary" };
 
@@ -94,6 +95,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
             </section>
           );
         })}
+        {workout.completed_at && <DeleteWorkout workoutId={id} setCount={workout.exercises.reduce((n, we) => n + we.sets.length, 0)} />}
       </div>
     </Screen>
   );

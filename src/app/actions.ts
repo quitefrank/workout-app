@@ -152,6 +152,16 @@ export async function discardWorkout(workoutId: string): Promise<void> {
   redirect("/");
 }
 
+/** Delete a finished workout, with its exercises and sets. One still in progress goes through discardWorkout. */
+export async function deleteWorkout(workoutId: string): Promise<void> {
+  const w = await ownedWorkout(workoutId);
+  if (!w.completed_at) throw new Error("This workout is still in progress. Discard it from the workout instead.");
+  const { error } = await db().from("workouts").delete().eq("id", workoutId);
+  fail(error);
+  revalidatePath("/", "layout");
+  redirect("/workouts");
+}
+
 /** Switch floors: every machine row with nothing logged moves to its sibling. */
 export async function setMachineLocation(workoutId: string, location: MachineLocation | null): Promise<void> {
   await ownedWorkout(workoutId);
