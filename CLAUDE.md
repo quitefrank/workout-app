@@ -345,9 +345,12 @@ the floor is a value on each logged row, `workout_exercises.machine_location`. F
 are never separate exercises. Weights differ by floor, so PRs, charts and "last
 time" are worked out per floor and never mix: `floorKey` in
 `src/lib/workout/machine-location.ts` is the bucket. Each two-floor exercise has its
-own switch in the workout, starting on the floor it was last done on; changing one
+own floor in the workout, starting on the floor it was last done on; changing one
 moves the workout's other two-floor exercises with nothing logged. The exercise
-sheet and Progress show one floor at a time. `scripts/data/merged-exercises.ts` stops
+sheet and Progress show one floor at a time. The control is always the pop-up button
+`src/components/floor-picker.tsx`: a segmented control switches the view (Frank's
+rule, 2026-11-04), a pop-up button sets a value. In the sheet it sits under the tabs
+and not on How to, which is the same on either floor. `scripts/data/merged-exercises.ts` stops
 the Notion seed bringing the duplicates back.
 
 ## Rehab templates and following a program

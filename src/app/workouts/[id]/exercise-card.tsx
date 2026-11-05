@@ -4,7 +4,7 @@ import Link from "next/link";
 import { type ReactNode, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteSet, logSet, quickLog, setExerciseFloor, updateSet } from "@/app/actions";
-import { FloorSwitch } from "@/components/floor-switch";
+import { FloorPicker } from "@/components/floor-picker";
 import { CheckIcon, ChevronDown, DumbbellIcon, HashIcon, PencilIcon, PlusIcon, TrashIcon, XIcon } from "@/components/icons";
 import { PrescriptionLine } from "@/components/prescription-line";
 import { Sheet, SheetConfirm } from "@/components/sheet";
@@ -135,10 +135,10 @@ export function ExerciseCard({
       {expanded && (
         <div className="px-4 pb-4">
           {ex.has_floors && (
-            <FloorSwitch
+            <FloorPicker
               value={floor}
               disabled={pending}
-              className="mb-3"
+              className="mb-1"
               onChange={(next) =>
                 start(async () => {
                   setOptimisticFloor(next);

@@ -14,6 +14,7 @@ import { timeZone } from "@/lib/supabase/server";
 import { dayLabel, localDate, weekStarts } from "@/lib/workout/dates";
 import { displayWeight, epley, formatNumber } from "@/lib/workout/format";
 import { FIRST_FLOOR, FLOORS, floorLabel } from "@/lib/workout/machine-location";
+import { AnalyticsFloorPicker } from "./analytics-floor-picker";
 import { prs } from "@/lib/workout/progress";
 
 export const metadata = { title: "Progress" };
@@ -97,15 +98,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
           </Chip>
         ))}
       </nav>
-      {exercise?.has_floors && (
-        <nav aria-label="Pick a floor" className="flex gap-2 px-4 pb-3">
-          {FLOORS.map((f) => (
-            <Chip key={f.value} href={`/analytics?exercise=${exercise.id}&floor=${f.value}`} on={f.value === floor}>
-              {f.label}
-            </Chip>
-          ))}
-        </nav>
-      )}
+      {exercise?.has_floors && <AnalyticsFloorPicker exerciseId={exercise.id} value={floor} />}
       {exercise?.has_floors && series.length === 0 && <Empty title={`Not logged ${floorLabel(floor)?.toLowerCase()} yet`} />}
       {exercise && series.length > 0 && (
         <div className="mx-4 flex flex-col gap-2.5">

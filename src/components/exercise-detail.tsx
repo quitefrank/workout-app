@@ -9,7 +9,7 @@ import { dayLabel, localDate } from "@/lib/workout/dates";
 import { latestFloor, metricBest, metricSeries, sessionsOnFloor, type ExerciseMetric, type ExerciseSession, type MetricPoint } from "@/lib/workout/exercise-metrics";
 import { displayWeight, EQUIPMENT_LABELS, formatNumber } from "@/lib/workout/format";
 import { FIRST_FLOOR, type MachineLocation } from "@/lib/workout/machine-location";
-import { FloorSwitch } from "./floor-switch";
+import { FloorPicker } from "./floor-picker";
 import { ChevronRight, TrophyIcon } from "./icons";
 import { Row } from "./page";
 
@@ -30,7 +30,7 @@ export function exerciseFacts(exercise: ExerciseView["exercise"]): string {
 /**
  * An exercise's three tabs, in its sheet and on its own page. The tabs are the kit's segmented control. The sheet shows
  * the image and facts in its header, so only the page passes `art`, which puts them at the top of Summary. An exercise
- * with floors has a floor switch over the tabs: the chart, PRs and history show one floor, opening on the last one used.
+ * with floors has a floor pop-up under the tabs: the chart, PRs and history show one floor, opening on the last one used.
  */
 export function ExerciseDetailTabs({ view: all, art, onAlternate }: { view: ExerciseView; art?: ReactNode; onAlternate?: (id: string) => void }) {
   const [tab, setTab] = useState<Tab>("Summary");
@@ -39,7 +39,6 @@ export function ExerciseDetailTabs({ view: all, art, onAlternate }: { view: Exer
   const view = hasFloors ? { ...all, sessions: sessionsOnFloor(all.sessions, floor) } : all;
   return (
     <>
-      {hasFloors && <FloorSwitch value={floor} onChange={setFloor} className="mb-2" />}
       <div role="tablist" aria-label="Exercise" className="flex gap-1 rounded-full bg-fill p-0.5">
         {TABS.map((t) => (
           <button
@@ -54,6 +53,8 @@ export function ExerciseDetailTabs({ view: all, art, onAlternate }: { view: Exer
           </button>
         ))}
       </div>
+      {/* The floor sets what Summary and History show. How to is the same on either, so it has no picker. */}
+      {hasFloors && tab !== "How to" && <FloorPicker value={floor} onChange={setFloor} className="mt-1" />}
       {tab === "Summary" && <Summary view={view} art={art} onAlternate={onAlternate} />}
       {tab === "History" && <History view={view} />}
       {tab === "How to" && <HowTo view={view} />}
