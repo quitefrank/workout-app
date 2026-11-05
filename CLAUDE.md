@@ -177,7 +177,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 445 tests across 36 files.
+Run `bun run test` to exercise them. 450 tests across 37 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -384,9 +384,13 @@ by the user and every action checks the row belongs to them first. The
 deployed URL is open: anyone who has it can read and log workouts.
 
 Screens follow `docs/planning.md`: Calendar (`/`, with History at
-`/workouts`; a Runna-style week strip, `src/app/week-calendar.tsx`, that
-its handle drags open to the month, the selected day in `?d=` and its
-workouts below as cards that open the workout), Templates (the 18 Notion day templates, `program_id` null),
+`/workouts`; MyFitnessPal's date header, `src/app/week-calendar.tsx`: the
+title is the selected day and opens the floating month panel
+(`month-panel.tsx`), and the week strip is one native sideways scroller
+with snap, as wide as every week since 1970 with only the weeks near the
+view rendered. A swipe selects the same weekday once settled. Dots outside
+the selected month load from `/api/calendar`. The selected day is in `?d=`
+and its workouts below are cards that open the workout), Templates (the 18 Notion day templates, `program_id` null),
 Library (`/exercises`), Progress (`/analytics`), Settings. The active
 workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight
 string through `parseWeightCsv`, swaps upstairs and downstairs machines

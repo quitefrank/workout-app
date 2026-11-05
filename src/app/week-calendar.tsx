@@ -1,160 +1,200 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { hueStyle } from "@/components/page";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { LargeTitle } from "@/components/page";
 import { cn } from "@/lib/cn";
-import { dayLabel, shiftDate, shiftDateMonth, weekIndexOf, type CalendarCell } from "@/lib/workout/dates";
-
-export type CalendarDot = { id: string; category: string | null; done: boolean };
-export type CalendarDay = CalendarCell & { dots: CalendarDot[] };
+import type { CalendarDots } from "@/lib/workout/calendar";
+import { dayTitle, sameWeekdayIn, shiftDate, weekCells, weekNumber } from "@/lib/workout/dates";
+import { DayCell } from "./day-cell";
+import { MonthPanel } from "./month-panel";
 
 const WEEKDAYS = ["S", "M", "T", "W", "T", "F", "S"];
-/** One week row: the 48pt day cell and the 4pt between rows */
-const ROW = 52;
-/** iOS's sheet curve, for the snap after a drag */
-const SNAP = "320ms cubic-bezier(0.32, 0.72, 0, 1)";
+/** Weeks reachable from 1970, past the year 2080: the strip has no end anyone reaches */
+const WEEKS = 6000;
+/** Weeks rendered either side of the one in view; a swipe stops at each week, so these are never outrun */
+const RENDERED = 2;
+/** Weeks of dots kept loaded either side of the one in view */
+const LOADED = 8;
+/** How long the strip must be still before it counts as settled, for browsers without `scrollend` */
+const SETTLE_MS = 120;
 
 /**
- * Runna's week strip over the month, as iOS Calendar folds its month into a week: the whole month grid is laid out and
- * the window over it is one row tall, slid to the selected week. The handle under it drags the window open to the
- * month and back (a tap toggles, a flick follows its direction), a sideways swipe moves a week, or a month when open.
- * The selected day lives in the URL (`?d=`), so the server renders that day's workouts below.
+ * MyFitnessPal's date header: the title is the selected day and opens the month panel, and the week strip scrolls
+ * sideways a week at a time. A swipe selects the same weekday in the week it lands on, once it has settled. The strip
+ * is one native scroller as wide as every week, with only the weeks near the view rendered, each placed by its week
+ * number, so the scroll position never needs correcting. The selected day lives in the URL (`?d=`), so the server
+ * renders that day's workouts below; the title and the strip answer at once, ahead of that render.
  */
-export function WeekCalendar({ weeks, selected, today }: { weeks: CalendarDay[][]; selected: string; today: string }) {
+export function WeekCalendar({ selected, today, days, trailing }: { selected: string; today: string; days: CalendarDots; trailing?: ReactNode }) {
   const router = useRouter();
-  const [open, setOpen] = useState(0); // 0 the week, 1 the month
-  const [dragging, setDragging] = useState(false);
-  const drag = useRef<{ y: number; open: number; lastY: number; lastT: number; v: number } | null>(null);
-  const swipe = useRef<{ x: number; y: number } | null>(null);
-  const swiped = useRef(false);
+  const strip = useRef<HTMLDivElement>(null);
+  const title = useRef<HTMLButtonElement>(null);
+  const [width, setWidth] = useState(0); // 0 until measured: the server and the first render draw the one week, in flow
+  const [panelOpen, setPanelOpen] = useState(false);
 
-  const range = (weeks.length - 1) * ROW;
-  const row = weekIndexOf(weeks, selected);
-  const go = (date: string) => router.replace(`/?d=${date}`, { scroll: false });
-  const transition = dragging ? "none" : `height ${SNAP}, transform ${SNAP}`;
+  // The day shown leads the URL. `pending` is the day last asked for, so a slower answer to an earlier swipe cannot pull it back
+  const [day, setDay] = useState(selected);
+  const [urlDay, setUrlDay] = useState(selected);
+  const [pending, setPending] = useState<string | null>(null);
+  if (selected !== urlDay) {
+    setUrlDay(selected);
+    if (pending === null || pending === selected) {
+      setPending(null);
+      setDay(selected);
+    }
+  }
 
-  const onHandleDown = (e: PointerEvent<HTMLDivElement>) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drag.current = { y: e.clientY, open, lastY: e.clientY, lastT: e.timeStamp, v: 0 };
-    setDragging(true);
-  };
-  const onHandleMove = (e: PointerEvent<HTMLDivElement>) => {
-    const d = drag.current;
-    if (!d) return;
-    const dt = Math.max(1, e.timeStamp - d.lastT);
-    d.v = (e.clientY - d.lastY) / dt;
-    d.lastY = e.clientY; d.lastT = e.timeStamp;
-    setOpen(Math.min(1, Math.max(0, d.open + (e.clientY - d.y) / range)));
-  };
-  const onHandleUp = (e: PointerEvent<HTMLDivElement>) => {
-    const d = drag.current;
-    drag.current = null;
-    setDragging(false);
-    if (!d) return;
-    const moved = Math.abs(e.clientY - d.y);
-    const now = Math.min(1, Math.max(0, d.open + (e.clientY - d.y) / range));
-    // a tap toggles; a flick goes where it was thrown; a slow drag settles on the nearer end
-    setOpen(moved < 6 ? (d.open > 0.5 ? 0 : 1) : Math.abs(d.v) > 0.35 ? (d.v > 0 ? 1 : 0) : now > 0.5 ? 1 : 0);
-  };
-  const onHandleKey = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== "Enter" && e.key !== " ") return;
-    e.preventDefault();
-    setOpen(open > 0.5 ? 0 : 1);
-  };
+  const dayWeek = weekNumber(day);
+  const [inView, setInView] = useState(dayWeek);
 
-  const onGridDown = (e: PointerEvent<HTMLDivElement>) => {
-    swipe.current = { x: e.clientX, y: e.clientY };
-    swiped.current = false;
-  };
-  const onGridUp = (e: PointerEvent<HTMLDivElement>) => {
-    const s = swipe.current;
-    swipe.current = null;
-    if (!s) return;
-    const dx = e.clientX - s.x, dy = e.clientY - s.y;
-    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    swiped.current = true;
-    const ahead = dx < 0 ? 1 : -1;
-    go(open > 0.5 ? shiftDateMonth(selected, ahead) : shiftDate(selected, 7 * ahead));
-  };
+  const pick = useCallback(
+    (date: string) => {
+      setDay(date);
+      setPending(date === selected ? null : date);
+      router.replace(`/?d=${date}`, { scroll: false });
+    },
+    [router, selected],
+  );
+
+  const closePanel = useCallback(() => setPanelOpen(false), []);
+
+  useLayoutEffect(() => {
+    const el = strip.current;
+    if (!el) return;
+    const measure = () => setWidth(el.clientWidth);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Before the first paint and whenever the day moves from outside the strip (the panel, the Today link)
+  useLayoutEffect(() => {
+    const el = strip.current;
+    if (el && width && Math.abs(el.scrollLeft - dayWeek * width) > width / 2) {
+      el.scrollTo({ left: dayWeek * width, behavior: "instant" });
+    }
+  }, [dayWeek, width]);
+
+  useEffect(() => {
+    const el = strip.current;
+    if (!el || !width) return;
+    let timer: ReturnType<typeof setTimeout>;
+    const settle = () => {
+      const week = Math.round(el.scrollLeft / width);
+      // a finger holding the strip between weeks is not a landing
+      if (Math.abs(el.scrollLeft - week * width) <= 1 && week !== weekNumber(day)) pick(sameWeekdayIn(day, week));
+    };
+    const onScroll = () => {
+      setInView(Math.round(el.scrollLeft / width));
+      clearTimeout(timer);
+      timer = setTimeout(settle, SETTLE_MS);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("scrollend", settle);
+    return () => {
+      clearTimeout(timer);
+      el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scrollend", settle);
+    };
+  }, [day, width, pick]);
+
+  // Dots: what the server sent for the selected month, over what has been fetched as weeks came near
+  const [fetched, setFetched] = useState<CalendarDots>({});
+  const dots = useMemo(() => ({ ...fetched, ...days }), [fetched, days]);
+  const inFlight = useRef(new Set<string>());
+  const ensure = useCallback(
+    (from: string, to: string) => {
+      const key = `${from}|${to}`;
+      let missing = false;
+      for (let d = from; d <= to && !missing; d = shiftDate(d, 1)) missing = !(d in dots);
+      if (!missing || inFlight.current.has(key)) return;
+      inFlight.current.add(key);
+      fetch(`/api/calendar?from=${from}&to=${to}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((r: { days: CalendarDots } | null) => r && setFetched((prev) => ({ ...prev, ...r.days })))
+        .catch(() => {}) // no dots until the week comes near again; the strip itself never waits on them
+        .finally(() => inFlight.current.delete(key));
+    },
+    [dots],
+  );
+  useEffect(() => {
+    ensure(weekCells(inView - LOADED)[0].date, weekCells(inView + LOADED)[6].date);
+  }, [inView, ensure]);
+
+  const weeks = useMemo(() => {
+    const near = new Set<number>();
+    for (let i = -RENDERED; i <= RENDERED; i++) near.add(inView + i);
+    for (let i = -1; i <= 1; i++) near.add(dayWeek + i); // the destination of a jump is there on the same frame
+    return [...near].sort((a, b) => a - b);
+  }, [inView, dayWeek]);
+
+  const label = dayTitle(day, today);
+  const row = (week: number) => (
+    <div role="row" className="grid h-12 grid-cols-7">
+      {weekCells(week).map((cell) => (
+        <DayCell key={cell.date} cell={cell} dots={dots[cell.date]} today={today} selected={day} onPick={pick} />
+      ))}
+    </div>
+  );
 
   return (
-    <section aria-label="Calendar" className="mt-3 px-4">
-      <div className="grid grid-cols-7 pb-1 text-center text-[13px] font-semibold text-ink-3">
-        {WEEKDAYS.map((d, i) => (
-          <div key={i}>{d}</div>
-        ))}
-      </div>
-      <div
-        role="grid"
-        onPointerDown={onGridDown}
-        onPointerUp={onGridUp}
-        onPointerCancel={() => (swipe.current = null)}
-        className="overflow-hidden touch-pan-y"
-        style={{ height: ROW + range * open, transition }}
-      >
-        <div style={{ transform: `translateY(${-row * ROW * (1 - open)}px)`, transition }}>
-          {weeks.map((week, w) => (
-            <div key={w} role="row" className="grid h-[52px] grid-cols-7">
-              {week.map((cell) => {
-                const isToday = cell.date === today;
-                const isSelected = cell.date === selected;
-                return (
-                  <button
-                    key={cell.date}
-                    type="button"
-                    role="gridcell"
-                    aria-selected={isSelected}
-                    aria-label={`${dayLabel(cell.date)}${cell.dots.length ? `, ${cell.dots.length} workout${cell.dots.length > 1 ? "s" : ""}` : ""}`}
-                    onClick={() => {
-                      if (swiped.current) { swiped.current = false; return; }
-                      if (!isSelected) go(cell.date);
-                    }}
-                    className="flex h-12 flex-col items-center justify-start gap-1 pt-1"
-                  >
-                    <span
-                      className={cn(
-                        "tabular grid size-8 place-items-center rounded-full text-[17px]",
-                        !cell.inMonth && "text-ink-3",
-                        isToday && !isSelected && "font-semibold text-red",
-                        isSelected && (isToday ? "bg-red font-semibold text-white" : "bg-ink font-semibold text-bg"),
-                      )}
-                    >
-                      {cell.day}
-                    </span>
-                    <span className="flex h-1.5 gap-[3px]">
-                      {cell.dots.slice(0, 3).map((d) => (
-                        <span
-                          key={d.id}
-                          style={hueStyle(d.category)}
-                          className={cn(
-                            "size-1.5 rounded-full",
-                            d.done ? "bg-[hsl(var(--h)_70%_52%)]" : "ring-1 ring-[hsl(var(--h)_70%_52%)] ring-inset",
-                          )}
-                        />
-                      ))}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+    <>
+      <LargeTitle
+        trailing={trailing}
+        title={
+          <button
+            ref={title}
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={panelOpen}
+            aria-label={`${label}, choose a date`}
+            onClick={() => setPanelOpen((v) => !v)}
+            className="inline-flex items-center gap-2.5 active:opacity-70"
+          >
+            {label}
+            <svg width="14" height="9" viewBox="0 0 14 9" aria-hidden className={cn("mt-1", panelOpen && "rotate-180")}>
+              <path d="M7 8.2 1 1.4h12z" fill="currentColor" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+            </svg>
+          </button>
+        }
+      />
+
+      <section aria-label="Week" className="mt-3 px-4">
+        <div className="grid grid-cols-7 pb-1 text-center text-[13px] font-semibold text-ink-3">
+          {WEEKDAYS.map((d, i) => (
+            <div key={i}>{d}</div>
           ))}
         </div>
-      </div>
-      <div
-        role="button"
-        tabIndex={0}
-        aria-expanded={open > 0.5}
-        aria-label={open > 0.5 ? "Show the week" : "Show the month"}
-        onPointerDown={onHandleDown}
-        onPointerMove={onHandleMove}
-        onPointerUp={onHandleUp}
-        onPointerCancel={onHandleUp}
-        onKeyDown={onHandleKey}
-        className="flex h-7 cursor-grab touch-none items-center justify-center"
-      >
-        <span className="h-[5px] w-9 rounded-full bg-ink-3" />
-      </div>
-    </section>
+        <div ref={strip} role="grid" className="no-scrollbar h-[52px] snap-x snap-mandatory overflow-x-auto overflow-y-hidden overscroll-x-contain">
+          {width === 0 ? (
+            row(dayWeek)
+          ) : (
+            <div className="relative h-full" style={{ width: WEEKS * width }}>
+              {weeks.map((week) => (
+                <div key={week} className="absolute top-0 snap-start [scroll-snap-stop:always]" style={{ left: week * width, width }}>
+                  {row(week)}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <MonthPanel
+        open={panelOpen}
+        onClose={closePanel}
+        anchor={title}
+        selected={day}
+        today={today}
+        dots={dots}
+        ensure={ensure}
+        onPick={(date) => {
+          setPanelOpen(false);
+          if (date !== day) pick(date);
+        }}
+      />
+    </>
   );
 }

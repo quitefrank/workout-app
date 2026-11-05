@@ -87,23 +87,43 @@ export function shiftDate(date: string, days: number): string {
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }
 
-/** A YYYY-MM-DD moved by whole months, keeping the day where the month has it (Jan 31 + 1 month is Feb 28). */
-export function shiftDateMonth(date: string, months: number): string {
-  const [y, m, d] = date.split("-").map(Number);
-  const ym = shiftMonth({ year: y, month: m }, months);
-  const last = new Date(Date.UTC(ym.year, ym.month, 0)).getUTCDate();
-  return iso(ym.year, ym.month, Math.min(d, last));
-}
-
 /** The month a YYYY-MM-DD falls in. */
 export function monthOf(date: string): YearMonth {
   return parseYearMonth(date.slice(0, 7))!;
 }
 
-/** Which week of a monthGrid holds the date (0 when it is not in the grid). */
-export function weekIndexOf(weeks: CalendarCell[][], date: string): number {
-  const i = weeks.findIndex((w) => w.some((c) => c.date === date));
-  return Math.max(0, i);
+/** Whole weeks, Sunday first, since Sunday Jan 4 1970: a stable number for the week a YYYY-MM-DD falls in. */
+export function weekNumber(date: string): number {
+  const [y, m, d] = date.split("-").map(Number);
+  return Math.floor((Date.UTC(y, m - 1, d) / 86400000 - 3) / 7);
+}
+
+/** The seven days of a week by its weekNumber, Sunday first. */
+export function weekCells(week: number): CalendarCell[] {
+  const sunday = week * 7 + 3;
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date((sunday + i) * 86400000);
+    return { date: d.toISOString().slice(0, 10), day: d.getUTCDate(), inMonth: true };
+  });
+}
+
+/** The same weekday in another week: what a swipe of the week strip selects. */
+export function sameWeekdayIn(date: string, week: number): string {
+  return shiftDate(date, (week - weekNumber(date)) * 7);
+}
+
+/** The calendar's title for a day: "Today", "Yesterday", "Tomorrow", "Nov 6", and "Nov 6, 2027" outside this year. */
+export function dayTitle(date: string, today: string): string {
+  if (date === today) return "Today";
+  if (date === shiftDate(today, -1)) return "Yesterday";
+  if (date === shiftDate(today, 1)) return "Tomorrow";
+  const [y, m, d] = date.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: date.slice(0, 4) === today.slice(0, 4) ? undefined : "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
 /** "Friday, Oct 24" for a YYYY-MM-DD. */

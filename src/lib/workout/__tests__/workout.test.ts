@@ -20,8 +20,10 @@ import {
   monthGrid,
   monthOf,
   shiftDate,
-  shiftDateMonth,
-  weekIndexOf,
+  weekNumber,
+  weekCells,
+  sameWeekdayIn,
+  dayTitle,
   parseYearMonth,
   shiftMonth,
   weekStarts,
@@ -170,19 +172,39 @@ describe("calendar navigation", () => {
     expect(shiftDate("2028-02-28", 1)).toBe("2028-02-29");
   });
 
-  it("moves dates by months, keeping the day where the month has it", () => {
-    expect(shiftDateMonth("2026-10-24", 1)).toBe("2026-11-24");
-    expect(shiftDateMonth("2026-01-31", 1)).toBe("2026-02-28");
-    expect(shiftDateMonth("2026-01-15", -1)).toBe("2025-12-15");
+  it("finds the month a date sits in", () => {
+    expect(monthOf("2026-10-24")).toEqual({ year: 2026, month: 10 });
   });
 
-  it("finds the month and the grid week a date sits in", () => {
-    expect(monthOf("2026-10-24")).toEqual({ year: 2026, month: 10 });
-    const weeks = monthGrid({ year: 2026, month: 10 });
-    // October 2026 starts on a Thursday: Sep 27 to Oct 3 is week 0, Oct 24 closes week 3
-    expect(weekIndexOf(weeks, "2026-09-27")).toBe(0);
-    expect(weekIndexOf(weeks, "2026-10-24")).toBe(3);
-    expect(weekIndexOf(weeks, "2026-12-25")).toBe(0);
+  it("numbers weeks from Sunday to Saturday, across month and year ends", () => {
+    expect(weekNumber("1970-01-04")).toBe(0);
+    expect(weekNumber("2026-11-01")).toBe(weekNumber("2026-11-07"));
+    expect(weekNumber("2026-11-08")).toBe(weekNumber("2026-11-07") + 1);
+    expect(weekNumber("2026-12-27")).toBe(weekNumber("2027-01-02"));
+  });
+
+  it("lists a week's seven days, Sunday first", () => {
+    const week = weekCells(weekNumber("2026-11-04"));
+    expect(week.map((c) => c.date)).toEqual(["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"]);
+    expect(week[3].day).toBe(4);
+    expect(weekCells(weekNumber("2026-12-30")).at(-1)?.date).toBe("2027-01-02");
+  });
+
+  it("keeps the weekday when moved to another week, as a swipe of the strip does", () => {
+    const week = weekNumber("2026-10-26");
+    expect(sameWeekdayIn("2026-10-26", week + 1)).toBe("2026-11-02");
+    expect(sameWeekdayIn("2026-10-26", week + 3)).toBe("2026-11-16");
+    expect(sameWeekdayIn("2026-10-26", week - 1)).toBe("2026-10-19");
+    expect(sameWeekdayIn("2026-10-26", week)).toBe("2026-10-26");
+  });
+
+  it("titles a day relative to today", () => {
+    expect(dayTitle("2026-11-04", "2026-11-04")).toBe("Today");
+    expect(dayTitle("2026-11-03", "2026-11-04")).toBe("Yesterday");
+    expect(dayTitle("2026-11-05", "2026-11-04")).toBe("Tomorrow");
+    expect(dayTitle("2026-11-16", "2026-11-04")).toBe("Nov 16");
+    expect(dayTitle("2027-03-06", "2026-11-04")).toBe("Mar 6, 2027");
+    expect(dayTitle("2027-01-01", "2026-12-31")).toBe("Tomorrow");
   });
 
   it("labels a day in full", () => {

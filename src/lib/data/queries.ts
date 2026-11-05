@@ -80,6 +80,11 @@ function toListItem(w: WorkoutRow, tz: string): WorkoutListItem {
 /** Workouts whose day falls inside the month grid (neighbouring days included). */
 export async function getMonthWorkouts(ym: YearMonth): Promise<WorkoutListItem[]> {
   const { from, to } = gridBounds(ym);
+  return getWorkoutsBetween(from, to);
+}
+
+/** Workouts whose calendar day falls from `from` to `to`, both YYYY-MM-DD and inclusive. */
+export async function getWorkoutsBetween(from: string, to: string): Promise<WorkoutListItem[]> {
   const tz = timeZone();
   // Pad the instant window by a day either side; the day is settled in the zone below.
   const fromTs = new Date(Date.parse(from) - 86400000).toISOString();

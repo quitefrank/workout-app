@@ -2,21 +2,22 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/button";
 import { GlassCircleLink } from "@/components/glass";
 import { CheckIcon, ChevronRight, GearIcon, ListIcon, PlayIcon } from "@/components/icons";
-import { Empty, LargeTitle, Row, Screen, SectionHeader, Thumb } from "@/components/page";
+import { Empty, Row, Screen, SectionHeader, Thumb } from "@/components/page";
 import { StartWorkout } from "@/components/start-workout";
 import { getActiveProgramId, getMonthWorkouts, getProgram, listTemplates, type WorkoutListItem } from "@/lib/data/queries";
 import { weeksLabel } from "@/lib/programs/label";
 import { programToday } from "@/lib/programs/today";
 import { timeZone } from "@/lib/supabase/server";
-import { durationMinutes, formatYearMonth, localDate, longDayLabel, monthGrid, monthOf, monthTitle } from "@/lib/workout/dates";
+import { dotsByDay } from "@/lib/workout/calendar";
+import { durationMinutes, gridBounds, localDate, monthOf } from "@/lib/workout/dates";
 import { CATEGORY_LABELS } from "@/lib/workout/format";
-import { WeekCalendar, type CalendarDay } from "./week-calendar";
+import { WeekCalendar } from "./week-calendar";
 
 export default async function CalendarPage({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
   const params = await searchParams;
   const today = localDate(new Date(), timeZone());
   const selected = params.d && /^\d{4}-\d{2}-\d{2}$/.test(params.d) ? params.d : today;
-  // the month is the selected day's, so a week swiped past the month's edge brings the next month's grid
+  // the month is the selected day's, which seeds the strip and the panel; other weeks load as they come near
   const ym = monthOf(selected);
 
   const [workouts, templates, activeId] = await Promise.all([getMonthWorkouts(ym), listTemplates(), getActiveProgramId()]);
@@ -42,21 +43,16 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
   const byDay = new Map<string, WorkoutListItem[]>();
   for (const w of workouts) byDay.set(w.day, [...(byDay.get(w.day) ?? []), w]);
   const selectedWorkouts = byDay.get(selected) ?? [];
-  const monthCount = workouts.filter((w) => w.completedAt && w.day.startsWith(formatYearMonth(ym))).length;
-
-  const weeks: CalendarDay[][] = monthGrid(ym).map((week) =>
-    week.map((cell) => ({
-      ...cell,
-      dots: (byDay.get(cell.date) ?? []).map((w) => ({ id: w.id, category: w.category, done: !!w.completedAt })),
-    })),
-  );
+  const { from, to } = gridBounds(ym);
+  const days = dotsByDay(workouts, from, to);
   const next = upNext?.next ? rowOf.get(upNext.next.id) : undefined;
 
   return (
     <Screen>
-      <LargeTitle
-        title={monthTitle(ym)}
-        subtitle={`${monthCount} ${monthCount === 1 ? "workout" : "workouts"} this month`}
+      <WeekCalendar
+        selected={selected}
+        today={today}
+        days={days}
         trailing={
           <>
             <GlassCircleLink href="/workouts" label="History">
@@ -69,10 +65,8 @@ export default async function CalendarPage({ searchParams }: { searchParams: Pro
         }
       />
 
-      <WeekCalendar weeks={weeks} selected={selected} today={today} />
-
       <SectionHeader
-        title={selected === today ? "Today" : longDayLabel(selected)}
+        title="Workouts"
         className="pt-3"
         trailing={selected !== today ? <Link href="/" scroll={false}>Today</Link> : undefined}
       />

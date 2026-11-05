@@ -28,7 +28,7 @@ export function LargeTitle({
   leading,
   trailing,
 }: {
-  title: string;
+  title: ReactNode;
   subtitle?: ReactNode;
   leading?: ReactNode;
   trailing?: ReactNode;

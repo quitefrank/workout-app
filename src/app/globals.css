@@ -404,6 +404,37 @@ body {
     box-shadow: var(--sheet-inner);
   }
 
+  /* The month panel opens out of the date in the title and folds back into it */
+  .month-panel {
+    transform-origin: 24px 0;
+    animation: month-panel-in 240ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .month-panel[data-closing] {
+    animation: month-panel-out 160ms ease-in forwards;
+  }
+
+  @keyframes month-panel-in {
+    from {
+      transform: scale(0.9);
+      opacity: 0;
+    }
+  }
+
+  @keyframes month-panel-out {
+    to {
+      transform: scale(0.94);
+      opacity: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .month-panel,
+    .month-panel[data-closing] {
+      animation-duration: 1ms;
+    }
+  }
+
   /* Pressed glass dims a touch, as UIKit's does */
   .glass:where(button, a):active {
     filter: brightness(0.92);
