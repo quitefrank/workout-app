@@ -100,6 +100,7 @@ describe("supabase migrations on PGlite", () => {
       "0008_rehab_templates.sql",
       "0009_merge_floor_exercises.sql",
       "0010_drop_sets_lat_pulldown.sql",
+      "0011_remove_recovery_workouts.sql",
     ]);
   });
 

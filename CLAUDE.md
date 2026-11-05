@@ -14,7 +14,6 @@ bun run test scripts/__tests__/migrations.test.ts   # migrations on PGlite only
 bun run test:watch       # Vitest watch mode
 bun run lint             # ESLint
 bun run seed:notion      # One-time Notion -> Supabase seed
-bun run seed:achilles    # Achilles program, exercises, templates, personal rows
 bun run convert:ppl      # Vault workbook -> program JSON (gitignored)
 bun run extract:pdfs     # Vault PDFs -> page dumps under scripts/data/programs/raw/ (gitignored; needs python3 with pdfplumber)
 bun run convert:ppl1     # PPL 1.0 dump -> program JSON (gitignored)
@@ -363,6 +362,14 @@ sets, so each keeps its place. Migration 0010 merged Lat Pull-Downs (main) and (
 program seed's Lat Pulldown and Notion's Machine Pulldown into Lat Pulldown.
 `KEEP_UNREFERENCED` in `scripts/data/programs/library.ts` names seed-owned exercises the
 program seed must keep although nothing references them.
+
+## Recovery workouts removed
+
+Frank is back to normal training. Migration 0011 removed the recovery program's templates and the
+exercises only they used (his call, 2026-11-05), and `listPrograms` shows training programs only.
+`seed:achilles` is retired and throws; `scripts/data/achilles/` and the sections below on the Achilles
+seed and rehab templates describe what was removed. The recovery log (recoveries, clearances, events,
+rules, the program row and phases) stays in the database.
 
 ## Rehab templates and following a program
 

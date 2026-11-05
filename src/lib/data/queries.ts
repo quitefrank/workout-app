@@ -463,7 +463,7 @@ export type ProgramSummary = {
 /** Every program in the library, recovery first. */
 export async function listPrograms(): Promise<ProgramSummary[]> {
   const found = rows(
-    await db().from("programs").select("id, name, kind, description, program_phases(count), templates(count)").order("name"),
+    await db().from("programs").select("id, name, kind, description, program_phases(count), templates(count)").eq("kind", "training").order("name"),
   ) as unknown as (Omit<ProgramSummary, "phaseCount" | "templateCount"> & {
     program_phases: { count: number }[];
     templates: { count: number }[];

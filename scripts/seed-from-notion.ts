@@ -335,6 +335,7 @@ async function main() {
   const exerciseMap = new Map<string, string>();
   const pageFloor = new Map<string, string>();
   const keptSlug = new Map(MERGED_EXERCISES.map((m) => [m.keep, m.slug]));
+  const oneFloor = new Set(MERGED_EXERCISES.filter((m) => m.oneFloor).map((m) => m.keep));
   const keptName = new Map(MERGED_EXERCISES.flatMap((m) => (m.name ? [[m.keep, m.name] as const] : [])));
   const mergedInto = new Map(MERGED_EXERCISES.flatMap((m) => m.merged.map((id) => [id, m.keep] as const)));
   const exercisePages = new Map<string, AnyPage>();
@@ -380,7 +381,7 @@ async function main() {
       slug,
       muscleGroupId,
       equipmentType: info.equipmentType,
-      hasFloors: Boolean(kept),
+      hasFloors: Boolean(kept) && !oneFloor.has(page.id),
       notes: getRichTextOrNull(page, FIELDS.exercises.notes),
       videoUrl: getUrl(page, FIELDS.exercises.video),
     });

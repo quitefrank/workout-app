@@ -85,7 +85,6 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "romanian-deadlift": "barbell-rdl",
   "rope-overhead-triceps-extension": "overhead-cable-triceps-extension",
   "seated-db-shoulder-press": "db-shoulder-press",
-  "seated-face-pull": "seated-cable-face-pull",
   "side-delt-static-stretch": "delt-stretch",
   "single-arm-cable-tricep-kickback": "cable-tricep-kickback",
   "single-arm-db-row": "dumbbell-rows",
@@ -102,11 +101,12 @@ export const LIBRARY_ALIASES: Record<string, string> = {
 };
 
 export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
-  "1-arm-half-kneeling-lat-pulldown": { muscleGroup: "Back", equipmentType: "cable" },
   "1-arm-overhead-cable-extension": { muscleGroup: "Triceps", equipmentType: "cable" },
   "3-block-pull": { muscleGroup: "Glutes", equipmentType: "barbell" },
   "5-block-pull": { muscleGroup: "Glutes", equipmentType: "barbell" },
   "ab-wheel-rollout": { muscleGroup: "Abs", equipmentType: "bodyweight" },
+  "seated-face-pull": { muscleGroup: "Shoulders", equipmentType: "cable" },
+  "t-bar-row": { muscleGroup: "Back", equipmentType: "barbell" },
   "seated-arnold-press": { muscleGroup: "Shoulders", equipmentType: "dumbbell", name: "Seated Arnold Press" },
   "assisted-chin-up": { muscleGroup: "Back", equipmentType: "bodyweight" },
   "back-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
@@ -197,7 +197,6 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "sumo-box-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
   "swiss-ball-single-leg-leg-curl": { muscleGroup: "Hamstrings", equipmentType: "bodyweight" },
   "trap-bar-deadlift": { muscleGroup: "Glutes", equipmentType: "barbell" },
-  "triceps-pressdown": { muscleGroup: "Triceps", equipmentType: "cable" },
   "triceps-v-bar-pressdown": { muscleGroup: "Triceps", equipmentType: "cable" },
   "upright-row": { muscleGroup: "Shoulders", equipmentType: "other" },
   "v-sit-up": { muscleGroup: "Abs", equipmentType: "bodyweight" },
