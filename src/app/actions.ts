@@ -190,6 +190,28 @@ export async function deleteWorkout(workoutId: string): Promise<void> {
  * The floor of one exercise in a workout. The workout's other two-floor exercises with nothing logged follow it, since
  * they are probably on the same floor; anything already logged keeps its own.
  */
+/**
+ * Another way of doing the same movement, on a row in the workout: other equipment or another technique. The row and
+ * its sets move to that library row, and the template is untouched, so next time starts on what it prescribes.
+ */
+export async function setExerciseOption(workoutExerciseId: string, exerciseId: string): Promise<void> {
+  const we = await ownedWorkoutExercise(workoutExerciseId);
+  const { data: row, error: rowError } = await db().from("workout_exercises").select("machine_location, exercises(movement)").eq("id", workoutExerciseId).single();
+  fail(rowError);
+  const { data: next, error: nextError } = await db().from("exercises").select("id, movement, has_floors").eq("id", exerciseId).maybeSingle();
+  fail(nextError);
+  const current = row as unknown as { machine_location: MachineLocation | null; exercises: { movement: string | null } | null };
+  const movement = current.exercises?.movement;
+  if (!next || !movement || next.movement !== movement) throw new Error("That is not the same movement.");
+  const floors = next.has_floors && !current.machine_location ? await lastFloors([next.id]) : null;
+  const { error } = await db()
+    .from("workout_exercises")
+    .update({ exercise_id: next.id, machine_location: next.has_floors ? (current.machine_location ?? floors?.get(next.id) ?? FIRST_FLOOR) : null })
+    .eq("id", workoutExerciseId);
+  fail(error);
+  refreshWorkout(we.workout_id);
+}
+
 export async function setExerciseFloor(workoutExerciseId: string, floor: MachineLocation): Promise<void> {
   if (!FLOORS.some((f) => f.value === floor)) throw new Error("Unknown floor");
   const we = await ownedWorkoutExercise(workoutExerciseId);

@@ -12,6 +12,7 @@ import { TopBar } from "@/components/top-bar";
 import { cn } from "@/lib/cn";
 import type { LibraryItem } from "@/lib/exercise-items";
 import { appScroller } from "@/lib/scroller";
+import { oneEntryPerMovement } from "@/lib/workout/movements";
 
 // Recent searches stay on this device: a convenience, so an unreadable store just means no recents
 const RECENTS_KEY = "library-recent-searches";
@@ -67,13 +68,13 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
   // search mode has its own muscle group pills, as Figma's results have Folders and Files
   const [pick, setPick] = useState<string | null>(null);
   const matches = useMemo(
-    () => (items ?? []).filter((i) => !q || i.name.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
+    () => (items ?? []).filter((i) => !q || i.name.toLowerCase().includes(q) || i.movement?.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
     [items, q],
   );
   // only the groups the typed text finds, so a pill never leads to nothing
   const pills = useMemo(() => groups.filter((g) => matches.some((i) => i.groupId === g.id)), [groups, matches]);
   const picked = pick && pills.some((g) => g.id === pick) ? pick : null;
-  const results = picked ? matches.filter((i) => i.groupId === picked) : matches;
+  const results = oneEntryPerMovement(picked ? matches.filter((i) => i.groupId === picked) : matches);
   const artOf = useMemo(() => new Map(groups.map((g) => [g.id, g.art])), [groups]);
 
   // the field is rendered and focused inside the tap itself, so iOS raises the keyboard
@@ -265,7 +266,7 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
         open={sheetOpen}
         exerciseId={sheet?.id ?? null}
         slug={sheet?.slug}
-        title={sheet?.name ?? ""}
+        title={sheet?.movement ?? sheet?.name ?? ""}
         art={(sheet?.groupId && artOf.get(sheet.groupId)) || <div className="grid size-full place-items-center text-ink-3"><FigureIcon size={40} /></div>}
         onClose={() => setSheetOpen(false)}
       />

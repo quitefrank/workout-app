@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { type ReactNode, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { deleteSet, logSet, quickLog, setExerciseFloor, updateSet } from "@/app/actions";
+import { deleteSet, logSet, quickLog, setExerciseFloor, setExerciseOption, updateSet } from "@/app/actions";
+import { ExerciseArt, hasExerciseImage } from "@/components/exercise-art";
+import { MovementPicker } from "@/components/movement-picker";
 import { FloorPicker } from "@/components/floor-picker";
 import { CheckIcon, ChevronDown, DumbbellIcon, HashIcon, PencilIcon, PlusIcon, TrashIcon, XIcon } from "@/components/icons";
 import { PrescriptionLine } from "@/components/prescription-line";
@@ -12,6 +14,7 @@ import { cn } from "@/lib/cn";
 import type { LastTime, SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
 import { dayLabel, localDate } from "@/lib/workout/dates";
 import { floorKey, floorLabel, type MachineLocation } from "@/lib/workout/machine-location";
+import { optionTag, type MovementOption } from "@/lib/workout/movements";
 import {
   displayWeight,
   formatNumber,
@@ -35,6 +38,7 @@ export function ExerciseCard({
   done,
   unit,
   lastTimes,
+  options,
   expanded,
   onToggle,
   onLogged,
@@ -44,6 +48,8 @@ export function ExerciseCard({
   done: boolean;
   unit: WeightUnit;
   lastTimes: Record<string, LastTime>;
+  /** The ways of doing this movement; empty when it stands alone */
+  options: MovementOption[];
   expanded: boolean;
   onToggle: () => void;
   onLogged: (isWarmUp: boolean) => void;
@@ -123,8 +129,12 @@ export function ExerciseCard({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[17px] font-semibold leading-[22px]">
-            {ex.name}
-            {ex.has_floors && <span className="ml-1.5 align-middle text-[13px] font-medium text-ink-2">{floorLabel(floor)}</span>}
+            {ex.movement ?? ex.name}
+            {(optionTag(ex) || ex.has_floors) && (
+              <span className="ml-1.5 align-middle text-[13px] font-medium text-ink-2">
+                {[optionTag(ex), ex.has_floors && floorLabel(floor)].filter(Boolean).join(" · ")}
+              </span>
+            )}
           </span>
           <span className="block truncate text-[15px] leading-5 text-ink-2">
             <PrescriptionLine p={we} empty="No prescription" />
@@ -139,6 +149,31 @@ export function ExerciseCard({
 
       {expanded && (
         <div className="px-4 pb-4">
+          {options.length > 1 && (
+            <div className="flex items-center gap-3">
+              {hasExerciseImage(ex.slug) && (
+                <div className="size-[88px] shrink-0 overflow-hidden rounded-xl">
+                  <ExerciseArt slug={ex.slug} art={null} />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <MovementPicker
+                  options={options}
+                  currentId={ex.id}
+                  disabled={pending}
+                  onSelect={(id) =>
+                    start(async () => {
+                      try {
+                        await setExerciseOption(we.id, id);
+                      } catch (e) {
+                        toast.error(e instanceof Error ? e.message : "Could not switch");
+                      }
+                    })
+                  }
+                />
+              </div>
+            </div>
+          )}
           {ex.has_floors && (
             <FloorPicker
               value={floor}

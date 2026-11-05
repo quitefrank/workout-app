@@ -7,6 +7,7 @@ import { hueStyle, Screen, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
 import { getSettings, getTopSets, getWorkout } from "@/lib/data/queries";
 import { dayLabel, durationMinutes } from "@/lib/workout/dates";
+import { exerciseTitle } from "@/lib/workout/movements";
 import { displayWeight, formatNumber, isRawReading } from "@/lib/workout/format";
 import { floorKey, floorLabel } from "@/lib/workout/machine-location";
 import { prs } from "@/lib/workout/progress";
@@ -71,7 +72,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
               <div className="flex items-start justify-between gap-3">
                 <Link href={`/exercises/${we.exercises.id}`} className="min-w-0">
                   <h2 className="truncate text-[17px] font-semibold">
-                    {we.exercises.name}
+                    {exerciseTitle(we.exercises)}
                     {we.machine_location && <span className="ml-1.5 text-[13px] font-medium text-ink-2">{floorLabel(we.machine_location)}</span>}
                   </h2>
                 </Link>

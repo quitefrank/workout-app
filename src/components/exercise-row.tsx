@@ -25,8 +25,8 @@ export function ExerciseRow({ item, art, showGroup, onOpen }: { item: LibraryIte
         />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[17px] font-medium">{item.name}</div>
-        <div className="truncate text-[15px] text-ink-2">{[showGroup && item.group, EQUIPMENT_LABELS[item.equipment], last, floorLabel(item.last?.floor)].filter(Boolean).join(" · ")}</div>
+        <div className="truncate text-[17px] font-medium">{item.movement ?? item.name}</div>
+        <div className="truncate text-[15px] text-ink-2">{[showGroup && item.group, (item.choices.length > 1 ? item.choices.join(", ") : EQUIPMENT_LABELS[item.equipment]), last, floorLabel(item.last?.floor)].filter(Boolean).join(" · ")}</div>
       </div>
     </button>
   );

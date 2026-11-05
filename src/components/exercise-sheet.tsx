@@ -34,9 +34,10 @@ export function ExerciseSheet({ open, exerciseId, slug, title, art, onClose }: {
     };
   }, [open, id]);
 
-  const current = view && view.exercise.id === id ? view : null;
+  // a choice of equipment keeps the sheet on screen until its row arrives
+  const current = view && (view.exercise.id === id || view.options.some((o) => o.id === id)) ? view : null;
   return (
-    <Sheet open={open} onClose={onClose} title={current?.exercise.name ?? title} thumbnail={<ExerciseArt slug={current?.exercise.slug ?? slug} art={art} pad="p-1" />} subtitle={current ? exerciseFacts(current.exercise) : undefined}>
+    <Sheet open={open} onClose={onClose} title={current?.exercise.movement ?? current?.exercise.name ?? title} thumbnail={<ExerciseArt slug={current?.exercise.slug ?? slug} art={art} pad="p-1" />} subtitle={current ? exerciseFacts(current.exercise) : undefined}>
       {current ? (
         <ExerciseDetailTabs key={current.exercise.id} view={current} onAlternate={setShown} />
       ) : (

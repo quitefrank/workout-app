@@ -4,6 +4,7 @@ import { db, selectAll, timeZone, userId } from "@/lib/supabase/server";
 import { gridBounds, workoutDay, type YearMonth } from "@/lib/workout/dates";
 import type { EquipmentType, WeightUnit } from "@/lib/workout/format";
 import { floorKey, type MachineLocation } from "@/lib/workout/machine-location";
+import type { MovementOption } from "@/lib/workout/movements";
 import type { TopSet } from "@/lib/workout/progress";
 
 /** Server-side reads for the screens. Every per-user query filters by the app's one user. */
@@ -18,7 +19,7 @@ function rows<T>(res: { data: T[] | null; error: { message: string } | null }): 
   return check(res) ?? [];
 }
 
-const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name)";
+const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name), movement, option_equipment, option_technique";
 
 export type Settings = {
   weight_unit: WeightUnit;
@@ -186,6 +187,9 @@ export type LibraryExercise = {
   notes: string | null;
   muscle_group_id: string | null;
   muscle_groups: { name: string } | null;
+  movement: string | null;
+  option_equipment: string | null;
+  option_technique: string | null;
 };
 
 export type PrescribedRow = {
@@ -267,6 +271,7 @@ export type WorkoutDetail = {
   exercises: WorkoutExerciseRow[];
   /** The most recent other completed session of each exercise on each floor, keyed by floorKey. */
   lastTime: Record<string, LastTime>;
+  movementOptions: Record<string, MovementOption[]>;
 };
 
 export async function getWorkout(id: string): Promise<WorkoutDetail | null> {
@@ -285,11 +290,33 @@ export async function getWorkout(id: string): Promise<WorkoutDetail | null> {
   const exercises = [...workout_exercises]
     .sort((a, b) => a.position - b.position)
     .map((we) => ({ ...we, sets: [...we.sets].sort((a, b) => a.set_number - b.set_number) }));
+  const movementOptions = await getMovementOptions(exercises.map((e) => e.exercises.movement));
+  // every way of doing each movement, so switching equipment shows that row's last time straight away
   const lastTime = await getLastTimes(
-    exercises.map((e) => e.exercises.id),
+    [...new Set([...exercises.map((e) => e.exercises.id), ...Object.values(movementOptions).flat().map((o) => o.id)])],
     id,
   );
-  return { ...rest, day: workoutDay(rest, timeZone()) ?? "", exercises, lastTime };
+  return { ...rest, day: workoutDay(rest, timeZone()) ?? "", exercises, lastTime, movementOptions };
+}
+
+/** The rows of each movement, standard way first within each equipment. */
+export async function getMovementOptions(movements: (string | null)[]): Promise<Record<string, MovementOption[]>> {
+  const wanted = [...new Set(movements.filter((m): m is string => !!m))];
+  if (wanted.length === 0) return {};
+  const found = rows(
+    await db()
+      .from("exercises")
+      .select("id, slug, name, has_floors, movement, option_equipment, option_technique")
+      .in("movement", wanted)
+      .order("option_equipment")
+      .order("option_technique", { nullsFirst: true }),
+  );
+  const out: Record<string, MovementOption[]> = {};
+  for (const e of found) {
+    if (!e.movement || !e.option_equipment) continue;
+    (out[e.movement] ??= []).push({ id: e.id, slug: e.slug, name: e.name, equipment: e.option_equipment, technique: e.option_technique, hasFloors: e.has_floors });
+  }
+  return out;
 }
 
 async function getLastTimes(exerciseIds: string[], excludeWorkoutId: string): Promise<Record<string, LastTime>> {

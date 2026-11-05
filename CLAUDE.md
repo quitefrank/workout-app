@@ -363,11 +363,16 @@ program seed's Lat Pulldown and Notion's Machine Pulldown into Lat Pulldown.
 `KEEP_UNREFERENCED` in `scripts/data/programs/library.ts` names seed-owned exercises the
 program seed must keep although nothing references them.
 
-## Consolidation prototype
+## Movements
 
-`/lab/consolidation` tries out one exercise per movement, with equipment and technique as values on the
-logged row. It reads real program days and history and writes nothing; nothing links to it. The proposed
-families are in `src/app/lab/consolidation/movements.ts`. Delete the folder once Frank has decided.
+Library rows that are one movement show as one entry, and every row stays (Frank's call, 2026-11-05): each keeps
+its own image, how-to, history and PRs. `exercises.movement`, `option_equipment` and `option_technique` (migration
+0014) group them, and `src/lib/workout/movements.ts` holds the pure logic. Library and search show each movement
+once, opening on the row with history. `MovementPicker` shows Equipment and Technique pop-ups in the sheet and on
+the active workout's card, and a choice switches to that row, so its image, last time and PRs follow. On a workout
+the row and its sets move with it (`setExerciseOption`), and the template is untouched, so next time starts on what
+the program prescribes. Different angles or positions (flat and incline) stay separate movements. Grouping is data,
+so changing it never touches a log.
 
 ## Following a program is optional
 
@@ -675,6 +680,7 @@ measurements in `docs/lab/glass-presets.md`.
 - Done: every screen in `docs/planning.md` in Liquid Glass Preset 1.
 - Done: programs in the UI (`/programs/[id]`, Programs on Templates,
   Up Next on Home) and the Achilles rehab templates by phase.
-- Not built: adding or swapping an exercise mid-workout.
+- Not built: adding or swapping an exercise mid-workout. Frank wants swapping next (2026-11-05): when a machine is
+  taken, an easy way to swap a program's exercise for one of its alternates.
 - `_notion_id` stays: it is the ownership key for the three seeds
   (`template:`, `achilles:`, `program:`), not a temporary import column

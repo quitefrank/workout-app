@@ -267,6 +267,9 @@ export type Database = {
           equipment_type: Database["public"]["Enums"]["equipment_type"]
           floor_transfer_required: boolean | null
           has_floors: boolean
+          movement: string | null
+          option_equipment: string | null
+          option_technique: string | null
           id: string
           load_direction: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot: boolean | null
@@ -292,6 +295,9 @@ export type Database = {
           equipment_type?: Database["public"]["Enums"]["equipment_type"]
           floor_transfer_required?: boolean | null
           has_floors?: boolean
+          movement?: string | null
+          option_equipment?: string | null
+          option_technique?: string | null
           id?: string
           load_direction?: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot?: boolean | null
@@ -317,6 +323,9 @@ export type Database = {
           equipment_type?: Database["public"]["Enums"]["equipment_type"]
           floor_transfer_required?: boolean | null
           has_floors?: boolean
+          movement?: string | null
+          option_equipment?: string | null
+          option_technique?: string | null
           id?: string
           load_direction?: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot?: boolean | null

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 import { TrendChart } from "@/components/charts";
 import type { ExerciseView } from "@/lib/exercise-view";
@@ -10,6 +11,7 @@ import { latestFloor, metricBest, metricSeries, sessionsOnFloor, type ExerciseMe
 import { displayWeight, EQUIPMENT_LABELS, formatNumber } from "@/lib/workout/format";
 import { FIRST_FLOOR, type MachineLocation } from "@/lib/workout/machine-location";
 import { FloorPicker } from "./floor-picker";
+import { MovementPicker } from "./movement-picker";
 import { ChevronRight, TrophyIcon } from "./icons";
 import { Row } from "./page";
 
@@ -24,7 +26,7 @@ const METRICS: { key: ExerciseMetric; label: string }[] = [
 
 /** The exercise's muscle group and equipment, for a subtitle. */
 export function exerciseFacts(exercise: ExerciseView["exercise"]): string {
-  return [exercise.muscle_groups?.name, EQUIPMENT_LABELS[exercise.equipment_type]].filter(Boolean).join(" · ");
+  return [exercise.muscle_groups?.name, exercise.option_equipment ?? EQUIPMENT_LABELS[exercise.equipment_type]].filter(Boolean).join(" · ");
 }
 
 /**
@@ -33,12 +35,14 @@ export function exerciseFacts(exercise: ExerciseView["exercise"]): string {
  * with floors has a floor pop-up under the tabs: the chart, PRs and history show one floor, opening on the last one used.
  */
 export function ExerciseDetailTabs({ view: all, art, onAlternate }: { view: ExerciseView; art?: ReactNode; onAlternate?: (id: string) => void }) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("Summary");
   const hasFloors = all.exercise.has_floors;
   const [floor, setFloor] = useState<MachineLocation>(() => latestFloor(all.sessions) ?? FIRST_FLOOR);
   const view = hasFloors ? { ...all, sessions: sessionsOnFloor(all.sessions, floor) } : all;
   return (
     <>
+      <MovementPicker options={all.options} currentId={all.exercise.id} onSelect={onAlternate ?? ((id) => router.replace(`/exercises/${id}`))} />
       <div role="tablist" aria-label="Exercise" className="flex gap-1 rounded-full bg-fill p-0.5">
         {TABS.map((t) => (
           <button
@@ -64,6 +68,8 @@ export function ExerciseDetailTabs({ view: all, art, onAlternate }: { view: Exer
 
 function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNode; onAlternate?: (id: string) => void }) {
   const { exercise, sessions, unit } = view;
+  // the same movement on other equipment is a choice above, so only other movements are alternates
+  const others = exercise.alternates.filter((a) => !view.options.some((o) => o.id === a.exercise.id));
   const [metric, setMetric] = useState<ExerciseMetric>("heaviest");
   const weight = (n: number) => displayWeight(n, exercise.equipment_type, unit) || "BW";
   const points = useMemo(
@@ -117,11 +123,11 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNo
         <p className="mt-4 rounded-[20px] bg-card px-4 py-3 text-[15px] text-ink-2">Not logged yet.</p>
       )}
 
-      {exercise.alternates.length > 0 && (
+      {others.length > 0 && (
         <>
           <h3 className="mb-2 mt-5 text-[17px] font-semibold">Alternates</h3>
           <div className="grouped">
-            {exercise.alternates.map((a) =>
+            {others.map((a) =>
               onAlternate ? (
                 <button key={a.position} type="button" onClick={() => onAlternate(a.exercise.id)} className="block w-full text-left active:bg-fill">
                   <Row title={a.exercise.name} subtitle={`Option ${a.position}`} chevron />

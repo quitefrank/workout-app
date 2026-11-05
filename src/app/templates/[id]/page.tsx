@@ -6,6 +6,7 @@ import { ChevronLeft } from "@/components/icons";
 import { hueStyle, Row, Screen, SectionHeader, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
 import { getTemplate, getTemplateContext } from "@/lib/data/queries";
+import { exerciseTitle } from "@/lib/workout/movements";
 import { weeksLabel } from "@/lib/programs/label";
 import { PrescriptionLine } from "@/components/prescription-line";
 import { CATEGORY_LABELS, EQUIPMENT_LABELS } from "@/lib/workout/format";
@@ -103,7 +104,7 @@ export default async function TemplatePage({
                 leading={<span className="tabular w-5 shrink-0 text-center text-[15px] text-ink-3">{i + 1}</span>}
                 title={
                   <>
-                    {r.exercises.name}
+                    {exerciseTitle(r.exercises)}
                     {r.variant && <span className="text-ink-2"> · {r.variant}</span>}
                   </>
                 }

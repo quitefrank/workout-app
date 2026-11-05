@@ -90,6 +90,7 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
             done={isDone(we)}
             unit={settings.weight_unit}
             lastTimes={workout.lastTime}
+            options={we.exercises.movement ? (workout.movementOptions[we.exercises.movement] ?? []) : []}
             expanded={expanded === we.id}
             onToggle={() => setExpanded((cur) => (cur === we.id ? null : we.id))}
             onLogged={(isWarmUp) => {

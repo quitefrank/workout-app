@@ -25,7 +25,7 @@ export function GroupExercises({ items, art }: { items: LibraryItem[]; art: Reac
           </li>
         ))}
       </ul>
-      <ExerciseSheet open={open !== null} exerciseId={last?.id ?? null} slug={last?.slug} title={last?.name ?? ""} art={art} onClose={() => setOpen(null)} />
+      <ExerciseSheet open={open !== null} exerciseId={last?.id ?? null} slug={last?.slug} title={last?.movement ?? last?.name ?? ""} art={art} onClose={() => setOpen(null)} />
     </>
   );
 }

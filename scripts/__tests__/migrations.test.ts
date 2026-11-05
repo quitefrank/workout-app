@@ -103,6 +103,7 @@ describe("supabase migrations on PGlite", () => {
       "0011_remove_recovery_workouts.sql",
       "0012_remove_omni.sql",
       "0013_fix_muscle_groups.sql",
+      "0014_movements.sql",
     ]);
   });
 
