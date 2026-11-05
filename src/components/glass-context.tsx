@@ -30,7 +30,7 @@ import { scrollTop } from "@/lib/scroller";
 
 const CELL = 12;
 /** Preset 1 dark side: Haze level = hazeL + avg x hazeAdapt, at Haze 0.5 with black lift 1 */
-const HAZE = { amount: 0.5, level: 0.2, adapt: 0.7 };
+const HAZE = { level: 0.2, adapt: 0.7 };
 
 type Band = { x0: number; x1: number; y0: number; y1: number };
 
@@ -145,11 +145,8 @@ function decide(unit: HTMLElement) {
     unit.classList.toggle("ctx-light", !onDark);
   }
   const level = Math.min(1, HAZE.level + avg * HAZE.adapt);
-  const lift = (HAZE.amount * level).toFixed(3);
-  if (unit.style.getPropertyValue("--haze-lift") !== lift) {
-    unit.style.setProperty("--haze-grey", grey(level));
-    unit.style.setProperty("--haze-lift", lift);
-  }
+  const next = grey(level);
+  if (unit.style.getPropertyValue("--haze-grey") !== next) unit.style.setProperty("--haze-grey", next);
 }
 
 function average(b: Band): number | null {

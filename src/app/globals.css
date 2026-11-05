@@ -60,15 +60,17 @@
   --gl-lum-color: #f8f8f8;
   --gl-lum: 0.2;
   --gl-fill: rgba(254, 254, 254, 0.5);
+  /* Light 25%: how bright the 1px rim is at its top and bottom (.glass::after) */
+  --gl-rim: 0.55;
+  /* Edge glow is added in the shader (plus-lighter); plain white needs this much to add the same on a near-white body */
   --gl-inner:
-    inset 0 1px 0 rgba(255, 255, 255, 0.37), inset 0 -1px 0 rgba(255, 255, 255, 0.15),
-    inset 1px 0 0 rgba(255, 255, 255, 0.1), inset -1px 0 0 rgba(255, 255, 255, 0.1),
-    inset 0 40px 10px -40px rgba(255, 255, 255, 0.16), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.16),
+    inset 0 40px 10px -40px rgba(255, 255, 255, 0.7), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.7),
     inset 0 40px 36px -40px rgba(0, 0, 0, 0.1),
     /* Edge darkening: the lens slope, half at 2.8pt in, gone by 8pt */
     inset 0 0 6px 1px rgba(0, 0, 0, 0.03);
   --gl-outer:
-    0 0 0 0.5px rgba(0, 0, 0, 0.14), -1px 0 0 0 rgba(0, 0, 0, 0.1), 1px 0 0 0 rgba(0, 0, 0, 0.1),
+    /* ring 14% in the preset; the shader feathers it over a device pixel, so it renders as about 8% (measured at 4x) */
+    0 0 0 0.5px rgba(0, 0, 0, 0.08), -1px 0 0 0 rgba(0, 0, 0, 0.1), 1px 0 0 0 rgba(0, 0, 0, 0.1),
     0 8px 15px rgba(0, 0, 0, 0.03);
   --gl-ink: #1a1a1a;
   --gl-ink-on: #007aff;
@@ -76,14 +78,15 @@
 
   /* Dark side: Haze 50% toward 0.2 + 0.7 x what is behind, black lift 1, Light 35%,
      Edge glow 16% depth 10, ring 35%, sides 35% at 0.5pt, cast 4%, Edge darkening 35%.
-     These two are the level over black; a unit that has measured its backdrop
-     overrides them in .ctx-dark with --haze-grey and --haze-lift. */
+     This is the level over black; a unit that has measured its backdrop
+     overrides them in .ctx-dark with --haze-grey. */
   --gd-lum-color: #333333;
   --gd-lum: 0.5;
-  --gd-fill: rgba(255, 255, 255, 0.1);
+  /* The luminosity layer alone pulls the backdrop halfway to the Haze level, as the shader does; a fill on top counted it twice */
+  --gd-fill: transparent;
+  /* Light 35%: how bright the 1px rim is at its top and bottom (.glass::after) */
+  --gd-rim: 0.31;
   --gd-inner:
-    inset 0 1px 0 rgba(255, 255, 255, 0.53), inset 0 -1px 0 rgba(255, 255, 255, 0.21),
-    inset 1px 0 0 rgba(255, 255, 255, 0.14), inset -1px 0 0 rgba(255, 255, 255, 0.14),
     inset 0 40px 10px -40px rgba(255, 255, 255, 0.16), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.16),
     inset 0 0 6px 1px rgba(0, 0, 0, 0.3);
   --gd-outer:
@@ -104,16 +107,10 @@
   --sheet-outer: 0 0 0 0.5px rgba(219, 219, 219, 0.9), 0 8px 48px rgba(0, 0, 0, 0.25);
   /* The dimming behind a sheet, black at the kit's Overlays/Default: 20% light, 48% dark */
   --scrim-alpha: 0.2;
+  /* A glass control on a sheet has no blur or luminosity layer, so its fill is its whole body */
+  --sheet-control-fill: rgba(254, 254, 254, 0.5);
   /* A full-height sheet's opaque body, the kit's Backgrounds/Primary - Elevated */
   --sheet-solid: #ffffff;
-  /* A button on a sheet: the bars' glass by CSS, matched to the shader's back button at 4x. Light's stroke is mostly at the
-     sides (the kit's slivers), its top edge brightens and its top is a touch shaded */
-  --sheet-btn-fill: rgba(254, 254, 254, 0.5);
-  --sheet-btn-rim: 0.55;
-  --sheet-btn-shadow:
-    inset 0 40px 10px -40px rgba(255, 255, 255, 0.16), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.16),
-    inset 0 40px 30px -40px rgba(0, 0, 0, 0.02),
-    0 0 0 0.5px rgba(0, 0, 0, 0.05), 1px 0 0 0 rgba(0, 0, 0, 0.17), -1px 0 0 0 rgba(0, 0, 0, 0.17), 0 8px 15px rgba(0, 0, 0, 0.03);
 
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --mono: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -161,12 +158,8 @@
     --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
     --scrim-alpha: 0.48;
+    --sheet-control-fill: rgba(255, 255, 255, 0.045);
     --sheet-solid: #1c1c1e;
-    --sheet-btn-fill: rgba(255, 255, 255, 0.045);
-    --sheet-btn-rim: 0.31;
-    --sheet-btn-shadow:
-      inset 0 40px 10px -40px rgba(255, 255, 255, 0.05), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.05),
-      0 0 0 0.5px rgba(0, 0, 0, 0.35), 0.5px 0 0 0 rgba(0, 0, 0, 0.35), -0.5px 0 0 0 rgba(0, 0, 0, 0.35), 0 8px 15px rgba(0, 0, 0, 0.04);
   }
 }
 /* Settings picked dark */
@@ -202,12 +195,8 @@
   --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
   --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
   --scrim-alpha: 0.48;
+  --sheet-control-fill: rgba(255, 255, 255, 0.045);
   --sheet-solid: #1c1c1e;
-  --sheet-btn-fill: rgba(255, 255, 255, 0.045);
-  --sheet-btn-rim: 0.31;
-  --sheet-btn-shadow:
-    inset 0 40px 10px -40px rgba(255, 255, 255, 0.05), inset 0 -40px 10px -40px rgba(255, 255, 255, 0.05),
-    0 0 0 0.5px rgba(0, 0, 0, 0.35), 0.5px 0 0 0 rgba(0, 0, 0, 0.35), -0.5px 0 0 0 rgba(0, 0, 0, 0.35), 0 8px 15px rgba(0, 0, 0, 0.04);
 }
 
 
@@ -217,6 +206,7 @@
   --glass-lum: var(--gl-lum);
   --glass-fill: var(--gl-fill);
   --glass-inner: var(--gl-inner);
+  --glass-rim: var(--gl-rim);
   --glass-outer: var(--gl-outer);
   --glass-ink: var(--gl-ink);
   --glass-ink-on: var(--gl-ink-on);
@@ -229,6 +219,7 @@
     --glass-lum: var(--gd-lum);
     --glass-fill: var(--gd-fill);
     --glass-inner: var(--gd-inner);
+    --glass-rim: var(--gd-rim);
     --glass-outer: var(--gd-outer);
     --glass-ink: var(--gd-ink);
     --glass-ink-on: var(--gd-ink-on);
@@ -241,6 +232,7 @@
   --glass-lum: var(--gd-lum);
   --glass-fill: var(--gd-fill);
   --glass-inner: var(--gd-inner);
+  --glass-rim: var(--gd-rim);
   --glass-outer: var(--gd-outer);
   --glass-ink: var(--gd-ink);
   --glass-ink-on: var(--gd-ink-on);
@@ -252,8 +244,9 @@
   /* Read here, not on :root, so each unit's own measurement applies */
   --glass-lum-color: var(--haze-grey, var(--gd-lum-color));
   --glass-lum: var(--gd-lum);
-  --glass-fill: rgb(255 255 255 / var(--haze-lift, 0.1));
+  --glass-fill: var(--gd-fill);
   --glass-inner: var(--gd-inner);
+  --glass-rim: var(--gd-rim);
   --glass-outer: var(--gd-outer);
   --glass-ink: var(--gd-ink);
   --glass-ink-on: var(--gd-ink-on);
@@ -264,6 +257,7 @@
   --glass-lum: var(--gl-lum);
   --glass-fill: var(--gl-fill);
   --glass-inner: var(--gl-inner);
+  --glass-rim: var(--gl-rim);
   --glass-outer: var(--gl-outer);
   --glass-ink: var(--gl-ink);
   --glass-ink-on: var(--gl-ink-on);
@@ -383,7 +377,7 @@ body {
     background: var(--glass-fill);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-sat));
-    box-shadow: var(--glass-outer);
+    box-shadow: var(--glass-inner), var(--glass-outer);
     /* A unit changing sides crossfades */
     transition:
       background-color 0.25s linear,
@@ -424,8 +418,32 @@ body {
     mix-blend-mode: luminosity;
   }
 
+  /* The rim of light, the shader's Edge light: a 1px ring whose stops are its sixth-power falloff, so it lights the top
+     and bottom and is gone by the sides, which an offset inset shadow cannot do */
+  .glass::after,
+  [data-tab-lens]::after {
+    padding: 1px;
+    background: linear-gradient(
+      to bottom,
+      #fff 0%,
+      rgb(255 255 255 / 0.26) 10%,
+      rgb(255 255 255 / 0.047) 20%,
+      rgb(255 255 255 / 0.004) 30%,
+      transparent 50%,
+      rgb(255 255 255 / 0.004) 70%,
+      rgb(255 255 255 / 0.047) 80%,
+      rgb(255 255 255 / 0.26) 90%,
+      #fff 100%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
   .glass::after {
-    box-shadow: var(--glass-inner);
+    opacity: var(--glass-rim);
   }
 
   /* Apple's Glass Prominent on the CSS path: the kit's stack (see prominentMaterial) as far as CSS can blend it. The white
@@ -445,8 +463,11 @@ body {
       0 8px 15px var(--glass-prominent-cast);
   }
 
-  .glass-prominent::before,
   .glass-prominent::after {
+    padding: 1.5px;
+    opacity: 0.3;
+  }
+  .glass-prominent::before {
     display: none;
   }
 
@@ -483,42 +504,15 @@ body {
       transform 450ms cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  /* A control on a sheet: no shader and no blur of its own, since it sits on the sheet. Its edges are the bars' glass: a
-     soft edge glow, a stroke and slivers outside, a shadow, and a 1px rim of light. The rim's stops are the shader's
-     sixth-power falloff (Edge light in src/glass/engine/materials.ts), so it lights the top and bottom and is gone by
-     the sides, which an offset inset shadow cannot do. */
+  /* A control on a sheet is the bars' glass without its blur, since it sits on the sheet */
   .glass-sheet .glass {
-    background: var(--sheet-btn-fill);
+    background: var(--sheet-control-fill);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-    box-shadow: var(--sheet-btn-shadow);
   }
 
   .glass-sheet .glass::before {
     display: none;
-  }
-
-  .glass-sheet .glass::after {
-    padding: 1px;
-    box-shadow: none;
-    background: linear-gradient(
-      to bottom,
-      #fff 0%,
-      rgb(255 255 255 / 0.26) 10%,
-      rgb(255 255 255 / 0.047) 20%,
-      rgb(255 255 255 / 0.004) 30%,
-      transparent 50%,
-      rgb(255 255 255 / 0.004) 70%,
-      rgb(255 255 255 / 0.047) 80%,
-      rgb(255 255 255 / 0.26) 90%,
-      #fff 100%
-    );
-    opacity: var(--sheet-btn-rim);
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
   }
 
   /* Over the blur and under the controls: a sheet below full height is the CSS material alone */
@@ -818,13 +812,13 @@ body {
     opacity: calc(1 - var(--lens-lift, 0));
   }
 
+  [data-tab-lens] {
+    background: rgb(255 255 255 / calc(0.06 * var(--lens-lift, 0)));
+    box-shadow: 0 6px 18px rgb(0 0 0 / calc(0.18 * var(--lens-lift, 0)));
+  }
+
   [data-tab-lens]::after {
-    background: rgb(255 255 255 / 0.06);
-    box-shadow:
-      inset 0 1px 0 rgb(255 255 255 / 0.45),
-      inset 0 -1px 0 rgb(255 255 255 / 0.18),
-      0 6px 18px rgb(0 0 0 / 0.18);
-    opacity: var(--lens-lift, 0);
+    opacity: calc(var(--glass-rim) * var(--lens-lift, 0));
   }
 }
 

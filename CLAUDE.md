@@ -468,6 +468,10 @@ gets one fresh start. A resize restarts the stage only when the width or
 the pixel ratio changes; the canvas is sized to the large viewport
 (`100lvh`), so Safari's toolbar collapsing only repaints.
 
+Both paths use the same properties, and a fallback change is measured against the
+shader at 4x (rules in `Templates/liquid-glass/liquid-glass-reference.md` in the
+vault).
+
 Without WebGPU (or before the stage is ready) the CSS material carries
 it: `.glass` in `globals.css`, dark and light, with blur, haze, fills,
 rim, inner shadows and outer ring, and `src/components/glass-context.tsx`
