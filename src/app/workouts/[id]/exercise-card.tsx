@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { type ReactNode, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { deleteSet, logSet, quickLog, updateSet } from "@/app/actions";
+import { deleteSet, logSet, quickLog, setExerciseFloor, updateSet } from "@/app/actions";
+import { FloorSwitch } from "@/components/floor-switch";
 import { CheckIcon, ChevronDown, DumbbellIcon, HashIcon, PencilIcon, PlusIcon, TrashIcon, XIcon } from "@/components/icons";
 import { PrescriptionLine } from "@/components/prescription-line";
 import { Sheet, SheetConfirm } from "@/components/sheet";
 import { cn } from "@/lib/cn";
 import type { LastTime, SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
 import { dayLabel, localDate } from "@/lib/workout/dates";
+import { floorKey, floorLabel, type MachineLocation } from "@/lib/workout/machine-location";
 import {
   displayWeight,
   formatNumber,
@@ -31,7 +33,7 @@ export function ExerciseCard({
   we,
   done,
   unit,
-  lastTime,
+  lastTimes,
   expanded,
   onToggle,
   onLogged,
@@ -40,12 +42,15 @@ export function ExerciseCard({
   we: WorkoutExerciseRow;
   done: boolean;
   unit: WeightUnit;
-  lastTime: LastTime | null;
+  lastTimes: Record<string, LastTime>;
   expanded: boolean;
   onToggle: () => void;
   onLogged: (isWarmUp: boolean) => void;
 }) {
   const ex = we.exercises;
+  // The floor of this row. It decides which "last time" shows, so history from the other floor never fills it in.
+  const [floor, setOptimisticFloor] = useOptimistic<MachineLocation | null>(we.machine_location);
+  const lastTime = lastTimes[floorKey(ex.id, floor)] ?? null;
   const [sets, addOptimistic] = useOptimistic<Pending[], Pending>(we.sets, (cur, s) => [...cur, s]);
   const [pending, start] = useTransition();
   const [quick, setQuick] = useState(false);
@@ -114,11 +119,7 @@ export function ExerciseCard({
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[17px] font-semibold leading-[22px]">
             {ex.name}
-            {ex.machine_location && (
-              <span className="ml-1.5 align-middle text-[13px] font-medium text-ink-2">
-                {ex.machine_location === "upstairs" ? "↑ Up" : "↓ Down"}
-              </span>
-            )}
+            {ex.has_floors && <span className="ml-1.5 align-middle text-[13px] font-medium text-ink-2">{floorLabel(floor)}</span>}
           </span>
           <span className="block truncate text-[15px] leading-5 text-ink-2">
             <PrescriptionLine p={we} empty="No prescription" />
@@ -133,6 +134,23 @@ export function ExerciseCard({
 
       {expanded && (
         <div className="px-4 pb-4">
+          {ex.has_floors && (
+            <FloorSwitch
+              value={floor}
+              disabled={pending}
+              className="mb-3"
+              onChange={(next) =>
+                start(async () => {
+                  setOptimisticFloor(next);
+                  try {
+                    await setExerciseFloor(we.id, next);
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Could not change the floor");
+                  }
+                })
+              }
+            />
+          )}
           {lastTime && lastTime.sets.length > 0 && (
             <p className="mb-2 text-[13px] text-ink-2">
               <span className="font-semibold">Last time</span> · {dayLabel(localDate(lastTime.completedAt))}:{" "}

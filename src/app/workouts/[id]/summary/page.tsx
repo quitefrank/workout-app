@@ -8,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { getSettings, getTopSets, getWorkout } from "@/lib/data/queries";
 import { dayLabel, durationMinutes } from "@/lib/workout/dates";
 import { displayWeight, formatNumber, isRawReading } from "@/lib/workout/format";
+import { floorKey, floorLabel } from "@/lib/workout/machine-location";
 import { prs } from "@/lib/workout/progress";
 import { DeleteWorkout } from "./delete-workout";
 
@@ -21,7 +22,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
   // PRs this workout set: compare against every earlier session of the same exercises
   const exerciseIds = new Set(workout.exercises.map((e) => e.exercises.id));
   const history = (await getTopSets()).filter((t) => exerciseIds.has(t.exercise_id));
-  const prSet = new Set(prs(history).filter((p) => p.workout_id === id).map((p) => p.exercise_id));
+  const prSet = new Set(prs(history).filter((p) => p.workout_id === id).map((p) => floorKey(p.exercise_id, p.floor)));
 
   const minutes = durationMinutes(workout.started_at, workout.completed_at);
   const working = workout.exercises.flatMap((e) => e.sets.filter((s) => !s.is_warm_up));
@@ -69,9 +70,12 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
             <section key={we.id} className="rounded-[26px] bg-card px-4 py-3">
               <div className="flex items-start justify-between gap-3">
                 <Link href={`/exercises/${we.exercises.id}`} className="min-w-0">
-                  <h2 className="truncate text-[17px] font-semibold">{we.exercises.name}</h2>
+                  <h2 className="truncate text-[17px] font-semibold">
+                    {we.exercises.name}
+                    {we.machine_location && <span className="ml-1.5 text-[13px] font-medium text-ink-2">{floorLabel(we.machine_location)}</span>}
+                  </h2>
                 </Link>
-                {prSet.has(we.exercises.id) && (
+                {prSet.has(floorKey(we.exercises.id, we.machine_location)) && (
                   <span className="flex shrink-0 items-center gap-1 rounded-full bg-orange/15 px-2 py-0.5 text-[13px] font-semibold text-orange">
                     <TrophyIcon size={14} /> PR
                   </span>

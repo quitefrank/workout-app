@@ -1,8 +1,19 @@
 import { epley } from "./format";
+import type { MachineLocation } from "./machine-location";
 
 /** One completed workout's sets of one exercise, as the exercise sheet shows them. */
 export type ExerciseSet = { number: number; warmUp: boolean; weight: number | null; reps: number | null; seconds: number | null };
-export type ExerciseSession = { workoutId: string; name: string; completedAt: string; sets: ExerciseSet[] };
+export type ExerciseSession = { workoutId: string; name: string; completedAt: string; floor: MachineLocation | null; sets: ExerciseSet[] };
+
+/** The floor of the most recent session on one. */
+export function latestFloor(sessions: readonly ExerciseSession[]): MachineLocation | null {
+  return [...sessions].sort((a, b) => b.completedAt.localeCompare(a.completedAt)).find((s) => s.floor)?.floor ?? null;
+}
+
+/** The sessions on one floor. Metrics are only ever worked out over one floor's sessions, so PRs never mix. */
+export function sessionsOnFloor(sessions: readonly ExerciseSession[], floor: MachineLocation | null): ExerciseSession[] {
+  return sessions.filter((s) => s.floor === floor);
+}
 
 export type ExerciseMetric = "heaviest" | "e1rm" | "volume";
 export type MetricPoint = { at: string; value: number; weight: number; reps: number };

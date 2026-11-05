@@ -29,7 +29,6 @@ import {
   weekStarts,
   workoutDay,
 } from "../dates";
-import { siblingFor } from "../machine-location";
 import { bests, latestByExercise, prs, type TopSet } from "../progress";
 
 const empty: Prescription = {
@@ -210,33 +209,26 @@ describe("calendar navigation", () => {
   });
 });
 
-describe("machine location", () => {
-  const lib = [
-    { id: "a", name: "Chest Press", machine_location: "upstairs" as const },
-    { id: "b", name: "Chest Press", machine_location: "downstairs" as const },
-    { id: "c", name: "Leg Extension", machine_location: "upstairs" as const },
-    { id: "d", name: "Bench Press", machine_location: null },
-  ];
-
-  it("swaps to the sibling on the other floor", () => {
-    expect(siblingFor(lib[0], "downstairs", lib).id).toBe("b");
-    expect(siblingFor(lib[1], "upstairs", lib).id).toBe("a");
-  });
-
-  it("keeps the row when there is no sibling, no location, or no choice", () => {
-    expect(siblingFor(lib[2], "downstairs", lib).id).toBe("c");
-    expect(siblingFor(lib[3], "upstairs", lib).id).toBe("d");
-    expect(siblingFor(lib[0], null, lib).id).toBe("a");
-  });
-});
-
 describe("progress", () => {
   const rows: TopSet[] = [
-    { exercise_id: "bench", workout_id: "w1", weight: 100, reps: 5, completed_at: "2026-09-01T10:00:00Z" },
-    { exercise_id: "bench", workout_id: "w2", weight: 100, reps: 4, completed_at: "2026-09-08T10:00:00Z" },
-    { exercise_id: "bench", workout_id: "w3", weight: 105, reps: 5, completed_at: "2026-09-15T10:00:00Z" },
-    { exercise_id: "squat", workout_id: "w3", weight: 200, reps: 3, completed_at: "2026-09-15T10:00:00Z" },
+    { exercise_id: "bench", workout_id: "w1", weight: 100, reps: 5, completed_at: "2026-09-01T10:00:00Z", floor: null },
+    { exercise_id: "bench", workout_id: "w2", weight: 100, reps: 4, completed_at: "2026-09-08T10:00:00Z", floor: null },
+    { exercise_id: "bench", workout_id: "w3", weight: 105, reps: 5, completed_at: "2026-09-15T10:00:00Z", floor: null },
+    { exercise_id: "squat", workout_id: "w3", weight: 200, reps: 3, completed_at: "2026-09-15T10:00:00Z", floor: null },
   ];
+
+  it("keeps PRs separate per floor", () => {
+    const crunch: TopSet[] = [
+      { exercise_id: "crunch", workout_id: "a", weight: 130, reps: 10, completed_at: "2026-09-01T10:00:00Z", floor: "downstairs" },
+      // far lighter, but the first session on this floor: a baseline, not beaten by the other floor
+      { exercise_id: "crunch", workout_id: "b", weight: 40, reps: 10, completed_at: "2026-09-02T10:00:00Z", floor: "upstairs" },
+      // a PR upstairs, though it is well below the downstairs best
+      { exercise_id: "crunch", workout_id: "c", weight: 50, reps: 10, completed_at: "2026-09-03T10:00:00Z", floor: "upstairs" },
+      // not a PR downstairs, though it beats everything upstairs
+      { exercise_id: "crunch", workout_id: "d", weight: 120, reps: 10, completed_at: "2026-09-04T10:00:00Z", floor: "downstairs" },
+    ];
+    expect(prs(crunch).map((p) => p.workout_id)).toEqual(["c"]);
+  });
 
   it("finds the latest top set per exercise", () => {
     const m = latestByExercise(rows);

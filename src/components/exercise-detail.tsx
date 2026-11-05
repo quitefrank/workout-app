@@ -6,8 +6,10 @@ import { TrendChart } from "@/components/charts";
 import type { ExerciseView } from "@/lib/exercise-view";
 import { cn } from "@/lib/cn";
 import { dayLabel, localDate } from "@/lib/workout/dates";
-import { metricBest, metricSeries, type ExerciseMetric, type ExerciseSession, type MetricPoint } from "@/lib/workout/exercise-metrics";
+import { latestFloor, metricBest, metricSeries, sessionsOnFloor, type ExerciseMetric, type ExerciseSession, type MetricPoint } from "@/lib/workout/exercise-metrics";
 import { displayWeight, EQUIPMENT_LABELS, formatNumber } from "@/lib/workout/format";
+import { FIRST_FLOOR, type MachineLocation } from "@/lib/workout/machine-location";
+import { FloorSwitch } from "./floor-switch";
 import { ChevronRight, TrophyIcon } from "./icons";
 import { Row } from "./page";
 
@@ -20,25 +22,24 @@ const METRICS: { key: ExerciseMetric; label: string }[] = [
   { key: "volume", label: "Best Set Volume" },
 ];
 
-/** The exercise's muscle group, equipment and floor, for a subtitle. */
+/** The exercise's muscle group and equipment, for a subtitle. */
 export function exerciseFacts(exercise: ExerciseView["exercise"]): string {
-  return [
-    exercise.muscle_groups?.name,
-    EQUIPMENT_LABELS[exercise.equipment_type],
-    exercise.machine_location && (exercise.machine_location === "upstairs" ? "Upstairs" : "Downstairs"),
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  return [exercise.muscle_groups?.name, EQUIPMENT_LABELS[exercise.equipment_type]].filter(Boolean).join(" · ");
 }
 
 /**
  * An exercise's three tabs, in its sheet and on its own page. The tabs are the kit's segmented control. The sheet shows
- * the image and facts in its header, so only the page passes `art`, which puts them at the top of Summary.
+ * the image and facts in its header, so only the page passes `art`, which puts them at the top of Summary. An exercise
+ * with floors has a floor switch over the tabs: the chart, PRs and history show one floor, opening on the last one used.
  */
-export function ExerciseDetailTabs({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNode; onAlternate?: (id: string) => void }) {
+export function ExerciseDetailTabs({ view: all, art, onAlternate }: { view: ExerciseView; art?: ReactNode; onAlternate?: (id: string) => void }) {
   const [tab, setTab] = useState<Tab>("Summary");
+  const hasFloors = all.exercise.has_floors;
+  const [floor, setFloor] = useState<MachineLocation>(() => latestFloor(all.sessions) ?? FIRST_FLOOR);
+  const view = hasFloors ? { ...all, sessions: sessionsOnFloor(all.sessions, floor) } : all;
   return (
     <>
+      {hasFloors && <FloorSwitch value={floor} onChange={setFloor} className="mb-2" />}
       <div role="tablist" aria-label="Exercise" className="flex gap-1 rounded-full bg-fill p-0.5">
         {TABS.map((t) => (
           <button
@@ -147,7 +148,7 @@ function History({ view }: { view: ExerciseView }) {
   return (
     <div className="mt-2">
       {[...sessions].reverse().map((s) => (
-        <Session key={s.workoutId} session={s} weight={(n) => displayWeight(n, exercise.equipment_type, unit) || "BW"} />
+        <Session key={`${s.workoutId}-${s.floor}`} session={s} weight={(n) => displayWeight(n, exercise.equipment_type, unit) || "BW"} />
       ))}
     </div>
   );

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { db, timeZone, userId } from "@/lib/supabase/server";
 import { localDate } from "@/lib/workout/dates";
 import { midpoint } from "@/lib/workout/format";
-import { siblingFor, type MachineLocation } from "@/lib/workout/machine-location";
+import { FIRST_FLOOR, FLOORS, type MachineLocation } from "@/lib/workout/machine-location";
 import { parseWeightCsv } from "../../scripts/parse-weight-csv";
 
 /**
@@ -21,7 +21,7 @@ function fail(error: { message: string } | null): void {
 async function ownedWorkout(workoutId: string) {
   const { data, error } = await db()
     .from("workouts")
-    .select("id, machine_location, completed_at")
+    .select("id, completed_at")
     .eq("id", workoutId)
     .eq("user_id", userId())
     .maybeSingle();
@@ -59,23 +59,32 @@ function refreshWorkout(workoutId: string) {
   revalidatePath("/", "layout");
 }
 
-async function machineLibrary() {
+/** The floor each exercise was last done on. */
+async function lastFloors(exerciseIds: string[]): Promise<Map<string, MachineLocation>> {
+  const out = new Map<string, MachineLocation>();
+  if (exerciseIds.length === 0) return out;
   const { data, error } = await db()
-    .from("exercises")
-    .select("id, name, machine_location")
-    .not("machine_location", "is", null);
+    .from("v_workout_exercise_top_set")
+    .select("exercise_id, machine_location")
+    .eq("user_id", userId())
+    .in("exercise_id", exerciseIds)
+    .not("machine_location", "is", null)
+    .not("workout_completed_at", "is", null)
+    .order("workout_completed_at", { ascending: false })
+    .limit(exerciseIds.length * 20);
   fail(error);
-  return data ?? [];
+  for (const r of data ?? []) if (r.exercise_id && r.machine_location && !out.has(r.exercise_id)) out.set(r.exercise_id, r.machine_location);
+  return out;
 }
 
 // ------------------------------------------------------------
 // Starting and finishing
 // ------------------------------------------------------------
 
-export async function startWorkout(templateId: string, location: MachineLocation | null): Promise<void> {
+export async function startWorkout(templateId: string): Promise<void> {
   const { data: rows, error: rowsError } = await db()
     .from("template_exercises")
-    .select("*, exercises(id, name, machine_location)")
+    .select("*, exercises(id, has_floors)")
     .eq("template_id", templateId)
     .order("position");
   fail(rowsError);
@@ -86,7 +95,6 @@ export async function startWorkout(templateId: string, location: MachineLocation
     .insert({
       user_id: userId(),
       template_id: templateId,
-      machine_location: location,
       scheduled_for: localDate(now, timeZone()),
       started_at: now.toISOString(),
     })
@@ -94,13 +102,14 @@ export async function startWorkout(templateId: string, location: MachineLocation
     .single();
   fail(error);
 
-  const library = location ? await machineLibrary() : [];
+  // A two-floor exercise starts on the floor it was last done on; setExerciseFloor changes it from there
+  const floors = await lastFloors((rows ?? []).filter((r) => r.exercises?.has_floors).map((r) => r.exercise_id));
   const inserts = (rows ?? []).map((r) => {
-    const ex = r.exercises ? siblingFor(r.exercises, location, library) : null;
     const notes = [r.variant, r.notes].filter(Boolean).join(" · ") || null;
     return {
       workout_id: workout!.id,
-      exercise_id: ex?.id ?? r.exercise_id,
+      exercise_id: r.exercise_id,
+      machine_location: r.exercises?.has_floors ? (floors.get(r.exercise_id) ?? FIRST_FLOOR) : null,
       position: r.position,
       prescribed_sets_min: r.prescribed_sets_min,
       prescribed_sets_max: r.prescribed_sets_max,
@@ -162,32 +171,28 @@ export async function deleteWorkout(workoutId: string): Promise<void> {
   redirect("/workouts");
 }
 
-/** Switch floors: every machine row with nothing logged moves to its sibling. */
-export async function setMachineLocation(workoutId: string, location: MachineLocation | null): Promise<void> {
-  await ownedWorkout(workoutId);
-  const { error } = await db().from("workouts").update({ machine_location: location }).eq("id", workoutId);
+/**
+ * The floor of one exercise in a workout. The workout's other two-floor exercises with nothing logged follow it, since
+ * they are probably on the same floor; anything already logged keeps its own.
+ */
+export async function setExerciseFloor(workoutExerciseId: string, floor: MachineLocation): Promise<void> {
+  if (!FLOORS.some((f) => f.value === floor)) throw new Error("Unknown floor");
+  const we = await ownedWorkoutExercise(workoutExerciseId);
+  const { error } = await db().from("workout_exercises").update({ machine_location: floor }).eq("id", workoutExerciseId);
   fail(error);
-  if (location) {
-    const { data: rows, error: rowsError } = await db()
-      .from("workout_exercises")
-      .select("id, exercises(id, name, machine_location), sets(count)")
-      .eq("workout_id", workoutId);
-    fail(rowsError);
-    const library = await machineLibrary();
-    for (const r of (rows ?? []) as unknown as {
-      id: string;
-      exercises: { id: string; name: string; machine_location: MachineLocation | null } | null;
-      sets: { count: number }[];
-    }[]) {
-      if (!r.exercises || (r.sets?.[0]?.count ?? 0) > 0) continue;
-      const next = siblingFor(r.exercises, location, library);
-      if (next.id !== r.exercises.id) {
-        const { error: upError } = await db().from("workout_exercises").update({ exercise_id: next.id }).eq("id", r.id);
-        fail(upError);
-      }
-    }
+  const { data: rows, error: rowsError } = await db()
+    .from("workout_exercises")
+    .select("id, exercises(has_floors), sets(count)")
+    .eq("workout_id", we.workout_id);
+  fail(rowsError);
+  const followers = ((rows ?? []) as unknown as { id: string; exercises: { has_floors: boolean } | null; sets: { count: number }[] }[])
+    .filter((r) => r.exercises?.has_floors && (r.sets?.[0]?.count ?? 0) === 0)
+    .map((r) => r.id);
+  if (followers.length) {
+    const { error: followError } = await db().from("workout_exercises").update({ machine_location: floor }).in("id", followers);
+    fail(followError);
   }
-  refreshWorkout(workoutId);
+  refreshWorkout(we.workout_id);
 }
 
 // ------------------------------------------------------------
@@ -289,7 +294,6 @@ export async function quickLog(
 export async function saveSettings(input: {
   weightUnit: "lbs" | "kg";
   defaultRestSeconds: number;
-  defaultMachineLocation: MachineLocation | null;
 }): Promise<void> {
   const rest = Math.round(input.defaultRestSeconds);
   if (!Number.isFinite(rest) || rest < 0 || rest > 1800) throw new Error("Rest must be between 0 and 30 minutes.");
@@ -299,7 +303,6 @@ export async function saveSettings(input: {
       user_id: userId(),
       weight_unit: input.weightUnit === "kg" ? "kg" : "lbs",
       default_rest_seconds: rest,
-      default_machine_location: input.defaultMachineLocation,
     });
   fail(error);
   revalidatePath("/", "layout");

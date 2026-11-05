@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { completeWorkout, discardWorkout, setMachineLocation } from "@/app/actions";
+import { completeWorkout, discardWorkout } from "@/app/actions";
 import { Button } from "@/components/button";
 import { GlassButton, GlassCircleButton, GlassCircleLink } from "@/components/glass";
 import { TopBar } from "@/components/top-bar";
@@ -12,7 +12,6 @@ import { useElapsed } from "@/components/tab-bar";
 import { cn } from "@/lib/cn";
 import type { Settings, WorkoutDetail } from "@/lib/data/queries";
 import { formatClock } from "@/lib/workout/format";
-import type { MachineLocation } from "@/lib/workout/machine-location";
 import { ExerciseCard, workingTarget } from "./exercise-card";
 import { RestTimer, useRestTimer } from "./rest-timer";
 
@@ -42,7 +41,6 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
   const [expanded, setExpanded] = useState<string | null>(firstOpen);
 
   const doneCount = workout.exercises.filter(isDone).length;
-  const hasMachines = workout.exercises.some((we) => we.exercises.machine_location);
   const totalSets = workout.exercises.reduce((n, we) => n + we.sets.filter((s) => !s.is_warm_up).length, 0);
 
   const run = (fn: () => Promise<void>) =>
@@ -81,13 +79,6 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
             {doneCount} of {workout.exercises.length} exercises · {totalSets} sets
           </span>
         </div>
-        {hasMachines && (
-          <LocationSwitch
-            value={workout.machine_location}
-            disabled={pending}
-            onChange={(loc) => run(() => setMachineLocation(workout.id, loc))}
-          />
-        )}
       </header>
 
       <div className="flex flex-col gap-2.5 px-4">
@@ -98,7 +89,7 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
             we={we}
             done={isDone(we)}
             unit={settings.weight_unit}
-            lastTime={workout.lastTime[we.exercises.id] ?? null}
+            lastTimes={workout.lastTime}
             expanded={expanded === we.id}
             onToggle={() => setExpanded((cur) => (cur === we.id ? null : we.id))}
             onLogged={(isWarmUp) => {
@@ -143,44 +134,6 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
         </div>
       </Sheet>
     </main>
-  );
-}
-
-/** The kit's segmented control (content layer, not glass). */
-function LocationSwitch({
-  value,
-  disabled,
-  onChange,
-}: {
-  value: MachineLocation | null;
-  disabled: boolean;
-  onChange: (v: MachineLocation | null) => void;
-}) {
-  const options = [
-    ["upstairs", "Upstairs"],
-    ["downstairs", "Downstairs"],
-  ] as const;
-  return (
-    <div role="group" aria-label="Machine location" className="mt-3 flex gap-1 rounded-full bg-fill p-0.5">
-      {options.map(([v, label]) => {
-        const on = value === v;
-        return (
-          <button
-            key={v}
-            type="button"
-            aria-pressed={on}
-            disabled={disabled}
-            onClick={() => onChange(on ? null : v)}
-            className={cn(
-              "h-8 flex-1 rounded-full text-[13px] font-medium transition",
-              on && "bg-[var(--seg-on)] font-semibold shadow-[var(--seg-shadow)]",
-            )}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 

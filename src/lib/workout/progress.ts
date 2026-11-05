@@ -5,6 +5,7 @@
  */
 
 import { epley } from "./format";
+import { floorKey, type MachineLocation } from "./machine-location";
 
 export type TopSet = {
   exercise_id: string;
@@ -12,9 +13,10 @@ export type TopSet = {
   weight: number;
   reps: number;
   completed_at: string; // the workout's completed_at
+  floor: MachineLocation | null;
 };
 
-/** Most recent top set per exercise. */
+/** Most recent top set per exercise, whichever floor it was on. It carries its floor, for the label. */
 export function latestByExercise(rows: readonly TopSet[]): Map<string, TopSet> {
   const out = new Map<string, TopSet>();
   for (const r of rows) {
@@ -41,7 +43,8 @@ export type Pr = TopSet & { e1rm: number; previous: number };
 
 /**
  * Sessions whose top set beat every earlier estimated 1RM for the same
- * exercise. An exercise's first session is a baseline, not a PR.
+ * exercise on the same floor. The first session on a floor is a baseline,
+ * not a PR.
  */
 export function prs(rows: readonly TopSet[]): Pr[] {
   const sorted = [...rows].sort((a, b) => a.completed_at.localeCompare(b.completed_at));
@@ -49,9 +52,10 @@ export function prs(rows: readonly TopSet[]): Pr[] {
   const out: Pr[] = [];
   for (const r of sorted) {
     const e = epley(r.weight, r.reps);
-    const prev = best.get(r.exercise_id);
+    const key = floorKey(r.exercise_id, r.floor);
+    const prev = best.get(key);
     if (prev !== undefined && e > prev) out.push({ ...r, e1rm: e, previous: prev });
-    if (prev === undefined || e > prev) best.set(r.exercise_id, e);
+    if (prev === undefined || e > prev) best.set(key, e);
   }
   return out;
 }

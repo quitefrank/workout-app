@@ -266,12 +266,10 @@ export type Database = {
             | null
           equipment_type: Database["public"]["Enums"]["equipment_type"]
           floor_transfer_required: boolean | null
+          has_floors: boolean
           id: string
           load_direction: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot: boolean | null
-          machine_location:
-            | Database["public"]["Enums"]["machine_location"]
-            | null
           max_sessions_per_week: number | null
           min_hours_between_sessions: number | null
           muscle_group_id: string | null
@@ -293,12 +291,10 @@ export type Database = {
             | null
           equipment_type?: Database["public"]["Enums"]["equipment_type"]
           floor_transfer_required?: boolean | null
+          has_floors?: boolean
           id?: string
           load_direction?: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot?: boolean | null
-          machine_location?:
-            | Database["public"]["Enums"]["machine_location"]
-            | null
           max_sessions_per_week?: number | null
           min_hours_between_sessions?: number | null
           muscle_group_id?: string | null
@@ -320,12 +316,10 @@ export type Database = {
             | null
           equipment_type?: Database["public"]["Enums"]["equipment_type"]
           floor_transfer_required?: boolean | null
+          has_floors?: boolean
           id?: string
           load_direction?: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot?: boolean | null
-          machine_location?:
-            | Database["public"]["Enums"]["machine_location"]
-            | null
           max_sessions_per_week?: number | null
           min_hours_between_sessions?: number | null
           muscle_group_id?: string | null
@@ -916,6 +910,9 @@ export type Database = {
           created_at: string
           exercise_id: string
           id: string
+          machine_location:
+            | Database["public"]["Enums"]["machine_location"]
+            | null
           notes: string | null
           position: number
           prescribed_reps_max: number | null
@@ -938,6 +935,9 @@ export type Database = {
           created_at?: string
           exercise_id: string
           id?: string
+          machine_location?:
+            | Database["public"]["Enums"]["machine_location"]
+            | null
           notes?: string | null
           position: number
           prescribed_reps_max?: number | null
@@ -960,6 +960,9 @@ export type Database = {
           created_at?: string
           exercise_id?: string
           id?: string
+          machine_location?:
+            | Database["public"]["Enums"]["machine_location"]
+            | null
           notes?: string | null
           position?: number
           prescribed_reps_max?: number | null
@@ -1144,6 +1147,7 @@ export type Database = {
           volume: number | null
           weight: number | null
           workout_completed_at: string | null
+          machine_location: Database["public"]["Enums"]["machine_location"] | null
           workout_exercise_id: string | null
           workout_id: string | null
         }

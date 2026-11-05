@@ -3,6 +3,7 @@ import type { ExerciseSession } from "@/lib/workout/exercise-metrics";
 import { db, selectAll, timeZone, userId } from "@/lib/supabase/server";
 import { gridBounds, workoutDay, type YearMonth } from "@/lib/workout/dates";
 import type { EquipmentType, WeightUnit } from "@/lib/workout/format";
+import { floorKey, type MachineLocation } from "@/lib/workout/machine-location";
 import type { TopSet } from "@/lib/workout/progress";
 
 /** Server-side reads for the screens. Every per-user query filters by the app's one user. */
@@ -17,23 +18,22 @@ function rows<T>(res: { data: T[] | null; error: { message: string } | null }): 
   return check(res) ?? [];
 }
 
-const EXERCISE_FIELDS = "id, name, equipment_type, machine_location, video_url, notes, muscle_group_id, muscle_groups(name)";
+const EXERCISE_FIELDS = "id, name, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name)";
 
 export type Settings = {
   weight_unit: WeightUnit;
   default_rest_seconds: number;
-  default_machine_location: "upstairs" | "downstairs" | null;
 };
 
 export async function getSettings(): Promise<Settings> {
   const row = check(
     await db()
       .from("user_settings")
-      .select("weight_unit, default_rest_seconds, default_machine_location")
+      .select("weight_unit, default_rest_seconds")
       .eq("user_id", userId())
       .maybeSingle(),
   );
-  return row ?? { weight_unit: "lbs", default_rest_seconds: 180, default_machine_location: null };
+  return row ?? { weight_unit: "lbs", default_rest_seconds: 180 };
 }
 
 // ------------------------------------------------------------
@@ -180,7 +180,7 @@ export type LibraryExercise = {
   id: string;
   name: string;
   equipment_type: EquipmentType;
-  machine_location: "upstairs" | "downstairs" | null;
+  has_floors: boolean;
   video_url: string | null;
   notes: string | null;
   muscle_group_id: string | null;
@@ -246,7 +246,7 @@ export type SetRow = {
   completed_at: string | null;
 };
 
-export type WorkoutExerciseRow = PrescribedRow & { sets: SetRow[] };
+export type WorkoutExerciseRow = PrescribedRow & { machine_location: MachineLocation | null; sets: SetRow[] };
 
 export type LastTime = { completedAt: string; sets: Pick<SetRow, "set_number" | "is_warm_up" | "weight" | "reps">[] };
 
@@ -263,7 +263,7 @@ export type WorkoutDetail = {
   day: string;
   templates: { name: string; category: string | null } | null;
   exercises: WorkoutExerciseRow[];
-  /** The most recent other completed session of each exercise, keyed by exercise id. */
+  /** The most recent other completed session of each exercise on each floor, keyed by floorKey. */
   lastTime: Record<string, LastTime>;
 };
 
@@ -295,19 +295,19 @@ async function getLastTimes(exerciseIds: string[], excludeWorkoutId: string): Pr
   const tops = rows(
     await db()
       .from("v_workout_exercise_top_set")
-      .select("exercise_id, workout_id, workout_exercise_id, workout_completed_at")
+      .select("exercise_id, workout_id, workout_exercise_id, workout_completed_at, machine_location")
       .eq("user_id", userId())
       .in("exercise_id", exerciseIds)
       .neq("workout_id", excludeWorkoutId)
       .not("workout_completed_at", "is", null)
       .order("workout_completed_at", { ascending: false })
-      .limit(exerciseIds.length * 10),
+      .limit(exerciseIds.length * 20),
   );
   const latest = new Map<string, { weId: string; at: string }>();
   for (const t of tops) {
-    if (t.exercise_id && t.workout_exercise_id && t.workout_completed_at && !latest.has(t.exercise_id)) {
-      latest.set(t.exercise_id, { weId: t.workout_exercise_id, at: t.workout_completed_at });
-    }
+    if (!t.exercise_id || !t.workout_exercise_id || !t.workout_completed_at) continue;
+    const key = floorKey(t.exercise_id, t.machine_location);
+    if (!latest.has(key)) latest.set(key, { weId: t.workout_exercise_id, at: t.workout_completed_at });
   }
   if (latest.size === 0) return {};
   const sets = rows(
@@ -321,8 +321,8 @@ async function getLastTimes(exerciseIds: string[], excludeWorkoutId: string): Pr
       .order("set_number"),
   );
   const out: Record<string, LastTime> = {};
-  for (const [exerciseId, { weId, at }] of latest) {
-    out[exerciseId] = {
+  for (const [key, { weId, at }] of latest) {
+    out[key] = {
       completedAt: at,
       sets: sets
         .filter((s) => s.workout_exercise_id === weId)
@@ -351,7 +351,7 @@ export async function getTopSets(exerciseId?: string): Promise<TopSet[]> {
   const found = await selectAll((a, b) => {
     let q = db()
       .from("v_workout_exercise_top_set")
-      .select("exercise_id, workout_id, weight, reps, workout_completed_at")
+      .select("exercise_id, workout_id, weight, reps, workout_completed_at, machine_location")
       .eq("user_id", userId())
       .not("workout_completed_at", "is", null);
     if (exerciseId) q = q.eq("exercise_id", exerciseId);
@@ -365,6 +365,7 @@ export async function getTopSets(exerciseId?: string): Promise<TopSet[]> {
       weight: Number(r.weight),
       reps: r.reps!,
       completed_at: r.workout_completed_at!,
+      floor: r.machine_location,
     }));
 }
 
@@ -395,11 +396,12 @@ export async function getExerciseSessions(exerciseId: string): Promise<ExerciseS
   const found = check(
     await db()
       .from("workout_exercises")
-      .select("workouts!inner(id, user_id, completed_at, templates(name)), sets(set_number, is_warm_up, weight, reps, seconds)")
+      .select("machine_location, workouts!inner(id, user_id, completed_at, templates(name)), sets(set_number, is_warm_up, weight, reps, seconds)")
       .eq("exercise_id", exerciseId)
       .eq("workouts.user_id", userId())
       .not("workouts.completed_at", "is", null),
   ) as unknown as {
+    machine_location: MachineLocation | null;
     workouts: { id: string; completed_at: string; templates: { name: string } | null };
     sets: { set_number: number; is_warm_up: boolean; weight: number | string | null; reps: number | null; seconds: number | null }[];
   }[];
@@ -408,6 +410,7 @@ export async function getExerciseSessions(exerciseId: string): Promise<ExerciseS
       workoutId: r.workouts.id,
       name: r.workouts.templates?.name ?? "Workout",
       completedAt: r.workouts.completed_at,
+      floor: r.machine_location,
       sets: r.sets
         .map((s) => ({ number: s.set_number, warmUp: s.is_warm_up, weight: s.weight == null ? null : Number(s.weight), reps: s.reps, seconds: s.seconds }))
         .sort((a, b) => a.number - b.number),

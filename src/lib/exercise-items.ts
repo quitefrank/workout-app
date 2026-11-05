@@ -1,4 +1,5 @@
 import { getSettings, getTopSets, listExercises } from "@/lib/data/queries";
+import type { MachineLocation } from "@/lib/workout/machine-location";
 import { latestByExercise } from "@/lib/workout/progress";
 import type { EquipmentType, WeightUnit } from "@/lib/workout/format";
 
@@ -8,9 +9,8 @@ export type LibraryItem = {
   group: string | null;
   groupId: string | null;
   equipment: EquipmentType;
-  location: "upstairs" | "downstairs" | null;
-  /** The latest top set, already formatted in the user's unit by the row */
-  last: { weight: number; reps: number } | null;
+  /** The latest top set and its floor, formatted in the user's unit by the row */
+  last: { weight: number; reps: number; floor: MachineLocation | null } | null;
   unit: WeightUnit;
 };
 
@@ -25,8 +25,7 @@ export async function listExerciseItems(): Promise<LibraryItem[]> {
       group: e.muscle_groups?.name ?? null,
       groupId: e.muscle_group_id,
       equipment: e.equipment_type,
-      location: e.machine_location,
-      last: l ? { weight: l.weight, reps: l.reps } : null,
+      last: l ? { weight: l.weight, reps: l.reps, floor: l.floor } : null,
       unit: settings.weight_unit,
     };
   });

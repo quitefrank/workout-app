@@ -13,14 +13,15 @@ import {
 import { timeZone } from "@/lib/supabase/server";
 import { dayLabel, localDate, weekStarts } from "@/lib/workout/dates";
 import { displayWeight, epley, formatNumber } from "@/lib/workout/format";
+import { FIRST_FLOOR, FLOORS, floorLabel } from "@/lib/workout/machine-location";
 import { prs } from "@/lib/workout/progress";
 
 export const metadata = { title: "Progress" };
 
 const short = (date: string) => dayLabel(date).replace(/^\w+, /, "");
 
-export default async function ProgressPage({ searchParams }: { searchParams: Promise<{ exercise?: string }> }) {
-  const { exercise: picked } = await searchParams;
+export default async function ProgressPage({ searchParams }: { searchParams: Promise<{ exercise?: string; floor?: string }> }) {
+  const { exercise: picked, floor: pickedFloor } = await searchParams;
   const today = localDate(new Date(), timeZone());
   const weeks = weekStarts(today, 12);
 
@@ -40,7 +41,12 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
   const logged = [...counts.entries()].filter(([id]) => byId.has(id)).sort((a, b) => b[1] - a[1]);
   const exerciseId = picked && counts.has(picked) ? picked : logged[0]?.[0];
   const exercise = exerciseId ? byId.get(exerciseId) : undefined;
-  const series = exerciseId ? tops.filter((t) => t.exercise_id === exerciseId) : [];
+  const ofExercise = exerciseId ? tops.filter((t) => t.exercise_id === exerciseId) : [];
+  // A two-floor exercise charts one floor at a time, since the weights are not comparable
+  const floor = !exercise?.has_floors
+    ? null
+    : (FLOORS.find((f) => f.value === pickedFloor)?.value ?? ofExercise[ofExercise.length - 1]?.floor ?? FIRST_FLOOR);
+  const series = ofExercise.filter((t) => t.floor === floor);
   const w = (n: number) => (exercise ? displayWeight(n, exercise.equipment_type, settings.weight_unit) : formatNumber(n)) || "BW";
 
   const perWeek = new Map(weekly.map((r) => [r.week, r.count]));
@@ -91,6 +97,16 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
           </Chip>
         ))}
       </nav>
+      {exercise?.has_floors && (
+        <nav aria-label="Pick a floor" className="flex gap-2 px-4 pb-3">
+          {FLOORS.map((f) => (
+            <Chip key={f.value} href={`/analytics?exercise=${exercise.id}&floor=${f.value}`} on={f.value === floor}>
+              {f.label}
+            </Chip>
+          ))}
+        </nav>
+      )}
+      {exercise?.has_floors && series.length === 0 && <Empty title={`Not logged ${floorLabel(floor)?.toLowerCase()} yet`} />}
       {exercise && series.length > 0 && (
         <div className="mx-4 flex flex-col gap-2.5">
           <div className="rounded-[26px] bg-card px-2 pb-3 pt-3">
@@ -145,11 +161,11 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
             const e = byId.get(p.exercise_id)!;
             const ww = (n: number) => displayWeight(n, e.equipment_type, settings.weight_unit) || "BW";
             return (
-              <Link key={`${p.workout_id}-${p.exercise_id}`} href={`/exercises/${e.id}`} className="block active:bg-fill">
+              <Link key={`${p.workout_id}-${p.exercise_id}-${p.floor}`} href={`/exercises/${e.id}`} className="block active:bg-fill">
                 <Row
                   leading={<TrophyIcon size={20} className="shrink-0 text-orange" />}
                   title={e.name}
-                  subtitle={`${ww(p.weight)} × ${p.reps} · ${dayLabel(localDate(p.completed_at))}`}
+                  subtitle={[`${ww(p.weight)} × ${p.reps}`, floorLabel(p.floor), dayLabel(localDate(p.completed_at))].filter(Boolean).join(" · ")}
                   value={`+${formatNumber(p.e1rm - p.previous)} e1RM`}
                   chevron
                 />

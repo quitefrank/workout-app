@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { metricBest, metricSeries, type ExerciseSession } from "../exercise-metrics";
+import { latestFloor, metricBest, metricSeries, sessionsOnFloor, type ExerciseSession } from "../exercise-metrics";
 
 const set = (weight: number | null, reps: number | null, warmUp = false, number = 1) => ({ number, warmUp, weight, reps, seconds: null });
-const session = (completedAt: string, sets: ExerciseSession["sets"]): ExerciseSession => ({ workoutId: completedAt, name: "Push", completedAt, sets });
+const session = (completedAt: string, sets: ExerciseSession["sets"]): ExerciseSession => ({ workoutId: completedAt, name: "Push", completedAt, floor: null, sets });
 
 const sessions = [
   session("2026-10-01T10:00:00Z", [set(135, 5, true), set(100, 10), set(110, 5)]),
@@ -31,5 +31,20 @@ describe("metricBest", () => {
   });
   it("is null with nothing logged", () => {
     expect(metricBest([], "e1rm")).toBeNull();
+  });
+});
+
+describe("floors", () => {
+  const up = { ...session("2026-10-01T10:00:00Z", [set(40, 10)]), floor: "upstairs" as const };
+  const down = { ...session("2026-10-08T10:00:00Z", [set(130, 10)]), floor: "downstairs" as const };
+
+  it("works out PRs over one floor only", () => {
+    expect(metricBest(sessionsOnFloor([up, down], "upstairs"), "heaviest")?.weight).toBe(40);
+    expect(metricBest(sessionsOnFloor([up, down], "downstairs"), "heaviest")?.weight).toBe(130);
+  });
+  it("finds the floor used most recently", () => {
+    expect(latestFloor([up, down])).toBe("downstairs");
+    expect(latestFloor([down, up])).toBe("downstairs");
+    expect(latestFloor(sessions)).toBeNull();
   });
 });

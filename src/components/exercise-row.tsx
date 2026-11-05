@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import type { LibraryItem } from "@/lib/exercise-items";
 import { displayWeight, EQUIPMENT_LABELS } from "@/lib/workout/format";
+import { floorLabel } from "@/lib/workout/machine-location";
 import { FigureIcon } from "./icons";
 
 /** A library row: the image, the name, then its muscle group or equipment and the last top set. Tapping opens its sheet. */
@@ -18,11 +19,8 @@ export function ExerciseRow({ item, art, showGroup, onOpen }: { item: LibraryIte
         )}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[17px] font-medium">
-          {item.name}
-          {item.location && <span className="text-ink-2"> {item.location === "upstairs" ? "↑" : "↓"}</span>}
-        </div>
-        <div className="truncate text-[15px] text-ink-2">{[showGroup && item.group, EQUIPMENT_LABELS[item.equipment], last].filter(Boolean).join(" · ")}</div>
+        <div className="truncate text-[17px] font-medium">{item.name}</div>
+        <div className="truncate text-[15px] text-ink-2">{[showGroup && item.group, EQUIPMENT_LABELS[item.equipment], last, floorLabel(item.last?.floor)].filter(Boolean).join(" · ")}</div>
       </div>
     </button>
   );

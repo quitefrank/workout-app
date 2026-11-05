@@ -32,7 +32,6 @@ export function SettingsForm({ settings, theme: initialTheme }: { settings: Sett
         await saveSettings({
           weightUnit: next.weight_unit,
           defaultRestSeconds: next.default_rest_seconds,
-          defaultMachineLocation: next.default_machine_location,
         });
       } catch (e) {
         setS(prev);
@@ -98,18 +97,6 @@ export function SettingsForm({ settings, theme: initialTheme }: { settings: Sett
               ))}
           </select>
         </div>
-      </Group>
-
-      <Group title="Machine location" footer="Pre-selected when a template with upstairs and downstairs machines starts.">
-        <Segmented
-          value={s.default_machine_location ?? "none"}
-          options={[
-            ["upstairs", "Upstairs"],
-            ["downstairs", "Downstairs"],
-            ["none", "Ask"],
-          ]}
-          onChange={(v) => update({ ...s, default_machine_location: v === "none" ? null : v })}
-        />
       </Group>
 
       <Group title="Developer" footer="Shows the glass renderer's readout at the bottom of the screen. Saved on this device only.">

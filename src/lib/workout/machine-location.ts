@@ -1,35 +1,21 @@
 /**
- * Upstairs and downstairs machines are separate library rows sharing a
- * name (the Notion ↑ and ↓ arrows, stripped by the seed). Switching a
- * workout's location swaps each machine row for its sibling on the
- * other floor, when one exists.
+ * Floors. An exercise is one library row whatever floor it is done on. `exercises.has_floors` says it can be done on
+ * either, and the floor is a value on each logged row (`workout_exercises.machine_location`), so PRs, charts and "last
+ * time" are worked out per floor and never mix.
  */
 
 export type MachineLocation = "upstairs" | "downstairs";
 
-export type LocatedExercise = {
-  id: string;
-  name: string;
-  machine_location: MachineLocation | null;
-};
+export const FLOORS: readonly { value: MachineLocation; label: string }[] = [
+  { value: "upstairs", label: "Upstairs" },
+  { value: "downstairs", label: "Downstairs" },
+];
 
-const key = (name: string) => name.trim().toLowerCase();
+/** Where a two-floor exercise starts when it has never been logged. */
+export const FIRST_FLOOR: MachineLocation = "upstairs";
 
-/**
- * The exercise to use at `location`: the sibling with the same name on
- * that floor, else the exercise itself. Rows without a location never
- * move, and a null location keeps whatever was prescribed.
- */
-export function siblingFor<T extends LocatedExercise>(
-  exercise: T,
-  location: MachineLocation | null,
-  library: readonly T[],
-): T {
-  if (!location || !exercise.machine_location || exercise.machine_location === location) {
-    return exercise;
-  }
-  const match = library.find(
-    (e) => e.id !== exercise.id && e.machine_location === location && key(e.name) === key(exercise.name),
-  );
-  return match ?? exercise;
-}
+export const floorLabel = (floor: MachineLocation | null | undefined): string | null =>
+  FLOORS.find((f) => f.value === floor)?.label ?? null;
+
+/** One exercise on one floor: what history is kept and compared by. An exercise without floors has one bucket. */
+export const floorKey = (exerciseId: string, floor: MachineLocation | null | undefined): string => `${exerciseId}|${floor ?? ""}`;

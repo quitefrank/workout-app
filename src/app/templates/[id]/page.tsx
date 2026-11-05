@@ -5,24 +5,21 @@ import { TopBar } from "@/components/top-bar";
 import { ChevronLeft } from "@/components/icons";
 import { hueStyle, Row, Screen, SectionHeader, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
-import { getSettings, getTemplate, getTemplateContext } from "@/lib/data/queries";
+import { getTemplate, getTemplateContext } from "@/lib/data/queries";
 import { weeksLabel } from "@/lib/programs/label";
 import { PrescriptionLine } from "@/components/prescription-line";
-import { CATEGORY_LABELS, EQUIPMENT_LABELS, prescriptionFacts } from "@/lib/workout/format";
+import { CATEGORY_LABELS, EQUIPMENT_LABELS } from "@/lib/workout/format";
 import { StartTemplate } from "./start-template";
 import { buttonLook } from "@/components/button";
 
 export default async function TemplatePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ start?: string }>;
 }) {
-  const [{ id }, { start }] = await Promise.all([params, searchParams]);
-  const [template, settings, context] = await Promise.all([getTemplate(id), getSettings(), getTemplateContext(id)]);
+  const { id } = await params;
+  const [template, context] = await Promise.all([getTemplate(id), getTemplateContext(id)]);
   if (!template) notFound();
-  const hasMachines = template.rows.some((r) => r.exercises.machine_location);
 
   return (
     <Screen className="max-w-none">
@@ -46,12 +43,7 @@ export default async function TemplatePage({
           </div>
           <h1 className="text-[34px] font-bold leading-[41px] tracking-[-0.01em]">{template.name}</h1>
           <div className="mt-5 flex items-center gap-3">
-            <StartTemplate
-              templateId={template.id}
-              askLocation={hasMachines}
-              defaultLocation={settings.default_machine_location}
-              autoOpen={start === "1"}
-            />
+            <StartTemplate templateId={template.id} />
             {template.tutorial_url && (
               <a href={template.tutorial_url} target="_blank" rel="noreferrer" {...buttonLook("veil")}>
                 Tutorial
@@ -115,26 +107,7 @@ export default async function TemplatePage({
                     {r.variant && <span className="text-ink-2"> · {r.variant}</span>}
                   </>
                 }
-                subtitle={
-                  <>
-                    <PrescriptionLine
-                      p={r}
-                      empty={
-                        r.exercises.machine_location
-                          ? null
-                          : template.category === "rehab"
-                            ? "No dose given"
-                            : EQUIPMENT_LABELS[r.exercises.equipment_type]
-                      }
-                    />
-                    {r.exercises.machine_location && (
-                      <span>
-                        {prescriptionFacts(r).length > 0 ? " · " : ""}
-                        {cap(r.exercises.machine_location)}
-                      </span>
-                    )}
-                  </>
-                }
+                subtitle={<PrescriptionLine p={r} empty={template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type]} />}
                 chevron
               />
               {r.notes && <p className="-mt-1.5 px-4 pb-2.5 pl-12 text-[13px] text-ink-2">{r.notes}</p>}
@@ -145,5 +118,3 @@ export default async function TemplatePage({
     </Screen>
   );
 }
-
-const cap = (s: string) => s[0].toUpperCase() + s.slice(1);

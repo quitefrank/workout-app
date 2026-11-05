@@ -22,7 +22,7 @@ export function StartWorkout({ templates, next }: { templates: TemplateSummary[]
   const router = useRouter();
   const start = (id: string) => {
     setOpen(false);
-    router.push(`/templates/${id}?start=1`);
+    router.push(`/templates/${id}`);
   };
   return (
     <>

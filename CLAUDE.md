@@ -177,7 +177,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 463 tests across 39 files.
+Run `bun run test` to exercise them. 472 tests across 40 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -337,6 +337,19 @@ testing, nutrition) and stays a reference. `nippard-ultimate-ppl-4x.xlsx`
 still goes through `convert:ppl`. The same seed loads all four JSONs
 without changes.
 
+## One exercise per movement, floor per row
+
+An exercise is one library row, whatever floor it is done on (migration 0009, Frank's
+call, 2026-11-04). `exercises.has_floors` says it can be done on either floor, and
+the floor is a value on each logged row, `workout_exercises.machine_location`. Floors
+are never separate exercises. Weights differ by floor, so PRs, charts and "last
+time" are worked out per floor and never mix: `floorKey` in
+`src/lib/workout/machine-location.ts` is the bucket. Each two-floor exercise has its
+own switch in the workout, starting on the floor it was last done on; changing one
+moves the workout's other two-floor exercises with nothing logged. The exercise
+sheet and Progress show one floor at a time. `scripts/data/merged-exercises.ts` stops
+the Notion seed bringing the duplicates back.
+
 ## Rehab templates and following a program
 
 The recovery program carries rehab templates (category `rehab`, from
@@ -415,8 +428,7 @@ Summary hero show the muscle group's art. Going back restores the screen's
 scroll position (`src/components/app-scroller.tsx`). Templates has the 18 Notion
 day templates (`program_id` null). Progress is `/analytics`. The active
 workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight string
-through `parseWeightCsv`, swaps upstairs and downstairs machines by name
-(`src/lib/workout/machine-location.ts`), and runs a rest timer kept in
+through `parseWeightCsv`, and runs a rest timer kept in
 localStorage. Delete has one place: the trash button in the top bar's trailing
 slot, opening a confirming sheet. On the active workout it discards; on a finished
 workout's summary it deletes (`deleteWorkout` in `actions.ts`, which refuses one in

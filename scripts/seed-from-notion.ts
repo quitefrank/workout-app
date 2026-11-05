@@ -23,6 +23,7 @@
  * source can be cleaned up and re-run.
  */
 
+import { MERGED_EXERCISES } from "./data/merged-exercises";
 import { Client as NotionClient } from "@notionhq/client";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { writeFile } from "node:fs/promises";
@@ -332,6 +333,9 @@ async function main() {
   // ----------------------------------------------------------
   console.log("\n[2/8] Seeding exercises");
   const exerciseMap = new Map<string, string>();
+  const pageFloor = new Map<string, string>();
+  const keptSlug = new Map(MERGED_EXERCISES.map((m) => [m.keep, m.slug]));
+  const mergedInto = new Map(MERGED_EXERCISES.flatMap((m) => m.merged.map((id) => [id, m.keep] as const)));
   const exercisePages = new Map<string, AnyPage>();
   const usedSlugs = new Map<string, { name: string; url: string }>();
   let exCount = 0;
@@ -344,11 +348,16 @@ async function main() {
       continue;
     }
     const info = parseExerciseName(rawName);
+    // The page's arrow is the floor of everything logged against it
+    if (info.machineLocation) pageFloor.set(page.id, info.machineLocation);
+    // merged in 0009: this page's row is gone, and references to it go to the kept page's row (below)
+    if (mergedInto.has(page.id)) continue;
+    const kept = keptSlug.get(page.id);
     const muscleGroupRel = getRelation(page, FIELDS.exercises.muscleGroup);
     const muscleGroupId = muscleGroupRel[0]
       ? (muscleGroupMap.get(muscleGroupRel[0]) ?? null)
       : null;
-    const base = exerciseSlug(rawName, info.machineLocation);
+    const base = kept ?? exerciseSlug(rawName, info.machineLocation);
     if (!base) {
       console.warn(`  skip: exercise "${rawName}" (${page.url ?? page.id}) has no slug-able characters`);
       continue;
@@ -370,7 +379,7 @@ async function main() {
       slug,
       muscleGroupId,
       equipmentType: info.equipmentType,
-      machineLocation: info.machineLocation,
+      hasFloors: Boolean(kept),
       notes: getRichTextOrNull(page, FIELDS.exercises.notes),
       videoUrl: getUrl(page, FIELDS.exercises.video),
     });
@@ -390,6 +399,10 @@ async function main() {
         location: info.machineLocation,
       });
     }
+  }
+  for (const [merged, keep] of mergedInto) {
+    const id = exerciseMap.get(keep);
+    if (id) exerciseMap.set(merged, id);
   }
   console.log(
     `  done: ${exCount} exercises (${otherCount} equipment_type=other, ${locationCount} with machine_location)`,
@@ -666,6 +679,7 @@ async function main() {
         notionId: page.id,
         workoutId,
         exerciseId,
+        machineLocation: pageFloor.get(exerciseRel[0]) ?? null,
         position,
         ...prescription,
       });
@@ -850,7 +864,7 @@ async function upsertExercise(
     slug: string;
     muscleGroupId: string | null;
     equipmentType: string;
-    machineLocation: string | null;
+    hasFloors: boolean;
     notes: string | null;
     videoUrl: string | null;
   },
@@ -863,7 +877,7 @@ async function upsertExercise(
         slug: args.slug,
         muscle_group_id: args.muscleGroupId,
         equipment_type: args.equipmentType,
-        machine_location: args.machineLocation,
+        has_floors: args.hasFloors,
         notes: args.notes,
         video_url: args.videoUrl,
         _notion_id: args.notionId,
@@ -993,6 +1007,7 @@ async function upsertWorkoutExercise(
     notionId: string;
     workoutId: string;
     exerciseId: string;
+    machineLocation: string | null;
     position: number;
     prescribedSetsMin: number | null;
     prescribedSetsMax: number | null;
@@ -1011,6 +1026,7 @@ async function upsertWorkoutExercise(
       {
         workout_id: args.workoutId,
         exercise_id: args.exerciseId,
+        machine_location: args.machineLocation,
         position: args.position,
         prescribed_sets_min: args.prescribedSetsMin,
         prescribed_sets_max: args.prescribedSetsMax,
