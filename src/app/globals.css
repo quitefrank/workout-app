@@ -44,6 +44,8 @@
   --muscle-body: #b1b1b1;
   --muscle-hit: #ffffff;
   --muscle-tile: #ffffff;
+  /* Behind an exercise illustration: one gray in both appearances (Frank's call, 2026-11-05) */
+  --exercise-tile: #dedee1;
   --seg-on: #ffffff;
   --seg-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
 
@@ -129,9 +131,9 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --bg: #000000;
-    --card: #1c1c1e;
-    --card-2: #2c2c2e;
+    --bg: #181919;
+    --card: #242526;
+    --card-2: #2f3031;
     --ink: #ffffff;
     --ink-2: rgba(235, 235, 245, 0.6);
     --ink-3: rgba(235, 235, 245, 0.3);
@@ -148,7 +150,7 @@
     --muscle-line: #d1d1d6;
     --muscle-body: #48484a;
     --muscle-hit: #ffffff;
-    --muscle-tile: #1c1c1e;
+    --muscle-tile: #242526;
     --seg-on: #636366;
     --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
 
@@ -166,9 +168,9 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg: #000000;
-  --card: #1c1c1e;
-  --card-2: #2c2c2e;
+  --bg: #181919;
+  --card: #242526;
+  --card-2: #2f3031;
   --ink: #ffffff;
   --ink-2: rgba(235, 235, 245, 0.6);
   --ink-3: rgba(235, 235, 245, 0.3);
@@ -185,7 +187,7 @@
   --muscle-line: #d1d1d6;
   --muscle-body: #48484a;
   --muscle-hit: #ffffff;
-  --muscle-tile: #1c1c1e;
+  --muscle-tile: #242526;
   --seg-on: #636366;
   --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
 

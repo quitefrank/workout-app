@@ -429,8 +429,8 @@ opens, so Home never fetches all 342. `/exercises` redirects to Home;
 shows the same tabs. Exercise illustrations are `public/exercises/<slug>.webp` (red
 highlight, Frank's call, 2026-11-05), added with `bun run images:import <folder>`,
 which rewrites `src/lib/exercise-image-slugs.ts`. `src/components/exercise-art.tsx`
-shows one on the themed tile (they are transparent), or the muscle group's art until
-it exists. Going back restores the screen's
+shows one on `--exercise-tile`, the same gray in light and dark (Frank's call,
+2026-11-05), or the muscle group's art on the themed tile until it exists. Going back restores the screen's
 scroll position (`src/components/app-scroller.tsx`). Templates has the 18 Notion
 day templates (`program_id` null). Progress is `/analytics`. The active
 workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight string

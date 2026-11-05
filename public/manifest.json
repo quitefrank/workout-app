@@ -4,8 +4,8 @@
   "description": "Personal workout tracker. Log lifts, see progress.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#181919",
+  "theme_color": "#181919",
   "orientation": "portrait",
   "icons": [
     {
