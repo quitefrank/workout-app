@@ -404,34 +404,105 @@ body {
     box-shadow: var(--sheet-inner);
   }
 
-  /* The month panel opens out of the date in the title and folds back into it */
+  /*
+     The month panel: Liquid Glass's menu morph, measured from a recording (Templates/liquid-glass in the vault). One
+     shape from first frame to last, its width and height driven by --pw and --ph on separate curves: height leads on
+     open, width on close. Size animates, never `transform: scale`, which would distort the blur and the rim, and the
+     contents keep their size, revealed by the growing glass. The top-left corner stays pinned; the recording's
+     top-right is mirrored, as the trigger here sits at the left.
+  */
   .month-panel {
-    transform-origin: 24px 0;
-    animation: month-panel-in 240ms cubic-bezier(0.32, 0.72, 0, 1);
+    --B: 44px;
+    --W: min(85vw, 340px);
+    --mw: calc(var(--B) + (var(--W) - var(--B)) * var(--pw));
+    --mh: calc(var(--B) + (var(--H, calc(var(--B) * 5.05)) - var(--B)) * var(--ph));
+    width: var(--mw);
+    height: var(--mh);
+    translate: 0 var(--dy);
+    border-radius: min(calc(var(--B) * 0.8), calc(var(--mw) / 2), calc(var(--mh) / 2));
+    overflow: hidden;
   }
 
-  .month-panel[data-closing] {
-    animation: month-panel-out 160ms ease-in forwards;
+  .month-panel[data-state="open"] {
+    --pw: 1;
+    --ph: 1;
+    /* A spring per axis, sampled every 15ms: width w0 19.5 z 0.74, height w0 27.25 z 0.72 */
+    transition:
+      --pw 600ms linear(0.000, 0.037, 0.127, 0.246, 0.375, 0.502, 0.619, 0.720, 0.806, 0.875, 0.928, 0.967, 0.995, 1.014, 1.025, 1.030, 1.032, 1.030, 1.027, 1.024, 1.020, 1.016, 1.012, 1.009, 1.006, 1.004, 1.002, 1.001, 1.000, 1.000, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 1.000, 1.000, 1.000, 1.000),
+      --ph 600ms linear(0.000, 0.068, 0.222, 0.405, 0.580, 0.730, 0.846, 0.930, 0.986, 1.018, 1.034, 1.038, 1.036, 1.030, 1.023, 1.017, 1.011, 1.006, 1.003, 1.001, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000);
+    animation: month-panel-drop-open 300ms ease-in-out;
   }
 
-  @keyframes month-panel-in {
-    from {
-      transform: scale(0.9);
-      opacity: 0;
-    }
+  .month-panel[data-state="closed"] {
+    /* The negative y1 is the stretch before it collapses */
+    transition:
+      --pw 320ms cubic-bezier(0.35, -0.1, 0.5, 1),
+      --ph 320ms cubic-bezier(0.55, -0.35, 0.5, 1);
+    animation: month-panel-drop-close 200ms ease-out;
   }
 
-  @keyframes month-panel-out {
-    to {
-      transform: scale(0.94);
-      opacity: 0;
-    }
+  .month-panel-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: var(--W);
   }
 
+  .month-panel[data-state="open"] .month-panel-content {
+    animation:
+      month-panel-content-fade 134ms ease-out 33ms backwards,
+      month-panel-content-sharpen 200ms ease-out 33ms backwards;
+  }
+
+  .month-panel[data-state="closed"] .month-panel-content {
+    opacity: 0;
+    filter: blur(4px);
+    translate: 0 10px;
+    transition:
+      opacity 100ms ease-in,
+      filter 100ms ease-in,
+      translate 100ms ease-in;
+  }
+
+  @keyframes month-panel-content-fade {
+    from { opacity: 0; }
+  }
+
+  @keyframes month-panel-content-sharpen {
+    from { filter: blur(8px); }
+  }
+
+  @keyframes month-panel-drop-open {
+    0% { --dy: 0px; }
+    55% { --dy: calc(var(--B) * 0.19); }
+    89%, 100% { --dy: 0px; }
+  }
+
+  @keyframes month-panel-drop-close {
+    0% { --dy: 0px; }
+    30% { --dy: calc(var(--B) * 0.14); }
+    100% { --dy: 0px; }
+  }
+
+  /* Apple's `.materialize`: no attempt to match the geometry */
   @media (prefers-reduced-motion: reduce) {
-    .month-panel,
-    .month-panel[data-closing] {
-      animation-duration: 1ms;
+    .month-panel[data-state] {
+      --pw: 1;
+      --ph: 1;
+      animation: none;
+      transition: opacity 150ms linear;
+    }
+
+    .month-panel[data-state="closed"] {
+      opacity: 0;
+    }
+
+    .month-panel[data-state] .month-panel-content {
+      filter: none;
+      translate: none;
+      opacity: 1;
+      animation: none;
+      transition: none;
     }
   }
 
@@ -697,4 +768,23 @@ html.gpu.sheet-open [data-glass-unit="dock"] {
 /* a full-screen mode with its own controls (the Library's search) takes the dock away, on either path */
 html.dock-hidden [data-glass-unit="dock"] {
   display: none;
+}
+
+/* The month panel's morph progress and drop: registered so they can transition on their own curves */
+@property --pw {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --ph {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --dy {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 0px;
 }

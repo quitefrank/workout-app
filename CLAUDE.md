@@ -386,7 +386,8 @@ deployed URL is open: anyone who has it can read and log workouts.
 Screens follow `docs/planning.md`: Calendar (`/`, with History at
 `/workouts`; MyFitnessPal's date header, `src/app/week-calendar.tsx`: the
 title is the selected day and opens the floating month panel
-(`month-panel.tsx`), and the week strip is one native sideways scroller
+(`month-panel.tsx`, Liquid Glass's menu morph, measured; see
+`Templates/liquid-glass/liquid-glass-reference.md` in the vault), and the week strip is one native sideways scroller
 with snap, as wide as every week since 1970 with only the weeks near the
 view rendered. A swipe selects the same weekday once settled. Dots outside
 the selected month load from `/api/calendar`. The selected day is in `?d=`

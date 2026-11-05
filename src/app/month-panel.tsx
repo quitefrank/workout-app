@@ -10,18 +10,18 @@ import { DayCell } from "./day-cell";
 
 const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-/** Off the MFP screenshot, at 3x on a 375pt screen: the panel 319pt wide (85%), 13pt under the title, 24pt corners */
+/** Off the MFP screenshot, at 3x on a 375pt screen: the panel starts 13pt under the title */
 const GAP = 13;
-const RADIUS = 24;
 /** The pinned bar's foot, so a title half scrolled under it does not put the panel under the bar */
 const MIN_TOP = 56;
-/** month-panel-out in globals.css, plus a margin */
-const CLOSE_MS = 200;
+/** The close curves in globals.css (320ms), plus a margin */
+const CLOSE_MS = 340;
 
 /**
- * The floating month from MFP's date title, in the sheet material. A panel is large glass, so it keeps the page's
- * appearance. It stays mounted, hidden, so its shaders are built before it first opens, as the Sheet does. There is no
- * scrim: a clear layer catches the tap that closes it.
+ * The floating month from MFP's date title, in the sheet material, opening with Liquid Glass's menu morph: the motion
+ * is `.month-panel` in globals.css. A panel is large glass, so it keeps the page's appearance. It stays mounted, hidden,
+ * so its shaders are built before it first opens, as the Sheet does. There is no scrim: a clear layer catches the tap
+ * that closes it.
  */
 export function MonthPanel({
   open,
@@ -43,6 +43,7 @@ export function MonthPanel({
   onPick: (date: string) => void;
 }) {
   const panel = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
   const [opens, setOpens] = useState(0); // a new count starts the contents over, on the selected month
   const [phase, setPhase] = useState<"hidden" | "open" | "closing">("hidden");
   const [wasOpen, setWasOpen] = useState(false);
@@ -56,14 +57,30 @@ export function MonthPanel({
     }
   }
 
-  // Placed under the title before the frame that shows it
+  // The glass grows to the contents' height, which changes from month to month
   useLayoutEffect(() => {
-    if (!open) return;
-    const r = anchor.current?.getBoundingClientRect();
-    if (r && panel.current) {
-      panel.current.style.top = `${Math.max(r.bottom + GAP, MIN_TOP)}px`;
-      panel.current.style.left = `${r.left}px`;
+    const el = panel.current, inner = content.current;
+    if (!el || !inner) return;
+    const measure = () => el.style.setProperty("--H", `${inner.offsetHeight}px`);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, [phase]);
+
+  // Placed under the title, then one style pass at button size, so the state change has a size to morph from
+  useLayoutEffect(() => {
+    const el = panel.current;
+    if (!el) return;
+    if (open) {
+      const r = anchor.current?.getBoundingClientRect();
+      if (r) {
+        el.style.top = `${Math.max(r.bottom + GAP, MIN_TOP)}px`;
+        el.style.left = `${r.left}px`;
+      }
+      el.getBoundingClientRect();
     }
+    el.dataset.state = open ? "open" : "closed";
   }, [open, anchor]);
 
   useEffect(() => {
@@ -99,12 +116,15 @@ export function MonthPanel({
         aria-label="Choose a date"
         aria-hidden={!open}
         data-glass-skip
-        data-closing={phase === "closing" ? "" : undefined}
+        data-state="closed" // the starting point; the layout effect above moves it, and React leaves an unchanged prop alone
         tabIndex={-1}
-        className={cn("glass-sheet month-panel fixed z-50 w-[min(85vw,340px)] outline-none", phase === "hidden" && "hidden")}
-        style={{ ["--r" as string]: `${RADIUS}px`, borderRadius: RADIUS }}
+        className={cn("glass-sheet month-panel fixed z-50 outline-none", phase === "hidden" && "hidden")}
       >
-        {phase !== "hidden" && <Contents key={opens} selected={selected} today={today} dots={dots} ensure={ensure} onPick={onPick} />}
+        {phase !== "hidden" && (
+          <div ref={content} className="month-panel-content">
+            <Contents key={opens} selected={selected} today={today} dots={dots} ensure={ensure} onPick={onPick} />
+          </div>
+        )}
       </div>
     </>,
     document.body,
