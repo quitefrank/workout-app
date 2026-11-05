@@ -23,7 +23,7 @@
  * source can be cleaned up and re-run.
  */
 
-import { DROP_SET_PAGES, MERGED_EXERCISES, REMOVED_PAGES } from "./data/merged-exercises";
+import { DROP_SET_PAGES, MERGED_EXERCISES, MUSCLE_GROUP_OVERRIDES, REMOVED_PAGES } from "./data/merged-exercises";
 import { Client as NotionClient } from "@notionhq/client";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { writeFile } from "node:fs/promises";
@@ -312,6 +312,7 @@ async function main() {
   // ----------------------------------------------------------
   console.log("\n[1/8] Seeding muscle_groups");
   const muscleGroupMap = new Map<string, string>();
+  const muscleGroupByName = new Map<string, string>();
   let mgOrder = 0;
   for await (const page of paginateDatabase(notion, env.NOTION_MUSCLE_GROUPS_DB)) {
     const name = getTitle(page, FIELDS.muscleGroups.name);
@@ -324,7 +325,10 @@ async function main() {
       name,
       displayOrder: mgOrder++,
     });
-    if (supabaseId) muscleGroupMap.set(page.id, supabaseId);
+    if (supabaseId) {
+      muscleGroupMap.set(page.id, supabaseId);
+      muscleGroupByName.set(name, supabaseId);
+    }
   }
   console.log(`  done: ${muscleGroupMap.size} muscle groups`);
 
@@ -379,7 +383,7 @@ async function main() {
       notionId: page.id,
       name: keptName.get(page.id) ?? info.name,
       slug,
-      muscleGroupId,
+      muscleGroupId: muscleGroupByName.get(MUSCLE_GROUP_OVERRIDES[slug]) ?? muscleGroupId,
       equipmentType: info.equipmentType,
       hasFloors: Boolean(kept) && !oneFloor.has(page.id),
       notes: getRichTextOrNull(page, FIELDS.exercises.notes),
