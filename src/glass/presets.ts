@@ -39,6 +39,19 @@ export const PRESET1_LIGHT: Material = {
 export const SHEET_DARK: Material = { ...KIT_LENS, frost: 30, light: 0.25, haze: 0.85, hazeL: 0.12, hazeAdapt: 0, hazeBlack: 0, bright: 1 };
 export const SHEET_LIGHT: Material = { ...KIT_LENS, frost: 30, light: 0.25, haze: 0.85, hazeL: 0.92, hazeAdapt: 0, hazeBlack: 0, bright: 1 };
 
+// Glass Prominent, the kit's filled glass button (iOS 27 kit 27.0.1, Button - Liquid Glass - Symbol, 5522:11867, read
+// 2026-11-04), layer for layer. White Backing: white at 94%, the under slot, Normal. Tint: Accents/Blue as a linear burn,
+// the top slot's Plus darker. Glass Effect: the kit's glass with its inner shadows (#e6e6e6 burn from the top, #1a1a1a
+// dark and #282828 light dodge at both edges). Fill + Shadow: the two #e6e6e6 slivers and the drop shadow. It keeps the
+// page's appearance: the blue carries it, so the context rule leaves it alone (data-glass-skip).
+export const prominentMaterial = (side: Side): Material => ({
+  ...SHADOW_OFF, ...KIT_LENS, bright: 1, frost: 6, light: 0.25, haze: 0, hazeL: 0.46, hazeAdapt: 0, hazeBlack: 0, grazing: 0,
+  fill2Color: 0xffffff, fill2Opacity: 0.94, fill2Blend: 0,
+  fillColor: side === "dark" ? 0x0091ff : 0x0088ff, fillOpacity: 1, fillBlend: 3,
+  shade: 1 - 0xe6 / 255, shadeDepth: 30, glow: (side === "dark" ? 0x1a : 0x28) / 255, glowDepth: 10,
+  sideShadow: 1 - 0xe6 / 255, sideW: 0.5, cast: side === "dark" ? 0.04 : 0.02,
+});
+
 // The context rule's and the top edge effect's numbers, read off the phone
 // (`dockAbove`: the dock's band starts this far above its glass)
 export const CTXV = { dark: 0.4, light: 0.5, fade: 0.25, dim: 0.55, white: 0.6, reach: 34, dockAbove: 20, blur: 5, fadeIn: 40 };

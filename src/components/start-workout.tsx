@@ -12,10 +12,10 @@ import { Sheet } from "./sheet";
 const SECTION_TITLE = "px-4 pb-1.5 pt-2 text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-2";
 
 /**
- * The dock's + button, beside the tab bar, measured off MyFitnessPal's (2026-11-04, a 3x screenshot): a 62pt circle, as
- * tall as the bar and 8pt from it, a hairline ring in dark, and an 18pt plus with a 2pt stroke in the page's own colour. Solid,
- * not glass: it is the screen's one filled action. It lives in the root layout, so a pick has to close the sheet itself.
- * The sheet offers the program's next workout first, then the day templates grouped by category.
+ * The dock's + button, beside the tab bar: Apple's Glass Prominent symbol button (iOS 27 kit, 5522:11867; material in
+ * prominentMaterial, src/glass/presets.ts). A 62pt circle, as tall as the bar and 8pt from it, the dock's own layout on
+ * the phone (the kit's button is 50pt), with a white plus. It lives in the root layout, so a pick has to close the sheet
+ * itself. The sheet offers the program's next workout first, then the day templates grouped by category.
  */
 export function StartWorkout({ templates, next }: { templates: TemplateSummary[]; next: NextTemplate | null }) {
   const [open, setOpen] = useState(false);
@@ -29,10 +29,10 @@ export function StartWorkout({ templates, next }: { templates: TemplateSummary[]
       <button
         type="button"
         aria-label="Start a Workout"
-        // live, so the painter leaves it out of the page the glass refracts
-        data-live
+        // it keeps its blue whatever is behind it, so the context rule leaves it out of the dock's unit
+        data-glass-skip
         onClick={() => setOpen(true)}
-        className="dock-start pointer-events-auto grid size-[62px] shrink-0 place-items-center rounded-full transition-opacity active:opacity-70"
+        className="glass glass-prominent pointer-events-auto relative grid size-[62px] shrink-0 place-items-center transition-transform active:scale-[1.06]"
       >
         <svg width={18} height={18} viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden>
           <path d="M9 1v16M1 9h16" />

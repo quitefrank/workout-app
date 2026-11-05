@@ -387,10 +387,11 @@ Screens follow `docs/planning.md`, with three tabs: Home, Templates, Progress.
 Home (`src/app/(home)/`, with History at `/workouts`) is the calendar, then
 Workouts only when the selected day has something logged, then Up Next, then the
 Library section. Starting a workout is the dock's + button, on every tab but the
-active workout (`src/components/start-workout.tsx`, measured off MyFitnessPal's:
-62pt, 8pt from the bar). It opens the template sheet, the program's next workout
-first. It is solid and `data-live`, not glass, and its sheet lives in the root
-layout, so a pick closes the sheet itself. The date header is
+active workout (`src/components/start-workout.tsx`): Apple's Glass Prominent (iOS 27
+kit, `prominentMaterial` in `src/glass/presets.ts`), 62pt and 8pt from the bar. It
+keeps its blue, outside the context rule (`data-glass-skip`). It opens the template
+sheet, the program's next workout first. The sheet lives in the root layout, so a
+pick closes it itself. The date header is
 MyFitnessPal's (`src/app/week-calendar.tsx`): the title is the selected day
 and opens the floating month panel (`month-panel.tsx`, Liquid Glass's menu
 morph, measured; see `Templates/liquid-glass/liquid-glass-reference.md` in the
@@ -580,8 +581,8 @@ Liquid Glass" (219) and "Build a SwiftUI app with the new design"
 - No per-screen scroll thresholds. A new control or screen gets the
   rule by joining a unit.
 - Liquid Glass is for the navigation and control layer only: the top
-  bar, the tab bar and the resume pill, the active workout's floating
-  bottom bar, the pinned search field. Buttons in the page's content
+  bar, the tab bar and the resume pill, the dock's + button, the active
+  workout's floating bottom bar, the pinned search field. Buttons in the page's content
   use the standard iOS styles in `src/components/button.tsx` (filled
   for the view's main action, tinted or gray for the rest; white and
   a white veil over media), per Apple's HIG ("Don't use Liquid Glass

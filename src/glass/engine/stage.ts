@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { averageUnder, blendSides, decideDark, stepSide, unpadRows } from "../context";
-import { CTXV, type Family, type Material } from "../presets";
+import { CTXV, prominentMaterial, type Family, type Material } from "../presets";
 import { scrollTop } from "@/lib/scroller";
 import { debugState } from "../debug-state";
 import { makeFrost } from "./frost";
@@ -121,6 +121,11 @@ function setup(o: StageOptions, renderer: any): () => void {
       const unitRef = f;
       U.override = () => sideBlend(unitRef);
       const v = sideBlend(f); if (v) U.apply(v);
+    }
+    // Glass Prominent has its own stack, on the page's side, and follows the appearance through the family's listener
+    if (el.classList.contains("glass-prominent")) {
+      U.override = () => prominentMaterial(o.appearance());
+      U.apply(U.override()!);
     }
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), makeGlassMaterial(ctxFor(family), U));
     const cast = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), makeCastMaterial(THREE, T, U, dpr)); cast.renderOrder = -1;
