@@ -31,6 +31,9 @@
   --fill: rgba(118, 118, 128, 0.12);
   --fill-2: rgba(118, 118, 128, 0.2);
   --blue: #007aff;
+  /* the dock's + button; dark is measured off the MyFitnessPal reference, which has no light side, so light is our blue */
+  --dock-start: var(--blue);
+  --dock-start-ring: transparent;
   --red: #ff3b30;
   --green: #34c759;
   --orange: #ff9500;
@@ -130,6 +133,8 @@
     --fill: rgba(118, 118, 128, 0.24);
     --fill-2: rgba(118, 118, 128, 0.36);
     --blue: #0a84ff;
+    --dock-start: #4f9afe;
+    --dock-start-ring: #040407;
     --red: #ff453a;
     --green: #30d158;
     --orange: #ff9f0a;
@@ -163,6 +168,8 @@
   --fill: rgba(118, 118, 128, 0.24);
   --fill-2: rgba(118, 118, 128, 0.36);
   --blue: #0a84ff;
+  --dock-start: #4f9afe;
+  --dock-start-ring: #040407;
   --red: #ff453a;
   --green: #30d158;
   --orange: #ff9f0a;
@@ -349,6 +356,13 @@ body {
     isolation: isolate;
     border-radius: var(--r, 9999px);
     color: var(--glass-ink);
+  }
+
+  /* The dock's + button: solid, its plus in the page's own colour, with the reference's hairline ring in dark */
+  .dock-start {
+    background: var(--dock-start);
+    color: var(--bg);
+    box-shadow: 0 0 0 0.33px var(--dock-start-ring);
   }
 
   .glass {

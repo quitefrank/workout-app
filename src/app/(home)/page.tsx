@@ -1,12 +1,10 @@
 import Link from "next/link";
-import { ButtonLink } from "@/components/button";
 import { GlassCircleLink } from "@/components/glass";
-import { CheckIcon, ChevronRight, GearIcon, ListIcon, PlayIcon } from "@/components/icons";
+import { CheckIcon, ChevronRight, GearIcon, ListIcon } from "@/components/icons";
 import { Row, SectionHeader, Thumb } from "@/components/page";
-import { StartWorkout } from "@/components/start-workout";
-import { getActiveProgramId, getMonthWorkouts, getProgram, listTemplates, type WorkoutListItem } from "@/lib/data/queries";
+import { getActiveProgramId, getMonthWorkouts, getProgram, type WorkoutListItem } from "@/lib/data/queries";
 import { weeksLabel } from "@/lib/programs/label";
-import { programToday } from "@/lib/programs/today";
+import { programTodayOf } from "@/lib/programs/up-next";
 import { timeZone } from "@/lib/supabase/server";
 import { dotsByDay } from "@/lib/workout/calendar";
 import { durationMinutes, gridBounds, localDate, monthOf } from "@/lib/workout/dates";
@@ -20,19 +18,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // the month is the selected day's, which seeds the strip and the panel; other weeks load as they come near
   const ym = monthOf(selected);
 
-  const [workouts, templates, activeId] = await Promise.all([getMonthWorkouts(ym), listTemplates(), getActiveProgramId()]);
+  const [workouts, activeId] = await Promise.all([getMonthWorkouts(ym), getActiveProgramId()]);
   const program = activeId ? await getProgram(activeId) : null;
-  const upNext = program
-    ? programToday({
-        kind: program.kind,
-        phases: program.phases.map((p) => ({ id: p.id, position: p.position, weekFrom: p.week_from, weekTo: p.week_to, templates: p.templates })),
-        completions: program.completions,
-        today,
-        injuryDate: program.recovery?.injuryDate ?? null,
-        clearances: program.clearances,
-        chosenPosition: program.chosenPhasePosition,
-      })
-    : null;
+  const upNext = program ? programTodayOf(program, today) : null;
   const upPhase = program?.phases.find((p) => p.id === upNext?.inForce.phase?.id) ?? null;
   // The program's own rows carry the variant and the sign-off note the pure model does not need.
   const rowOf = new Map(program?.phases.flatMap((p) => p.templates.map((t) => [t.id, t] as const)) ?? []);
@@ -45,7 +33,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const selectedWorkouts = byDay.get(selected) ?? [];
   const { from, to } = gridBounds(ym);
   const days = dotsByDay(workouts, from, to);
-  const next = upNext?.next ? rowOf.get(upNext.next.id) : undefined;
 
   return (
     <>
@@ -122,16 +109,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </>
       )}
-
-      <div className="mt-5 flex flex-col gap-2.5 px-4">
-        {next && (
-          <ButtonLink href={`/templates/${next.id}?start=1`} variant="filled" className="w-full">
-            <PlayIcon size={18} />
-            Start {next.name}
-          </ButtonLink>
-        )}
-        <StartWorkout templates={templates} label={next ? "Choose Another Workout" : "Start a Workout"} variant={next ? "gray" : "filled"} />
-      </div>
     </>
   );
 }

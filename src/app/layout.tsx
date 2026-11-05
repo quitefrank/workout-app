@@ -9,7 +9,8 @@ import { GlassDebug } from "@/glass/debug";
 import { GlassStage } from "@/glass/glass-stage";
 import { SetupNeeded } from "@/components/setup-needed";
 import { THEME_COOKIE, themeFrom } from "@/lib/appearance";
-import { getInProgress } from "@/lib/data/queries";
+import { getInProgress, listTemplates } from "@/lib/data/queries";
+import { getNextTemplate } from "@/lib/programs/up-next";
 import { missingConfig } from "@/lib/supabase/server";
 import "./globals.css";
 
@@ -78,9 +79,11 @@ export default async function RootLayout({
   const missing = missingConfig();
   let problem: string | null = null;
   let inProgress: Awaited<ReturnType<typeof getInProgress>> = null;
+  let templates: Awaited<ReturnType<typeof listTemplates>> = [];
+  let next: Awaited<ReturnType<typeof getNextTemplate>> = null;
   if (missing.length === 0) {
     try {
-      inProgress = await getInProgress();
+      [inProgress, templates, next] = await Promise.all([getInProgress(), listTemplates(), getNextTemplate()]);
     } catch (e) {
       problem = e instanceof Error ? e.message : String(e);
     }
@@ -100,6 +103,8 @@ export default async function RootLayout({
         <AppScroller>{children}</AppScroller>
         <TabBar
           inProgress={inProgress && { id: inProgress.id, name: inProgress.name, startedAt: inProgress.startedAt }}
+          templates={templates}
+          next={next}
         />
         <GlassContext />
         <GlassStage />

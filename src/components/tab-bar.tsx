@@ -7,14 +7,17 @@ import { cn } from "@/lib/cn";
 import { formatClock } from "@/lib/workout/format";
 import { LENS, lensGoal, lensSettled, lensShape, nearestIndex, restingLens, stepLens, type LensInput } from "@/lib/tab-lens";
 import { lensState } from "@/glass/lens-state";
+import type { TemplateSummary } from "@/lib/data/queries";
+import type { NextTemplate } from "@/lib/programs/up-next";
 import { ChevronRight, HomeIcon, ProgressIcon, TemplatesIcon } from "./icons";
+import { StartWorkout } from "./start-workout";
 
 /**
  * The floating tab bar: the kit's Tabs=4 bar, 62pt tall, 21pt in from
  * each side and up from the bottom, with iOS 26's selection lens (src/lib/tab-lens.ts):
  * a touch lifts the capsule into clear glass that travels to the tab, and a drag
- * carries it under the finger, selecting on release. A workout in progress rides
- * above it as its own glass pill.
+ * carries it under the finger, selecting on release. The start button sits beside it
+ * in the same row. A workout in progress rides above both as its own glass pill.
  */
 
 type IconType = ComponentType<{ size?: number; strokeWidth?: number }>;
@@ -35,7 +38,7 @@ const DRAG_SLOP = 6;
 
 export type InProgress = { id: string; name: string; startedAt: string | null } | null;
 
-export function TabBar({ inProgress }: { inProgress: InProgress }) {
+export function TabBar({ inProgress, templates, next }: { inProgress: InProgress; templates: TemplateSummary[]; next: NextTemplate | null }) {
   const pathname = usePathname() ?? "/";
   if (ACTIVE_WORKOUT.test(pathname)) return null;
   return (
@@ -47,7 +50,10 @@ export function TabBar({ inProgress }: { inProgress: InProgress }) {
         style={{ paddingBottom: "var(--dock-bottom)" }}
     >
       {inProgress && <ResumePill workout={inProgress} />}
-      <Tabs pathname={pathname} />
+      <div className="mx-auto flex w-full max-w-[420px] items-center gap-2">
+        <Tabs pathname={pathname} />
+        <StartWorkout templates={templates} next={next} />
+      </div>
     </nav>
   );
 }
@@ -149,7 +155,7 @@ function Tabs({ pathname }: { pathname: string }) {
   return (
     <div
       ref={barRef}
-      className="glass pointer-events-auto relative mx-auto flex h-[62px] w-full max-w-[420px] touch-none items-center px-1.5 py-1"
+      className="glass pointer-events-auto relative flex h-[62px] min-w-0 flex-1 touch-none items-center px-1.5 py-1"
       onPointerDown={(e) => {
         if (e.button > 0) return;
         gesture.current = { id: e.pointerId, downX: e.clientX, dragging: false, swallow: false };
