@@ -107,6 +107,7 @@ describe("supabase migrations on PGlite", () => {
       "0015_merge_omni_grip_machine_row.sql",
       "0016_one_arm_naming.sql",
       "0017_merge_overlaps.sql",
+      "0018_lat_pull_over.sql",
     ]);
   });
 
