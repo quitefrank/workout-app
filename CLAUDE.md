@@ -363,6 +363,12 @@ program seed's Lat Pulldown and Notion's Machine Pulldown into Lat Pulldown.
 `KEEP_UNREFERENCED` in `scripts/data/programs/library.ts` names seed-owned exercises the
 program seed must keep although nothing references them.
 
+## Consolidation prototype
+
+`/lab/consolidation` tries out one exercise per movement, with equipment and technique as values on the
+logged row. It reads real program days and history and writes nothing; nothing links to it. The proposed
+families are in `src/app/lab/consolidation/movements.ts`. Delete the folder once Frank has decided.
+
 ## Following a program is optional
 
 With no program followed, Home's Up Next is an empty state with Choose Program, which opens a sheet of
