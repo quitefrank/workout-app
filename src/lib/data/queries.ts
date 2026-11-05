@@ -18,7 +18,7 @@ function rows<T>(res: { data: T[] | null; error: { message: string } | null }): 
   return check(res) ?? [];
 }
 
-const EXERCISE_FIELDS = "id, name, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name)";
+const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name)";
 
 export type Settings = {
   weight_unit: WeightUnit;
@@ -179,6 +179,7 @@ export async function listTemplates(): Promise<TemplateSummary[]> {
 export type LibraryExercise = {
   id: string;
   name: string;
+  slug: string | null;
   equipment_type: EquipmentType;
   has_floors: boolean;
   video_url: string | null;

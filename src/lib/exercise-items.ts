@@ -6,6 +6,7 @@ import type { EquipmentType, WeightUnit } from "@/lib/workout/format";
 export type LibraryItem = {
   id: string;
   name: string;
+  slug: string | null;
   group: string | null;
   groupId: string | null;
   equipment: EquipmentType;
@@ -22,6 +23,7 @@ export async function listExerciseItems(): Promise<LibraryItem[]> {
     return {
       id: e.id,
       name: e.name,
+      slug: e.slug,
       group: e.muscle_groups?.name ?? null,
       groupId: e.muscle_group_id,
       equipment: e.equipment_type,

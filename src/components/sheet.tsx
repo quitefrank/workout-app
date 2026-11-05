@@ -232,7 +232,7 @@ export function Sheet({
           </div>
           {thumbnail ? (
             <div className="flex items-start gap-4 px-4 pb-3 pt-1">
-              <div className="ml-1 size-16 shrink-0 overflow-hidden rounded-2xl bg-[var(--muscle-tile)] p-1 ring-[0.5px] ring-[var(--sep)]">{thumbnail}</div>
+              <div className="ml-1 size-16 shrink-0 overflow-hidden rounded-2xl bg-[var(--muscle-tile)] ring-[0.5px] ring-[var(--sep)]">{thumbnail}</div>
               <div className="min-w-0 flex-1 pt-3">
                 <h2 id={titleId} className="truncate text-[15px] font-medium leading-5 tracking-[-0.23px]">
                   {title}

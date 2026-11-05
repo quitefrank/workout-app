@@ -264,6 +264,7 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
       <ExerciseSheet
         open={sheetOpen}
         exerciseId={sheet?.id ?? null}
+        slug={sheet?.slug}
         title={sheet?.name ?? ""}
         art={(sheet?.groupId && artOf.get(sheet.groupId)) || <div className="grid size-full place-items-center text-ink-3"><FigureIcon size={40} /></div>}
         onClose={() => setSheetOpen(false)}

@@ -79,7 +79,7 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNo
     <>
       {art && (
         <>
-          <div className="mt-3 h-[140px] overflow-hidden rounded-[20px] bg-[var(--muscle-tile)] p-2">{art}</div>
+          <div className="mt-3 h-[140px] overflow-hidden rounded-[20px] bg-[var(--muscle-tile)]">{art}</div>
           <p className="mt-3 text-[15px] text-ink-2">{exerciseFacts(exercise)}</p>
         </>
       )}

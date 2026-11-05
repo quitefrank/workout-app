@@ -177,7 +177,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 472 tests across 40 files.
+Run `bun run test` to exercise them. 473 tests across 41 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -426,8 +426,11 @@ fetching `/api/exercises/[id]`): Summary, History, How to
 (`exercise-detail.tsx`). Search loads its rows from `/api/exercises` when it
 opens, so Home never fetches all 342. `/exercises` redirects to Home;
 `/exercises/[id]` stays for links from templates, workouts and Progress, and
-shows the same tabs. Exercises have no images of their own yet, so rows and the
-Summary hero show the muscle group's art. Going back restores the screen's
+shows the same tabs. Exercise illustrations are `public/exercises/<slug>.webp` (red
+highlight, Frank's call, 2026-11-05), added with `bun run images:import <folder>`,
+which rewrites `src/lib/exercise-image-slugs.ts`. `src/components/exercise-art.tsx`
+shows one on the themed tile (they are transparent), or the muscle group's art until
+it exists. Going back restores the screen's
 scroll position (`src/components/app-scroller.tsx`). Templates has the 18 Notion
 day templates (`program_id` null). Progress is `/analytics`. The active
 workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight string

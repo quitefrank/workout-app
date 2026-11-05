@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { BackButton } from "@/components/back-button";
+import { ExerciseArt } from "@/components/exercise-art";
 import { ExerciseDetailTabs } from "@/components/exercise-detail";
 import { FigureIcon } from "@/components/icons";
 import { MuscleArt } from "@/components/muscle-art/muscle-art";
@@ -19,13 +20,19 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
         <ExerciseDetailTabs
           view={view}
           art={
-            group ? (
-              <MuscleArt group={group} />
-            ) : (
-              <div className="grid size-full place-items-center text-ink-3">
-                <FigureIcon size={40} />
-              </div>
-            )
+            <ExerciseArt
+              slug={view.exercise.slug}
+              pad="p-2"
+              art={
+                group ? (
+                  <MuscleArt group={group} />
+                ) : (
+                  <div className="grid size-full place-items-center text-ink-3">
+                    <FigureIcon size={40} />
+                  </div>
+                )
+              }
+            />
           }
         />
       </div>

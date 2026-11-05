@@ -2,11 +2,12 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import type { ExerciseView } from "@/lib/exercise-view";
+import { ExerciseArt } from "./exercise-art";
 import { exerciseFacts, ExerciseDetailTabs } from "./exercise-detail";
 import { Sheet } from "./sheet";
 
 /** The exercise's bottom sheet. Loads when it opens; an alternate opens in place. */
-export function ExerciseSheet({ open, exerciseId, title, art, onClose }: { open: boolean; exerciseId: string | null; title: string; art: ReactNode; onClose: () => void }) {
+export function ExerciseSheet({ open, exerciseId, slug, title, art, onClose }: { open: boolean; exerciseId: string | null; slug: string | null | undefined; title: string; art: ReactNode; onClose: () => void }) {
   const [shown, setShown] = useState<string | null>(null);
   const [view, setView] = useState<ExerciseView | null>(null);
   const [failed, setFailed] = useState(false);
@@ -35,7 +36,7 @@ export function ExerciseSheet({ open, exerciseId, title, art, onClose }: { open:
 
   const current = view && view.exercise.id === id ? view : null;
   return (
-    <Sheet open={open} onClose={onClose} title={current?.exercise.name ?? title} thumbnail={art} subtitle={current ? exerciseFacts(current.exercise) : undefined}>
+    <Sheet open={open} onClose={onClose} title={current?.exercise.name ?? title} thumbnail={<ExerciseArt slug={current?.exercise.slug ?? slug} art={art} pad="p-1" />} subtitle={current ? exerciseFacts(current.exercise) : undefined}>
       {current ? (
         <ExerciseDetailTabs key={current.exercise.id} view={current} onAlternate={setShown} />
       ) : (
