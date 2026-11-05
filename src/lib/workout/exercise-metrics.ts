@@ -2,7 +2,7 @@ import { epley } from "./format";
 import type { MachineLocation } from "./machine-location";
 
 /** One completed workout's sets of one exercise, as the exercise sheet shows them. */
-export type ExerciseSet = { number: number; warmUp: boolean; weight: number | null; reps: number | null; seconds: number | null };
+export type ExerciseSet = { number: number; warmUp: boolean; dropSet: boolean; weight: number | null; reps: number | null; seconds: number | null };
 export type ExerciseSession = { workoutId: string; name: string; completedAt: string; floor: MachineLocation | null; sets: ExerciseSet[] };
 
 /** The floor of the most recent session on one. */
@@ -24,11 +24,11 @@ const VALUE: Record<ExerciseMetric, (weight: number, reps: number) => number> = 
   volume: (weight, reps) => weight * reps,
 };
 
-/** A session's best working set by a metric. Warm-ups and sets without a weight and reps do not count. */
+/** A session's best working set by a metric. Warm-ups, drop sets and sets without a weight and reps do not count. */
 function bestSet(session: ExerciseSession, metric: ExerciseMetric): MetricPoint | null {
   let best: MetricPoint | null = null;
   for (const s of session.sets) {
-    if (s.warmUp || s.weight == null || !s.reps) continue;
+    if (s.warmUp || s.dropSet || s.weight == null || !s.reps) continue;
     const value = VALUE[metric](s.weight, s.reps);
     if (!best || value > best.value) best = { at: session.completedAt, value, weight: s.weight, reps: s.reps };
   }

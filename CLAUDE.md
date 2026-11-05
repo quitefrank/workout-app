@@ -177,7 +177,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 473 tests across 41 files.
+Run `bun run test` to exercise them. 475 tests across 41 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -353,6 +353,17 @@ rule, 2026-11-04), a pop-up button sets a value. In the sheet it sits under the 
 and not on How to, which is the same on either floor. `scripts/data/merged-exercises.ts` stops
 the Notion seed bringing the duplicates back.
 
+## Drop sets
+
+A drop set is a value on a logged set, `sets.is_drop_set`, for any exercise (Frank's call,
+2026-11-05), never a separate exercise. It counts toward volume and is left out of the top
+set, PRs and working-set progress. The active workout's Drop set button marks the next set;
+it and Warm are mutually exclusive. Quick log's Weight string cannot say which sets were drop
+sets, so each keeps its place. Migration 0010 merged Lat Pull-Downs (main) and (dropset), the
+program seed's Lat Pulldown and Notion's Machine Pulldown into Lat Pulldown.
+`KEEP_UNREFERENCED` in `scripts/data/programs/library.ts` names seed-owned exercises the
+program seed must keep although nothing references them.
+
 ## Rehab templates and following a program
 
 The recovery program carries rehab templates (category `rehab`, from
@@ -361,11 +372,11 @@ phase, in `scripts/data/achilles/rehab-templates.ts` with their
 exercises in `rehab-exercises.ts`. Authority order: treating surgeon,
 physio, clinic handout, Willits Table E-1, anything else.
 
-- Clinic templates (`needs_signoff` null): "Achilles Rehab, Weeks 2-6"
-  and "Weeks 6-8" from the handout, and "Weeks 8-12", the physio's sheet
-  exactly (seven exercises, doses as written, null where it gives none,
-  nothing added; a test pins it). It runs in phases 7 and 8 until the
-  physio changes it.
+- Clinic templates (`needs_signoff` null): "Achilles Rehab, Weeks 2-6",
+  "Weeks 6-8" and "Weeks 8-12" from the handout. "Weeks 8-12" holds the
+  handout's resistance band with no dose (a test pins it) and runs in
+  phases 7 and 8. The physio's sheet's rows were removed by Frank's call
+  (2026-11-05).
 - E3 Rehab templates (phases 1 to 5, running, strength tests) carry
   `needs_signoff` text and a cue on every row where E3 disagrees with
   the handout. The handout governs. Never merge E3 rows into a clinic

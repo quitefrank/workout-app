@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { latestFloor, metricBest, metricSeries, sessionsOnFloor, type ExerciseSession } from "../exercise-metrics";
 
-const set = (weight: number | null, reps: number | null, warmUp = false, number = 1) => ({ number, warmUp, weight, reps, seconds: null });
+const set = (weight: number | null, reps: number | null, warmUp = false, number = 1) => ({ number, warmUp, dropSet: false, weight, reps, seconds: null });
 const session = (completedAt: string, sets: ExerciseSession["sets"]): ExerciseSession => ({ workoutId: completedAt, name: "Push", completedAt, floor: null, sets });
 
 const sessions = [
@@ -19,6 +19,14 @@ describe("metricSeries", () => {
   });
   it("skips sessions with no working set", () => {
     expect(metricSeries([session("2026-10-01T10:00:00Z", [set(null, 10), set(50, null), set(50, 5, true)])], "e1rm")).toEqual([]);
+  });
+});
+
+describe("drop sets", () => {
+  it("never count as a session's best set", () => {
+    const drop = { ...set(100, 30), dropSet: true };
+    const s = session("2026-10-01T10:00:00Z", [set(150, 8), drop]);
+    expect(metricSeries([s], "volume").map((p) => p.value)).toEqual([1200]);
   });
 });
 

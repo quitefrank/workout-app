@@ -9,6 +9,7 @@ import {
   range,
   setShorthand,
   setsToCsv,
+  setsToLine,
   type Prescription,
 } from "../format";
 import {
@@ -78,6 +79,13 @@ describe("format", () => {
       ]),
     ).toBe("50, 70, 100(5), 0(12), 42.5");
     expect(setsToCsv([])).toBe("");
+  });
+
+  it("reads drop sets out under their own label", () => {
+    const s = (weight: number, reps: number, is_drop_set = false) => ({ is_warm_up: false, is_drop_set, weight, reps });
+    expect(setsToLine([s(150, 8), s(150, 7), s(100, 12, true)])).toBe("150(8), 150(7) · Drop 100(12)");
+    expect(setsToLine([s(100, 12, true)])).toBe("Drop 100(12)");
+    expect(setsToLine([s(150, 8)])).toBe("150(8)");
   });
 
   it("writes set shorthand", () => {

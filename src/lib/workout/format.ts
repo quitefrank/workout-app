@@ -190,3 +190,13 @@ export function setsToCsv(
     })
     .join(", ");
 }
+
+/** The Weight string for reading: straight sets, then any drop sets under their own label. */
+export function setsToLine(
+  sets: readonly { is_warm_up: boolean; is_drop_set: boolean; weight: number | string | null; reps: number | null }[],
+): string {
+  const straight = setsToCsv(sets.filter((s) => !s.is_drop_set));
+  const drop = setsToCsv(sets.filter((s) => s.is_drop_set));
+  if (!drop) return straight;
+  return straight ? `${straight} · Drop ${drop}` : `Drop ${drop}`;
+}

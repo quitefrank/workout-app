@@ -10,10 +10,8 @@
  *   9 week 16+, 10 month 6 to 9, 11 month 12.
  *
  * The clinic's templates come first and are the default. "Achilles
- * Rehab, Weeks 8-12" is the physio's sheet exactly: seven exercises in
- * the sheet's order, its doses as written, blank where it gives none,
- * nothing added. It carries into weeks 12 to 16 because the handout
- * names no new exercises there and the physio has not changed it.
+ * Rehab, Weeks 8-12" holds the handout's resistance band. It carries
+ * into weeks 12 to 16 because the handout names no new exercises there.
  *
  * The E3 Rehab templates follow E3's five phases, placed on the
  * handout's weeks by E3's own time markers (exercises from about week
@@ -37,7 +35,7 @@ const NEUTRAL_LIMIT =
 
 export const REHAB_TEMPLATES: TemplateSeed[] = [
   // ------------------------------------------------------------------
-  // The clinic: handout and physio sheet
+  // The clinic: the handout
   // ------------------------------------------------------------------
   {
     name: "Achilles Rehab, Weeks 2-6",
@@ -77,41 +75,20 @@ export const REHAB_TEMPLATES: TemplateSeed[] = [
   },
   {
     name: "Achilles Rehab, Weeks 8-12",
-    sourceKey: "physio-sheet",
+    sourceKey: "handout",
     needsSignoff: null,
     category: "rehab",
     variant: "8-12",
     notes: [
-      "Your physio's sheet, items 1 to 6, plus the handout's resistance band. Doses are exactly as written; where the sheet gives none, the dose is blank. Runs until the physio changes it, which is why it carries into weeks 12 to 16.",
-      'Frequency: neither the sheet nor the handout says how often. The handout\'s only progression language is "as tolerated", and its only test is "LET PAIN BE YOUR GUIDE".',
-      'The handout for this window, in bold: "Ensure patient understands that tendon is still very vulnerable ... Any sudden loading of the Achilles (e.g. Trip, Step up stairs, etc.) may result in a re-rupture." Shoes on for the standing work.',
-      "Questions for the physio: 1. How often should each exercise be done, and how many sets for items 2 to 6? 2. Towel scrunch: dose? 3. Item 6: is the calf raise on one leg or both? 4. Item 2: when should weight on the knee be added, and how much? 5. Resistance band: which movements, and what sets and reps? 6. Heel slide: confirm end of range is intended.",
+      "The handout's resistance band. It gives no dose, so the dose is blank. It carries into weeks 12 to 16 because the handout names no new exercises there.",
+      'Frequency: the handout does not say how often. The handout\'s only progression language is "as tolerated", and its only test is "LET PAIN BE YOUR GUIDE".',
+      'The handout for this window, in bold: "Ensure patient understands that tendon is still very vulnerable ... Any sudden loading of the Achilles (e.g. Trip, Step up stairs, etc.) may result in a re-rupture."',
+      "Questions for the physio: resistance band: which movements, how often, and what sets and reps?",
       "Stop and get seen urgently after a pop or snap at the back of the ankle, sudden weakness, or being unable to rise onto the toes. New calf pain, swelling, warmth or redness needs same-day assessment; sudden breathlessness or chest pain is an emergency.",
     ].join("\n\n"),
     spacingNote: null,
     phases: [7, 8],
     exercises: [
-      { slug: "seated-passive-heel-slide", dose: "3 x 10 sec", cue: "Holds at end of range (the sheet: \"3x10s holds end of range\")", override: null },
-      {
-        slug: "seated-calf-raise-hold",
-        dose: "45-60 sec",
-        cue: 'The sheet: "45s-1min, possible weight on knee". Bodyweight first; weight on the knee is optional and has no trigger on the sheet, so ask the physio',
-        override: null,
-      },
-      { slug: "toe-spread-and-hold", dose: "10-15 sec", cue: null, override: null },
-      { slug: "towel-scrunch", dose: null, cue: "No dose on the sheet", override: null },
-      {
-        slug: "standing-weight-shift-to-single-leg-stand",
-        dose: "5 sec",
-        cue: "Single-leg stand for 5 s, with arm support. Shoes on",
-        override: { rule: 1, reason: `${WEAN}; it is item 5 on the physio's sheet.` },
-      },
-      {
-        slug: "weight-shift-with-calf-raise",
-        dose: null,
-        cue: "Item 5 with a calf raise. One leg or both is a question for the physio. Flat floor, never off a step edge",
-        override: { rule: 1, reason: `${WEAN}; it is item 6 on the physio's sheet.` },
-      },
       {
         slug: "ankle-resistance-band",
         dose: null,
@@ -141,7 +118,7 @@ export const REHAB_TEMPLATES: TemplateSeed[] = [
       { slug: "banded-plantar-flexion", dose: "2-3 x 10-25", variant: "Reps", cue: "Light band. Limit how far you come back into dorsiflexion", override: null },
       { slug: "banded-plantar-flexion", dose: "2-3 x 15-45 sec", variant: "Isometric", cue: "Held against the band", override: null },
       { slug: "plantar-flexion-isometric", dose: "2-3 x 15-45 sec", cue: "Holds. Can be done in the boot", override: null },
-      { slug: "towel-scrunch", dose: null, cue: "E3's towel curl. No dose given", override: null },
+      { slug: "towel-curl", dose: null, cue: "No dose given", override: null },
       { slug: "short-foot", dose: null, cue: "No dose given", override: null },
       { slug: "leg-extensions", dose: null, cue: "Lower body work in the boot. No dose given", override: null },
       { slug: "seated-leg-curl", dose: null, cue: "No dose given", override: null },
@@ -151,7 +128,7 @@ export const REHAB_TEMPLATES: TemplateSeed[] = [
     name: "E3 Rehab 2, Normalize Walking",
     sourceKey: "e3rehab",
     needsSignoff:
-      "E3 Rehab, not your clinic. Your physio's sheet already covers balance in weeks 8 to 12 with the weight shift to a 5 s single-leg stand; this adds E3's longer holds and backward walking.",
+      "E3 Rehab, not your clinic. Check E3's longer balance holds and backward walking with your physio.",
     category: "rehab",
     variant: "2",
     notes:

@@ -219,19 +219,11 @@ describe("rehab templates", () => {
     for (const n of names) expect(n).not.toContain(":");
   });
 
-  it("runs the physio's sheet exactly: seven exercises in order, doses as written, blank where none", () => {
+  it("keeps the handout's resistance band in weeks 8 to 12, with no dose invented", () => {
     const t = byName.get("Achilles Rehab, Weeks 8-12")!;
-    expect(t.sourceKey).toBe("physio-sheet");
+    expect(t.sourceKey).toBe("handout");
     expect(t.needsSignoff).toBeNull();
-    expect(t.exercises.map((e) => [e.slug, e.dose])).toEqual([
-      ["seated-passive-heel-slide", "3 x 10 sec"],
-      ["seated-calf-raise-hold", "45-60 sec"],
-      ["toe-spread-and-hold", "10-15 sec"],
-      ["towel-scrunch", null],
-      ["standing-weight-shift-to-single-leg-stand", "5 sec"],
-      ["weight-shift-with-calf-raise", null],
-      ["ankle-resistance-band", null],
-    ]);
+    expect(t.exercises.map((e) => [e.slug, e.dose])).toEqual([["ankle-resistance-band", null]]);
     expect(t.phases).toEqual([7, 8]);
   });
 

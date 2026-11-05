@@ -239,6 +239,7 @@ export type SetRow = {
   id: string;
   set_number: number;
   is_warm_up: boolean;
+  is_drop_set: boolean;
   weight: number | null;
   reps: number | null;
   seconds: number | null;
@@ -249,7 +250,7 @@ export type SetRow = {
 
 export type WorkoutExerciseRow = PrescribedRow & { machine_location: MachineLocation | null; sets: SetRow[] };
 
-export type LastTime = { completedAt: string; sets: Pick<SetRow, "set_number" | "is_warm_up" | "weight" | "reps">[] };
+export type LastTime = { completedAt: string; sets: Pick<SetRow, "set_number" | "is_warm_up" | "is_drop_set" | "weight" | "reps">[] };
 
 export type WorkoutDetail = {
   id: string;
@@ -314,7 +315,7 @@ async function getLastTimes(exerciseIds: string[], excludeWorkoutId: string): Pr
   const sets = rows(
     await db()
       .from("sets")
-      .select("workout_exercise_id, set_number, is_warm_up, weight, reps")
+      .select("workout_exercise_id, set_number, is_warm_up, is_drop_set, weight, reps")
       .in(
         "workout_exercise_id",
         [...latest.values()].map((v) => v.weId),
@@ -327,7 +328,7 @@ async function getLastTimes(exerciseIds: string[], excludeWorkoutId: string): Pr
       completedAt: at,
       sets: sets
         .filter((s) => s.workout_exercise_id === weId)
-        .map((s) => ({ set_number: s.set_number, is_warm_up: s.is_warm_up, weight: s.weight, reps: s.reps })),
+        .map((s) => ({ set_number: s.set_number, is_warm_up: s.is_warm_up, is_drop_set: s.is_drop_set, weight: s.weight, reps: s.reps })),
     };
   }
   return out;
@@ -397,14 +398,14 @@ export async function getExerciseSessions(exerciseId: string): Promise<ExerciseS
   const found = check(
     await db()
       .from("workout_exercises")
-      .select("machine_location, workouts!inner(id, user_id, completed_at, templates(name)), sets(set_number, is_warm_up, weight, reps, seconds)")
+      .select("machine_location, workouts!inner(id, user_id, completed_at, templates(name)), sets(set_number, is_warm_up, is_drop_set, weight, reps, seconds)")
       .eq("exercise_id", exerciseId)
       .eq("workouts.user_id", userId())
       .not("workouts.completed_at", "is", null),
   ) as unknown as {
     machine_location: MachineLocation | null;
     workouts: { id: string; completed_at: string; templates: { name: string } | null };
-    sets: { set_number: number; is_warm_up: boolean; weight: number | string | null; reps: number | null; seconds: number | null }[];
+    sets: { set_number: number; is_warm_up: boolean; is_drop_set: boolean; weight: number | string | null; reps: number | null; seconds: number | null }[];
   }[];
   return found
     .map((r) => ({
@@ -413,7 +414,7 @@ export async function getExerciseSessions(exerciseId: string): Promise<ExerciseS
       completedAt: r.workouts.completed_at,
       floor: r.machine_location,
       sets: r.sets
-        .map((s) => ({ number: s.set_number, warmUp: s.is_warm_up, weight: s.weight == null ? null : Number(s.weight), reps: s.reps, seconds: s.seconds }))
+        .map((s) => ({ number: s.set_number, warmUp: s.is_warm_up, dropSet: s.is_drop_set, weight: s.weight == null ? null : Number(s.weight), reps: s.reps, seconds: s.seconds }))
         .sort((a, b) => a.number - b.number),
     }))
     .filter((s) => s.sets.length > 0)

@@ -2,22 +2,14 @@
  * The rehab exercises: ankle, tendon and foot work, as distinct from the
  * strength work in the boot that exercises.ts carries.
  *
- * Three sources, in the order of authority the handoff set:
- *   1. The physiotherapist's handwritten sheet (source "physio-sheet").
- *      Names and doses are the physio's. The how-to lines are plain
- *      descriptions of the named exercise, written for the app, not the
- *      physio's instructions, and each notes field says so.
- *   2. The clinic handout ("handout"). It names movements and gives no
+ * Two sources, in the order of authority the handoff set:
+ *   1. The clinic handout ("handout"). It names movements and gives no
  *      doses.
- *   3. E3 Rehab's Achilles rupture guide ("e3rehab"). Outside the
+ *   2. E3 Rehab's Achilles rupture guide ("e3rehab"). Outside the
  *      authority chain: every template built from it carries a sign-off
  *      note, and every row where it disagrees with the handout says how.
  *
- * Where two sources name the same movement it is one library row, so
- * history attaches to one place: the physio's "towel scrunch" is E3's
- * "towel curl". Where they name different movements they stay apart:
- * the physio's seated calf raise hold is not E3's single-leg seated
- * heel raise, and neither is E3's plantar flexion isometric.
+ * The physiotherapist's sheet's rows were removed at Frank's direction.
  *
  * No clip is attached. E3's companion video covers the whole article,
  * not one exercise, and the handoff allows a clip only once a page is
@@ -32,8 +24,6 @@
 
 import type { ExerciseSeed } from "./types";
 
-const PHYSIO_NOTE =
-  "From the physiotherapist's sheet, which gives the name and dose only. The description is a plain account of the named exercise, not the physio's instructions.";
 const E3_NOTE = "From E3 Rehab's Achilles rupture guide, outside the clinic's protocol.";
 
 type Rated = Pick<
@@ -77,58 +67,8 @@ function row(
 
 export const REHAB_EXERCISES: ExerciseSeed[] = [
   // ------------------------------------------------------------------
-  // The physio's sheet (items 1 to 6) and the handout's band (item 7)
+  // The handout's band
   // ------------------------------------------------------------------
-  row({
-    name: "Seated passive heel slide",
-    slug: "seated-passive-heel-slide",
-    muscleGroup: "Stretches",
-    equipmentType: "bodyweight",
-    notes: `Sitting, foot flat. Slide the foot back under the chair with the heel down, to the end of your range, and hold. End of range will likely take the ankle past neutral; that is allowed, because the handout's neutral limit covers weighted resisted exercise, standing calf stretches and heel raises only. ${PHYSIO_NOTE}`,
-    ...SEATED_ANKLE,
-  }),
-  row({
-    name: "Seated calf raise hold",
-    slug: "seated-calf-raise-hold",
-    muscleGroup: "Calves",
-    equipmentType: "bodyweight",
-    notes: `Sitting, feet flat. Raise the heels and hold at the top. The sheet lists "possible weight on knee" with no trigger for adding it; once weight is added it counts as a weighted resisted exercise and the neutral limit applies. From a flat floor the ankle cannot pass neutral anyway. ${PHYSIO_NOTE}`,
-    ...SEATED_ANKLE,
-    loadDirection: "vertical",
-  }),
-  row({
-    name: "Toe spread and hold",
-    slug: "toe-spread-and-hold",
-    muscleGroup: null,
-    equipmentType: "bodyweight",
-    notes: `Spread the toes apart and hold. ${PHYSIO_NOTE}`,
-    ...SEATED_FOOT,
-  }),
-  row({
-    name: "Towel scrunch",
-    slug: "towel-scrunch",
-    muscleGroup: null,
-    equipmentType: "bodyweight",
-    notes: `Towel flat under the foot. Pull it toward you with the toes. E3 Rehab calls the same exercise a towel curl. ${PHYSIO_NOTE}`,
-    ...SEATED_FOOT,
-  }),
-  row({
-    name: "Standing weight shift to single-leg stand",
-    slug: "standing-weight-shift-to-single-leg-stand",
-    muscleGroup: null,
-    equipmentType: "bodyweight",
-    notes: `Standing, holding on to something. Shift your weight side to side, then onto one leg and hold. Shoes on: the handout says always wear shoes in weeks 8 to 12, limiting time barefoot. ${PHYSIO_NOTE}`,
-    ...STANDING_ANKLE,
-    loadDirection: "lateral",
-  }),
-  row({
-    name: "Weight shift with calf raise",
-    slug: "weight-shift-with-calf-raise",
-    muscleGroup: "Calves",
-    equipmentType: "bodyweight",
-    notes: `The sheet says: repeat the weight shift with a calf raise. It does not say whether the raise is on one leg or both; that is a question for the physio. It is a heel raise, so the neutral limit applies: flat floor only, never off a step edge. Shoes on. ${PHYSIO_NOTE}`,
-    ...STANDING_ANKLE,
-  }),
   row({
     name: "Ankle resistance band",
     slug: "ankle-resistance-band",
@@ -200,6 +140,14 @@ export const REHAB_EXERCISES: ExerciseSeed[] = [
     equipmentType: "bodyweight",
     notes: `Seated, foot on the floor or a heel wedge. Gently push the ball of the foot into the ground and hold; nothing moves. E3 says it can be done in the boot. ${E3_NOTE}`,
     ...SEATED_ANKLE,
+  }),
+  row({
+    name: "Towel curl",
+    slug: "towel-curl",
+    muscleGroup: null,
+    equipmentType: "bodyweight",
+    notes: `Towel flat under the foot. Pull it toward you with the toes. ${E3_NOTE}`,
+    ...SEATED_FOOT,
   }),
   row({
     name: "Short foot",

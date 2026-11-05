@@ -23,7 +23,7 @@
  * source can be cleaned up and re-run.
  */
 
-import { MERGED_EXERCISES } from "./data/merged-exercises";
+import { DROP_SET_PAGES, MERGED_EXERCISES } from "./data/merged-exercises";
 import { Client as NotionClient } from "@notionhq/client";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { writeFile } from "node:fs/promises";
@@ -335,6 +335,7 @@ async function main() {
   const exerciseMap = new Map<string, string>();
   const pageFloor = new Map<string, string>();
   const keptSlug = new Map(MERGED_EXERCISES.map((m) => [m.keep, m.slug]));
+  const keptName = new Map(MERGED_EXERCISES.flatMap((m) => (m.name ? [[m.keep, m.name] as const] : [])));
   const mergedInto = new Map(MERGED_EXERCISES.flatMap((m) => m.merged.map((id) => [id, m.keep] as const)));
   const exercisePages = new Map<string, AnyPage>();
   const usedSlugs = new Map<string, { name: string; url: string }>();
@@ -375,7 +376,7 @@ async function main() {
     usedSlugs.set(slug, { name: info.name, url: page.url ?? page.id });
     const supabaseId = await upsertExercise(supabase, {
       notionId: page.id,
-      name: info.name,
+      name: keptName.get(page.id) ?? info.name,
       slug,
       muscleGroupId,
       equipmentType: info.equipmentType,
@@ -733,6 +734,7 @@ async function main() {
         workout_exercise_id: workoutExerciseId,
         set_number: s.setNumber,
         is_warm_up: s.isWarmUp,
+        is_drop_set: !s.isWarmUp && DROP_SET_PAGES.has(getRelation(page, FIELDS.sessions.exercise)[0]),
         weight: s.weight,
         reps: s.reps,
         _notion_id: page.id,

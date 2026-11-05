@@ -90,6 +90,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
                       {i > 0 && ", "}
                       {formatNumber(s.weight) || "BW"}
                       {s.reps != null && `×${s.reps}`}
+                      {s.is_drop_set && " drop"}
                     </span>
                   ))}
                 </p>

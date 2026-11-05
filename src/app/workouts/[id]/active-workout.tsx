@@ -25,7 +25,7 @@ export function ActiveWorkout({ workout, settings }: { workout: WorkoutDetail; s
   const isDone = useCallback(
     (we: WorkoutDetail["exercises"][number]) => {
       const target = workingTarget(we);
-      const working = we.sets.filter((s) => !s.is_warm_up).length;
+      const working = we.sets.filter((s) => !s.is_warm_up && !s.is_drop_set).length;
       return target > 0 ? working >= target : we.sets.length > 0;
     },
     [],

@@ -57,7 +57,7 @@ import { inferTemplateCategory } from "./lib/template-name";
 import { parseRange, parseRestSeconds } from "./lib/parse-prescription";
 import { parseDose } from "../src/lib/recovery/dose";
 import { validateProgramJson, type ProgramJson } from "./data/programs/schema";
-import { LIBRARY_ALIASES, LIBRARY_ATTRIBUTES, MUSCLE_GROUP_NAMES } from "./data/programs/library";
+import { KEEP_UNREFERENCED, LIBRARY_ALIASES, LIBRARY_ATTRIBUTES, MUSCLE_GROUP_NAMES } from "./data/programs/library";
 
 const EXERCISE_OWNER = "program:exercise:";
 const MUSCLE_GROUP_OWNER = "program:muscle-group:";
@@ -273,7 +273,7 @@ async function makeResolver(sb: SupabaseClient, report: Report) {
     const parsed = parseExerciseName(name);
     const { data, error } = await sb
       .from("exercises")
-      .insert({ name: parsed.name, slug, equipment_type: parsed.equipmentType, notes: null, _notion_id: `${EXERCISE_OWNER}${slug}` })
+      .insert({ name: LIBRARY_ATTRIBUTES[slug]?.name ?? parsed.name, slug, equipment_type: parsed.equipmentType, notes: null, _notion_id: `${EXERCISE_OWNER}${slug}` })
       .select("id")
       .single();
     if (error) fail(`exercise insert failed (${slug}): ${error.message}`);
@@ -635,7 +635,7 @@ async function main() {
     const { data: ea2, error: ea2Err } = await sb.from("exercise_alternates").select("alternate_exercise_id").in("alternate_exercise_id", seedIds);
     if (ea2Err) fail(`exercise_alternates alternate reference lookup failed: ${ea2Err.message}`);
     for (const r of ea2 ?? []) referenced.add(r.alternate_exercise_id as string);
-    const unreferenced = (seedExercises ?? []).filter((r) => !referenced.has(r.id as string));
+    const unreferenced = (seedExercises ?? []).filter((r) => !referenced.has(r.id as string) && !KEEP_UNREFERENCED.has(r.slug as string));
     if (unreferenced.length) {
       const { error: delErr } = await sb.from("exercises").delete().in("id", unreferenced.map((r) => r.id as string));
       if (delErr) fail(`unreferenced exercise delete failed: ${delErr.message}`);

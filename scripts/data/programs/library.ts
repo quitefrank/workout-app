@@ -33,7 +33,7 @@ export const MUSCLE_GROUP_NAMES = [
 ] as const;
 export type MuscleGroupName = (typeof MUSCLE_GROUP_NAMES)[number];
 
-export type LibraryAttributes = { muscleGroup: MuscleGroupName; equipmentType: EquipmentType };
+export type LibraryAttributes = { muscleGroup: MuscleGroupName; equipmentType: EquipmentType; name?: string };
 
 export const LIBRARY_ALIASES: Record<string, string> = {
   "barbell-bench-press": "bench-press-flat",
@@ -75,6 +75,7 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "medicine-ball-pushups": "med-ball-push-up",
   "military-press": "overhead-press",
   "military-press-push-press-complex": "overhead-press-push-press",
+  "machine-pulldown": "lat-pulldown",
   "neutral-grip-pulldown": "neutral-grip-lat-pulldown",
   "overhead-rope-tricep-extension": "overhead-cable-triceps-extension",
   "overhead-triceps-extension": "overhead-cable-triceps-extension",
@@ -92,6 +93,7 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "single-arm-pulldown": "single-arm-cable-pulldown",
   "single-arm-row": "dumbbell-rows",
   "squat": "back-squat",
+  "arnold-press": "seated-arnold-press",
   "standing-dumbbell-arnold-press": "standing-arnold-press",
   "standing-ez-bar-curl": "ez-bar-bicep-curls",
   "supinated-ez-bar-curl": "ez-bar-bicep-curls",
@@ -105,7 +107,7 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "3-block-pull": { muscleGroup: "Glutes", equipmentType: "barbell" },
   "5-block-pull": { muscleGroup: "Glutes", equipmentType: "barbell" },
   "ab-wheel-rollout": { muscleGroup: "Abs", equipmentType: "bodyweight" },
-  "arnold-press": { muscleGroup: "Shoulders", equipmentType: "dumbbell" },
+  "seated-arnold-press": { muscleGroup: "Shoulders", equipmentType: "dumbbell", name: "Seated Arnold Press" },
   "assisted-chin-up": { muscleGroup: "Back", equipmentType: "bodyweight" },
   "back-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
   "band-pull-apart": { muscleGroup: "Shoulders", equipmentType: "other" },
@@ -152,7 +154,6 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "kneeling-modified-push-up": { muscleGroup: "Chest", equipmentType: "bodyweight" },
   "kroc-row": { muscleGroup: "Back", equipmentType: "dumbbell" },
   "lat-pull-over": { muscleGroup: "Back", equipmentType: "other" },
-  "lat-pulldown": { muscleGroup: "Back", equipmentType: "cable" },
   "lean-in-constant-tension-db-lateral-raise": { muscleGroup: "Shoulders", equipmentType: "dumbbell" },
   "llpt-plank": { muscleGroup: "Abs", equipmentType: "bodyweight" },
   "low-bar-back-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
@@ -205,3 +206,10 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "wide-grip-machine-row": { muscleGroup: "Back", equipmentType: "machine" },
   "wide-grip-t-bar-row": { muscleGroup: "Back", equipmentType: "barbell" },
 };
+
+/**
+ * Seed-owned exercises kept in the library though nothing references them: a program
+ * names them only as a substitute for a slot Notion already fills. Frank's call: anything
+ * from Jeff Nippard's programs stays.
+ */
+export const KEEP_UNREFERENCED = new Set(["plate-weighted-crunch"]);

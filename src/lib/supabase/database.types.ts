@@ -573,6 +573,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           id: string
+          is_drop_set: boolean
           is_warm_up: boolean
           notes: string | null
           reps: number | null
@@ -587,6 +588,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          is_drop_set?: boolean
           is_warm_up?: boolean
           notes?: string | null
           reps?: number | null
@@ -601,6 +603,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           id?: string
+          is_drop_set?: boolean
           is_warm_up?: boolean
           notes?: string | null
           reps?: number | null

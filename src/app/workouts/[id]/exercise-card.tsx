@@ -18,6 +18,7 @@ import {
   isRawReading,
   range,
   setsToCsv,
+  setsToLine,
   type WeightUnit,
 } from "@/lib/workout/format";
 
@@ -56,7 +57,8 @@ export function ExerciseCard({
   const [quick, setQuick] = useState(false);
 
   const warmUps = sets.filter((s) => s.is_warm_up);
-  const working = sets.filter((s) => !s.is_warm_up);
+  const working = sets.filter((s) => !s.is_warm_up && !s.is_drop_set);
+  const dropSets = sets.filter((s) => s.is_drop_set);
   const target = workingTarget(we);
   const warmTarget = we.warm_up_sets_max ?? 0;
   const raw = isRawReading(ex.equipment_type);
@@ -68,7 +70,8 @@ export function ExerciseCard({
   const [weight, setWeight] = useState("");
   const [reps, setReps] = useState("");
   const [warm, setWarm] = useState<boolean | null>(null);
-  const isWarm = warm ?? defaultWarm;
+  const [dropSet, setDropSet] = useState(false);
+  const isWarm = !dropSet && (warm ?? defaultWarm);
 
   const submit = () => {
     const w = weight.trim() === "" ? (lastSet?.weight ?? null) : Number(weight);
@@ -86,6 +89,7 @@ export function ExerciseCard({
         id: `pending-${Date.now()}`,
         set_number: (lastSet?.set_number ?? 0) + 1,
         is_warm_up: isWarm,
+        is_drop_set: dropSet,
         weight: w,
         reps: r,
         seconds: null,
@@ -95,9 +99,10 @@ export function ExerciseCard({
         pending: true,
       });
       try {
-        await logSet(we.id, { weight: w, reps: r, isWarmUp: isWarm });
+        await logSet(we.id, { weight: w, reps: r, isWarmUp: isWarm, isDropSet: dropSet });
         setReps("");
         setWarm(null);
+        setDropSet(false);
         onLogged(isWarm);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Could not log the set");
@@ -154,7 +159,7 @@ export function ExerciseCard({
           {lastTime && lastTime.sets.length > 0 && (
             <p className="mb-2 text-[13px] text-ink-2">
               <span className="font-semibold">Last time</span> · {dayLabel(localDate(lastTime.completedAt))}:{" "}
-              <span className="tabular">{setsToCsv(lastTime.sets)}</span>
+              <span className="tabular">{setsToLine(lastTime.sets)}</span>
             </p>
           )}
           {we.notes && <p className="mb-2 text-[13px] text-ink-2">{we.notes}</p>}
@@ -163,6 +168,7 @@ export function ExerciseCard({
             <div className="mb-3 overflow-hidden rounded-[18px] bg-bg/60">
               {warmUps.length > 0 && <SetGroup label="Warm-up" sets={warmUps} unit={unit} raw={raw} equipment={ex.equipment_type} />}
               {working.length > 0 && <SetGroup label="Working" sets={working} unit={unit} raw={raw} equipment={ex.equipment_type} />}
+              {dropSets.length > 0 && <SetGroup label="Drop sets" sets={dropSets} unit={unit} raw={raw} equipment={ex.equipment_type} />}
             </div>
           )}
 
@@ -193,7 +199,10 @@ export function ExerciseCard({
             <button
               type="button"
               aria-pressed={isWarm}
-              onClick={() => setWarm(!isWarm)}
+              onClick={() => {
+                setDropSet(false);
+                setWarm(!isWarm);
+              }}
               className={cn(
                 "flex w-[60px] shrink-0 flex-col items-center justify-center rounded-2xl text-[11px] font-semibold uppercase tracking-[0.04em]",
                 isWarm ? "bg-orange/20 text-orange" : "bg-fill text-ink-3",
@@ -215,6 +224,17 @@ export function ExerciseCard({
           <div className="mt-2.5 flex items-center justify-between text-[15px]">
             <button type="button" className="text-blue" onClick={() => setQuick(true)}>
               Quick log
+            </button>
+            <button
+              type="button"
+              aria-pressed={dropSet}
+              onClick={() => {
+                setWarm(false);
+                setDropSet(!dropSet);
+              }}
+              className={cn("rounded-full px-3 py-1", dropSet ? "bg-blue/15 font-semibold text-blue" : "text-blue")}
+            >
+              Drop set
             </button>
             <Link href={`/exercises/${ex.id}`} className="text-blue">
               History
@@ -283,7 +303,7 @@ function SetGroup({
     <div>
       <div className="px-3.5 pb-0.5 pt-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-ink-2">{label}</div>
       {sets.map((s, i) => (
-        <SetLine key={s.id} set={s} n={i + 1} warm={s.is_warm_up} unit={unit} raw={raw} equipment={equipment} />
+        <SetLine key={s.id} set={s} n={i + 1} warm={s.is_warm_up} drop={s.is_drop_set} unit={unit} raw={raw} equipment={equipment} />
       ))}
     </div>
   );
@@ -293,6 +313,7 @@ function SetLine({
   set,
   n,
   warm,
+  drop,
   unit,
   raw,
   equipment,
@@ -300,6 +321,7 @@ function SetLine({
   set: Pending;
   n: number;
   warm: boolean;
+  drop: boolean;
   unit: WeightUnit;
   raw: boolean;
   equipment: WorkoutExerciseRow["exercises"]["equipment_type"];
@@ -316,6 +338,7 @@ function SetLine({
           weight: weight.trim() === "" ? null : Number(weight),
           reps: reps.trim() === "" ? null : Number(reps),
           isWarmUp: warm,
+          isDropSet: drop,
         });
         setEditing(false);
       } catch (e) {
@@ -335,7 +358,7 @@ function SetLine({
   if (editing) {
     return (
       <div className="flex items-center gap-2 px-3.5 py-1.5">
-        <span className="tabular w-7 text-[15px] text-ink-3">{warm ? `W${n}` : n}</span>
+        <span className="tabular w-7 text-[15px] text-ink-3">{warm ? `W${n}` : drop ? `D${n}` : n}</span>
         <input
           data-live
           aria-label="Weight"
@@ -373,7 +396,7 @@ function SetLine({
   const w = displayWeight(set.weight, equipment, unit);
   return (
     <div className={cn("flex h-10 items-center gap-2 px-3.5", set.pending && "opacity-50")}>
-      <span className="tabular w-7 text-[15px] text-ink-3">{warm ? `W${n}` : n}</span>
+      <span className="tabular w-7 text-[15px] text-ink-3">{warm ? `W${n}` : drop ? `D${n}` : n}</span>
       <span className="tabular flex-1 text-[17px]">
         {w || (raw ? "" : "Bodyweight")}
         {set.reps != null && (

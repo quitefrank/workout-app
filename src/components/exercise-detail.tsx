@@ -169,7 +169,7 @@ function Session({ session: s, weight }: { session: ExerciseSession; weight: (n:
         {s.sets.map((set) => (
           <div key={set.number} className="tabular flex min-h-11 items-center gap-4 px-4 text-[15px]">
             {/* stored numbers count warm-ups; the rows count working sets, so the first one is 1 */}
-            <span className="w-5 text-center font-semibold">{set.warmUp ? "W" : s.sets.filter((o) => !o.warmUp && o.number <= set.number).length}</span>
+            <span className="w-5 text-center font-semibold">{set.warmUp ? "W" : set.dropSet ? "D" : s.sets.filter((o) => !o.warmUp && !o.dropSet && o.number <= set.number).length}</span>
             <span>{setText(set, weight)}</span>
           </div>
         ))}

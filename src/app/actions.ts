@@ -199,13 +199,13 @@ export async function setExerciseFloor(workoutExerciseId: string, floor: Machine
 // Sets
 // ------------------------------------------------------------
 
-export type SetInput = { weight: number | null; reps: number | null; isWarmUp: boolean };
+export type SetInput = { weight: number | null; reps: number | null; isWarmUp: boolean; isDropSet: boolean };
 
 function cleanSet(input: SetInput) {
   const weight = input.weight != null && Number.isFinite(input.weight) && input.weight >= 0 ? input.weight : null;
   const reps = input.reps != null && Number.isInteger(input.reps) && input.reps >= 0 ? input.reps : null;
   if (weight == null && reps == null) throw new Error("Enter a weight or reps.");
-  return { weight, reps, is_warm_up: input.isWarmUp };
+  return { weight, reps, is_warm_up: input.isWarmUp, is_drop_set: input.isDropSet && !input.isWarmUp };
 }
 
 export async function logSet(workoutExerciseId: string, input: SetInput): Promise<void> {
@@ -267,6 +267,13 @@ export async function quickLog(
     return { ok: false, errors: parsed.errors.map((e) => `Set ${e.setNumber}: "${e.token}" ${e.reason}`) };
   }
   if (parsed.sets.length === 0) return { ok: false, errors: ["Nothing to log."] };
+  // The Weight string cannot say which sets were drop sets, so they keep their place
+  const { data: before, error: beforeError } = await db()
+    .from("sets")
+    .select("is_drop_set")
+    .eq("workout_exercise_id", workoutExerciseId)
+    .order("set_number");
+  fail(beforeError);
   const { error: delError } = await db().from("sets").delete().eq("workout_exercise_id", workoutExerciseId);
   fail(delError);
   const now = new Date().toISOString();
@@ -277,6 +284,7 @@ export async function quickLog(
         workout_exercise_id: workoutExerciseId,
         set_number: i + 1,
         is_warm_up: s.isWarmUp,
+        is_drop_set: !s.isWarmUp && (before?.[i]?.is_drop_set ?? false),
         weight: s.weight,
         reps: s.reps,
         completed_at: now,
