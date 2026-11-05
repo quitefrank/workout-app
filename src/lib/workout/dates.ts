@@ -112,18 +112,13 @@ export function sameWeekdayIn(date: string, week: number): string {
   return shiftDate(date, (week - weekNumber(date)) * 7);
 }
 
-/** The calendar's title for a day: "Today", "Yesterday", "Tomorrow", "Nov 6", and "Nov 6, 2027" outside this year. */
+/** The calendar's title for a day, close to Apple's Fitness: "Today, Nov 4" or "Wed, Nov 11". */
 export function dayTitle(date: string, today: string): string {
-  if (date === today) return "Today";
-  if (date === shiftDate(today, -1)) return "Yesterday";
-  if (date === shiftDate(today, 1)) return "Tomorrow";
   const [y, m, d] = date.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: date.slice(0, 4) === today.slice(0, 4) ? undefined : "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(y, m - 1, d)));
+  const at = new Date(Date.UTC(y, m - 1, d));
+  const day = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(at);
+  const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "UTC" }).format(at);
+  return `${date === today ? "Today" : weekday}, ${day}`;
 }
 
 /** "Friday, Oct 24" for a YYYY-MM-DD. */

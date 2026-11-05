@@ -198,13 +198,11 @@ describe("calendar navigation", () => {
     expect(sameWeekdayIn("2026-10-26", week)).toBe("2026-10-26");
   });
 
-  it("titles a day relative to today", () => {
-    expect(dayTitle("2026-11-04", "2026-11-04")).toBe("Today");
-    expect(dayTitle("2026-11-03", "2026-11-04")).toBe("Yesterday");
-    expect(dayTitle("2026-11-05", "2026-11-04")).toBe("Tomorrow");
-    expect(dayTitle("2026-11-16", "2026-11-04")).toBe("Nov 16");
-    expect(dayTitle("2027-03-06", "2026-11-04")).toBe("Mar 6, 2027");
-    expect(dayTitle("2027-01-01", "2026-12-31")).toBe("Tomorrow");
+  it("titles a day with its short weekday, and today as today, never with a year", () => {
+    expect(dayTitle("2026-11-04", "2026-11-04")).toBe("Today, Nov 4");
+    expect(dayTitle("2026-11-03", "2026-11-04")).toBe("Tue, Nov 3");
+    expect(dayTitle("2026-11-11", "2026-11-04")).toBe("Wed, Nov 11");
+    expect(dayTitle("2027-03-06", "2026-11-04")).toBe("Sat, Mar 6");
   });
 
   it("labels a day in full", () => {
