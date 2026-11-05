@@ -65,7 +65,7 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art: ReactNod
   ].filter(Boolean);
   return (
     <>
-      <div className="mt-3 aspect-[16/10] overflow-hidden rounded-[20px] bg-[var(--muscle-tile)] p-3">{art}</div>
+      <div className="mt-3 h-[140px] overflow-hidden rounded-[20px] bg-[var(--muscle-tile)] p-2">{art}</div>
       <p className="mt-3 text-[15px] text-ink-2">
         {exercise.muscle_groups?.name && (
           <>
