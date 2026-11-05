@@ -427,27 +427,23 @@ body {
   }
 
   /*
-     The iOS 27 sheet (Apple's kit 27.0.1, src/components/sheet.tsx). --sheet-p runs 0 at medium to 1 at large, --sheet-y
-     slides it down whole. Medium: 6pt in on three sides, 34pt top and 58pt bottom corners. Large: edge to edge, 38pt top
-     corners, square at the bottom, opaque. --sheet-m and --sheet-l are measured in px; the fallbacks are the first
-     paint's. Size animates, never `transform: scale`, which would distort the blur and the rim.
+     The iOS 27 sheet (Apple's kit 27.0.1, src/components/sheet.tsx). --sheet-height is its content's, up to the large
+     detent; --sheet-full is 1 at the large detent; --sheet-y slides it down whole. Below large: 6pt in on three sides, 34pt
+     top and 58pt bottom corners. Large: edge to edge, 38pt top corners, square at the bottom, opaque. Size animates, never
+     `transform: scale`, which would distort the blur and the rim.
   */
   .sheet-panel {
     --sheet-y: calc(100% + 40px);
-    /* --sheet-p moves the height between the two stops; only a top stop that is the large detent changes the shape */
-    --sheet-s: calc(var(--sheet-p) * var(--sheet-full));
-    --sheet-h: calc(var(--sheet-m) + (var(--sheet-l) - var(--sheet-m)) * var(--sheet-p));
-    --sheet-gap: calc(6px * (1 - var(--sheet-s)));
+    --sheet-gap: calc(6px * (1 - var(--sheet-full)));
     left: var(--sheet-gap);
     right: var(--sheet-gap);
     bottom: var(--sheet-gap);
-    height: var(--sheet-h);
-    border-radius: calc(34px + 4px * var(--sheet-s)) calc(34px + 4px * var(--sheet-s)) calc(58px * (1 - var(--sheet-s))) calc(58px * (1 - var(--sheet-s)));
+    height: var(--sheet-height);
+    border-radius: calc(34px + 4px * var(--sheet-full)) calc(34px + 4px * var(--sheet-full)) calc(58px * (1 - var(--sheet-full))) calc(58px * (1 - var(--sheet-full)));
     transform: translateY(var(--sheet-y));
     transition:
-      --sheet-p 450ms cubic-bezier(0.32, 0.72, 0, 1),
-      --sheet-m 450ms cubic-bezier(0.32, 0.72, 0, 1),
-      --sheet-l 450ms cubic-bezier(0.32, 0.72, 0, 1),
+      --sheet-height 450ms cubic-bezier(0.32, 0.72, 0, 1),
+      --sheet-full 450ms cubic-bezier(0.32, 0.72, 0, 1),
       transform 450ms cubic-bezier(0.32, 0.72, 0, 1);
   }
 
@@ -462,7 +458,7 @@ body {
     z-index: -1;
     border-radius: inherit;
     background: var(--sheet-solid);
-    opacity: var(--sheet-s);
+    opacity: var(--sheet-full);
     pointer-events: none;
   }
 
@@ -870,26 +866,14 @@ html.dock-hidden [data-glass-unit="dock"] {
   display: none;
 }
 
-/* The sheet's growth and slide: registered so the transition can run them */
-@property --sheet-p {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 0;
-}
-
+/* The sheet's height and shape: registered so the transition can run them */
 @property --sheet-full {
   syntax: "<number>";
   inherits: true;
   initial-value: 0;
 }
 
-@property --sheet-m {
-  syntax: "<length>";
-  inherits: true;
-  initial-value: 459px;
-}
-
-@property --sheet-l {
+@property --sheet-height {
   syntax: "<length>";
   inherits: true;
   initial-value: 459px;
@@ -903,7 +887,7 @@ html.dock-hidden [data-glass-unit="dock"] {
 
 /* A home screen app places the sheet from the top, as the dock: its window flips height, so a bottom edge jumps */
 html.standalone .sheet-panel {
-  top: calc(var(--screen-h) - var(--sheet-gap) - var(--sheet-h));
+  top: calc(var(--screen-h) - var(--sheet-gap) - var(--sheet-height));
   bottom: auto;
 }
 
