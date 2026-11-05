@@ -381,6 +381,12 @@ the program files keep Nippard's spelling and the seed matches on the slug; `nam
 `MERGED_EXERCISES` holds the display name through a re-seed. 1-Arm Cable Pulldown (migration 0016) is the cable
 machine, half kneeling, and took Nippard's single-arm pulldown. 1-Arm Lat Pull-In is a different exercise.
 
+## One row per exercise
+
+A program's new name for an exercise the library already has is an alias, never a second row (migration 0017, Frank's
+call, 2026-11-05): the same exercise goes in `LIBRARY_ALIASES`, and a row that differs by equipment or technique stays a
+row in its movement. Nippard's cues often match a Notion note word for word, which is how these duplicates show up.
+
 ## Following a program is optional
 
 With no program followed, Home's Up Next is an empty state with Choose Program, which opens a sheet of

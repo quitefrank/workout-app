@@ -16,6 +16,10 @@ export const MERGED_EXERCISES: { slug: string; name?: string; oneFloor?: boolean
   { slug: "triceps-pressdown", name: "Triceps Pressdown", keep: "04439159-838d-4399-a07e-4cb6a42302f5", merged: ["7113a297-3cad-4ae3-b13c-58aa2c36ce11", "72b4194b-41a4-42a9-ba73-a635e8cf40c1"] },
   { slug: "1-arm-cable-pulldown", name: "1-Arm Cable Pulldown", oneFloor: true, keep: "918ef66c-d8bd-445d-bd66-4d5469ca441f", merged: [] },
   { slug: "single-arm-tricep-pressdown", name: "1-Arm Tricep Pressdown", oneFloor: true, keep: "4adab133-6ca9-4ea4-a4c4-61b66197b77b", merged: [] },
+  { slug: "db-larsen-press", oneFloor: true, keep: "716960fd-202a-48e1-8ff6-2a4ff7bc61f4", merged: ["ef882f5c-98bc-426d-a5cd-6dad25aded29"] },
+  { slug: "incline-chest-supported-db-row", oneFloor: true, keep: "0aa00b00-d124-429a-99e3-20193a24b8e7", merged: ["73098aa4-316a-4702-9fec-24d1a7406f4a"] },
+  { slug: "lean-in-db-lateral-raise", name: "Lean-In DB Lateral Raise", oneFloor: true, keep: "bd870ac9-f76b-4fbb-8287-09e19eeaa528", merged: [] },
+  { slug: "reverse-cable-flies", oneFloor: true, keep: "399a6537-d53d-45e0-bdd1-6a0601e0849f", merged: ["95895f09-9df5-4139-bd9e-aa0ed7fbbcc6"] },
 ];
 
 /** Notion pages removed from the library, so re-running the seed cannot bring them back: Omni, an empty stub. */
@@ -26,7 +30,6 @@ export const DROP_SET_PAGES = new Set(["aab74eaa-5c6a-49c4-ba48-99dd306f227c", "
 
 /** Muscle groups that differ from the Notion page (migration 0013), by exercise slug, so re-running the seed keeps them. */
 export const MUSCLE_GROUP_OVERRIDES: Record<string, string> = {
-  "bent-over-cable-flies": "Shoulders",
   "cable-y-raise": "Shoulders",
   "cable-external-rotations": "Shoulders",
   "dead-bug-kicks": "Abs",
