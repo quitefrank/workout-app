@@ -17,5 +17,8 @@ export const MERGED_EXERCISES: { slug: string; name?: string; oneFloor?: boolean
   { slug: "1-arm-half-kneeling-lat-pulldown", name: "1-Arm Half Kneeling Lat Pulldown", oneFloor: true, keep: "918ef66c-d8bd-445d-bd66-4d5469ca441f", merged: [] },
 ];
 
+/** Notion pages removed from the library, so re-running the seed cannot bring them back: Omni, an empty stub. */
+export const REMOVED_PAGES = new Set(["217c4b6c-bd1f-8017-9aa6-ea9f14b208ee"]);
+
 /** Notion pages whose logged sets are drop sets (migration 0010): the two floors of Lat Pull-Downs (dropset). */
 export const DROP_SET_PAGES = new Set(["aab74eaa-5c6a-49c4-ba48-99dd306f227c", "bb52566d-ccbe-4908-aa04-6b25d6b5dab3"]);

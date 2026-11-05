@@ -23,7 +23,7 @@
  * source can be cleaned up and re-run.
  */
 
-import { DROP_SET_PAGES, MERGED_EXERCISES } from "./data/merged-exercises";
+import { DROP_SET_PAGES, MERGED_EXERCISES, REMOVED_PAGES } from "./data/merged-exercises";
 import { Client as NotionClient } from "@notionhq/client";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { writeFile } from "node:fs/promises";
@@ -353,7 +353,7 @@ async function main() {
     // The page's arrow is the floor of everything logged against it
     if (info.machineLocation) pageFloor.set(page.id, info.machineLocation);
     // merged in 0009: this page's row is gone, and references to it go to the kept page's row (below)
-    if (mergedInto.has(page.id)) continue;
+    if (mergedInto.has(page.id) || REMOVED_PAGES.has(page.id)) continue;
     const kept = keptSlug.get(page.id);
     const muscleGroupRel = getRelation(page, FIELDS.exercises.muscleGroup);
     const muscleGroupId = muscleGroupRel[0]

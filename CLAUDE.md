@@ -176,7 +176,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 475 tests across 41 files.
+Run `bun run test` to exercise them. 477 tests across 41 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -362,6 +362,14 @@ sets, so each keeps its place. Migration 0010 merged Lat Pull-Downs (main) and (
 program seed's Lat Pulldown and Notion's Machine Pulldown into Lat Pulldown.
 `KEEP_UNREFERENCED` in `scripts/data/programs/library.ts` names seed-owned exercises the
 program seed must keep although nothing references them.
+
+## Following a program is optional
+
+With no program followed, Home's Up Next is an empty state with Choose Program, which opens a sheet of
+the training programs (`src/app/(home)/program-empty-state.tsx`). The app never requires one. The workout
+that completes a program's last day stops following it (`stopFollowingIfEnded` in `actions.ts`), and Home
+treats an ended program as none. Past completions are not scoped to a follow date, so following a program
+you already finished ends it again; rerunning one needs a start date first.
 
 ## Recovery workouts removed
 

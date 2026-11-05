@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getActiveProgramId, getProgram } from "@/lib/data/queries";
+import { programHasEnded } from "@/lib/programs/today";
+import { programTodayOf } from "@/lib/programs/up-next";
 import { db, timeZone, userId } from "@/lib/supabase/server";
 import { localDate } from "@/lib/workout/dates";
 import { midpoint } from "@/lib/workout/format";
@@ -148,8 +151,20 @@ export async function completeWorkout(
     .update({ completed_at: new Date().toISOString(), perceived_effort: effort, notes: input.notes?.trim() || null })
     .eq("id", workoutId);
   fail(error);
+  await stopFollowingIfEnded();
   refreshWorkout(workoutId);
   redirect(`/workouts/${workoutId}/summary`);
+}
+
+/** The workout that finishes a program takes the app back to following none. It never blocks finishing the workout. */
+async function stopFollowingIfEnded(): Promise<void> {
+  try {
+    const activeId = await getActiveProgramId();
+    const program = activeId ? await getProgram(activeId) : null;
+    if (program && programHasEnded(programTodayOf(program, localDate(new Date(), timeZone())))) await followProgram(null);
+  } catch (e) {
+    console.error("Could not check whether the program ended", e);
+  }
 }
 
 export async function discardWorkout(workoutId: string): Promise<void> {

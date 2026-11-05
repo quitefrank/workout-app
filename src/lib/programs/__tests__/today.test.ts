@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { programToday } from "../today";
+import { programHasEnded, programToday } from "../today";
 import type { ProgramPhase } from "../next";
 import type { Clearance } from "../../recovery/types";
 
@@ -75,5 +75,23 @@ describe("programToday, training", () => {
       chosenPosition: null,
     });
     expect(r).toMatchObject({ kind: "training", next: { id: "rehab68" }, inForce: { phase: { position: 6 } } });
+  });
+});
+
+describe("programHasEnded", () => {
+  const base = { today: "2026-11-05", injuryDate: null, clearances: [], chosenPosition: null };
+  const weeks: ProgramPhase[] = [{ id: "w1", position: 1, weekFrom: 1, weekTo: 2, templates: [t("a"), t("b")] }];
+  const training = (done: string[]) =>
+    programToday({ ...base, kind: "training", phases: weeks, completions: done.map((templateId, i) => ({ templateId, completedAt: `2026-11-0${i + 1}T10:00:00Z` })) });
+
+  it("is false until the last day is done, and true after it", () => {
+    expect(programHasEnded(training([]))).toBe(false);
+    expect(programHasEnded(training(["a"]))).toBe(false);
+    expect(programHasEnded(training(["a", "b"]))).toBe(true);
+  });
+
+  it("is false for a week set by hand", () => {
+    const today = programToday({ ...base, kind: "training", phases: weeks, chosenPosition: 1, completions: [{ templateId: "b", completedAt: "2026-11-01T10:00:00Z" }] });
+    expect(programHasEnded(today)).toBe(false);
   });
 });

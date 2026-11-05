@@ -45,6 +45,11 @@ export type ProgramToday =
       last: Completion | null;
     };
 
+/** A training program ends after its last day. A recovery program has no last day. */
+export function programHasEnded(today: ProgramToday): boolean {
+  return today.kind === "training" && today.finished;
+}
+
 export function programToday(input: {
   kind: "recovery" | "training";
   phases: ProgramPhase[];

@@ -2,14 +2,16 @@ import Link from "next/link";
 import { GlassCircleLink } from "@/components/glass";
 import { CheckIcon, ChevronRight, GearIcon, ListIcon } from "@/components/icons";
 import { Row, SectionHeader, Thumb } from "@/components/page";
-import { getActiveProgramId, getMonthWorkouts, getProgram, type WorkoutListItem } from "@/lib/data/queries";
+import { getActiveProgramId, getMonthWorkouts, getProgram, listPrograms, type WorkoutListItem } from "@/lib/data/queries";
 import { weeksLabel } from "@/lib/programs/label";
+import { programHasEnded } from "@/lib/programs/today";
 import { programTodayOf } from "@/lib/programs/up-next";
 import { timeZone } from "@/lib/supabase/server";
 import { dotsByDay } from "@/lib/workout/calendar";
 import { durationMinutes, gridBounds, localDate, monthOf } from "@/lib/workout/dates";
 import { CATEGORY_LABELS } from "@/lib/workout/format";
 import { WeekCalendar } from "../week-calendar";
+import { ProgramEmptyState } from "./program-empty-state";
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
   const params = await searchParams;
@@ -20,7 +22,10 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   const [workouts, activeId] = await Promise.all([getMonthWorkouts(ym), getActiveProgramId()]);
   const program = activeId ? await getProgram(activeId) : null;
-  const upNext = program ? programTodayOf(program, today) : null;
+  const followed = program ? programTodayOf(program, today) : null;
+  // A program that has ended reads the same as following none
+  const upNext = followed && !programHasEnded(followed) ? followed : null;
+  const programs = upNext ? [] : await listPrograms();
   const upPhase = program?.phases.find((p) => p.id === upNext?.inForce.phase?.id) ?? null;
   // The program's own rows carry the variant and the sign-off note the pure model does not need.
   const rowOf = new Map(program?.phases.flatMap((p) => p.templates.map((t) => [t.id, t] as const)) ?? []);
@@ -72,6 +77,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </>
       )}
 
+      {!upNext && programs.length > 0 && <ProgramEmptyState programs={programs} />}
+
       {program && upNext && (
         <>
           <SectionHeader title="Up Next" trailing={<Link href={`/programs/${program.id}`}>Program</Link>} />
@@ -84,9 +91,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
                     ? upNext.kind === "recovery"
                       ? `${upNext.day !== null ? `Day ${upNext.day} · ` : ""}Phase ${upPhase.position}, ${upPhase.label} · ${weeksLabel(upPhase.week_from, upPhase.week_to)}`
                       : [upPhase.label, upPhase.block].filter(Boolean).join(" · ")
-                    : upNext.kind === "training" && upNext.finished
-                      ? "Program finished"
-                      : undefined
+                    : undefined
                 }
                 chevron
               />
