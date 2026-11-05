@@ -51,13 +51,7 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     equipmentNeeded: ["mat"],
     minHoursBetweenSessions: null,
     maxSessionsPerWeek: null,
-    alternates: [
-      {
-        slug: "straight-leg-raise-injured-side",
-        position: 1,
-        notes: "Seated on the bench; the same hip and knee work without the floor transfer",
-      },
-    ],
+    alternates: [],
   },
   {
     name: "Side-Lying Hip Abductions",
@@ -123,13 +117,7 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     equipmentNeeded: ["mat"],
     minHoursBetweenSessions: null,
     maxSessionsPerWeek: null,
-    alternates: [
-      {
-        slug: "single-leg-glute-bridge-sound-leg",
-        position: 1,
-        notes: "Booted leg held off the floor; nothing goes through the boot, so no override is needed",
-      },
-    ],
+    alternates: [],
   },
   {
     name: "Ball Wall Squats",
@@ -149,13 +137,7 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     equipmentNeeded: ["stability_ball"],
     minHoursBetweenSessions: null,
     maxSessionsPerWeek: null,
-    alternates: [
-      {
-        slug: "wall-sit-sound-leg",
-        position: 1,
-        notes: "Sound leg only, back on the wall; nothing goes through the boot, so no override is needed",
-      },
-    ],
+    alternates: [],
   },
   {
     name: "Sit-to-Stand from a High Surface",
@@ -175,13 +157,7 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     equipmentNeeded: ["adjustable_bench", "half_rack"],
     minHoursBetweenSessions: null,
     maxSessionsPerWeek: null,
-    alternates: [
-      {
-        slug: "single-leg-sit-to-stand-sound-leg",
-        position: 1,
-        notes: "Sound leg only from the high bench, one hand on the rack; no override is needed",
-      },
-    ],
+    alternates: [],
   },
   {
     name: "Tricep Extensions (supine)",
@@ -201,13 +177,7 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     equipmentNeeded: ["mat", "dumbbells"],
     minHoursBetweenSessions: null,
     maxSessionsPerWeek: null,
-    alternates: [
-      {
-        slug: "seated-cable-pushdown",
-        position: 1,
-        notes: "Rope from the high pulley, sitting on the mat at the tower base; the cable pulls up",
-      },
-    ],
+    alternates: [],
   },
   {
     name: "Shoulder Press in a walking boot",
@@ -227,13 +197,7 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     equipmentNeeded: ["dumbbells", "adjustable_bench"],
     minHoursBetweenSessions: null,
     maxSessionsPerWeek: null,
-    alternates: [
-      {
-        slug: "seated-cable-press",
-        position: 1,
-        notes: "Low pulleys from a floor sit between the towers",
-      },
-    ],
+    alternates: [],
   },
   {
     name: "Banded Rows (seated)",
@@ -363,11 +327,6 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
         position: 1,
         notes: "High pulleys crossed, same floor sit at the towers",
       },
-      {
-        slug: "prone-dumbbell-rear-delt-row",
-        position: 2,
-        notes: "Face down on the incline bench; no floor transfer",
-      },
     ],
   },
   {
@@ -456,11 +415,6 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     maxSessionsPerWeek: null,
     alternates: [
       {
-        slug: "side-plank-on-knees",
-        position: 1,
-        notes: "On the mat, in the floor block",
-      },
-      {
         slug: "dead-bug-kicks",
         position: 2,
         notes: "On the mat, in the floor block, if the side plank is uncomfortable",
@@ -494,11 +448,6 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     minHoursBetweenSessions: 72,
     maxSessionsPerWeek: 2,
     alternates: [
-      {
-        slug: "seated-cable-pulldown",
-        position: 1,
-        notes: "High pulley from a floor sit; keep the load to what your bodyweight holds down",
-      },
       {
         slug: "single-arm-cable-pulldown",
         position: 2,
@@ -582,11 +531,6 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     maxSessionsPerWeek: null,
     alternates: [
       {
-        slug: "seated-cable-crunch",
-        position: 1,
-        notes: "Rope at the high pulley from a floor sit",
-      },
-      {
         slug: "dead-bug-kicks",
         position: 2,
         notes: "On the mat, in the floor block",
@@ -610,13 +554,7 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     equipmentNeeded: ["dumbbells", "adjustable_bench", "half_rack"],
     minHoursBetweenSessions: null,
     maxSessionsPerWeek: null,
-    alternates: [
-      {
-        slug: "dumbbell-floor-press",
-        position: 1,
-        notes: "On the mat, in the floor block; removes the lie-back onto a bench entirely",
-      },
-    ],
+    alternates: [],
   },
   {
     name: "Bench DB Lateral Raise",
@@ -640,34 +578,8 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
   },
 
   // ------------------------------------------------------------------
-  // Prototype rows kept as alternates (4), all new to the library.
+  // Prototype rows kept as alternates (1), new to the library.
   // ------------------------------------------------------------------
-  {
-    name: "Wall sit, sound leg",
-    slug: "wall-sit-sound-leg",
-    muscleGroup: "Quadriceps",
-    equipmentType: "bodyweight",
-    notes:
-      "Back on the wall, sound leg only, bench directly behind you. Keep the knee well above 90 degrees: the hold is easy, and standing back up from depth on one leg is the part that hurts people.",
-    videoUrl: "https://www.youtube.com/watch?v=lpTsOjxkFOc",
-    videoVerifiedAt: "2026-09-14T22:30:04Z",
-    videoCredit: "Nadena Health and Fitness App, Single Leg Wall Sit, https://www.youtube.com/watch?v=lpTsOjxkFOc",
-    supportRequired: "standing_supported",
-    loadDirection: "vertical",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: false,
-    equipmentNeeded: ["adjustable_bench"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [
-      {
-        slug: "single-leg-sit-to-stand-sound-leg",
-        position: 1,
-        notes: "From the bench set high, one hand on the rack",
-      },
-    ],
-  },
   {
     name: "Seated band hip abduction",
     slug: "seated-band-hip-abduction",
@@ -688,110 +600,10 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     maxSessionsPerWeek: null,
     alternates: [],
   },
-  {
-    name: "Straight-leg raise, injured side",
-    slug: "straight-leg-raise-injured-side",
-    muscleGroup: "Quadriceps",
-    equipmentType: "bodyweight",
-    notes:
-      "Seated on the bench, boot on, foot off the floor. Hip and knee only, which is exactly what the handout permits.",
-    videoUrl: "https://www.youtube.com/watch?v=e1GRT9SXkr4",
-    videoVerifiedAt: "2026-09-14T22:30:06Z",
-    videoCredit: "Olympia Fitness and Performance, Seated Straight Leg Raise, https://www.youtube.com/watch?v=e1GRT9SXkr4",
-    supportRequired: "seated_supported",
-    loadDirection: "none",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: false,
-    equipmentNeeded: ["adjustable_bench"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
-  {
-    name: "Seated cable pushdown",
-    slug: "seated-cable-pushdown",
-    muscleGroup: "Triceps",
-    equipmentType: "cable",
-    notes:
-      "Rope or bar from the high pulley, sitting on the mat at the tower base with the sound foot braced against it. The cable pulls up, so the load is vertical. Standing at the stack means bearing weight you are not cleared for.",
-    videoUrl: "https://www.youtube.com/watch?v=um2qs_N_uT8",
-    videoVerifiedAt: "2026-09-14T22:30:08Z",
-    videoCredit: "OriGym, How To Do Triceps Pushdown - Seated | Exercise Demo, https://www.youtube.com/watch?v=um2qs_N_uT8",
-    supportRequired: "seated_supported",
-    loadDirection: "vertical",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: true,
-    equipmentNeeded: ["cable_tower", "mat"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
 
   // ------------------------------------------------------------------
-  // Alternates the review added (9), all new to the library, no clip.
+  // Alternates the review added (1), new to the library, no clip. Used by the programs.
   // ------------------------------------------------------------------
-  {
-    name: "Single-leg glute bridge, sound leg",
-    slug: "single-leg-glute-bridge-sound-leg",
-    muscleGroup: "Glutes",
-    equipmentType: "bodyweight",
-    notes:
-      "On the mat, sound foot flat, booted leg held off the floor. Push through the sound heel to lift the hips; nothing goes through the boot.",
-    videoUrl: null,
-    videoVerifiedAt: null,
-    videoCredit: null,
-    supportRequired: "lying",
-    loadDirection: "vertical",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: true,
-    equipmentNeeded: ["mat"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
-  {
-    name: "Single-leg sit-to-stand, sound leg",
-    slug: "single-leg-sit-to-stand-sound-leg",
-    muscleGroup: "Quadriceps",
-    equipmentType: "bodyweight",
-    notes:
-      "Bench set high in the rack, sound leg only, one hand on the rack. Stand up and sit down with control; the boot stays off the floor.",
-    videoUrl: null,
-    videoVerifiedAt: null,
-    videoCredit: null,
-    supportRequired: "standing_supported",
-    loadDirection: "vertical",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: false,
-    equipmentNeeded: ["adjustable_bench", "half_rack"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
-  {
-    name: "Seated cable pulldown",
-    slug: "seated-cable-pulldown",
-    muscleGroup: "Back",
-    equipmentType: "cable",
-    notes:
-      "High pulley, sitting on the mat at the tower base with the sound foot braced against it. Without thigh pads a heavy pulldown lifts you off the floor, so keep the load to what your bodyweight holds down.",
-    videoUrl: null,
-    videoVerifiedAt: null,
-    videoCredit: null,
-    supportRequired: "seated_supported",
-    loadDirection: "vertical",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: true,
-    equipmentNeeded: ["cable_tower", "mat"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
   {
     name: "Single-arm cable pulldown",
     slug: "single-arm-cable-pulldown",
@@ -808,106 +620,6 @@ const BOOT_EXERCISES: ExerciseSeed[] = [
     ankleInvolvement: false,
     floorTransferRequired: true,
     equipmentNeeded: ["cable_tower", "mat"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
-  {
-    name: "Prone dumbbell rear delt row",
-    slug: "prone-dumbbell-rear-delt-row",
-    muscleGroup: "Shoulders",
-    equipmentType: "dumbbell",
-    notes:
-      "Face down on the incline bench, dumbbells hanging, boot resting. Row wide with the elbows out so the rear delts do the work.",
-    videoUrl: null,
-    videoVerifiedAt: null,
-    videoCredit: null,
-    supportRequired: "lying",
-    loadDirection: "vertical",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: false,
-    equipmentNeeded: ["dumbbells", "adjustable_bench"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
-  {
-    name: "Seated cable crunch",
-    slug: "seated-cable-crunch",
-    muscleGroup: "Abs",
-    equipmentType: "cable",
-    notes:
-      "Rope at the high pulley, sitting on the mat facing the tower with the sound foot braced against its base. Crunch the ribs toward the hips; the cable pulls up.",
-    videoUrl: null,
-    videoVerifiedAt: null,
-    videoCredit: null,
-    supportRequired: "seated_supported",
-    loadDirection: "vertical",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: true,
-    equipmentNeeded: ["cable_tower", "mat"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
-  {
-    name: "Seated cable press",
-    slug: "seated-cable-press",
-    muscleGroup: "Shoulders",
-    equipmentType: "cable",
-    notes:
-      "Low pulleys, sitting on the mat between the towers with the sound foot braced against a tower base. Press up and forward; the cables pull back along their anchor line and the braced foot holds it.",
-    videoUrl: null,
-    videoVerifiedAt: null,
-    videoCredit: null,
-    supportRequired: "seated_supported",
-    loadDirection: "sagittal",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: true,
-    equipmentNeeded: ["cable_tower", "mat"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
-  {
-    name: "Dumbbell floor press",
-    slug: "dumbbell-floor-press",
-    muscleGroup: "Chest",
-    equipmentType: "dumbbell",
-    notes:
-      "On the mat, boot resting. Press from the floor; the elbows stop at the mat, which removes the lie-back onto a bench entirely.",
-    videoUrl: null,
-    videoVerifiedAt: null,
-    videoCredit: null,
-    supportRequired: "lying",
-    loadDirection: "vertical",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: true,
-    equipmentNeeded: ["mat", "dumbbells"],
-    minHoursBetweenSessions: null,
-    maxSessionsPerWeek: null,
-    alternates: [],
-  },
-  {
-    name: "Side plank on knees",
-    slug: "side-plank-on-knees",
-    muscleGroup: "Abs",
-    equipmentType: "bodyweight",
-    notes:
-      "On the mat from the knees, forearm under the shoulder. The boot rests on the sound leg or the mat and bears nothing. Done first in the session.",
-    videoUrl: null,
-    videoVerifiedAt: null,
-    videoCredit: null,
-    supportRequired: "lying",
-    loadDirection: "none",
-    loadsBootedFoot: false,
-    ankleInvolvement: false,
-    floorTransferRequired: true,
-    equipmentNeeded: ["mat"],
     minHoursBetweenSessions: null,
     maxSessionsPerWeek: null,
     alternates: [],
