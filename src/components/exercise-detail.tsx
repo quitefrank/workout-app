@@ -21,7 +21,6 @@ type Tab = (typeof TABS)[number];
 const METRICS: { key: ExerciseMetric; label: string }[] = [
   { key: "heaviest", label: "Heaviest Weight" },
   { key: "e1rm", label: "One Rep Max" },
-  { key: "volume", label: "Best Set Volume" },
 ];
 
 /** The exercise's muscle group and equipment, for a subtitle. */
@@ -116,7 +115,6 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNo
           <div className="grouped">
             <Record label="Heaviest Weight" point={metricBest(sessions, "heaviest")} value={(p) => weight(p.weight)} />
             <Record label="One Rep Max" point={metricBest(sessions, "e1rm")} value={(p) => weight(Math.round(p.value))} />
-            <Record label="Best Set Volume" point={metricBest(sessions, "volume")} value={(p) => formatNumber(Math.round(p.value))} />
           </div>
         </>
       ) : (

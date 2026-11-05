@@ -15,13 +15,12 @@ export function sessionsOnFloor(sessions: readonly ExerciseSession[], floor: Mac
   return sessions.filter((s) => s.floor === floor);
 }
 
-export type ExerciseMetric = "heaviest" | "e1rm" | "volume";
+export type ExerciseMetric = "heaviest" | "e1rm";
 export type MetricPoint = { at: string; value: number; weight: number; reps: number };
 
 const VALUE: Record<ExerciseMetric, (weight: number, reps: number) => number> = {
   heaviest: (weight) => weight,
   e1rm: epley,
-  volume: (weight, reps) => weight * reps,
 };
 
 /** A session's best working set by a metric. Warm-ups, drop sets and sets without a weight and reps do not count. */

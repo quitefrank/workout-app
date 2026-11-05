@@ -283,7 +283,7 @@ Mobile-first. Desktop is a wider variant of the mobile layout.
 - Rows with an image, name, equipment and last top set, each opening the exercise's sheet
 
 **Exercise** A bottom sheet from the Library, and `/exercises/[id]` from anywhere else
-- Summary: image, primary muscle, chart by Heaviest Weight, One Rep Max or Best Set Volume, personal records, alternates
+- Summary: image, primary muscle, chart by Heaviest Weight or One Rep Max, personal records, alternates
 - History: each workout's sets, opening its summary
 - How to: video embed and notes
 

@@ -14,9 +14,6 @@ describe("metricSeries", () => {
   it("takes each session's heaviest working set and ignores warm-ups", () => {
     expect(metricSeries(sessions, "heaviest").map((p) => p.value)).toEqual([110, 110, 90]);
   });
-  it("scores volume as weight times reps", () => {
-    expect(metricSeries(sessions, "volume").map((p) => p.value)).toEqual([1000, 550, 1350]);
-  });
   it("skips sessions with no working set", () => {
     expect(metricSeries([session("2026-10-01T10:00:00Z", [set(null, 10), set(50, null), set(50, 5, true)])], "e1rm")).toEqual([]);
   });
@@ -26,7 +23,7 @@ describe("drop sets", () => {
   it("never count as a session's best set", () => {
     const drop = { ...set(100, 30), dropSet: true };
     const s = session("2026-10-01T10:00:00Z", [set(150, 8), drop]);
-    expect(metricSeries([s], "volume").map((p) => p.value)).toEqual([1200]);
+    expect(metricSeries([s], "e1rm").map((p) => p.weight)).toEqual([150]);
   });
 });
 
@@ -34,8 +31,8 @@ describe("metricBest", () => {
   it("keeps the earliest session on a tie", () => {
     expect(metricBest(sessions, "heaviest")?.at).toBe("2026-10-01T10:00:00Z");
   });
-  it("finds the best volume wherever it falls", () => {
-    expect(metricBest(sessions, "volume")).toMatchObject({ weight: 90, reps: 15 });
+  it("finds the best one rep max wherever it falls", () => {
+    expect(metricBest(sessions, "e1rm")).toMatchObject({ weight: 90, reps: 15 });
   });
   it("is null with nothing logged", () => {
     expect(metricBest([], "e1rm")).toBeNull();

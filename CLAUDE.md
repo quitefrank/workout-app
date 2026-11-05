@@ -374,6 +374,12 @@ the row and its sets move with it (`setExerciseOption`), and the template is unt
 the program prescribes. Different angles or positions (flat and incline) stay separate movements. Grouping is data,
 so changing it never touches a log.
 
+## Records
+
+An exercise's chart and PRs are Heaviest Weight and One Rep Max. Best-set volume was removed (Frank's call, 2026-11-05):
+volume is not a goal, and it ranks a set of 21 above a heavy set of 5. A workout's summary still shows its total. A rep
+scheme such as 21s is reps on the set and a `variant` on the template row, never its own exercise.
+
 ## Naming: 1-Arm
 
 An exercise name says "1-Arm", never "Single-Arm" (Frank's call, 2026-11-05). Names change and slugs stay, because
