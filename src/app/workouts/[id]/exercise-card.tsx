@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { type ReactNode, useOptimistic, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useOptimistic, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { deleteSet, logSet, quickLog, setExerciseFloor, setExerciseOption, updateSet } from "@/app/actions";
 import { ExerciseArt, hasExerciseImage } from "@/components/exercise-art";
 import { MovementPicker } from "@/components/movement-picker";
+import { revealAboveDock } from "@/lib/scroller";
 import { FloorPicker } from "@/components/floor-picker";
 import { CheckIcon, ChevronDown, DumbbellIcon, HashIcon, PencilIcon, PlusIcon, TrashIcon, XIcon } from "@/components/icons";
 import { PrescriptionLine } from "@/components/prescription-line";
@@ -116,8 +117,16 @@ export function ExerciseCard({
     });
   };
 
+  // an opened card scrolls clear of the Finish bar, so its pickers and versions are never under it
+  const section = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!expanded) return;
+    const frame = requestAnimationFrame(() => revealAboveDock(section.current));
+    return () => cancelAnimationFrame(frame);
+  }, [expanded]);
+
   return (
-    <section className={cn("overflow-hidden rounded-[26px] bg-card transition-colors", done && !expanded && "opacity-80")}>
+    <section ref={section} className={cn("overflow-hidden rounded-[26px] bg-card transition-colors", done && !expanded && "opacity-80")}>
       <button type="button" onClick={onToggle} aria-expanded={expanded} className="flex w-full items-center gap-3 px-4 py-3 text-left">
         <span
           className={cn(

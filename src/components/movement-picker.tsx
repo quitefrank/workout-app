@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { axisChoices, exerciseTitle, optionFor, techniqueLabel, unavailableReason, type MovementAxis, type MovementOption } from "@/lib/workout/movements";
 import { cn } from "@/lib/cn";
+import { revealAboveDock } from "@/lib/scroller";
 import { PopUpMenu } from "./pop-up-menu";
 
 const AXES: { axis: MovementAxis; label: string }[] = [
@@ -19,6 +20,13 @@ const AXES: { axis: MovementAxis; label: string }[] = [
  */
 export function MovementPicker({ options, currentId, disabled, onSelect }: { options: MovementOption[]; currentId: string; disabled?: boolean; onSelect: (id: string) => void }) {
   const [showAll, setShowAll] = useState(false);
+  const versions = useRef<HTMLDivElement>(null);
+  // the opened list scrolls clear of the floating bar
+  useEffect(() => {
+    if (!showAll) return;
+    const frame = requestAnimationFrame(() => revealAboveDock(versions.current));
+    return () => cancelAnimationFrame(frame);
+  }, [showAll]);
   const current = options.find((o) => o.id === currentId);
   if (!current || options.length < 2) return null;
   const valueOf = (axis: MovementAxis) => (axis === "equipment" ? current.equipment : axis === "position" ? current.position : techniqueLabel(current.technique));
@@ -46,7 +54,7 @@ export function MovementPicker({ options, currentId, disabled, onSelect }: { opt
         );
       })}
       {/* A button and a rendered list, not <details>: the glass stage paints the DOM, closed details included */}
-      <div className="border-t border-[var(--sep)] py-2 text-[15px]">
+      <div ref={versions} className="border-t border-[var(--sep)] py-2 text-[15px]">
         <button type="button" aria-expanded={showAll} onClick={() => setShowAll(!showAll)} className="flex h-8 items-center font-medium text-blue">
           {showAll ? "Hide versions" : `All ${options.length} versions`}
         </button>

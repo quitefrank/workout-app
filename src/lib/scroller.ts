@@ -10,6 +10,22 @@ export function appScroller(): HTMLElement | null {
   return typeof document === "undefined" ? null : document.querySelector<HTMLElement>(SCROLLER);
 }
 
+/**
+ * Scroll just enough that an element sits clear of the floating bottom layer (the dock, or the active workout's
+ * Finish bar), without pushing its top under the pinned top bar. Called after something opens, so what opened is
+ * never under the bar.
+ */
+export function revealAboveDock(el: HTMLElement | null, topClearance = 110): void {
+  const scroller = appScroller();
+  // only what scrolls with the page; a sheet has its own scroll and covers the dock
+  if (!el || !scroller || !scroller.contains(el)) return;
+  const dock = document.querySelector<HTMLElement>('[data-glass-unit="dock"]');
+  const limit = (dock?.getBoundingClientRect().top ?? window.innerHeight) - 12;
+  const r = el.getBoundingClientRect();
+  const shift = Math.min(r.bottom - limit, r.top - topClearance);
+  if (shift > 0) scroller.scrollBy({ top: shift, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+
 /** How far the screen has scrolled, in px */
 export function scrollTop(): number {
   return appScroller()?.scrollTop ?? 0;
