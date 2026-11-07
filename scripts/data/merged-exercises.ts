@@ -24,7 +24,7 @@ export const MERGED_EXERCISES: { slug: string; name?: string; oneFloor?: boolean
   { slug: "reverse-cable-flies", oneFloor: true, keep: "399a6537-d53d-45e0-bdd1-6a0601e0849f", merged: ["95895f09-9df5-4139-bd9e-aa0ed7fbbcc6"] },
 ];
 
-/** Notion pages removed from the library, so re-running the seed cannot bring them back: Omni, an empty stub. */
+/** Notion pages removed from the library, so re-running the seed cannot bring them back: Omni, an empty stub, and Omni-Grip Pull-Up (migration 0021). */
 export const REMOVED_PAGES = new Set(["217c4b6c-bd1f-8017-9aa6-ea9f14b208ee", "55325a22-8949-4616-9cf6-5e49ed682b23"]);
 
 /** Notion pages whose logged sets are drop sets (migration 0010): the two floors of Lat Pull-Downs (dropset). */
