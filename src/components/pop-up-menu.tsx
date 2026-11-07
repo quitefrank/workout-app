@@ -77,11 +77,14 @@ function Menu({ rect, items, value, onClose, onPick }: { rect: DOMRect; items: P
     const el = panel.current;
     const inner = content.current;
     if (!el || !inner) return;
-    const width = Math.min(Math.max(220, Math.ceil(inner.scrollWidth)), window.innerWidth - 24);
-    const height = Math.min(inner.scrollHeight, window.innerHeight - 24);
+    // width first, so the height is measured with the lines laid out at the menu's real width
+    inner.style.width = "max-content";
+    const width = Math.min(Math.max(220, Math.ceil(inner.getBoundingClientRect().width)), window.innerWidth - 24);
+    inner.style.width = "";
+    el.style.setProperty("--W", `${width}px`);
+    const height = Math.min(Math.ceil(inner.getBoundingClientRect().height), window.innerHeight - 24);
     el.style.setProperty("--W0", `${rect.width}px`);
     el.style.setProperty("--B", `${rect.height}px`);
-    el.style.setProperty("--W", `${width}px`);
     el.style.setProperty("--H", `${height}px`);
     el.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
     el.style.top = `${Math.max(12, Math.min(rect.top, window.innerHeight - height - 12))}px`;
