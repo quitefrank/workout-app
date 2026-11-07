@@ -43,6 +43,7 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "helms-row": "incline-chest-supported-db-row",
   "lat-pull-over": "cable-pullover",
   "lean-in-constant-tension-db-lateral-raise": "lean-in-db-lateral-raise",
+  "machine-chest-press-no-leg-drive": "machine-chest-press",
   "n1-style-cross-body-triceps-extension": "cross-body-tricep-extension",
   "pause-high-bar-squat": "pause-squat",
   "plate-weighted-crunch": "decline-weighted-crunch",

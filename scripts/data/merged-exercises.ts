@@ -20,6 +20,7 @@ export const MERGED_EXERCISES: { slug: string; name?: string; oneFloor?: boolean
   { slug: "db-larsen-press", oneFloor: true, keep: "716960fd-202a-48e1-8ff6-2a4ff7bc61f4", merged: ["ef882f5c-98bc-426d-a5cd-6dad25aded29"] },
   { slug: "incline-chest-supported-db-row", oneFloor: true, keep: "0aa00b00-d124-429a-99e3-20193a24b8e7", merged: ["73098aa4-316a-4702-9fec-24d1a7406f4a"] },
   { slug: "lean-in-db-lateral-raise", name: "Lean-In DB Lateral Raise", oneFloor: true, keep: "bd870ac9-f76b-4fbb-8287-09e19eeaa528", merged: [] },
+  { slug: "machine-chest-press", oneFloor: true, keep: "5d7710b2-0e75-40a6-bf61-136c53eb6de4", merged: ["5571f444-7696-4a78-a4aa-237bffbab5a3"] },
   { slug: "reverse-cable-flies", oneFloor: true, keep: "399a6537-d53d-45e0-bdd1-6a0601e0849f", merged: ["95895f09-9df5-4139-bd9e-aa0ed7fbbcc6"] },
 ];
 
