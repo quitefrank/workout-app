@@ -25,7 +25,7 @@ export const MERGED_EXERCISES: { slug: string; name?: string; oneFloor?: boolean
 ];
 
 /** Notion pages removed from the library, so re-running the seed cannot bring them back: Omni, an empty stub. */
-export const REMOVED_PAGES = new Set(["217c4b6c-bd1f-8017-9aa6-ea9f14b208ee"]);
+export const REMOVED_PAGES = new Set(["217c4b6c-bd1f-8017-9aa6-ea9f14b208ee", "55325a22-8949-4616-9cf6-5e49ed682b23"]);
 
 /** Notion pages whose logged sets are drop sets (migration 0010): the two floors of Lat Pull-Downs (dropset). */
 export const DROP_SET_PAGES = new Set(["aab74eaa-5c6a-49c4-ba48-99dd306f227c", "bb52566d-ccbe-4908-aa04-6b25d6b5dab3"]);
