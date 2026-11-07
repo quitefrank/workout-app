@@ -363,16 +363,32 @@ program seed's Lat Pulldown and Notion's Machine Pulldown into Lat Pulldown.
 `KEEP_UNREFERENCED` in `scripts/data/programs/library.ts` names seed-owned exercises the
 program seed must keep although nothing references them.
 
-## Movements
+## Exercise families
 
-Library rows that are one movement show as one entry, and every row stays (Frank's call, 2026-11-05): each keeps
-its own image, how-to, history and PRs. `exercises.movement`, `option_equipment` and `option_technique` (migration
-0014) group them, and `src/lib/workout/movements.ts` holds the pure logic. Library and search show each movement
-once, opening on the row with history. `MovementPicker` shows Equipment and Technique pop-ups in the sheet and on
-the active workout's card, and a choice switches to that row, so its image, last time and PRs follow. On a workout
-the row and its sets move with it (`setExerciseOption`), and the template is untouched, so next time starts on what
-the program prescribes. Different angles or positions (flat and incline) stay separate movements. Grouping is data,
-so changing it never touches a log.
+An exercise is a family of versions (migration 0022, Frank's calls of 2026-11-05 to 2026-11-07, reviewed in the
+Exercise Family Map prototype, https://claude.ai/artifact/WFJQXbSNNrbRp2iW93tkd9). `exercises.movement` is the family;
+each row is one version, set apart by three choices: `option_equipment` (what carries the load, or a machine with its
+own name, such as Smith Machine, Pec Deck, Hack Squat), `option_position` (the bench angle or how the body is set:
+Incline, Preacher, Seated, Half-Kneeling) and `option_technique`, shown as **Variation** (grip, range, tempo, one side,
+a named style). Equipment is the parent: it decides the positions, and equipment with position decides the variations.
+`option_rank` orders the menus. Every row keeps its image, history and PRs, and a choice switches rows (`optionFor`
+and `unavailableReason` in `src/lib/workout/movements.ts`, tested). `MovementPicker` shows the three as line items,
+each the iOS 27 pop-up button with the measured menu morph (`src/components/pop-up-menu.tsx`, `.pop-menu` in
+`globals.css`), and lists every version under "All versions". A choice the current equipment cannot do stays in its
+menu, dimmed, with what it needs ("Needs Cable").
+
+`title` is the version's display name, built as equipment, position, variation, exercise with defaults left out
+(Flat, Standing, Standard, Bodyweight, and equipment when there is one): "Smith Machine Incline Bench Press". A named
+machine stands in for the exercise ("Pec Deck"), and a few keep the name people say (Machine Chest Press, Arnold Press,
+Chin-Up). `name` keeps the source spelling for search. The seeds never touch the family columns or `title`, so a
+regrouping is a migration. A new version gets its title by hand.
+
+Rules Frank set: a family can span muscle groups, but each row files under one main group (Conventional deadlifts
+under Glutes, Romanian under Hamstrings). A set instruction is one exercise with its standard row (Cheat, Negative,
+21s): `ALIAS_VARIANTS` in `scripts/data/programs/library.ts` keeps it on the program row. A variant the library keeps
+as its own row goes there (`VARIANT_TARGETS`: Squeeze-Only pressdown, Stretch-Only overhead extension). Versions
+in no program exist only where Frank named them (every bench position on each equipment, Floor only as Nippard
+wrote it); fill no other gaps unless he asks. Rows stamped `library:` in `_notion_id` belong to no seed.
 
 ## Records
 

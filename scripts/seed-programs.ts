@@ -57,7 +57,7 @@ import { inferTemplateCategory } from "./lib/template-name";
 import { parseRange, parseRestSeconds } from "./lib/parse-prescription";
 import { parseDose } from "../src/lib/recovery/dose";
 import { validateProgramJson, type ProgramJson } from "./data/programs/schema";
-import { KEEP_UNREFERENCED, LIBRARY_ALIASES, LIBRARY_ATTRIBUTES, MUSCLE_GROUP_NAMES } from "./data/programs/library";
+import { ALIAS_VARIANTS, KEEP_UNREFERENCED, LIBRARY_ALIASES, LIBRARY_ATTRIBUTES, MUSCLE_GROUP_NAMES, VARIANT_TARGETS } from "./data/programs/library";
 
 const EXERCISE_OWNER = "program:exercise:";
 const MUSCLE_GROUP_OWNER = "program:muscle-group:";
@@ -471,6 +471,12 @@ async function main() {
 
   // 3. Programs, phases and templates.
   console.log("\n[3/7] programs, phases, templates");
+  // The library rows some program variants go to (VARIANT_TARGETS); a target that does not exist leaves the row as written
+  const targetSlugs = [...new Set(Object.values(VARIANT_TARGETS).flatMap((m) => Object.values(m)))];
+  const { data: targetRows, error: targetErr } = await sb.from("exercises").select("id,slug").in("slug", targetSlugs);
+  if (targetErr) fail(`variant target lookup failed: ${targetErr.message}`);
+  const variantTargetIds = new Map((targetRows ?? []).map((r) => [r.slug as string, r.id as string]));
+
   for (const { program } of loaded) {
     const { data: prog, error: progErr } = await sb
       .from("programs")
@@ -544,14 +550,17 @@ async function main() {
             const d = parseDose(ex.dose);
             if (!d) fail(`dose rejected after pre-flight (${key}: ${ex.name} ${JSON.stringify(ex.dose)})`);
             pos++;
-            const exId = exerciseId.get(exerciseSlug(ex.name, null));
+            const jsonSlug = exerciseSlug(ex.name, null);
+            const exId = exerciseId.get(jsonSlug);
             if (!exId) fail(`no id for ${ex.name} after the exercises step`);
+            // A variant the library keeps as its own row goes to that row; an aliased set instruction rides on the row
+            const routed = ex.variant ? variantTargetIds.get(VARIANT_TARGETS[librarySlug.get(jsonSlug) ?? jsonSlug]?.[ex.variant] ?? "") : undefined;
             const warm = parseRange(ex.warmUp ?? "");
             rows.push({
               template_id: templateId,
-              exercise_id: exId,
+              exercise_id: routed ?? exId,
               position: pos,
-              variant: ex.variant,
+              variant: routed ? null : (ex.variant ?? ALIAS_VARIANTS[jsonSlug] ?? null),
               prescribed_sets_min: d.sets?.min ?? null,
               prescribed_sets_max: d.sets?.max ?? null,
               prescribed_reps_min: d.reps?.min ?? null,

@@ -19,7 +19,7 @@ function rows<T>(res: { data: T[] | null; error: { message: string } | null }): 
   return check(res) ?? [];
 }
 
-const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name), movement, option_equipment, option_technique";
+const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name), movement, option_equipment, option_position, option_technique, option_rank, title";
 
 export type Settings = {
   weight_unit: WeightUnit;
@@ -189,7 +189,10 @@ export type LibraryExercise = {
   muscle_groups: { name: string } | null;
   movement: string | null;
   option_equipment: string | null;
+  option_position: string | null;
   option_technique: string | null;
+  option_rank: number | null;
+  title: string | null;
 };
 
 export type PrescribedRow = {
@@ -299,22 +302,21 @@ export async function getWorkout(id: string): Promise<WorkoutDetail | null> {
   return { ...rest, day: workoutDay(rest, timeZone()) ?? "", exercises, lastTime, movementOptions };
 }
 
-/** The rows of each movement, standard way first within each equipment. */
+/** The versions of each family, in the family's order (migration 0022). */
 export async function getMovementOptions(movements: (string | null)[]): Promise<Record<string, MovementOption[]>> {
   const wanted = [...new Set(movements.filter((m): m is string => !!m))];
   if (wanted.length === 0) return {};
   const found = rows(
     await db()
       .from("exercises")
-      .select("id, slug, name, has_floors, movement, option_equipment, option_technique")
+      .select("id, slug, name, title, has_floors, movement, option_equipment, option_position, option_technique, option_rank")
       .in("movement", wanted)
-      .order("option_equipment")
-      .order("option_technique", { nullsFirst: true }),
+      .order("option_rank", { nullsFirst: false }),
   );
   const out: Record<string, MovementOption[]> = {};
   for (const e of found) {
     if (!e.movement || !e.option_equipment) continue;
-    (out[e.movement] ??= []).push({ id: e.id, slug: e.slug, name: e.name, equipment: e.option_equipment, technique: e.option_technique, hasFloors: e.has_floors });
+    (out[e.movement] ??= []).push({ id: e.id, slug: e.slug, name: e.name, title: e.title, equipment: e.option_equipment, position: e.option_position, technique: e.option_technique, hasFloors: e.has_floors });
   }
   return out;
 }

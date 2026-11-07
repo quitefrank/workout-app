@@ -68,7 +68,7 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
   // search mode has its own muscle group pills, as Figma's results have Folders and Files
   const [pick, setPick] = useState<string | null>(null);
   const matches = useMemo(
-    () => (items ?? []).filter((i) => !q || i.name.toLowerCase().includes(q) || i.movement?.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
+    () => (items ?? []).filter((i) => !q || i.name.toLowerCase().includes(q) || i.title?.toLowerCase().includes(q) || i.movement?.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
     [items, q],
   );
   // only the groups the typed text finds, so a pill never leads to nothing
@@ -266,7 +266,7 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
         open={sheetOpen}
         exerciseId={sheet?.id ?? null}
         slug={sheet?.slug}
-        title={sheet?.movement ?? sheet?.name ?? ""}
+        title={sheet?.title ?? sheet?.name ?? ""}
         art={(sheet?.groupId && artOf.get(sheet.groupId)) || <div className="grid size-full place-items-center text-ink-3"><FigureIcon size={40} /></div>}
         onClose={() => setSheetOpen(false)}
       />

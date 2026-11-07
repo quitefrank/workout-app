@@ -111,6 +111,7 @@ describe("supabase migrations on PGlite", () => {
       "0019_merge_21s_bottom_half_dumbbell.sql",
       "0020_merge_machine_chest_press_no_leg_drive.sql",
       "0021_remove_omni_grip_pull_up.sql",
+      "0022_exercise_families.sql",
     ]);
   });
 

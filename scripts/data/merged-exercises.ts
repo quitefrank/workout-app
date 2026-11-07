@@ -24,14 +24,16 @@ export const MERGED_EXERCISES: { slug: string; name?: string; oneFloor?: boolean
   { slug: "reverse-cable-flies", oneFloor: true, keep: "399a6537-d53d-45e0-bdd1-6a0601e0849f", merged: ["95895f09-9df5-4139-bd9e-aa0ed7fbbcc6"] },
 ];
 
-/** Notion pages removed from the library, so re-running the seed cannot bring them back: Omni, an empty stub, and Omni-Grip Pull-Up (migration 0021). */
-export const REMOVED_PAGES = new Set(["217c4b6c-bd1f-8017-9aa6-ea9f14b208ee", "55325a22-8949-4616-9cf6-5e49ed682b23"]);
+/** Notion pages removed from the library, so re-running the seed cannot bring them back: Omni, an empty stub, Omni-Grip Pull-Up (migration 0021), and
+ * Concentration Curl (Negative), now the Negative instruction on Dumbbell Concentration Curl (migration 0022). */
+export const REMOVED_PAGES = new Set(["217c4b6c-bd1f-8017-9aa6-ea9f14b208ee", "55325a22-8949-4616-9cf6-5e49ed682b23", "18ec4b6c-bd1f-80d2-99b0-f8417a710963"]);
 
 /** Notion pages whose logged sets are drop sets (migration 0010): the two floors of Lat Pull-Downs (dropset). */
 export const DROP_SET_PAGES = new Set(["aab74eaa-5c6a-49c4-ba48-99dd306f227c", "bb52566d-ccbe-4908-aa04-6b25d6b5dab3"]);
 
 /** Muscle groups that differ from the Notion page (migration 0013), by exercise slug, so re-running the seed keeps them. */
 export const MUSCLE_GROUP_OVERRIDES: Record<string, string> = {
+  "walking-db-lunge": "Glutes",
   "cable-y-raise": "Shoulders",
   "cable-external-rotations": "Shoulders",
   "dead-bug-kicks": "Abs",

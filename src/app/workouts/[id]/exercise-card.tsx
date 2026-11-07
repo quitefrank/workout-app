@@ -14,7 +14,7 @@ import { cn } from "@/lib/cn";
 import type { LastTime, SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
 import { dayLabel, localDate } from "@/lib/workout/dates";
 import { floorKey, floorLabel, type MachineLocation } from "@/lib/workout/machine-location";
-import { optionTag, type MovementOption } from "@/lib/workout/movements";
+import type { MovementOption } from "@/lib/workout/movements";
 import {
   displayWeight,
   formatNumber,
@@ -129,12 +129,8 @@ export function ExerciseCard({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[17px] font-semibold leading-[22px]">
-            {ex.movement ?? ex.name}
-            {(optionTag(ex) || ex.has_floors) && (
-              <span className="ml-1.5 align-middle text-[13px] font-medium text-ink-2">
-                {[optionTag(ex), ex.has_floors && floorLabel(floor)].filter(Boolean).join(" · ")}
-              </span>
-            )}
+            {ex.title ?? ex.name}
+            {ex.has_floors && <span className="ml-1.5 align-middle text-[13px] font-medium text-ink-2">{floorLabel(floor)}</span>}
           </span>
           <span className="block truncate text-[15px] leading-5 text-ink-2">
             <PrescriptionLine p={we} empty="No prescription" />

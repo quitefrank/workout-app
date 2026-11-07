@@ -672,6 +672,76 @@ body {
     }
   }
 
+  /* The pop-up button's menu (src/components/pop-up-menu.tsx): the same measured morph as the month panel, grown
+     from the value it covers and pinned at its top-right corner, on the sheet's material, as Frank chose in the
+     Exercise Family Map prototype (2026-11-07). */
+  .pop-menu {
+    --mw: calc(var(--W0) + (var(--W) - var(--W0)) * var(--pw));
+    --mh: calc(var(--B) + (var(--H) - var(--B)) * var(--ph));
+    width: var(--mw);
+    height: var(--mh);
+    translate: 0 var(--dy);
+    border-radius: min(26px, calc(var(--mw) / 2), calc(var(--mh) / 2));
+    overflow: hidden;
+  }
+
+  .pop-menu[data-state="open"] {
+    --pw: 1;
+    --ph: 1;
+    transition:
+      --pw 600ms linear(0.000, 0.037, 0.127, 0.246, 0.375, 0.502, 0.619, 0.720, 0.806, 0.875, 0.928, 0.967, 0.995, 1.014, 1.025, 1.030, 1.032, 1.030, 1.027, 1.024, 1.020, 1.016, 1.012, 1.009, 1.006, 1.004, 1.002, 1.001, 1.000, 1.000, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 1.000, 1.000, 1.000, 1.000),
+      --ph 600ms linear(0.000, 0.068, 0.222, 0.405, 0.580, 0.730, 0.846, 0.930, 0.986, 1.018, 1.034, 1.038, 1.036, 1.030, 1.023, 1.017, 1.011, 1.006, 1.003, 1.001, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000);
+    animation: month-panel-drop-open 300ms ease-in-out;
+  }
+
+  .pop-menu[data-state="closed"] {
+    opacity: 0;
+    transition:
+      --pw 320ms cubic-bezier(0.35, -0.1, 0.5, 1),
+      --ph 320ms cubic-bezier(0.55, -0.35, 0.5, 1),
+      opacity 64ms linear 256ms;
+    animation: month-panel-drop-close 200ms ease-out;
+  }
+
+  .pop-menu-content {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: var(--W);
+  }
+
+  .pop-menu[data-state="open"] .pop-menu-content {
+    animation:
+      month-panel-content-fade 134ms ease-out 33ms backwards,
+      month-panel-content-sharpen 200ms ease-out 33ms backwards;
+  }
+
+  .pop-menu[data-state="closed"] .pop-menu-content {
+    opacity: 0;
+    filter: blur(4px);
+    translate: 0 10px;
+    transition:
+      opacity 100ms ease-in,
+      filter 100ms ease-in,
+      translate 100ms ease-in;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pop-menu[data-state] {
+      --pw: 1;
+      --ph: 1;
+      animation: none;
+      transition: opacity 150ms linear;
+    }
+
+    .pop-menu[data-state] .pop-menu-content {
+      filter: none;
+      translate: none;
+      animation: none;
+      transition: none;
+    }
+  }
+
   /* Pressed glass dims a touch, as UIKit's does */
   .glass:where(button, a):active {
     filter: brightness(0.92);

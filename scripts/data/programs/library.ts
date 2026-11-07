@@ -15,9 +15,11 @@
  * Slugs are exerciseSlug(name, null) of the JSON name after the variant
  * split ("Bench Press (Top Set)" is "bench-press").
  *
- * An alias is only for the same movement under another spelling. A
- * technique variant (pause, enhanced-eccentric, bottom-half, cheat)
- * keeps its own row with attributes, and nothing aliases to an upstairs
+ * An alias is for the same movement under another spelling, and for a
+ * set instruction that is one exercise with its standard row (cheat,
+ * negative, enhanced-eccentric: ALIAS_VARIANTS keeps the instruction on
+ * the program row, migration 0022). A variation loaded differently
+ * (pause, bottom-half) keeps its own row with attributes, and nothing aliases to an upstairs
  * or downstairs row. Equipment comes from the name, or from the source
  * notes when the name is silent ("barbell or EZ bar" is barbell, "DB,
  * cable or band" is other). Wrist curls and farmer's walks are
@@ -68,6 +70,14 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "decline-plate-weighted-crunch": "decline-weighted-crunch",
   "diamond-pushup": "diamond-push-ups",
   "dumbbell-hammer-curl": "hammer-curls",
+  "hammer-cheat-curl": "hammer-curls",
+  "eccentric-accentuated-pull-up": "pull-ups",
+  // Frank removed Omni-Grip Pull-Up (migration 0021); Nippard names it as a substitute for Omni-Grip Lat Pulldown
+  "omni-grip-pull-up": "pull-ups",
+  "enhanced-eccentric-leg-extension": "leg-extensions",
+  "enhanced-eccentric-lying-leg-curl": "lying-leg-curl",
+  "constant-tension-cable-lateral-raise": "cable-lateral-raise",
+  "constant-tension-machine-lateral-raise": "machine-lateral-raises",
   "dumbbell-incline-press": "db-bench-press-incline",
   "dumbbell-isolateral-skull-crusher": "db-skull-crushers",
   "dumbbell-one-arm-row": "dumbbell-rows",
@@ -78,7 +88,7 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "egyptian-lateral-raise": "egyptian-cable-lateral-raise",
   "ez-bar-curl": "ez-bar-bicep-curls",
   "floor-skull-crusher": "floor-skullcrushers",
-  "heavy-negative-concentration-curls": "concentration-curl-negative",
+  "heavy-negative-concentration-curls": "dumbbell-concentration-curl",
   "incline-db-press": "db-bench-press-incline",
   "kneeling-straight-arm-cable-pull-over": "cable-pullover",
   "lat-static-stretch": "static-lat-stretch",
@@ -139,8 +149,6 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "chest-supported-t-bar-row-w-band": { muscleGroup: "Back", equipmentType: "machine" },
   "close-grip-bench-press": { muscleGroup: "Triceps", equipmentType: "barbell" },
   "close-grip-smith-machine-press": { muscleGroup: "Triceps", equipmentType: "machine" },
-  "constant-tension-cable-lateral-raise": { muscleGroup: "Shoulders", equipmentType: "cable" },
-  "constant-tension-machine-lateral-raise": { muscleGroup: "Shoulders", equipmentType: "machine" },
   "db-shrug": { muscleGroup: "Back", equipmentType: "dumbbell" },
   "db-triceps-kickback": { muscleGroup: "Triceps", equipmentType: "dumbbell" },
   "dip": { muscleGroup: "Triceps", equipmentType: "bodyweight" },
@@ -148,15 +156,11 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "dumbbell-preacher-curl": { muscleGroup: "Biceps", equipmentType: "dumbbell" },
   "dumbbell-preacher-hammer-curl": { muscleGroup: "Biceps", equipmentType: "dumbbell" },
   "dumbbell-pronated-curl": { muscleGroup: "Biceps", equipmentType: "dumbbell" },
-  "eccentric-accentuated-pull-up": { muscleGroup: "Back", equipmentType: "bodyweight" },
-  "enhanced-eccentric-leg-extension": { muscleGroup: "Quadriceps", equipmentType: "machine" },
-  "enhanced-eccentric-lying-leg-curl": { muscleGroup: "Hamstrings", equipmentType: "machine" },
   "face-pull": { muscleGroup: "Shoulders", equipmentType: "cable" },
   "farmers-walks": { muscleGroup: "Forearms", equipmentType: "other" },
   "flat-back-bench-press": { muscleGroup: "Chest", equipmentType: "barbell" },
   "forearm-wrist-curl": { muscleGroup: "Forearms", equipmentType: "other" },
   "glute-ham-raise": { muscleGroup: "Hamstrings", equipmentType: "machine" },
-  "hammer-cheat-curl": { muscleGroup: "Biceps", equipmentType: "dumbbell" },
   "high-bar-box-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
   "high-incline-smith-machine-press": { muscleGroup: "Chest", equipmentType: "machine" },
   "hip-abduction": { muscleGroup: "Glutes", equipmentType: "other" },
@@ -194,7 +198,7 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "single-leg-leg-extension": { muscleGroup: "Quadriceps", equipmentType: "machine" },
   "single-leg-leg-press": { muscleGroup: "Quadriceps", equipmentType: "machine" },
   "skull-crusher": { muscleGroup: "Triceps", equipmentType: "barbell" },
-  "smith-machine-reverse-lunge": { muscleGroup: "Quadriceps", equipmentType: "machine" },
+  "smith-machine-reverse-lunge": { muscleGroup: "Glutes", equipmentType: "machine" },
   "snatch-grip-barbell-shrug": { muscleGroup: "Back", equipmentType: "barbell" },
   "snatch-grip-romanian-deadlift": { muscleGroup: "Hamstrings", equipmentType: "barbell" },
   "spider-curl": { muscleGroup: "Biceps", equipmentType: "other" },
@@ -216,4 +220,22 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
  * names them only as a substitute for a slot Notion already fills. Frank's call: anything
  * from Jeff Nippard's programs stays.
  */
-export const KEEP_UNREFERENCED = new Set(["constant-tension-machine-lateral-raise", "plate-shrug"]);
+export const KEEP_UNREFERENCED = new Set(["plate-shrug"]);
+
+/** The set instruction an aliased spelling carries onto the program row (migration 0022). */
+export const ALIAS_VARIANTS: Record<string, string> = {
+  "hammer-cheat-curl": "Cheat",
+  "heavy-negative-concentration-curls": "Negative",
+  "eccentric-accentuated-pull-up": "Eccentric-Accentuated",
+  "enhanced-eccentric-leg-extension": "Enhanced-Eccentric",
+  "enhanced-eccentric-lying-leg-curl": "Enhanced-Eccentric",
+};
+
+/**
+ * A program row whose variant names a version the library keeps as its own row goes to that row, without the variant
+ * (migration 0022): keyed by the library slug the row resolved to, then the variant as the converter writes it.
+ */
+export const VARIANT_TARGETS: Record<string, Record<string, string>> = {
+  "triceps-pressdown": { "Squeeze-only": "squeeze-only-triceps-pressdown" },
+  "overhead-cable-triceps-extension": { "Stretch-only": "overhead-extension-stretch-only" },
+};

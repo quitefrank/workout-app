@@ -270,6 +270,9 @@ export type Database = {
           movement: string | null
           option_equipment: string | null
           option_technique: string | null
+          option_position: string | null
+          option_rank: number | null
+          title: string | null
           id: string
           load_direction: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot: boolean | null
@@ -298,6 +301,9 @@ export type Database = {
           movement?: string | null
           option_equipment?: string | null
           option_technique?: string | null
+          option_position?: string | null
+          option_rank?: number | null
+          title?: string | null
           id?: string
           load_direction?: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot?: boolean | null
@@ -326,6 +332,9 @@ export type Database = {
           movement?: string | null
           option_equipment?: string | null
           option_technique?: string | null
+          option_position?: string | null
+          option_rank?: number | null
+          title?: string | null
           id?: string
           load_direction?: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot?: boolean | null
