@@ -72,8 +72,6 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "dumbbell-hammer-curl": "hammer-curls",
   "hammer-cheat-curl": "hammer-curls",
   "eccentric-accentuated-pull-up": "pull-ups",
-  // Frank removed Omni-Grip Pull-Up (migration 0021); Nippard names it as a substitute for Omni-Grip Lat Pulldown
-  "omni-grip-pull-up": "pull-ups",
   "enhanced-eccentric-leg-extension": "leg-extensions",
   "enhanced-eccentric-lying-leg-curl": "lying-leg-curl",
   "constant-tension-cable-lateral-raise": "cable-lateral-raise",
@@ -198,6 +196,7 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "single-leg-leg-extension": { muscleGroup: "Quadriceps", equipmentType: "machine" },
   "single-leg-leg-press": { muscleGroup: "Quadriceps", equipmentType: "machine" },
   "skull-crusher": { muscleGroup: "Triceps", equipmentType: "barbell" },
+  "omni-grip-pull-up": { muscleGroup: "Back", equipmentType: "bodyweight", name: "Omni-Grip Pull-Up" },
   "smith-machine-reverse-lunge": { muscleGroup: "Glutes", equipmentType: "machine" },
   "snatch-grip-barbell-shrug": { muscleGroup: "Back", equipmentType: "barbell" },
   "snatch-grip-romanian-deadlift": { muscleGroup: "Hamstrings", equipmentType: "barbell" },
