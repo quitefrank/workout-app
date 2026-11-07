@@ -88,7 +88,6 @@ export const EXERCISE_IMAGE_SLUGS: readonly string[] = [
   "muscle-up",
   "neutral-grip-lat-pulldown",
   "omni-grip-lat-pulldown",
-  "omni-grip-pull-up",
   "omni-grip-rows",
   "overhead-cable-bicep-curls",
   "pause-barbell-bench-press",
