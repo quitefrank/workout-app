@@ -1,6 +1,6 @@
 /**
- * Brings a folder of exercise illustrations into the app. Each PNG is named by exercise slug; it becomes a 512px WebP
- * in public/exercises/ (the largest it shows is 140pt at 3x), and src/lib/exercise-image-slugs.ts is rewritten from what
+ * Brings a folder of exercise illustrations into the app. Each PNG is named by exercise slug; it becomes a 1024px WebP
+ * in public/exercises/ (the active workout's focus screen shows it at about 340pt, 1020px at 3x; Frank's call, 2026-11-08), and src/lib/exercise-image-slugs.ts is rewritten from what
  * is in that folder, so a batch only has to be dropped in.
  *
  *   bun run images:import ~/Downloads/exercises-011-020-red
@@ -26,7 +26,7 @@ async function main() {
   const rejected = pngs.filter((f) => !SLUG.test(slugOf(f)));
   if (rejected.length) throw new Error(`Not named by slug, nothing imported: ${rejected.join(", ")}`);
   for (const f of pngs) {
-    await sharp(join(from, f)).resize(512, 512, { fit: "inside" }).webp({ quality: 86 }).toFile(join(OUT, `${slugOf(f)}.webp`));
+    await sharp(join(from, f)).resize(1024, 1024, { fit: "inside" }).webp({ quality: 82 }).toFile(join(OUT, `${slugOf(f)}.webp`));
   }
 
   const slugs = readdirSync(OUT)

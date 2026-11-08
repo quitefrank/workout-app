@@ -10,6 +10,8 @@ const withPWA = withPWAInit({
   aggressiveFrontEndNavCaching: false,
   reloadOnOnline: false,
   disable: process.env.NODE_ENV === "development",
+  // The exercise illustrations (about 9 MB at 1024px) are cached as they are first shown, not all at install
+  publicExcludes: ["!noprecache/**/*", "!exercises/**/*"],
   workboxOptions: {
     disableDevLogs: true,
   },
