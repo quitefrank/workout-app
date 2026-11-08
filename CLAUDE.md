@@ -671,7 +671,9 @@ https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v). `src/app/workouts/[id]/activ
 dark stage, a media page: the top bar holds the clock and percent done (logged rows over all rows) and More; segments
 under it are the exercises (tap one to look at it); the header is the exercise name, its set circles (W, numbers, D;
 filled when logged, ringed when next) and "Up next"; the illustration fills the space between the header and "Last
-time" plus 35pt into each, never cropped; then weight and reps on `stepper.tsx` (the iOS stepper under a number that
+time" plus 35pt into each, never cropped. It comes first in the DOM (CSS `order` puts it back) because the glass
+painter draws in DOM order, so the header and "Last time" paint over it, each on a short 70pt dark fade at 65% that
+covers only the image's bleed, leaving the illustration at full strength (Frank's call, 2026-11-08); then weight and reps on `stepper.tsx` (the iOS stepper under a number that
 shrinks to fit, 5 lb or 2.5 kg and 1 rep a tap, typeable). The toolbar is Journal (with "1 of 4"), the 72pt Glass
 Prominent log button in the middle, and Swap. Swipe sideways to look through the exercises, swipe up for the Journal.
 Logging a working set starts the prescription's rest, which replaces the steppers with an arc, and the log button
