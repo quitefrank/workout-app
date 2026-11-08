@@ -326,6 +326,12 @@ html.standalone .app-scroller {
   height: var(--screen-h);
 }
 
+/* the active workout's full-screen focus view, sized the same way so its steppers stay clear of the toolbar */
+html.standalone [data-focus-screen] {
+  bottom: auto;
+  height: var(--screen-h);
+}
+
 /* With the keyboard up (src/lib/scroller.ts) the scroller covers only what is visible, from the top of the slid
    viewport to the top of the keyboard, and always has a pixel to scroll, so a drag moves the list and iOS never slides
    the viewport under the pinned bars */

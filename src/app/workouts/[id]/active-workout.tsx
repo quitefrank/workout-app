@@ -331,6 +331,7 @@ export function ActiveWorkout({
             e.stopPropagation();
           }
         }}
+        data-focus-screen
         className="fixed inset-0 touch-none select-none overflow-hidden bg-[#0b0b0d] text-white"
       >
         <main
@@ -506,54 +507,58 @@ export function ActiveWorkout({
       <div
         data-glass-unit="dock"
         data-edge="dim"
-        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] items-center justify-between px-[38px]"
+        // a column, like every dock: a home screen app stretches the dock to the screen's height and bottom-aligns its
+        // children with justify-content (html.standalone in globals.css), which only works down a column
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col"
         style={{ paddingBottom: "var(--dock-bottom)" }}
       >
-        <button
-          type="button"
-          aria-label="Journal"
-          onClick={openJournal}
-          className="glass pointer-events-auto grid size-14 shrink-0 content-center justify-items-center gap-0.5"
-        >
-          <ListIcon size={20} />
-          <span className="tabular text-[10px] font-semibold opacity-75">
-            {shown && rowIndex >= 0
-              ? `${rowIndex + 1} of ${shown.rows.length}`
-              : "All"}
-          </span>
-        </button>
-        <button
-          type="button"
-          data-glass-skip
-          aria-label={
-            resting ? "Skip rest" : !shown ? "Finish workout" : "Log set"
-          }
-          disabled={pending || (!resting && !!shown && rowIndex < 0)}
-          onClick={() =>
-            resting
-              ? timer.stop()
-              : !shown
-                ? setFinishing(true)
-                : log(shown, rowIndex)
-          }
-          className="glass glass-prominent pointer-events-auto relative grid size-[72px] shrink-0 place-items-center transition-transform active:scale-[1.06] disabled:opacity-50"
-        >
-          {resting ? (
-            <SkipIcon size={26} />
-          ) : (
-            <CheckIcon size={30} strokeWidth={2.6} />
-          )}
-        </button>
-        <button
-          type="button"
-          aria-label="Swap exercise"
-          disabled={!shown}
-          onClick={() => shown && setSwapFor(shown.we)}
-          className="glass pointer-events-auto grid size-14 shrink-0 content-center justify-items-center gap-0.5 disabled:opacity-40"
-        >
-          <SwapIcon size={20} />
-          <span className="text-[10px] font-semibold opacity-75">Swap</span>
-        </button>
+        <div className="flex items-center justify-between px-[38px]">
+          <button
+            type="button"
+            aria-label="Journal"
+            onClick={openJournal}
+            className="glass pointer-events-auto grid size-14 shrink-0 content-center justify-items-center gap-0.5"
+          >
+            <ListIcon size={20} />
+            <span className="tabular text-[10px] font-semibold opacity-75">
+              {shown && rowIndex >= 0
+                ? `${rowIndex + 1} of ${shown.rows.length}`
+                : "All"}
+            </span>
+          </button>
+          <button
+            type="button"
+            data-glass-skip
+            aria-label={
+              resting ? "Skip rest" : !shown ? "Finish workout" : "Log set"
+            }
+            disabled={pending || (!resting && !!shown && rowIndex < 0)}
+            onClick={() =>
+              resting
+                ? timer.stop()
+                : !shown
+                  ? setFinishing(true)
+                  : log(shown, rowIndex)
+            }
+            className="glass glass-prominent pointer-events-auto relative grid size-[72px] shrink-0 place-items-center transition-transform active:scale-[1.06] disabled:opacity-50"
+          >
+            {resting ? (
+              <SkipIcon size={26} />
+            ) : (
+              <CheckIcon size={30} strokeWidth={2.6} />
+            )}
+          </button>
+          <button
+            type="button"
+            aria-label="Swap exercise"
+            disabled={!shown}
+            onClick={() => shown && setSwapFor(shown.we)}
+            className="glass pointer-events-auto grid size-14 shrink-0 content-center justify-items-center gap-0.5 disabled:opacity-40"
+          >
+            <SwapIcon size={20} />
+            <span className="text-[10px] font-semibold opacity-75">Swap</span>
+          </button>
+        </div>
       </div>
 
       {menu && (
