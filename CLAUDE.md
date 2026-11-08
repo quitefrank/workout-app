@@ -522,9 +522,17 @@ only closes it. Below large: 6pt inset, 34pt top and 58pt bottom corners, a CSS 
 transparency.
 Large: edge to edge under the 62pt status bar, 38pt top corners, opaque. A focused
 text field takes it to large. The confirming action is `SheetConfirm`.
-A `thumbnail` gives a sheet the kit's Activity View header (thumbnail, title and
-subtitle in one row, close at the trailing edge), as the exercise sheet uses;
-without one it has the kit's toolbar (close, centred title, confirm).
+A `thumbnail` makes the sheet open on it large (232pt), and scrolling the content
+shrinks it into the kit's Activity View header (thumbnail, title and subtitle in
+one row, close at the trailing edge), as the exercise sheet uses. The shrink
+follows the finger, the large title rides up and fades while the small one fades
+in where it rests, the close button never moves, and a header stopped halfway
+settles on SwiftUI's smooth spring (Frank's call, 2026-11-07, from the Exercise
+Sheet Hero prototype, https://claude.ai/artifact/4WWmpj6GS3aqRKhwm7eKur). Values
+and geometry are pure and tested in `src/lib/sheet-hero.ts`. At the large detent
+the content gets a minimum height so the shrink can always finish; a fitted sheet
+never scrolls, so it stays large. Without a thumbnail a sheet has the kit's
+toolbar (close, centred title, confirm).
 The scrim is the kit's Overlays/Default (`--scrim-alpha`: 20% black, 48% in dark)
 and covers the bars too. On the WebGPU path it is painted into the page, so the
 bars' glass takes a `dim` uniform and its HTML symbols a brightness filter. Sheets,

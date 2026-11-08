@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { releaseDismisses, sheetFit, sheetSlide, type SheetFit } from "@/lib/sheet-detent";
+import { HERO_COLLAPSED_H, HERO_EXPANDED_H, HERO_SETTLE_DELAY, heroLayout, heroPose, heroSettleTarget, springSettled, springStep } from "@/lib/sheet-hero";
 import { GlassCircleButton } from "./glass";
 import { CheckIcon, XIcon } from "./icons";
 
@@ -29,9 +30,9 @@ export function Sheet({
   onClose: () => void;
   title: string;
   trailing?: ReactNode;
-  /** With a thumbnail the header is the kit's Activity View header (754:26934): thumbnail, title and subtitle in one
-   *  row, the close button at the trailing edge. Without one it is the kit's toolbar (754:64541): close, centred title,
-   *  confirm. */
+  /** With a thumbnail the sheet opens on it large, and scrolling shrinks it into the kit's Activity View header
+   *  (754:26934): thumbnail, title and subtitle in one row, the close button at the trailing edge (src/lib/sheet-hero.ts).
+   *  Without one the header is the kit's toolbar (754:64541): close, centred title, confirm. */
   thumbnail?: ReactNode;
   subtitle?: ReactNode;
   children: ReactNode;
@@ -41,6 +42,11 @@ export function Sheet({
   const body = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const header = useRef<HTMLDivElement>(null);
+  const hero = !!thumbnail;
+  /** The hero header's moving parts, written straight to the DOM on every scroll frame */
+  const heroEls = useRef<{ backdrop?: HTMLDivElement | null; edge?: HTMLDivElement | null; image?: HTMLDivElement | null; title?: HTMLElement | null; sub?: HTMLDivElement | null; smallTitle?: HTMLDivElement | null; smallSub?: HTMLDivElement | null; close?: HTMLDivElement | null }>({});
+  /** Whether the sheet is at the large detent, from the last fit */
+  const full = useRef(false);
   /** The tallest the content has been since this sheet opened, and whether a text field needs the room */
   const fit = useRef({ tallest: 0, raised: false });
   const closeRef = useRef(onClose);
@@ -55,13 +61,38 @@ export function Sheet({
     () => false,
   );
 
+  const paintHero = useCallback(() => {
+    const el = panel.current;
+    const e = heroEls.current;
+    if (!hero || !el || !e.image) return;
+    const width = el.clientWidth;
+    const p = heroPose(body.current?.scrollTop ?? 0, width, full.current);
+    const l = heroLayout(width);
+    Object.assign(e.image.style, { left: `${p.image.x}px`, top: `${p.image.y}px`, width: `${p.image.w}px`, height: `${p.image.h}px`, borderRadius: `${p.image.r}px` });
+    if (e.backdrop) e.backdrop.style.height = `${p.backdrop}px`;
+    if (e.edge) Object.assign(e.edge.style, { top: `${p.backdrop}px`, opacity: String(p.t) });
+    if (e.title) Object.assign(e.title.style, { top: `${p.largeTitleY}px`, width: `${l.large.w}px`, opacity: String(p.largeOpacity) });
+    if (e.sub) Object.assign(e.sub.style, { top: `${p.largeSubY}px`, width: `${l.large.w}px`, opacity: String(p.largeOpacity) });
+    if (e.smallTitle) Object.assign(e.smallTitle.style, { width: `${l.small.w}px`, opacity: String(p.smallOpacity) });
+    if (e.smallSub) Object.assign(e.smallSub.style, { width: `${l.small.w}px`, opacity: String(p.smallOpacity) });
+    if (e.close) e.close.style.left = `${l.close.x}px`;
+  }, [hero]);
+
   const measure = useCallback((): SheetFit | null => {
     const el = panel.current;
     if (!el || !header.current || !content.current || !body.current) return null;
     const padding = parseFloat(getComputedStyle(body.current).paddingBottom) || 0;
-    fit.current.tallest = Math.max(fit.current.tallest, header.current.offsetHeight + content.current.offsetHeight + padding);
-    return writeFit(el, fit.current.raised ? Infinity : Math.ceil(fit.current.tallest));
-  }, []);
+    // the hero's floor on the content is read without itself, then set again for the new fit
+    if (hero) content.current.style.minHeight = "";
+    const top = hero ? HERO_EXPANDED_H : header.current.offsetHeight;
+    fit.current.tallest = Math.max(fit.current.tallest, top + content.current.offsetHeight + padding);
+    const f = writeFit(el, fit.current.raised ? Infinity : Math.ceil(fit.current.tallest));
+    full.current = f.full;
+    // at the large detent the content is always tall enough for the image to finish shrinking
+    if (hero && f.full) content.current.style.minHeight = `${f.height - HERO_COLLAPSED_H}px`;
+    paintHero();
+    return f;
+  }, [hero, paintHero]);
 
   useEffect(() => {
     if (!open) return;
@@ -87,6 +118,7 @@ export function Sheet({
       void el.offsetHeight;
       el.removeAttribute("data-dragging");
       if (body.current) body.current.scrollTop = 0;
+      paintHero();
       el.style.setProperty("--sheet-y", "0px");
     } else {
       // a closed sheet is hidden from VoiceOver, so it cannot keep the focus
@@ -94,7 +126,7 @@ export function Sheet({
       el.removeAttribute("data-dragging");
       el.style.setProperty("--sheet-y", "calc(100% + 40px)");
     }
-  }, [open, mounted, measure]);
+  }, [open, mounted, measure, paintHero]);
 
   // Content that loads or grows while the sheet is up: the sheet grows with it, on the sheet's own curve
   useEffect(() => {
@@ -106,6 +138,76 @@ export function Sheet({
     ro.observe(inner);
     return () => ro.disconnect();
   }, [open, measure]);
+
+  // The hero follows the scroll; stopped halfway, it settles to the nearer end on SwiftUI's smooth spring
+  useEffect(() => {
+    const scroller = body.current;
+    const el = panel.current;
+    if (!hero || !open || !scroller || !el) return;
+    let timer = 0;
+    let raf = 0;
+    let touching = false;
+    let settling = false;
+    const stop = () => {
+      cancelAnimationFrame(raf);
+      settling = false;
+    };
+    const settle = () => {
+      if (touching || settling || !full.current) return;
+      const from = scroller.scrollTop;
+      const to = heroSettleTarget(from);
+      if (to === null) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        scroller.scrollTop = to;
+        return;
+      }
+      settling = true;
+      let s = { x: from, v: 0 };
+      let last = performance.now();
+      const step = (now: number) => {
+        s = springStep(s, to, (now - last) / 1000);
+        last = now;
+        const done = springSettled(s, from, to);
+        scroller.scrollTop = done ? to : s.x;
+        if (done) settling = false;
+        else raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
+    };
+    const later = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(settle, HERO_SETTLE_DELAY);
+    };
+    const onScroll = () => {
+      paintHero();
+      if (!settling) later();
+    };
+    const onTouchStart = () => {
+      touching = true;
+      stop();
+    };
+    const onTouchEnd = () => {
+      touching = false;
+      later();
+    };
+    const ro = new ResizeObserver(() => paintHero());
+    ro.observe(el);
+    scroller.addEventListener("scroll", onScroll, { passive: true });
+    scroller.addEventListener("touchstart", onTouchStart, { passive: true });
+    scroller.addEventListener("touchend", onTouchEnd);
+    scroller.addEventListener("touchcancel", onTouchEnd);
+    scroller.addEventListener("wheel", stop, { passive: true });
+    return () => {
+      stop();
+      window.clearTimeout(timer);
+      ro.disconnect();
+      scroller.removeEventListener("scroll", onScroll);
+      scroller.removeEventListener("touchstart", onTouchStart);
+      scroller.removeEventListener("touchend", onTouchEnd);
+      scroller.removeEventListener("touchcancel", onTouchEnd);
+      scroller.removeEventListener("wheel", stop);
+    };
+  }, [hero, open, paintHero]);
 
   // The stage hides the dock and its capsule while a sheet is up, and keeps them hidden until the sheet has slid away
   useEffect(() => {
@@ -226,40 +328,70 @@ export function Sheet({
         className="glass-sheet sheet-panel fixed z-50 mx-auto flex max-w-[540px] flex-col outline-none"
       >
         <div aria-hidden className="sheet-solid" />
-        <div ref={header} data-sheet-header className="shrink-0 touch-none select-none">
-          <div className="flex h-4 w-full justify-center pt-[5px]">
-            <span className="h-1 w-[58px] rounded-full bg-ink-3" />
-          </div>
-          {thumbnail ? (
-            <div className="flex items-start gap-4 px-4 pb-3 pt-1">
-              <div className="ml-1 size-16 shrink-0 overflow-hidden rounded-2xl bg-[var(--muscle-tile)] ring-[0.5px] ring-[var(--sep)]">{thumbnail}</div>
-              <div className="min-w-0 flex-1 pt-3">
-                <h2 id={titleId} className="truncate text-[15px] font-medium leading-5 tracking-[-0.23px]">
-                  {title}
-                </h2>
-                {subtitle && <div className="truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink-2">{subtitle}</div>}
+        {hero ? (
+          <>
+            <div ref={body} className="sheet-body absolute inset-0 overflow-y-auto overscroll-contain rounded-[inherit] px-4" style={{ paddingTop: HERO_EXPANDED_H }}>
+              <div ref={content} className="flow-root">
+                {open && children}
               </div>
-              <GlassCircleButton label="Close" onClick={onClose}>
-                <XIcon size={18} />
-              </GlassCircleButton>
             </div>
-          ) : (
-            <div className="flex items-center gap-2 px-4 pb-2.5">
-              <GlassCircleButton label="Close" onClick={onClose}>
-                <XIcon size={18} />
-              </GlassCircleButton>
-              <h2 id={titleId} className="min-w-0 flex-1 truncate text-center text-[17px] font-semibold tracking-[-0.43px]">
+            {/* Over the content and letting touches through to it, so the image scrolls like the page; the grabber row
+                and the close button take touches */}
+            <div ref={header} className="pointer-events-none absolute inset-x-0 top-0 select-none rounded-[inherit]">
+              <div ref={(n) => void (heroEls.current.backdrop = n)} className="absolute inset-x-0 top-0 rounded-[inherit] bg-[var(--sheet-solid)]" style={{ height: HERO_EXPANDED_H, opacity: "var(--sheet-full)" }} />
+              <div ref={(n) => void (heroEls.current.edge = n)} className="absolute inset-x-0 h-[22px] bg-gradient-to-b from-[var(--sheet-solid)] to-transparent opacity-0" style={{ top: HERO_EXPANDED_H }} />
+              <h2 id={titleId} ref={(n) => void (heroEls.current.title = n)} className="absolute left-4 truncate text-[22px] font-bold leading-7 tracking-[-0.26px]">
                 {title}
               </h2>
-              <div className="flex size-11 shrink-0 items-center justify-center">{trailing}</div>
+              {subtitle && (
+                <div ref={(n) => void (heroEls.current.sub = n)} className="absolute left-4 truncate text-[15px] leading-5 tracking-[-0.23px] text-ink-2">
+                  {subtitle}
+                </div>
+              )}
+              <div aria-hidden ref={(n) => void (heroEls.current.smallTitle = n)} className="absolute left-[100px] top-8 truncate text-[15px] font-medium leading-5 tracking-[-0.23px] opacity-0">
+                {title}
+              </div>
+              {subtitle && (
+                <div aria-hidden ref={(n) => void (heroEls.current.smallSub = n)} className="absolute left-[100px] top-[52px] truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink-2 opacity-0">
+                  {subtitle}
+                </div>
+              )}
+              <div ref={(n) => void (heroEls.current.image = n)} className="absolute overflow-hidden bg-[var(--muscle-tile)] ring-[0.5px] ring-[var(--sep)]">
+                {thumbnail}
+              </div>
+              <div data-sheet-header className="pointer-events-auto absolute inset-x-0 top-0 flex h-4 touch-none justify-center pt-[5px]">
+                <span className="h-1 w-[58px] rounded-full bg-ink-3" />
+              </div>
+              <div ref={(n) => void (heroEls.current.close = n)} className="pointer-events-auto absolute top-5">
+                <GlassCircleButton label="Close" onClick={onClose}>
+                  <XIcon size={18} />
+                </GlassCircleButton>
+              </div>
             </div>
-          )}
-        </div>
-        <div ref={body} className="sheet-body min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
-          <div ref={content} className="flow-root">
-            {open && children}
-          </div>
-        </div>
+          </>
+        ) : (
+          <>
+            <div ref={header} data-sheet-header className="shrink-0 touch-none select-none">
+              <div className="flex h-4 w-full justify-center pt-[5px]">
+                <span className="h-1 w-[58px] rounded-full bg-ink-3" />
+              </div>
+              <div className="flex items-center gap-2 px-4 pb-2.5">
+                <GlassCircleButton label="Close" onClick={onClose}>
+                  <XIcon size={18} />
+                </GlassCircleButton>
+                <h2 id={titleId} className="min-w-0 flex-1 truncate text-center text-[17px] font-semibold tracking-[-0.43px]">
+                  {title}
+                </h2>
+                <div className="flex size-11 shrink-0 items-center justify-center">{trailing}</div>
+              </div>
+            </div>
+            <div ref={body} className="sheet-body min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
+              <div ref={content} className="flow-root">
+                {open && children}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>,
     document.body,
