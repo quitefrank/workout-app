@@ -1084,3 +1084,110 @@ html.keyboard .sheet-body {
 @keyframes focus-slide-r {
   from { transform: translateX(-60px); opacity: 0; }
 }
+
+/* The pill layout's Journal card (src/app/workouts/[id]/journal-card.tsx): one shape from Ladder's pill (--jp 0: 67pt
+   tall, 29pt from each side, 26pt corners, resting on the dock's bottom) to the open sheet (--jp 1: edge to edge under
+   the 62pt status bar, 38pt top corners, as the iOS 27 kit's large sheet). The content stays in it the whole way. */
+@property --jp {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
+@layer components {
+  .jcard-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    --jp: 0;
+  }
+  .jcard-stage.settling {
+    transition: --jp 0.44s cubic-bezier(0.2, 0.9, 0.25, 1);
+  }
+  .jcard-scrim {
+    position: absolute;
+    inset: 0;
+    background: rgb(0 0 0 / calc(0.48 * var(--jp)));
+  }
+  .jcard {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    top: calc((100% - var(--dock-bottom) - 67px) * (1 - var(--jp)) + 62px * var(--jp));
+    left: calc(29px * (1 - var(--jp)));
+    right: calc(29px * (1 - var(--jp)));
+    bottom: calc(var(--dock-bottom) * (1 - var(--jp)));
+    border-radius: calc(26px + 12px * var(--jp)) calc(26px + 12px * var(--jp)) calc(26px * (1 - var(--jp))) calc(26px * (1 - var(--jp)));
+    background: rgb(30 30 33 / calc(0.6 + 0.37 * var(--jp)));
+    -webkit-backdrop-filter: blur(22px) saturate(1.6);
+    backdrop-filter: blur(22px) saturate(1.6);
+    box-shadow:
+      inset 0 1px 0.5px rgb(255 255 255 / calc(0.32 * (1 - var(--jp)))),
+      inset 0 0 0 0.5px rgb(255 255 255 / 0.14),
+      0 -10px 40px rgb(0 0 0 / calc(0.45 * var(--jp)));
+    color: #fff;
+    /* the Journal's content is dark here in either appearance, as the stage behind it is */
+    color-scheme: dark;
+    --ink: #ffffff;
+    --ink-2: rgba(235, 235, 245, 0.6);
+    --ink-3: rgba(235, 235, 245, 0.3);
+    --sep: rgba(84, 84, 88, 0.65);
+    --fill: rgba(118, 118, 128, 0.24);
+    --fill-2: rgba(118, 118, 128, 0.36);
+    --blue: #0a84ff;
+    --orange: #ff9f0a;
+    --bg-elevated: #1e1e21;
+  }
+  .jcard-head {
+    flex: 0 0 calc(67px + 16px * var(--jp));
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    /* the circle stays 50pt from the screen's edge: the padding gives back the card's inset */
+    padding-left: calc(21px + 29px * var(--jp));
+    padding-right: calc(17px + 4px * var(--jp));
+    border-bottom: 0.5px solid rgb(255 255 255 / calc(0.12 * var(--jp)));
+  }
+  .jcard-label {
+    opacity: var(--jp);
+  }
+  .jcard-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+    padding: 0 16px calc(var(--dock-bottom) + 24px);
+  }
+  .jcard-body::-webkit-scrollbar {
+    display: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .jcard-stage.settling {
+      transition-duration: 0.01s;
+    }
+  }
+
+  /* The pill's circle filling when a set is logged */
+  .pill-check-fill {
+    animation: pill-check-fill 0.42s ease-out;
+  }
+}
+
+html.standalone .jcard-stage {
+  bottom: auto;
+  height: var(--screen-h);
+}
+
+@keyframes pill-check-fill {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

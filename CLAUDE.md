@@ -678,6 +678,23 @@ Logging a working set starts the prescription's rest, which replaces the stepper
 becomes Skip; looking at another exercise during rest shows a Rest capsule that goes back. The screen carries no
 floor, "Preview" or "Swapped from" labels (Frank's call).
 
+Two layouts, the finalists Frank compares on his phone, picked in Settings under Workout layout and saved per device in
+the `workout_layout` cookie (`src/lib/workout-layout.ts`; his call, 2026-11-08):
+
+- Centred (the default): the toolbar above; weight and reps are cards (`Stepper`), the number in Large Title Emphasized
+  (34pt bold, shrinking to fit) over the iOS 27 kit's stepper.
+- Pill: Ladder's pill in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass). Its empty circle logs the set
+  (`PillCheck`: a blue fill for a moment when logged, Skip while resting) and the rest of it opens the Journal. Swap moves
+  to the top bar beside More, icon only. Weight and reps are the kit's inset list rows (`StepperList`, `StepperRow`).
+  The Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
+  open under the 62pt status bar; `.jcard` in globals.css). Its content is in it the whole way with the current exercise
+  pinned under the header, as Ladder does, and the circle stays 50pt from the edge. A tap or swipe grows it, a drag past
+  90pt or a flick opens it, the header pulls down to close (`src/lib/workout/journal-card.ts`, tested). The card is CSS
+  on both glass paths: `[data-unpainted]` keeps it out of the painted page, as sheets are.
+
+Both use the kit's Stepper (Figma `wH8YZbekJXNew109clIJz1`, Steppers 5415:17699): 92 × 32pt, 46pt halves in
+Fills/Tertiary, a 1 × 24pt separator in Labels/Tertiary, − and + at 17pt semibold, touch areas padded to 44pt.
+
 The model is pure and tested in `src/lib/workout/active.ts`: `buildRows` turns a workout exercise into set rows (the
 prescription's warm-ups and working sets, filled by logged sets, prefilled from the same set last time on the floor),
 and records, totals and stepper steps live there too. `journal.tsx` is the Journal sheet, titled with the workout's

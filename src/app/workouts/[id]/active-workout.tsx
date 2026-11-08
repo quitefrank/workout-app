@@ -51,19 +51,27 @@ import {
 } from "@/lib/workout/active";
 import { formatClock, formatNumber } from "@/lib/workout/format";
 import { floorKey } from "@/lib/workout/machine-location";
+import { opensOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
 import { exerciseTitle } from "@/lib/workout/movements";
+import type { WorkoutLayout } from "@/lib/workout-layout";
 import { FinishSheet } from "./finish-sheet";
-import { Journal } from "./journal";
+import { Journal, JournalBody, type JournalProps } from "./journal";
+import { JournalCard, PillCheck, type CardControl } from "./journal-card";
 import { useRestTimer } from "./rest-timer";
-import { Stepper } from "./stepper";
+import { Stepper, StepperList, StepperRow } from "./stepper";
 import { SwapSheet } from "./swap-sheet";
 
 /**
  * The active workout, aligned with Ladder (Frank's call, 2026-11-08; prototype in the Workout App Teardown,
  * https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v). One screen per set on a dark stage: the exercise, its set circles
- * and what is up next, the illustration, last time, and weight and reps on iOS steppers. A toolbar holds the Journal,
- * the Glass Prominent log button in the middle, and Swap. Swipe sideways to look through the exercises, swipe up for the
- * Journal. Logging a working set starts rest, which takes over the steppers as an arc, and the log button becomes Skip.
+ * and what is up next, the illustration, last time, and weight and reps on the iOS 27 kit's stepper. Swipe sideways to
+ * look through the exercises, swipe up for the Journal. Logging a working set starts rest, which takes over the steppers
+ * as an arc. Two layouts, picked in Settings (src/lib/workout-layout.ts):
+ *
+ * - centred: a toolbar with the Journal, the Glass Prominent log button in the middle (Skip during rest) and Swap; weight
+ *   and reps are cards.
+ * - pill: Ladder's pill, whose empty circle logs and whose rest opens the Journal, growing into it under the finger
+ *   (journal-card.tsx); Swap sits in the top bar beside More; weight and reps are the kit's inset list rows.
  */
 
 export type Entry = { we: WorkoutExerciseRow; rows: SetRowView[] };
@@ -73,10 +81,13 @@ type Optimistic = { weId: string; add?: SetRow; remove?: string };
 export function ActiveWorkout({
   workout,
   settings,
+  layout,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
+  layout: WorkoutLayout;
 }) {
+  const pillLayout = layout === "pill";
   const router = useRouter();
   const unit = settings.weight_unit;
   const elapsed = useElapsed(workout.started_at);
@@ -215,7 +226,13 @@ export function ActiveWorkout({
       timer.start(
         entry.we.prescribed_rest_seconds ?? settings.default_rest_seconds,
       );
+    if (pillLayout) {
+      setFlash(true);
+      window.setTimeout(() => setFlash(false), 420);
+    }
   };
+  // the pill's circle fills for a moment when a set is logged
+  const [flash, setFlash] = useState(false);
 
   const unlog = (entry: Entry, set: SetRow) =>
     run(async () => {
@@ -269,9 +286,58 @@ export function ActiveWorkout({
   // each opening gets a fresh Journal and swap sheet (their own state resets with the key)
   const [journal, setJournal] = useState(false);
   const [journalKey, setJournalKey] = useState(0);
+  // the pill layout's card: mounted while open, grown by a tap or swipe or by the finger dragging the pill
+  const card = useRef<CardControl | null>(null);
+  const cardP = useRef(0);
+  const [cardOpen, setCardOpen] = useState<null | "tap" | "drag">(null);
   const openJournal = () => {
     setJournalKey((k) => k + 1);
-    setJournal(true);
+    if (pillLayout) {
+      cardP.current = 0;
+      setCardOpen("tap");
+    } else setJournal(true);
+  };
+  const closeJournal = () => (pillLayout ? card.current?.settle(0) : setJournal(false));
+
+  // Drag the pill up: the card follows the finger from the first move, then opens or sinks back on release
+  const pillDrag = useRef<{ x: number; y: number; t: number; last: number; v: number; up: number; d: number; on: boolean } | null>(null);
+  const pillSwallow = useRef(0);
+  const onPillDown = (e: ReactPointerEvent) => {
+    if (cardOpen || (e.target as HTMLElement).closest("[data-pill-check]")) return;
+    const dockBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-bottom")) || 21;
+    const height = document.querySelector<HTMLElement>("[data-focus-screen]")?.clientHeight ?? window.innerHeight;
+    pillDrag.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, last: 0, v: 0, up: 0, d: travel(height, dockBottom), on: false };
+    const move = (ev: PointerEvent) => {
+      const g = pillDrag.current;
+      if (!g) return;
+      const up = g.y - ev.clientY;
+      if (!g.on) {
+        if (up < 6 || up < Math.abs(ev.clientX - g.x)) return;
+        g.on = true;
+        cardP.current = progressFor(up, g.d);
+        setJournalKey((k) => k + 1);
+        setCardOpen("drag");
+      }
+      g.v = (up - g.last) / Math.max(1, ev.timeStamp - g.t);
+      g.last = up;
+      g.t = ev.timeStamp;
+      g.up = up;
+      cardP.current = progressFor(up, g.d);
+      card.current?.setP(cardP.current);
+    };
+    const end = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      const g = pillDrag.current;
+      pillDrag.current = null;
+      if (!g?.on) return;
+      pillSwallow.current = ev.timeStamp;
+      card.current?.settle(ev.type !== "pointercancel" && opensOnRelease(g.up, g.v) ? 1 : 0);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
   };
   const [swapFor, setSwapForState] = useState<WorkoutExerciseRow | null>(null);
   const [swapKey, setSwapKey] = useState(0);
@@ -300,6 +366,45 @@ export function ActiveWorkout({
   const row = shown && rowIndex >= 0 ? shown.rows[rowIndex] : null;
   const value = shown && row ? valueOf(shown.we.id, rowIndex, row) : null;
 
+  const journalProps: JournalProps = {
+    entries,
+    current: shown?.we.id ?? null,
+    currentRow: shown ? rowIndex : -1,
+    unit,
+    bests: workout.bests,
+    percent: prog.percent,
+    pending,
+    valueOf,
+    setDraft,
+    onLog: log,
+    onUnlog: unlog,
+    onEditLogged: editLogged,
+    onAddRow: (we) => setExtra((cur) => ({ ...cur, [we.id]: (cur[we.id] ?? 0) + 1 })),
+    onPick: (we) => {
+      setViewId(null);
+      setPinned(we.id);
+    },
+    onSwap: (we) => setSwapFor(we),
+    onMove: move,
+    onRemove: remove,
+    onFinish: () => {
+      closeJournal();
+      setFinishing(true);
+    },
+  };
+
+  // The pill layout's circle, in the pill and in the card's header: logs the set, Skip while resting, Finish when done
+  const logCheck = (
+    <PillCheck
+      state={resting ? "skip" : !shown ? "finish" : "log"}
+      flash={flash}
+      disabled={pending || (!resting && !!shown && rowIndex < 0)}
+      onClick={() =>
+        resting ? timer.stop() : !shown ? setFinishing(true) : log(shown, rowIndex)
+      }
+    />
+  );
+
   return (
     <>
       <TopBar
@@ -311,12 +416,23 @@ export function ActiveWorkout({
           </span>
         }
         trailing={
-          <GlassCircleButton
-            label="Workout options"
-            onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}
-          >
-            <EllipsisIcon size={20} />
-          </GlassCircleButton>
+          <div className="flex items-center gap-2.5">
+            {pillLayout && (
+              <GlassCircleButton
+                label="Swap exercise"
+                disabled={!shown}
+                onClick={() => shown && setSwapFor(shown.we)}
+              >
+                <SwapIcon size={20} />
+              </GlassCircleButton>
+            )}
+            <GlassCircleButton
+              label="Workout options"
+              onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}
+            >
+              <EllipsisIcon size={20} />
+            </GlassCircleButton>
+          </div>
         }
       />
 
@@ -338,7 +454,9 @@ export function ActiveWorkout({
           className="relative flex h-full flex-col"
           style={{
             paddingTop: "calc(var(--bar-top) + 44px)",
-            paddingBottom: "calc(var(--dock-bottom) + 72px + 20px)",
+            paddingBottom: pillLayout
+              ? "calc(var(--dock-bottom) + 67px + 20px)"
+              : "calc(var(--dock-bottom) + 72px + 20px)",
           }}
         >
           <Stage slug={ex?.slug} />
@@ -457,26 +575,48 @@ export function ActiveWorkout({
                       ? `Last time · ${formatNumber(row.last.weight) || "–"} ${unit} × ${row.last.reps ?? "–"}`
                       : "No history yet"}
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Stepper
-                      label={unit}
-                      field="weight"
-                      unit={unit}
-                      value={value.weight}
-                      onChange={(w) =>
-                        setDraft(shown.we.id, rowIndex, { ...value, weight: w })
-                      }
-                    />
-                    <Stepper
-                      label="Reps"
-                      field="reps"
-                      unit={unit}
-                      value={value.reps}
-                      onChange={(r) =>
-                        setDraft(shown.we.id, rowIndex, { ...value, reps: r })
-                      }
-                    />
-                  </div>
+                  {pillLayout ? (
+                    <StepperList>
+                      <StepperRow
+                        first
+                        field="weight"
+                        unit={unit}
+                        value={value.weight}
+                        onChange={(w) =>
+                          setDraft(shown.we.id, rowIndex, { ...value, weight: w })
+                        }
+                      />
+                      <StepperRow
+                        field="reps"
+                        unit={unit}
+                        value={value.reps}
+                        onChange={(r) =>
+                          setDraft(shown.we.id, rowIndex, { ...value, reps: r })
+                        }
+                      />
+                    </StepperList>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <Stepper
+                        label={unit}
+                        field="weight"
+                        unit={unit}
+                        value={value.weight}
+                        onChange={(w) =>
+                          setDraft(shown.we.id, rowIndex, { ...value, weight: w })
+                        }
+                      />
+                      <Stepper
+                        label="Reps"
+                        field="reps"
+                        unit={unit}
+                        value={value.reps}
+                        onChange={(r) =>
+                          setDraft(shown.we.id, rowIndex, { ...value, reps: r })
+                        }
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="px-5 pb-4 text-center text-[15px] text-white/65">
@@ -512,6 +652,35 @@ export function ActiveWorkout({
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col"
         style={{ paddingBottom: "var(--dock-bottom)" }}
       >
+        {pillLayout ? (
+          <div
+            className="glass pointer-events-auto relative mx-[29px] flex h-[67px] touch-none select-none items-center pl-[21px] pr-[17px] [--r:26px]"
+            style={cardOpen ? { visibility: "hidden" } : undefined}
+            onPointerDown={onPillDown}
+          >
+            <span data-pill-check className="contents">
+              {logCheck}
+            </span>
+            <button
+              type="button"
+              aria-label="Journal"
+              onClick={(e) => {
+                if (e.timeStamp - pillSwallow.current < 300) return;
+                openJournal();
+              }}
+              className="flex h-full min-w-0 flex-1 items-center gap-3 pl-[14px] text-left"
+            >
+              <span className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-[-0.43px]">
+                {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
+              </span>
+              {shown && rowIndex >= 0 && (
+                <span className="tabular shrink-0 text-[17px] text-blue">
+                  {rowIndex + 1} of {shown.rows.length}
+                </span>
+              )}
+            </button>
+          </div>
+        ) : (
         <div className="flex items-center justify-between px-[38px]">
           <button
             type="button"
@@ -559,6 +728,7 @@ export function ActiveWorkout({
             <span className="text-[10px] font-semibold opacity-75">Swap</span>
           </button>
         </div>
+        )}
       </div>
 
       {menu && (
@@ -585,38 +755,32 @@ export function ActiveWorkout({
         />
       )}
 
-      <Journal
-        key={`journal-${journalKey}`}
-        open={journal}
-        onClose={() => setJournal(false)}
-        title={workout.templates?.name ?? "Workout"}
-        entries={entries}
-        current={shown?.we.id ?? null}
-        currentRow={shown ? rowIndex : -1}
-        unit={unit}
-        bests={workout.bests}
-        percent={prog.percent}
-        pending={pending}
-        valueOf={valueOf}
-        setDraft={setDraft}
-        onLog={log}
-        onUnlog={unlog}
-        onEditLogged={editLogged}
-        onAddRow={(we) =>
-          setExtra((cur) => ({ ...cur, [we.id]: (cur[we.id] ?? 0) + 1 }))
-        }
-        onPick={(we) => {
-          setViewId(null);
-          setPinned(we.id);
-        }}
-        onSwap={(we) => setSwapFor(we)}
-        onMove={move}
-        onRemove={remove}
-        onFinish={() => {
-          setJournal(false);
-          setFinishing(true);
-        }}
-      />
+      {pillLayout ? (
+        cardOpen && (
+          <JournalCard
+            key={`card-${journalKey}`}
+            controlRef={card}
+            startRef={cardP}
+            openOnMount={cardOpen === "tap"}
+            onClosed={() => setCardOpen(null)}
+            check={logCheck}
+            title={shown ? exerciseTitle(shown.we.exercises) : (workout.templates?.name ?? "Workout")}
+            label={shown && row ? rowLabel(shown.rows, rowIndex) : undefined}
+            count={shown && rowIndex >= 0 ? `${rowIndex + 1} of ${shown.rows.length}` : undefined}
+            current={shown?.we.id ?? null}
+          >
+            <JournalBody {...journalProps} />
+          </JournalCard>
+        )
+      ) : (
+        <Journal
+          key={`journal-${journalKey}`}
+          open={journal}
+          onClose={() => setJournal(false)}
+          title={workout.templates?.name ?? "Workout"}
+          {...journalProps}
+        />
+      )}
 
       <SwapSheet
         key={`swap-${swapKey}`}

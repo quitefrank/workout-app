@@ -7,6 +7,7 @@ import { saveSettings } from "@/app/actions";
 import { debugSetting, setDebugSetting } from "@/glass/debug";
 import { ChevronUpDown } from "@/components/icons";
 import { setTheme, type Theme } from "@/lib/appearance";
+import { setWorkoutLayout, type WorkoutLayout } from "@/lib/workout-layout";
 import { cn } from "@/lib/cn";
 import type { Settings } from "@/lib/data/queries";
 import { formatRest } from "@/lib/workout/format";
@@ -14,9 +15,18 @@ import { formatRest } from "@/lib/workout/format";
 const REST_STEPS = [60, 90, 120, 150, 180, 210, 240, 300];
 
 /** Each control saves as soon as it changes, as iOS Settings does. */
-export function SettingsForm({ settings, theme: initialTheme }: { settings: Settings; theme: Theme }) {
+export function SettingsForm({
+  settings,
+  theme: initialTheme,
+  layout: initialLayout,
+}: {
+  settings: Settings;
+  theme: Theme;
+  layout: WorkoutLayout;
+}) {
   const [s, setS] = useState(settings);
   const [theme, setThemeState] = useState(initialTheme);
+  const [layout, setLayoutState] = useState(initialLayout);
   const router = useRouter();
   const [pending, start] = useTransition();
   // a device setting: the server renders it off, the device reads its own
@@ -57,6 +67,24 @@ export function SettingsForm({ settings, theme: initialTheme }: { settings: Sett
             setThemeState(v);
             setTheme(v);
             // the layout reads the choice too (status bar colour, toasts)
+            router.refresh();
+          }}
+        />
+      </Group>
+
+      <Group
+        title="Workout layout"
+        footer="Centred: the ✓ between Journal and Swap, weight and reps as cards. Pill: the circle in Ladder's pill, which pulls up the Journal, weight and reps as list rows. Saved on this device only."
+      >
+        <Segmented
+          value={layout}
+          options={[
+            ["centred", "Centred"],
+            ["pill", "Pill"],
+          ]}
+          onChange={(v) => {
+            setLayoutState(v);
+            setWorkoutLayout(v);
             router.refresh();
           }}
         />

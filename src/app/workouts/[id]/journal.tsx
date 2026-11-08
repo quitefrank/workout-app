@@ -18,37 +18,7 @@ import type { Entry } from "./active-workout";
 
 type Draft = { weight: number | null; reps: number | null };
 
-/**
- * The Journal (Ladder's), pulled up from the focus screen: every exercise in the workout under its name. The current
- * one is open with its best weight and estimated 1RM, the floor (on a two-floor exercise), Swap, History and More, and a
- * Log It grid of every set; the others show their sets as circles. Tapping one opens it and moves the focus screen there.
- */
-export function Journal({
-  open,
-  onClose,
-  title,
-  entries,
-  current,
-  currentRow,
-  unit,
-  bests,
-  percent,
-  pending,
-  valueOf,
-  setDraft,
-  onLog,
-  onUnlog,
-  onEditLogged,
-  onAddRow,
-  onPick,
-  onSwap,
-  onMove,
-  onRemove,
-  onFinish,
-}: {
-  open: boolean;
-  onClose: () => void;
-  title: string;
+export type JournalProps = {
   entries: Entry[];
   current: string | null;
   currentRow: number;
@@ -67,14 +37,49 @@ export function Journal({
   onMove: (we: WorkoutExerciseRow, to: "up" | "down" | "end") => void;
   onRemove: (we: WorkoutExerciseRow) => void;
   onFinish: () => void;
-}) {
+};
+
+/**
+ * The Journal (Ladder's), pulled up from the focus screen: every exercise in the workout under its name. The current
+ * one is open with its best weight and estimated 1RM, the floor (on a two-floor exercise), Swap, History and More, and a
+ * Log It grid of every set; the others show their sets as circles. Tapping one opens it and moves the focus screen there.
+ * The centred layout shows it in a sheet; the pill layout in the card that grows from the pill (journal-card.tsx).
+ */
+export function Journal({ open, onClose, title, ...props }: JournalProps & { open: boolean; onClose: () => void; title: string }) {
+  return (
+    <Sheet open={open} onClose={onClose} title={title}>
+      <JournalBody {...props} />
+    </Sheet>
+  );
+}
+
+export function JournalBody({
+  entries,
+  current,
+  currentRow,
+  unit,
+  bests,
+  percent,
+  pending,
+  valueOf,
+  setDraft,
+  onLog,
+  onUnlog,
+  onEditLogged,
+  onAddRow,
+  onPick,
+  onSwap,
+  onMove,
+  onRemove,
+  onFinish,
+}: JournalProps) {
   // the open exercise: the one picked here, else the current one (the parent keys the Journal per opening)
   const [picked, setPicked] = useState<string | null>(null);
   const openId = picked ?? current;
   const t = totals(entries.flatMap((e) => e.we.sets));
 
   return (
-    <Sheet open={open} onClose={onClose} title={title}>
+    <>
       <p className="tabular px-1 pb-3 text-center text-[13px] text-ink-2">
         {percent}% done · {t.sets} {t.sets === 1 ? "set" : "sets"} · {formatNumber(t.volume)} {unit}
       </p>
@@ -83,6 +88,7 @@ export function Journal({
           entry.we.id === openId ? (
             <OpenExercise
               key={entry.we.id}
+              id={entry.we.id}
               entry={entry}
               first={idx === 0}
               last={idx === entries.length - 1}
@@ -103,6 +109,7 @@ export function Journal({
           ) : (
             <button
               key={entry.we.id}
+              data-we={entry.we.id}
               type="button"
               onClick={() => {
                 setPicked(entry.we.id);
@@ -122,7 +129,7 @@ export function Journal({
       <button type="button" onClick={onFinish} className="mt-4 h-[56px] w-full rounded-full bg-blue text-[17px] font-semibold text-white">
         Finish Workout
       </button>
-    </Sheet>
+    </>
   );
 }
 
@@ -154,6 +161,7 @@ function Circles({ rows }: { rows: SetRowView[] }) {
 }
 
 function OpenExercise({
+  id,
   entry,
   first,
   last,
@@ -171,6 +179,7 @@ function OpenExercise({
   onMove,
   onRemove,
 }: {
+  id: string;
   entry: Entry;
   first: boolean;
   last: boolean;
@@ -194,7 +203,7 @@ function OpenExercise({
   const [floorPending, startFloor] = useTransition();
 
   return (
-    <div className="grid grid-cols-[62px_1fr] items-center gap-x-[23px] py-[17px]">
+    <div data-we={id} className="grid grid-cols-[62px_1fr] items-center gap-x-[23px] py-[17px]">
       <Thumb we={we} />
       <span className="min-w-0">
         <span className="block truncate text-[16px] font-semibold">{exerciseTitle(ex)}</span>

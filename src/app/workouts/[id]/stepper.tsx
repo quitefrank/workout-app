@@ -5,38 +5,52 @@ import { step } from "@/lib/workout/active";
 import { formatNumber } from "@/lib/workout/format";
 
 /**
- * A value and the standard iOS stepper under it (UIStepper, 94 × 32pt, each half's touch area padded to 44pt tall, as
- * Apple's 44pt minimum asks). The number can be typed for a big jump, and shrinks to fit its card from 44px so 185 or
- * 182.5 never clip, as iOS adjusts text to fit its width (Frank's calls, 2026-11-08).
+ * Weight and reps on the focus screen, in the two forms Frank picked per layout (2026-11-08, from the teardown prototype):
+ *
+ * - `Stepper` (centred layout): a card with the value in Apple's Large Title Emphasized (34pt bold, shrinking to fit so
+ *   185 or 182.5 never clip) over the iOS 27 kit's stepper. The number can be typed for a big jump, as the HIG pairs a
+ *   stepper with a text field.
+ * - `StepperRow` (pill layout): the kit's list Row (Lists, Height=Regular 550:50627: 52pt, 16pt sides, Body title, the
+ *   value in Body secondary) with the stepper trailing, two of them in an inset group (`StepperList`).
+ *
+ * Both use `KitStepper`, the kit's Stepper (Figma wH8YZbekJXNew109clIJz1, Steppers 5415:17699, dark values): 92 × 32pt,
+ * two 46pt halves in Fills/Tertiary, a 1 × 24pt separator in Labels/Tertiary, − and + at Headline (17pt semibold).
  */
-export function Stepper({
-  label,
-  field,
-  unit,
-  value,
-  onChange,
-}: {
-  label: string;
-  field: "weight" | "reps";
+
+type Field = "weight" | "reps";
+type Props = {
+  field: Field;
   unit: "lbs" | "kg";
   value: number | null;
   onChange: (v: number | null) => void;
-}) {
-  const input = useRef<HTMLInputElement>(null);
+};
+
+function useValueField({ field, value, onChange }: Props) {
   const [text, setText] = useState<string | null>(null);
   const shown = text ?? (value == null ? "" : field === "weight" ? formatNumber(value) : String(value));
-
-  useLayoutEffect(() => fitText(input.current), [shown]);
-
   const commit = (s: string) => {
     const t = s.trim();
     if (t === "") return onChange(null);
     const n = Number(t);
     if (Number.isFinite(n) && n >= 0) onChange(field === "reps" ? Math.round(n) : n);
   };
+  return {
+    shown,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+      setText(e.target.value);
+      commit(e.target.value);
+    },
+    onBlur: () => setText(null),
+  };
+}
 
+export function Stepper(props: Props & { label: string }) {
+  const { label, field, unit } = props;
+  const input = useRef<HTMLInputElement>(null);
+  const f = useValueField(props);
+  useLayoutEffect(() => fitText(input.current), [f.shown]);
   return (
-    <div className="grid gap-0.5 rounded-[24px] bg-white/10 px-2.5 pb-3 pt-2.5 text-center backdrop-blur-md">
+    <div className="grid gap-1 rounded-[24px] bg-white/10 px-2.5 pb-3 pt-2.5 text-center backdrop-blur-md">
       <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-white/60">{label}</span>
       <input
         ref={input}
@@ -44,36 +58,73 @@ export function Stepper({
         type="text"
         inputMode={field === "weight" ? "decimal" : "numeric"}
         aria-label={field === "weight" ? `Weight in ${unit}` : "Reps"}
-        value={shown}
+        value={f.shown}
         placeholder="–"
-        onChange={(e) => {
-          setText(e.target.value);
-          commit(e.target.value);
-        }}
-        onBlur={() => setText(null)}
-        className="tabular h-12 w-full min-w-0 bg-transparent p-0 text-center text-[44px] font-extrabold tracking-[-0.02em] text-white outline-none placeholder:text-white/30 focus:text-blue"
+        onChange={f.onChange}
+        onBlur={f.onBlur}
+        className="tabular h-[41px] w-full min-w-0 bg-transparent p-0 text-center text-[34px] font-bold leading-[41px] tracking-[0.4px] text-white outline-none placeholder:text-white/30 focus:text-blue"
       />
-      <span className="mx-auto mt-0.5 inline-flex h-8 items-center rounded-full bg-white/15">
-        <StepButton label={`Less ${field === "weight" ? unit : "reps"}`} onClick={() => onChange(step(value, field, -1, unit))}>
-          −
-        </StepButton>
-        <i aria-hidden className="h-[18px] w-px bg-white/25" />
-        <StepButton label={`More ${field === "weight" ? unit : "reps"}`} onClick={() => onChange(step(value, field, 1, unit))}>
-          +
-        </StepButton>
-      </span>
+      <KitStepper {...props} className="mx-auto" />
     </div>
   );
 }
 
-function StepButton({ label, onClick, children }: { label: string; onClick: () => void; children: string }) {
+/** The inset group that holds the pill layout's rows */
+export function StepperList({ children }: { children: React.ReactNode }) {
+  return <div className="overflow-hidden rounded-[26px] bg-[rgb(28_28_30/0.92)] backdrop-blur-md">{children}</div>;
+}
+
+export function StepperRow(props: Props & { first?: boolean }) {
+  const { field, unit, first } = props;
+  const f = useValueField(props);
+  return (
+    <div className="relative flex h-[52px] items-center gap-3 px-4 text-white">
+      {!first && <span aria-hidden className="absolute left-4 right-0 top-0 h-[0.5px] bg-[rgb(84_84_88/0.65)]" />}
+      <span className="min-w-0 flex-1 truncate text-[17px] leading-[22px] tracking-[-0.43px]">
+        {field === "weight" ? "Weight" : "Reps"}
+      </span>
+      <label className="flex items-baseline gap-1 text-[17px] tracking-[-0.43px] text-[rgb(235_235_245/0.6)]">
+        <input
+          data-live
+          type="text"
+          inputMode={field === "weight" ? "decimal" : "numeric"}
+          aria-label={field === "weight" ? `Weight in ${unit}` : "Reps"}
+          value={f.shown}
+          placeholder="–"
+          onChange={f.onChange}
+          onBlur={f.onBlur}
+          className="tabular w-16 bg-transparent p-0 text-right text-[17px] text-inherit outline-none focus:text-blue"
+        />
+        {field === "weight" && <span>{unit}</span>}
+      </label>
+      <KitStepper {...props} />
+    </div>
+  );
+}
+
+function KitStepper({ field, unit, value, onChange, className }: Props & { className?: string }) {
+  const what = field === "weight" ? unit : "reps";
+  return (
+    <span className={`relative inline-flex h-8 w-[92px] shrink-0 ${className ?? ""}`}>
+      <StepButton side="rounded-l-full" label={`Less ${what}`} onClick={() => onChange(step(value, field, -1, unit))}>
+        −
+      </StepButton>
+      <StepButton side="rounded-r-full" label={`More ${what}`} onClick={() => onChange(step(value, field, 1, unit))}>
+        +
+      </StepButton>
+      <i aria-hidden className="pointer-events-none absolute left-1/2 top-1 h-6 w-px -translate-x-1/2 rounded-[8px] bg-[rgb(235_235_245/0.3)]" />
+    </span>
+  );
+}
+
+function StepButton({ side, label, onClick, children }: { side: string; label: string; onClick: () => void; children: string }) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
-      // the half is 47 × 32; the ::after pads its touch area to 44pt tall
-      className="relative grid h-8 w-[47px] place-items-center text-[22px] font-medium leading-none after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] active:opacity-50"
+      // the half is 46 × 32; the ::after pads its touch area to 44pt tall (so the capsule is the halves' corners, not a clip)
+      className={`${side} relative grid h-8 w-[46px] place-items-center bg-[rgb(118_118_128/0.24)] text-[17px] font-semibold leading-none tracking-[-0.43px] text-white after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] active:bg-[rgb(118_118_128/0.4)]`}
     >
       {children}
     </button>
@@ -82,7 +133,7 @@ function StepButton({ label, onClick, children }: { label: string; onClick: () =
 
 let ctx: CanvasRenderingContext2D | null = null;
 
-/** Step the number down from 44px until it fits its field, measured on a canvas with the field's own font. */
+/** Step the number down from 34px (Large Title) until it fits its field, measured on a canvas with the field's font. */
 function fitText(el: HTMLInputElement | null) {
   if (!el) return;
   const room = el.clientWidth - 4;
@@ -91,10 +142,10 @@ function fitText(el: HTMLInputElement | null) {
   ctx ??= document.createElement("canvas").getContext("2d");
   if (!ctx) return;
   const family = getComputedStyle(el).fontFamily;
-  let size = 44;
+  let size = 34;
   for (; size > 18; size--) {
-    ctx.font = `800 ${size}px ${family}`;
-    if (ctx.measureText(txt).width - size * 0.02 * txt.length <= room) break;
+    ctx.font = `700 ${size}px ${family}`;
+    if (ctx.measureText(txt).width + size * 0.012 * txt.length <= room) break;
   }
   el.style.fontSize = `${size}px`;
 }
