@@ -42,7 +42,7 @@
   /* Muscle diagrams, Notion's tones: outline, body, the worked muscle, and the tile behind them */
   --muscle-line: #454545;
   --muscle-body: #b1b1b1;
-  --muscle-hit: #ffffff;
+  --muscle-hit: #ff383c; /* the exercise illustrations' red */
   --muscle-tile: #ffffff;
   /* Behind an exercise illustration: one gray in both appearances (Frank's call, 2026-11-05) */
   --exercise-tile: #dedee1;
@@ -149,7 +149,7 @@
     --orange: #ff9f0a;
     --muscle-line: #d1d1d6;
     --muscle-body: #48484a;
-    --muscle-hit: #ffffff;
+    --muscle-hit: #ff383c; /* the exercise illustrations' red */
     --muscle-tile: #242526;
     --seg-on: #636366;
     --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
@@ -186,7 +186,7 @@
   --orange: #ff9f0a;
   --muscle-line: #d1d1d6;
   --muscle-body: #48484a;
-  --muscle-hit: #ffffff;
+  --muscle-hit: #ff383c; /* the exercise illustrations' red */
   --muscle-tile: #242526;
   --seg-on: #636366;
   --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);

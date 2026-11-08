@@ -33,7 +33,8 @@ const DRAWN = ["chest", "shoulders", "triceps", "back", "biceps", "abs", "quadri
 const DERIVED: Record<string, { base: string; hit: "clear" | "all"; seeds?: [number, number][] }> = {
   forearms: { base: "biceps", hit: "clear", seeds: [[90, 300], [115, 300], [397, 300], [422, 300]] },
   neck: { base: "chest", hit: "clear", seeds: [[262, 30]] },
-  cardio: { base: "chest", hit: "all" },
+  // Running, cycling and rowing work the legs, not the whole body: the thigh drawing with every muscle lit
+  cardio: { base: "quadriceps", hit: "all" },
   stretches: { base: "chest", hit: "clear" },
 };
 
@@ -112,7 +113,7 @@ async function main() {
   // Contact sheet in the light tones, to check the traces and the derived regions
   const tiles = await Promise.all(
     Object.entries(art).map(async ([slug, a]) => {
-      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="280" viewBox="0 0 ${SIZE} ${SIZE + 48}"><rect width="100%" height="100%" fill="#fff"/><path d="${a.body}" fill="#B1B1B1" fill-rule="evenodd"/><path d="${a.hit}" fill="#fff" fill-rule="evenodd"/><path d="${a.line}" fill="#454545" fill-rule="evenodd"/><text x="16" y="${SIZE + 36}" font-size="32" font-family="sans-serif">${slug}</text></svg>`;
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="280" viewBox="0 0 ${SIZE} ${SIZE + 48}"><rect width="100%" height="100%" fill="#fff"/><path d="${a.body}" fill="#B1B1B1" fill-rule="evenodd"/><path d="${a.hit}" fill="#FF383C" fill-rule="evenodd"/><path d="${a.line}" fill="#454545" fill-rule="evenodd"/><text x="16" y="${SIZE + 36}" font-size="32" font-family="sans-serif">${slug}</text></svg>`;
       return sharp(Buffer.from(svg)).png().toBuffer();
     }),
   );
