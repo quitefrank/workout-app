@@ -53,7 +53,8 @@ import { formatClock, formatNumber } from "@/lib/workout/format";
 import { floorKey } from "@/lib/workout/machine-location";
 import { opensOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
 import { exerciseTitle } from "@/lib/workout/movements";
-import type { WorkoutLayout } from "@/lib/workout-layout";
+import { setWorkoutLayout, type WorkoutLayout } from "@/lib/workout-layout";
+import { WorkoutLayoutControls } from "@/components/workout-layout-controls";
 import { FinishSheet } from "./finish-sheet";
 import { Journal, JournalBody, type JournalProps } from "./journal";
 import { JournalCard, PillCheck, type CardControl } from "./journal-card";
@@ -66,12 +67,12 @@ import { SwapSheet } from "./swap-sheet";
  * https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v). One screen per set on a dark stage: the exercise, its set circles
  * and what is up next, the illustration, last time, and weight and reps on the iOS 27 kit's stepper. Swipe sideways to
  * look through the exercises, swipe up for the Journal. Logging a working set starts rest, which takes over the steppers
- * as an arc. Two layouts, picked in Settings (src/lib/workout-layout.ts):
+ * as an arc. Two choices, switched in Settings or from More (src/lib/workout-layout.ts):
  *
- * - centred: a toolbar with the Journal, the Glass Prominent log button in the middle (Skip during rest) and Swap; weight
- *   and reps are cards.
- * - pill: Ladder's pill, whose empty circle logs and whose rest opens the Journal, growing into it under the finger
- *   (journal-card.tsx); Swap sits in the top bar beside More; weight and reps are the kit's inset list rows.
+ * - Log button. Centred: a toolbar with the Journal, the Glass Prominent log button in the middle (Skip during rest)
+ *   and Swap. Pill: Ladder's pill, whose empty circle logs and whose rest opens the Journal, growing into it under the
+ *   finger (journal-card.tsx), with Swap in the top bar beside More.
+ * - Weight and reps: cards over the kit's stepper, or the kit's inset list rows.
  */
 
 export type Entry = { we: WorkoutExerciseRow; rows: SetRowView[] };
@@ -87,7 +88,10 @@ export function ActiveWorkout({
   settings: Settings;
   layout: WorkoutLayout;
 }) {
-  const pillLayout = layout === "pill";
+  const [look, setLook] = useState(layout);
+  const pillLayout = look.log === "pill";
+  const listSteppers = look.steppers === "list";
+  const [layoutSheet, setLayoutSheet] = useState(false);
   const router = useRouter();
   const unit = settings.weight_unit;
   const elapsed = useElapsed(workout.started_at);
@@ -577,7 +581,7 @@ export function ActiveWorkout({
                       ? `Last time · ${formatNumber(row.last.weight) || "–"} ${unit} × ${row.last.reps ?? "–"}`
                       : "No history yet"}
                   </p>
-                  {pillLayout ? (
+                  {listSteppers ? (
                     <StepperList>
                       <StepperRow
                         first
@@ -741,6 +745,7 @@ export function ActiveWorkout({
               ? [{ value: "Swap Exercise" }, { value: "Do Later" }]
               : []),
             { value: "Journal" },
+            { value: "Settings" },
             { value: "Back to Home" },
             { value: "Finish Workout" },
             { value: "Discard Workout", destructive: true },
@@ -750,6 +755,7 @@ export function ActiveWorkout({
             if (v === "Swap Exercise" && shown) setSwapFor(shown.we);
             else if (v === "Do Later" && shown) move(shown.we, "end");
             else if (v === "Journal") openJournal();
+            else if (v === "Settings") setLayoutSheet(true);
             else if (v === "Back to Home") router.push("/");
             else if (v === "Finish Workout") setFinishing(true);
             else if (v === "Discard Workout") setConfirmDiscard(true);
@@ -798,6 +804,19 @@ export function ActiveWorkout({
         elapsed={elapsed}
         unit={unit}
       />
+
+      {/* The layout choices, switched here mid-workout as well as in Settings */}
+      <Sheet open={layoutSheet} onClose={() => setLayoutSheet(false)} title="Settings">
+        <div className="flex flex-col gap-6 pb-4">
+          <WorkoutLayoutControls
+            value={look}
+            onChange={(next) => {
+              setLook(next);
+              setWorkoutLayout(next);
+            }}
+          />
+        </div>
+      </Sheet>
 
       <Sheet
         open={confirmDiscard}

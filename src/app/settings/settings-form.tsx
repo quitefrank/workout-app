@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { saveSettings } from "@/app/actions";
 import { debugSetting, setDebugSetting } from "@/glass/debug";
 import { ChevronUpDown } from "@/components/icons";
+import { Group, Segmented } from "@/components/segmented";
+import { WorkoutLayoutControls } from "@/components/workout-layout-controls";
 import { setTheme, type Theme } from "@/lib/appearance";
 import { setWorkoutLayout, type WorkoutLayout } from "@/lib/workout-layout";
 import { cn } from "@/lib/cn";
@@ -72,23 +74,13 @@ export function SettingsForm({
         />
       </Group>
 
-      <Group
-        title="Workout layout"
-        footer="Centred: the ✓ between Journal and Swap, weight and reps as cards. Pill: the circle in Ladder's pill, which pulls up the Journal, weight and reps as list rows. Saved on this device only."
-      >
-        <Segmented
-          value={layout}
-          options={[
-            ["centred", "Centred"],
-            ["pill", "Pill"],
-          ]}
-          onChange={(v) => {
-            setLayoutState(v);
-            setWorkoutLayout(v);
-            router.refresh();
-          }}
-        />
-      </Group>
+      <WorkoutLayoutControls
+        value={layout}
+        onChange={(v) => {
+          setLayoutState(v);
+          setWorkoutLayout(v);
+        }}
+      />
 
       <Group title="Units" footer="Machine and cardio readings always show the raw number, with no unit.">
         <Segmented
@@ -145,45 +137,3 @@ export function SettingsForm({
 }
 
 const noop = () => () => {};
-
-function Group({ title, footer, children }: { title: string; footer?: string; children: React.ReactNode }) {
-  return (
-    <section>
-      <h2 className="px-4 pb-1.5 text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-2">{title}</h2>
-      <div className="grouped">{children}</div>
-      {footer && <p className="px-4 pt-1.5 text-[13px] text-ink-2">{footer}</p>}
-    </section>
-  );
-}
-
-function Segmented<T extends string>({
-  value,
-  options,
-  onChange,
-}: {
-  value: T;
-  options: readonly (readonly [T, string])[];
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="p-2">
-      <div role="radiogroup" className="flex gap-1 rounded-full bg-fill p-0.5">
-        {options.map(([v, label]) => (
-          <button
-            key={v}
-            type="button"
-            role="radio"
-            aria-checked={value === v}
-            onClick={() => value !== v && onChange(v)}
-            className={cn(
-              "h-8 flex-1 rounded-full text-[13px] font-medium",
-              value === v && "bg-[var(--seg-on)] font-semibold shadow-[var(--seg-shadow)]",
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}

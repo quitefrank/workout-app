@@ -678,15 +678,20 @@ Logging a working set starts the prescription's rest, which replaces the stepper
 becomes Skip; looking at another exercise during rest shows a Rest capsule that goes back. The screen carries no
 floor, "Preview" or "Swapped from" labels (Frank's call).
 
-Two layouts, the finalists Frank compares on his phone, picked in Settings under Workout layout and saved per device in
-the `workout_layout` cookie (`src/lib/workout-layout.ts`; his call, 2026-11-08):
+Two independent choices Frank compares on his phone, switched in Settings or from the workout's More menu (More >
+Settings opens a sheet with both, applied at once) and saved per device in the `workout_log` and `workout_steppers`
+cookies (`src/lib/workout-layout.ts`, `src/components/workout-layout-controls.tsx`; his calls, 2026-11-08). The
+`workout_layout` cookie they replaced is read once as the starting point.
 
-- Centred (the default): the toolbar above; weight and reps are cards (`Stepper`), the number in Large Title Emphasized
-  (34pt bold, shrinking to fit) over the iOS 27 kit's stepper.
-- Pill: Ladder's pill in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass). Its empty circle logs the set
-  (`PillCheck`: a blue fill for a moment when logged, Skip while resting) and the rest of it opens the Journal. Swap moves
-  to the top bar beside More, icon only. Weight and reps are the kit's inset list rows (`StepperList`, `StepperRow`).
-  The Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
+- Log button, Centred (the default): the toolbar above.
+- Log button, Pill: Ladder's pill in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass). Its empty circle
+  logs the set (`PillCheck`: a blue fill for a moment when logged, Skip while resting) and the rest of it opens the
+  Journal. Swap moves to the top bar beside More, icon only.
+- Weight and reps, Cards (the default): `Stepper`, the number in Large Title Emphasized (34pt bold, shrinking to fit)
+  over the iOS 27 kit's stepper.
+- Weight and reps, Inset list: the kit's inset list rows (`StepperList`, `StepperRow`).
+
+In the pill layout the Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
   open under the 62pt status bar; `.jcard` in globals.css). Its content is in it the whole way with the current exercise
   pinned under the header, as Ladder does, and the circle stays 50pt from the edge. A tap or swipe grows it, a drag past
   90pt or a flick opens it, the header pulls down to close (`src/lib/workout/journal-card.ts`, tested). The card is CSS
