@@ -946,6 +946,7 @@ export type Database = {
           prescribed_seconds_min: number | null
           prescribed_sets_max: number | null
           prescribed_sets_min: number | null
+          swapped_from_exercise_id: string | null
           updated_at: string
           warm_up_sets_max: number | null
           warm_up_sets_min: number | null
@@ -971,6 +972,7 @@ export type Database = {
           prescribed_seconds_min?: number | null
           prescribed_sets_max?: number | null
           prescribed_sets_min?: number | null
+          swapped_from_exercise_id?: string | null
           updated_at?: string
           warm_up_sets_max?: number | null
           warm_up_sets_min?: number | null
@@ -996,6 +998,7 @@ export type Database = {
           prescribed_seconds_min?: number | null
           prescribed_sets_max?: number | null
           prescribed_sets_min?: number | null
+          swapped_from_exercise_id?: string | null
           updated_at?: string
           warm_up_sets_max?: number | null
           warm_up_sets_min?: number | null

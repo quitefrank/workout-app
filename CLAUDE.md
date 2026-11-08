@@ -356,9 +356,9 @@ the Notion seed bringing the duplicates back.
 
 A drop set is a value on a logged set, `sets.is_drop_set`, for any exercise (Frank's call,
 2026-11-05), never a separate exercise. It counts toward volume and is left out of the top
-set, PRs and working-set progress. The active workout's Drop set button marks the next set;
-it and Warm are mutually exclusive. Quick log's Weight string cannot say which sets were drop
-sets, so each keeps its place. Migration 0010 merged Lat Pull-Downs (main) and (dropset), the
+set, PRs and working-set progress. The active workout no longer marks drop sets or takes a Notion
+Weight string (Frank's call, 2026-11-08, with the Ladder redesign); a logged drop set still shows as D
+in the Journal, and `quickLog` stays in `actions.ts` unused. Migration 0010 merged Lat Pull-Downs (main) and (dropset), the
 program seed's Lat Pulldown and Notion's Machine Pulldown into Lat Pulldown.
 `KEEP_UNREFERENCED` in `scripts/data/programs/library.ts` names seed-owned exercises the
 program seed must keep although nothing references them.
@@ -517,11 +517,9 @@ shows one on `--exercise-tile`, the same gray in light and dark (Frank's call,
 2026-11-05), or the muscle group's art on the themed tile until it exists. Going back restores the screen's
 scroll position (`src/components/app-scroller.tsx`). Templates has the 18 Notion
 day templates (`program_id` null). Progress is `/analytics`. The active
-workout (`/workouts/[id]`) logs sets one at a time or as a Notion Weight string
-through `parseWeightCsv`, and runs a rest timer kept in
-localStorage. Delete has one place: the trash button in the top bar's trailing
-slot, opening a confirming sheet. On the active workout it discards; on a finished
-workout's summary it deletes (`deleteWorkout` in `actions.ts`, which refuses one in
+workout (`/workouts/[id]`) is described under "Active workout" below. Delete has one place on a
+finished workout: the trash button in the summary's top bar, opening a confirming sheet; the active
+workout discards from its More menu. A finished workout's summary deletes (`deleteWorkout` in `actions.ts`, which refuses one in
 progress). Pure helpers for dates, formatting and PRs live in
 `src/lib/workout/` with tests.
 
@@ -666,6 +664,37 @@ token block in `globals.css` exists twice, under the phone's
 `onAppearanceChange()` in `src/lib/appearance.ts`, never the media
 query directly.
 
+## Active workout
+
+Aligned with Ladder, except the ending (Frank's calls, 2026-11-08, from the prototypes in the Workout App Teardown,
+https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v). `src/app/workouts/[id]/active-workout.tsx` is one screen per set on a
+dark stage, a media page: the top bar holds the clock and percent done (logged rows over all rows) and More; segments
+under it are the exercises (tap one to look at it); the header is the exercise name, its set circles (W, numbers, D;
+filled when logged, ringed when next) and "Up next"; the illustration fills the space between the header and "Last
+time" plus 35pt into each, never cropped; then weight and reps on `stepper.tsx` (the iOS stepper under a number that
+shrinks to fit, 5 lb or 2.5 kg and 1 rep a tap, typeable). The toolbar is Journal (with "1 of 4"), the 72pt Glass
+Prominent log button in the middle, and Swap. Swipe sideways to look through the exercises, swipe up for the Journal.
+Logging a working set starts the prescription's rest, which replaces the steppers with an arc, and the log button
+becomes Skip; looking at another exercise during rest shows a Rest capsule that goes back. The screen carries no
+floor, "Preview" or "Swapped from" labels (Frank's call).
+
+The model is pure and tested in `src/lib/workout/active.ts`: `buildRows` turns a workout exercise into set rows (the
+prescription's warm-ups and working sets, filled by logged sets, prefilled from the same set last time on the floor),
+and records, totals and stepper steps live there too. `journal.tsx` is the Journal sheet, titled with the workout's
+name and with no other sections (supersets get none until there is a way to mark one): every exercise with set
+circles, the shown one open with Max Weight and Est. 1 Rep Max (`bests` in `getWorkout`), a floor chip on two-floor
+exercises, Swap, History and More (Do Later, Move Up, Move Down, Remove), and a Log It grid. `swap-sheet.tsx` is a
+carousel of `getSwapPicks` (the program's subs, versions of the movement done before, the muscle group's most done)
+ending on See all, a search of the library; `swapExercise` replaces the row when nothing is logged, else adds the new
+exercise after it, and `workout_exercises.swapped_from_exercise_id` (migrations 0025 and 0026, no foreign key: a second
+one made every `exercises(...)` embed ambiguous) remembers what it replaced. `finish-sheet.tsx` shows new records,
+time, working sets and volume, and Keep swaps in template, which `completeWorkout` writes onto the template row that
+held the old exercise. Effort and notes are no longer asked for.
+
+The focus screen is painted with the page (the glass stage repaints on DOM changes and animations); only its number
+fields are live. A full-screen box must not carry `data-live`, since `html.gpu [data-live]` forces `position:
+relative`. Illustrations are 1024px WebP (`images:import`) and kept out of the PWA's install cache.
+
 ## Glass context rule
 
 Applies to every glass control in the lab (`docs/lab/glass-lab-v3.html`)
@@ -735,7 +764,7 @@ measurements in `docs/lab/glass-presets.md`.
 - Done: every screen in `docs/planning.md` in Liquid Glass Preset 1.
 - Done: programs in the UI (`/programs/[id]`, Programs on Templates,
   Up Next on Home) and the Achilles rehab templates by phase.
-- Not built: adding or swapping an exercise mid-workout. Frank wants swapping next (2026-11-05): when a machine is
-  taken, an easy way to swap a program's exercise for one of its alternates.
+- Done (2026-11-08): the Ladder-aligned active workout, with swapping, Do Later, Move and Remove (see "Active workout").
+  Not built: adding an exercise mid-workout, and supersets that alternate (no way to mark a superset yet).
 - `_notion_id` stays: it is the ownership key for the three seeds
   (`template:`, `achilles:`, `program:`), not a temporary import column

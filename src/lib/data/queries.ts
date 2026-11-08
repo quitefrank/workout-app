@@ -7,6 +7,7 @@ import type { EquipmentType, WeightUnit } from "@/lib/workout/format";
 import { floorKey, type MachineLocation } from "@/lib/workout/machine-location";
 import type { MovementOption } from "@/lib/workout/movements";
 import type { TopSet } from "@/lib/workout/progress";
+import { best, type Best } from "@/lib/workout/active";
 
 /** Server-side reads for the screens. Every per-user query filters by the app's one user. */
 
@@ -275,7 +276,7 @@ export type SetRow = {
   completed_at: string | null;
 };
 
-export type WorkoutExerciseRow = PrescribedRow & { machine_location: MachineLocation | null; sets: SetRow[] };
+export type WorkoutExerciseRow = PrescribedRow & { machine_location: MachineLocation | null; swapped_from_exercise_id: string | null; sets: SetRow[] };
 
 export type LastTime = { completedAt: string; sets: Pick<SetRow, "set_number" | "is_warm_up" | "is_drop_set" | "weight" | "reps">[] };
 
@@ -295,6 +296,8 @@ export type WorkoutDetail = {
   /** The most recent other completed session of each exercise on each floor, keyed by floorKey. */
   lastTime: Record<string, LastTime>;
   movementOptions: Record<string, MovementOption[]>;
+  /** Each exercise's heaviest weight and best estimated 1RM before this workout, per floor, keyed by floorKey. */
+  bests: Record<string, Best>;
 };
 
 export async function getWorkout(id: string): Promise<WorkoutDetail | null> {
@@ -319,7 +322,35 @@ export async function getWorkout(id: string): Promise<WorkoutDetail | null> {
     [...new Set([...exercises.map((e) => e.exercises.id), ...Object.values(movementOptions).flat().map((o) => o.id)])],
     id,
   );
-  return { ...rest, day: workoutDay(rest, timeZone()) ?? "", exercises, lastTime, movementOptions };
+  const bests = await getBests([...new Set(exercises.map((e) => e.exercises.id))], id);
+  return { ...rest, day: workoutDay(rest, timeZone()) ?? "", exercises, lastTime, movementOptions, bests };
+}
+
+async function getBests(exerciseIds: string[], excludeWorkoutId: string): Promise<Record<string, Best>> {
+  if (exerciseIds.length === 0) return {};
+  const tops = await selectAll((a, b) =>
+    db()
+      .from("v_workout_exercise_top_set")
+      .select("exercise_id, workout_id, weight, reps, workout_completed_at, machine_location")
+      .eq("user_id", userId())
+      .in("exercise_id", exerciseIds)
+      .neq("workout_id", excludeWorkoutId)
+      .not("workout_completed_at", "is", null)
+      .range(a, b),
+  );
+  const byKey = new Map<string, TopSet[]>();
+  for (const r of tops) {
+    if (!r.exercise_id || !r.workout_id || r.weight == null || r.reps == null || !r.workout_completed_at) continue;
+    const t: TopSet = { exercise_id: r.exercise_id, workout_id: r.workout_id, weight: Number(r.weight), reps: r.reps, completed_at: r.workout_completed_at, floor: r.machine_location };
+    const key = floorKey(t.exercise_id, t.floor);
+    byKey.set(key, [...(byKey.get(key) ?? []), t]);
+  }
+  const out: Record<string, Best> = {};
+  for (const [key, list] of byKey) {
+    const b = best(list);
+    if (b) out[key] = b;
+  }
+  return out;
 }
 
 /** The versions of each family, in the family's order (migration 0022). */

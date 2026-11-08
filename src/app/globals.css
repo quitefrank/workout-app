@@ -360,6 +360,20 @@ body {
 
 /* Components layer, so Tailwind utilities on the same element (fixed, text-blue, ...) win */
 @layer components {
+  /* The active workout's focus screen: a swipe slides the next exercise in from the side it came from */
+  .focus-slide-l > * {
+    animation: focus-slide-l 0.3s cubic-bezier(0.2, 0.9, 0.25, 1);
+  }
+  .focus-slide-r > * {
+    animation: focus-slide-r 0.3s cubic-bezier(0.2, 0.9, 0.25, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .focus-slide-l > *,
+    .focus-slide-r > * {
+      animation: none;
+    }
+  }
+
   /* ------------------------------------------------------------
      Glass material. Layers, bottom to top: the blurred backdrop, the
      element's own fill, a luminosity layer (Haze or Fill 1), a floor
@@ -1056,4 +1070,11 @@ html.keyboard .sheet-body {
   syntax: "<length>";
   inherits: true;
   initial-value: 0px;
+}
+
+@keyframes focus-slide-l {
+  from { transform: translateX(60px); opacity: 0; }
+}
+@keyframes focus-slide-r {
+  from { transform: translateX(-60px); opacity: 0; }
 }

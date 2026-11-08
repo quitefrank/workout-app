@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { CheckIcon, ChevronUpDown } from "./icons";
 
-export type PopUpItem = { value: string; note?: string; disabled?: boolean };
+export type PopUpItem = { value: string; note?: string; disabled?: boolean; destructive?: boolean };
 
 /**
  * A labelled pop-up button (iOS 27 kit, Pop-up Button) whose menu grows out of the value with the measured morph
@@ -50,6 +50,14 @@ export function PopUpMenu({ label, value, items, disabled, onChange }: { label: 
       )}
     </div>
   );
+}
+
+/**
+ * A menu of actions from a button (a More button, a chip): the same glass and morph as the pop-up button's menu, with
+ * no checkmark. `rect` is the button's box; the menu grows from its top-right corner.
+ */
+export function ActionMenu({ rect, items, onClose, onPick }: { rect: DOMRect; items: PopUpItem[]; onClose: () => void; onPick: (value: string) => void }) {
+  return <Menu rect={rect} items={items} value="" onClose={() => onClose()} onPick={onPick} />;
 }
 
 function Menu({ rect, items, value, onClose, onPick }: { rect: DOMRect; items: PopUpItem[]; value: string; onClose: (focus: boolean) => void; onPick: (value: string) => void }) {
@@ -145,6 +153,7 @@ function Menu({ rect, items, value, onClose, onPick }: { rect: DOMRect; items: P
               className={cn(
                 "grid min-h-11 grid-cols-[28px_1fr] items-center pl-3 pr-5 text-left text-[17px] outline-none focus-visible:bg-fill",
                 item.disabled ? "cursor-default text-ink-3" : "active:bg-fill",
+                item.destructive && !item.disabled && "text-red",
               )}
             >
               <span>{on && <CheckIcon size={15} strokeWidth={2.6} />}</span>

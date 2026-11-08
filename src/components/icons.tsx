@@ -166,6 +166,29 @@ export const TrophyIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** SF's arrow.left.arrow.right, the Swap button */
+export const SwapIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 8h15M15 4l4 4-4 4M20 16H5M9 12l-4 4 4 4" />
+  </Svg>
+);
+
+/** SF's ellipsis, a More button */
+export const EllipsisIcon = (p: IconProps) => (
+  <Svg {...p} fill="currentColor" stroke="none">
+    <circle cx="5.5" cy="12" r="1.9" />
+    <circle cx="12" cy="12" r="1.9" />
+    <circle cx="18.5" cy="12" r="1.9" />
+  </Svg>
+);
+
+/** SF's forward.end, Skip Rest */
+export const SkipIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 5.5v13l10-6.5zM19 5v14" fill="currentColor" />
+  </Svg>
+);
+
 /*
  * Notion's own icons, as the Workout page shows them on its columns and workout pages (notion.so/icons/<name>_gray.svg).
  * Filled on a 20 x 20 grid; the fill follows currentColor so they take the theme's ink.

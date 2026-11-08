@@ -1,15 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { TimerIcon } from "@/components/icons";
-import { formatClock } from "@/lib/workout/format";
 
 /**
  * Rest timer. It stores when rest ends, not a countdown, so it survives
  * a reload or the phone sleeping, and chimes once when rest is over.
  */
 
-type Timer = {
+export type Timer = {
   endsAt: number | null;
   total: number;
   remaining: number;
@@ -141,41 +139,4 @@ function chime(ctx: AudioContext | null) {
   } catch {
     // no sound is fine
   }
-}
-
-export function RestTimer({ timer }: { timer: Timer }) {
-  if (timer.endsAt == null) return null;
-  const done = timer.remaining === 0;
-  const progress = timer.total ? 1 - timer.remaining / timer.total : 1;
-  return (
-    <div
-      role="timer"
-      aria-live="polite"
-      aria-label={done ? "Rest over" : `Rest, ${timer.remaining} seconds left`}
-      className="glass pointer-events-auto relative flex h-[50px] w-full items-center gap-2 overflow-hidden pl-4 pr-1.5"
-    >
-      <span
-        aria-hidden
-        className="absolute inset-y-0 left-0 -z-0 bg-blue/15 transition-[width] duration-300 ease-linear"
-        style={{ width: `${progress * 100}%` }}
-      />
-      <TimerIcon size={20} className={done ? "relative text-green" : "relative text-blue"} />
-      <span className="tabular relative flex-1 text-[20px] font-semibold">{done ? "Rest over" : formatClock(timer.remaining)}</span>
-      {!done && (
-        <>
-          <TimerChip onClick={() => timer.add(-15)}>−15</TimerChip>
-          <TimerChip onClick={() => timer.add(15)}>+15</TimerChip>
-        </>
-      )}
-      <TimerChip onClick={timer.stop}>{done ? "Dismiss" : "Skip"}</TimerChip>
-    </div>
-  );
-}
-
-function TimerChip({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button type="button" onClick={onClick} className="tabular relative h-9 rounded-full bg-fill px-3 text-[15px] font-semibold">
-      {children}
-    </button>
-  );
 }

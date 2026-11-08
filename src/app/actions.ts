@@ -7,6 +7,7 @@ import { programHasEnded } from "@/lib/programs/today";
 import { programTodayOf } from "@/lib/programs/up-next";
 import { db, timeZone, userId } from "@/lib/supabase/server";
 import { localDate } from "@/lib/workout/dates";
+import { swappedFrom } from "@/lib/workout/active";
 import { midpoint } from "@/lib/workout/format";
 import { FIRST_FLOOR, FLOORS, type MachineLocation } from "@/lib/workout/machine-location";
 import { parseWeightCsv } from "../../scripts/parse-weight-csv";
@@ -140,20 +141,48 @@ export async function startWorkout(templateId: string): Promise<void> {
   redirect(`/workouts/${workout!.id}`);
 }
 
-export async function completeWorkout(
-  workoutId: string,
-  input: { perceivedEffort: number | null; notes: string | null },
-): Promise<void> {
+/**
+ * Finish the workout. With keepSwaps, each exercise swapped today replaces the one it swapped out on the template, so
+ * the next time starts on it; without, the template is untouched.
+ */
+export async function completeWorkout(workoutId: string, input: { keepSwaps: boolean }): Promise<void> {
   await ownedWorkout(workoutId);
-  const effort = input.perceivedEffort != null && input.perceivedEffort >= 1 && input.perceivedEffort <= 10 ? input.perceivedEffort : null;
-  const { error } = await db()
-    .from("workouts")
-    .update({ completed_at: new Date().toISOString(), perceived_effort: effort, notes: input.notes?.trim() || null })
-    .eq("id", workoutId);
+  if (input.keepSwaps) await keepSwapsInTemplate(workoutId);
+  const { error } = await db().from("workouts").update({ completed_at: new Date().toISOString() }).eq("id", workoutId);
   fail(error);
   await stopFollowingIfEnded();
   refreshWorkout(workoutId);
   redirect(`/workouts/${workoutId}/summary`);
+}
+
+async function keepSwapsInTemplate(workoutId: string): Promise<void> {
+  const { data: w, error } = await db()
+    .from("workouts")
+    .select("template_id, workout_exercises(position, exercise_id, swapped_from_exercise_id)")
+    .eq("id", workoutId)
+    .single();
+  fail(error);
+  const workout = w as unknown as { template_id: string | null; workout_exercises: { position: number; exercise_id: string; swapped_from_exercise_id: string | null }[] };
+  if (!workout.template_id) return;
+  const swaps = workout.workout_exercises.filter((r) => r.swapped_from_exercise_id);
+  if (swaps.length === 0) return;
+  const { data: rows, error: rowsError } = await db()
+    .from("template_exercises")
+    .select("id, position, exercise_id")
+    .eq("template_id", workout.template_id);
+  fail(rowsError);
+  const taken = new Set<string>();
+  for (const s of swaps) {
+    // the template row that held the old exercise, the nearest by position when it appears more than once
+    const match = (rows ?? [])
+      .filter((r) => r.exercise_id === s.swapped_from_exercise_id && !taken.has(r.id))
+      .sort((a, b) => Math.abs(a.position - s.position) - Math.abs(b.position - s.position))[0];
+    if (!match) continue;
+    taken.add(match.id);
+    const { error: upError } = await db().from("template_exercises").update({ exercise_id: s.exercise_id }).eq("id", match.id);
+    fail(upError);
+  }
+  revalidatePath("/templates", "layout");
 }
 
 /** The workout that finishes a program takes the app back to following none. It never blocks finishing the workout. */
@@ -196,20 +225,191 @@ export async function deleteWorkout(workoutId: string): Promise<void> {
  */
 export async function setExerciseOption(workoutExerciseId: string, exerciseId: string): Promise<void> {
   const we = await ownedWorkoutExercise(workoutExerciseId);
-  const { data: row, error: rowError } = await db().from("workout_exercises").select("machine_location, exercises(movement)").eq("id", workoutExerciseId).single();
+  const { data: row, error: rowError } = await db().from("workout_exercises").select("exercise_id, swapped_from_exercise_id, machine_location, exercises(movement)").eq("id", workoutExerciseId).single();
   fail(rowError);
   const { data: next, error: nextError } = await db().from("exercises").select("id, movement, has_floors").eq("id", exerciseId).maybeSingle();
   fail(nextError);
-  const current = row as unknown as { machine_location: MachineLocation | null; exercises: { movement: string | null } | null };
+  const current = row as unknown as { exercise_id: string; swapped_from_exercise_id: string | null; machine_location: MachineLocation | null; exercises: { movement: string | null } | null };
   const movement = current.exercises?.movement;
   if (!next || !movement || next.movement !== movement) throw new Error("That is not the same movement.");
   const floors = next.has_floors && !current.machine_location ? await lastFloors([next.id]) : null;
   const { error } = await db()
     .from("workout_exercises")
-    .update({ exercise_id: next.id, machine_location: next.has_floors ? (current.machine_location ?? floors?.get(next.id) ?? FIRST_FLOOR) : null })
+    .update({
+      exercise_id: next.id,
+      machine_location: next.has_floors ? (current.machine_location ?? floors?.get(next.id) ?? FIRST_FLOOR) : null,
+      swapped_from_exercise_id: swappedFrom({ exerciseId: current.exercise_id, swappedFrom: current.swapped_from_exercise_id }, next.id),
+    })
     .eq("id", workoutExerciseId);
   fail(error);
   refreshWorkout(we.workout_id);
+}
+
+export type SwapResult = { mode: "replaced"; previousExerciseId: string } | { mode: "added" };
+
+/**
+ * Swap a row in the workout for any exercise, when a machine is taken. With nothing logged the row becomes the new
+ * exercise; once sets are logged they stay with the exercise they were done on, and the new exercise is added straight
+ * after with the same prescription. Either way the row remembers what it replaced, for "Keep swaps in template".
+ */
+export async function swapExercise(workoutExerciseId: string, exerciseId: string): Promise<SwapResult> {
+  const we = await ownedWorkoutExercise(workoutExerciseId);
+  const { data: row, error: rowError } = await db()
+    .from("workout_exercises")
+    .select("*, sets(count)")
+    .eq("id", workoutExerciseId)
+    .single();
+  fail(rowError);
+  const current = row as unknown as Record<string, unknown> & { exercise_id: string; swapped_from_exercise_id: string | null; position: number; machine_location: MachineLocation | null; sets: { count: number }[] };
+  if (current.exercise_id === exerciseId) return { mode: "replaced", previousExerciseId: exerciseId };
+  const { data: next, error: nextError } = await db().from("exercises").select("id, has_floors").eq("id", exerciseId).maybeSingle();
+  fail(nextError);
+  if (!next) throw new Error("No such exercise.");
+  const floors = next.has_floors ? await lastFloors([next.id]) : null;
+  const floor = next.has_floors ? (floors?.get(next.id) ?? current.machine_location ?? FIRST_FLOOR) : null;
+
+  if ((current.sets?.[0]?.count ?? 0) === 0) {
+    const { error } = await db()
+      .from("workout_exercises")
+      .update({
+        exercise_id: next.id,
+        machine_location: floor,
+        swapped_from_exercise_id: swappedFrom({ exerciseId: current.exercise_id, swappedFrom: current.swapped_from_exercise_id }, next.id),
+      })
+      .eq("id", workoutExerciseId);
+    fail(error);
+    refreshWorkout(we.workout_id);
+    return { mode: "replaced", previousExerciseId: current.exercise_id };
+  }
+
+  await shiftPositions(we.workout_id, current.position);
+  const { error } = await db().from("workout_exercises").insert({
+    workout_id: we.workout_id,
+    exercise_id: next.id,
+    machine_location: floor,
+    position: current.position + 1,
+    prescribed_sets_min: current.prescribed_sets_min as number | null,
+    prescribed_sets_max: current.prescribed_sets_max as number | null,
+    prescribed_reps_min: current.prescribed_reps_min as number | null,
+    prescribed_reps_max: current.prescribed_reps_max as number | null,
+    prescribed_rir_min: current.prescribed_rir_min as number | null,
+    prescribed_rir_max: current.prescribed_rir_max as number | null,
+    prescribed_seconds_min: current.prescribed_seconds_min as number | null,
+    prescribed_seconds_max: current.prescribed_seconds_max as number | null,
+    prescribed_rest_seconds: current.prescribed_rest_seconds as number | null,
+    prescribed_rpe: current.prescribed_rpe as string | null,
+    warm_up_sets_min: current.warm_up_sets_min as number | null,
+    warm_up_sets_max: current.warm_up_sets_max as number | null,
+    notes: current.notes as string | null,
+    swapped_from_exercise_id: current.swapped_from_exercise_id ?? current.exercise_id,
+  });
+  fail(error);
+  refreshWorkout(we.workout_id);
+  return { mode: "added" };
+}
+
+/** Make room after `position` by moving every later row down one. */
+async function shiftPositions(workoutId: string, position: number): Promise<void> {
+  const { data, error } = await db().from("workout_exercises").select("id, position").eq("workout_id", workoutId).gt("position", position).order("position", { ascending: false });
+  fail(error);
+  for (const r of data ?? []) {
+    const { error: e } = await db().from("workout_exercises").update({ position: r.position + 1 }).eq("id", r.id);
+    fail(e);
+  }
+}
+
+/** Do Later (to the end), Move Up or Move Down. Positions are rewritten 1..n in the new order. */
+export async function moveWorkoutExercise(workoutExerciseId: string, to: "up" | "down" | "end"): Promise<void> {
+  const we = await ownedWorkoutExercise(workoutExerciseId);
+  const { data, error } = await db().from("workout_exercises").select("id, position").eq("workout_id", we.workout_id).order("position");
+  fail(error);
+  const order = (data ?? []).map((r) => r.id);
+  const i = order.indexOf(workoutExerciseId);
+  if (i < 0) return;
+  order.splice(i, 1);
+  const j = to === "end" ? order.length : to === "up" ? Math.max(0, i - 1) : Math.min(order.length, i + 1);
+  order.splice(j, 0, workoutExerciseId);
+  const before = new Map((data ?? []).map((r) => [r.id, r.position]));
+  for (const [k, id] of order.entries()) {
+    if (before.get(id) === k + 1) continue;
+    const { error: e } = await db().from("workout_exercises").update({ position: k + 1 }).eq("id", id);
+    fail(e);
+  }
+  refreshWorkout(we.workout_id);
+}
+
+/** Take an exercise out of today's workout, with any sets logged on it. The template is untouched. */
+export async function removeWorkoutExercise(workoutExerciseId: string): Promise<void> {
+  const we = await ownedWorkoutExercise(workoutExerciseId);
+  const { error } = await db().from("workout_exercises").delete().eq("id", workoutExerciseId);
+  fail(error);
+  refreshWorkout(we.workout_id);
+}
+
+export type SwapPick = { id: string; name: string; slug: string | null; kind: "Program sub" | "Same movement" | "Same muscle" };
+
+/**
+ * The swap carousel's picks, closest first: the exercise's alternates (a program's substitutions), then the other
+ * versions of its movement you have done, then the most-done exercises in its muscle group. Exercises already in the
+ * workout are left out.
+ */
+export async function getSwapPicks(workoutExerciseId: string): Promise<SwapPick[]> {
+  const we = await ownedWorkoutExercise(workoutExerciseId);
+  const { data: row, error } = await db()
+    .from("workout_exercises")
+    .select("exercise_id, exercises(id, movement, muscle_group_id)")
+    .eq("id", workoutExerciseId)
+    .single();
+  fail(error);
+  const cur = (row as unknown as { exercise_id: string; exercises: { id: string; movement: string | null; muscle_group_id: string | null } }).exercises;
+  const { data: inWorkout } = await db().from("workout_exercises").select("exercise_id").eq("workout_id", we.workout_id);
+  const skip = new Set((inWorkout ?? []).map((r) => r.exercise_id));
+
+  const { data: alts } = await db()
+    .from("exercise_alternates")
+    .select("position, alternate:exercises!exercise_alternates_alternate_exercise_id_fkey(id, name, title, slug)")
+    .eq("exercise_id", cur.id)
+    .order("position");
+  const family = cur.movement
+    ? ((await db().from("exercises").select("id, name, title, slug").eq("movement", cur.movement).order("option_rank", { nullsFirst: false })).data ?? [])
+    : [];
+  const muscle = cur.muscle_group_id
+    ? ((await db().from("exercises").select("id, name, title, slug, movement").eq("muscle_group_id", cur.muscle_group_id)).data ?? []).filter((e) => !cur.movement || e.movement !== cur.movement)
+    : [];
+
+  // how often each candidate has been done, so the ones you know come first
+  const ids = [...new Set([...family, ...muscle].map((e) => e.id))];
+  const done = new Map<string, number>();
+  if (ids.length) {
+    const { data: tops } = await db().from("v_workout_exercise_top_set").select("exercise_id").eq("user_id", userId()).in("exercise_id", ids).not("workout_completed_at", "is", null);
+    for (const t of tops ?? []) if (t.exercise_id) done.set(t.exercise_id, (done.get(t.exercise_id) ?? 0) + 1);
+  }
+
+  const out: SwapPick[] = [];
+  const seen = new Set<string>(skip);
+  const add = (e: { id: string; name: string; title: string | null; slug: string | null }, kind: SwapPick["kind"]) => {
+    if (seen.has(e.id)) return;
+    seen.add(e.id);
+    out.push({ id: e.id, name: e.title ?? e.name, slug: e.slug, kind });
+  };
+  for (const a of (alts ?? []) as unknown as { alternate: { id: string; name: string; title: string | null; slug: string | null } | null }[]) if (a.alternate) add(a.alternate, "Program sub");
+  for (const e of family.filter((f) => done.has(f.id)).slice(0, 4)) add(e, "Same movement");
+  for (const e of muscle.filter((m) => done.has(m.id)).sort((a, b) => (done.get(b.id) ?? 0) - (done.get(a.id) ?? 0)).slice(0, 4)) add(e, "Same muscle");
+  return out;
+}
+
+export type LibraryPick = { id: string; name: string; slug: string | null; group: string | null };
+
+/** Every exercise, for the swap sheet's See all search. */
+export async function getSwapLibrary(): Promise<LibraryPick[]> {
+  const { data, error } = await db().from("exercises").select("id, name, title, slug, muscle_groups(name)").order("name").limit(1000);
+  fail(error);
+  return ((data ?? []) as unknown as { id: string; name: string; title: string | null; slug: string | null; muscle_groups: { name: string } | null }[]).map((e) => ({
+    id: e.id,
+    name: e.title ?? e.name,
+    slug: e.slug,
+    group: e.muscle_groups?.name ?? null,
+  }));
 }
 
 export async function setExerciseFloor(workoutExerciseId: string, floor: MachineLocation): Promise<void> {
@@ -236,12 +436,12 @@ export async function setExerciseFloor(workoutExerciseId: string, floor: Machine
 // Sets
 // ------------------------------------------------------------
 
-export type SetInput = { weight: number | null; reps: number | null; isWarmUp: boolean; isDropSet: boolean };
+export type SetInput = { weight: number | null; reps: number | null; isWarmUp: boolean; isDropSet: boolean; allowEmpty?: boolean };
 
 function cleanSet(input: SetInput) {
   const weight = input.weight != null && Number.isFinite(input.weight) && input.weight >= 0 ? input.weight : null;
   const reps = input.reps != null && Number.isInteger(input.reps) && input.reps >= 0 ? input.reps : null;
-  if (weight == null && reps == null) throw new Error("Enter a weight or reps.");
+  if (weight == null && reps == null && !input.allowEmpty) throw new Error("Enter a weight or reps.");
   return { weight, reps, is_warm_up: input.isWarmUp, is_drop_set: input.isDropSet && !input.isWarmUp };
 }
 
