@@ -873,7 +873,8 @@ function Stage({ slug }: { slug: string | null | undefined }) {
 /**
  * The illustration, as large as the space between the header and "Last time" allows plus 35pt into each (Frank's
  * "Larger", 2026-11-08), centred in that space and never cropped. The header and the steppers draw over it, on the
- * prototype's dark fades: one under the header and one rising into "Last time", so the text always reads.
+ * short dark fades (65%) that cover only the image's bleed under "Up next" and "Last time", so the text reads
+ * without washing out the image (Frank's call, 2026-11-08).
  */
 function Art({
   slug,
@@ -913,11 +914,11 @@ function Art({
       )}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-[70px] h-[150px] bg-[linear-gradient(rgb(11_11_13/0)_0%,rgb(11_11_13/0.8)_45%,rgb(11_11_13/0.8)_55%,rgb(11_11_13/0)_100%)]"
+        className="pointer-events-none absolute inset-x-0 -top-[35px] h-[70px] bg-[linear-gradient(rgb(11_11_13/0)_0%,rgb(11_11_13/0.65)_40%,rgb(11_11_13/0)_100%)]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -bottom-[35px] h-[170px] bg-[linear-gradient(rgb(11_11_13/0)_0%,#0b0b0d_80%)]"
+        className="pointer-events-none absolute inset-x-0 -bottom-[35px] h-[70px] bg-[linear-gradient(rgb(11_11_13/0)_0%,rgb(11_11_13/0.65)_55%,rgb(11_11_13/0.65)_100%)]"
       />
     </div>
   );
