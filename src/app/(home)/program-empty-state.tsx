@@ -26,7 +26,8 @@ export function ProgramEmptyState({ programs }: { programs: ProgramSummary[] }) 
   return (
     <>
       <SectionHeader title="Up Next" />
-      <div className="grouped mx-4 flex flex-col items-center gap-3 px-4 py-5 text-center">
+      {/* the card's fill and corners without .grouped, whose row separators drew a line above the button */}
+      <div className="mx-4 flex flex-col overflow-hidden rounded-[26px] bg-card items-center gap-3 px-4 py-5 text-center">
         <div>
           <div className="text-[17px] font-semibold leading-[22px]">No Program</div>
           <p className="mt-0.5 text-[15px] leading-5 text-ink-2">Choose a program to see your next workout here.</p>
