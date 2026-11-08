@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { followProgram } from "@/app/actions";
 import { Button } from "@/components/button";
-import { Row, SectionHeader, Thumb } from "@/components/page";
+import { Row, SectionHeader } from "@/components/page";
+import { WorkoutThumb } from "@/components/workout-thumb";
 import { Sheet } from "@/components/sheet";
 import type { ProgramSummary } from "@/lib/data/queries";
 
@@ -47,7 +48,7 @@ export function ProgramEmptyState({ programs }: { programs: ProgramSummary[] }) 
               className="block w-full text-left active:bg-fill disabled:opacity-50"
             >
               <Row
-                leading={<Thumb category="full_body" label="P" />}
+                leading={<WorkoutThumb category="full_body" label="P" slugs={p.slugs} />}
                 title={p.name}
                 subtitle={`${p.phaseCount} weeks · ${p.templateCount} templates`}
               />

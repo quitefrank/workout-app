@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { GlassCircleLink } from "@/components/glass";
 import { ChevronLeft } from "@/components/icons";
-import { Chip, Empty, LargeTitle, Row, Screen, SectionHeader, Thumb } from "@/components/page";
+import { Chip, Empty, LargeTitle, Row, Screen, SectionHeader } from "@/components/page";
+import { WorkoutThumb } from "@/components/workout-thumb";
 import { getHistory, listTemplates } from "@/lib/data/queries";
 import { dayLabel, durationMinutes, monthTitle } from "@/lib/workout/dates";
 
@@ -58,7 +59,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 return (
                   <Link key={w.id} href={`/workouts/${w.id}/summary`} className="block active:bg-fill">
                     <Row
-                      leading={<Thumb category={w.category} label={w.name.slice(0, 1)} />}
+                      leading={<WorkoutThumb category={w.category} label={w.name.slice(0, 1)} slugs={w.slugs} />}
                       title={w.name}
                       subtitle={[w.day && dayLabel(w.day), `${w.exerciseCount} exercises`, mins && `${mins} min`]
                         .filter(Boolean)

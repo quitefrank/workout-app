@@ -6,7 +6,8 @@ import type { TemplateSummary } from "@/lib/data/queries";
 import type { NextTemplate } from "@/lib/programs/up-next";
 import { CATEGORY_LABELS } from "@/lib/workout/format";
 import { groupByCategory } from "@/lib/workout/group";
-import { Row, Thumb } from "./page";
+import { Row } from "./page";
+import { WorkoutThumb } from "./workout-thumb";
 import { Sheet } from "./sheet";
 
 const SECTION_TITLE = "px-4 pb-1.5 pt-2 text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-2";
@@ -47,6 +48,7 @@ export function StartWorkout({ templates, next }: { templates: TemplateSummary[]
                 name={next.name}
                 category={next.category}
                 label={next.variant ?? next.name.slice(0, 1)}
+                slugs={next.slugs}
                 subtitle={["Next in the rotation", next.needs_signoff && "Needs physio sign-off"].filter(Boolean).join(" · ")}
                 onPick={() => start(next.id)}
               />
@@ -63,6 +65,7 @@ export function StartWorkout({ templates, next }: { templates: TemplateSummary[]
                   name={t.name}
                   category={t.category}
                   label={t.variant ?? t.name.slice(0, 1)}
+                  slugs={t.slugs}
                   subtitle={`${t.exerciseCount} exercises${t.estimated_minutes ? ` · ${t.estimated_minutes} min` : ""}`}
                   onPick={() => start(t.id)}
                 />
@@ -79,18 +82,20 @@ function TemplateRow({
   name,
   category,
   label,
+  slugs,
   subtitle,
   onPick,
 }: {
   name: string;
   category: string | null;
   label: string;
+  slugs: string[] | undefined;
   subtitle: string;
   onPick: () => void;
 }) {
   return (
     <button type="button" className="block w-full text-left active:bg-fill" onClick={onPick}>
-      <Row leading={<Thumb category={category} label={label} />} title={name} subtitle={subtitle} chevron />
+      <Row leading={<WorkoutThumb category={category} label={label} slugs={slugs} />} title={name} subtitle={subtitle} chevron />
     </button>
   );
 }

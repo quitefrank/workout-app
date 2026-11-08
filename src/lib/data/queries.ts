@@ -1,4 +1,5 @@
 import "server-only";
+import { workingSlugs } from "@/lib/workout/workout-art";
 import type { ExerciseSession } from "@/lib/workout/exercise-metrics";
 import { db, selectAll, timeZone, userId } from "@/lib/supabase/server";
 import { gridBounds, workoutDay, type YearMonth } from "@/lib/workout/dates";
@@ -50,6 +51,8 @@ export type WorkoutListItem = {
   startedAt: string | null;
   completedAt: string | null;
   exerciseCount: number;
+  /** The workout's exercises' slugs in order, for its thumbnail. */
+  slugs: string[];
 };
 
 type WorkoutRow = {
@@ -60,11 +63,19 @@ type WorkoutRow = {
   completed_at: string | null;
   created_at: string;
   templates: { name: string; category: string | null } | null;
-  workout_exercises: { count: number }[];
+  workout_exercises: EmbeddedExercise[];
 };
 
 const WORKOUT_LIST_FIELDS =
-  "id, template_id, scheduled_for, started_at, completed_at, created_at, templates(name, category), workout_exercises(count)";
+  "id, template_id, scheduled_for, started_at, completed_at, created_at, templates(name, category), workout_exercises(position, exercises(slug, muscle_groups(name)))";
+
+type EmbeddedExercise = { position: number; exercises: { slug: string | null; muscle_groups: { name: string } | null } | null };
+
+/** The working lifts' slugs in position order from an embedded exercise list (warm-up left out), for the thumbnail. */
+function orderedSlugs(list: EmbeddedExercise[] | null | undefined): string[] {
+  const ordered = [...(list ?? [])].sort((a, b) => a.position - b.position);
+  return workingSlugs(ordered.map((e) => ({ slug: e.exercises?.slug, group: e.exercises?.muscle_groups?.name })));
+}
 
 function toListItem(w: WorkoutRow, tz: string): WorkoutListItem {
   return {
@@ -75,7 +86,8 @@ function toListItem(w: WorkoutRow, tz: string): WorkoutListItem {
     templateId: w.template_id,
     startedAt: w.started_at,
     completedAt: w.completed_at,
-    exerciseCount: w.workout_exercises?.[0]?.count ?? 0,
+    exerciseCount: w.workout_exercises?.length ?? 0,
+    slugs: orderedSlugs(w.workout_exercises),
   };
 }
 
@@ -163,6 +175,8 @@ export type TemplateSummary = {
   variant: string | null;
   estimated_minutes: number | null;
   exerciseCount: number;
+  /** The template's exercises' slugs in order, where the query loads them. */
+  slugs?: string[];
 };
 
 /** The day templates you pick from freestyle: the Notion ones, not program weeks. */
@@ -170,11 +184,17 @@ export async function listTemplates(): Promise<TemplateSummary[]> {
   const found = check(
     await db()
       .from("templates")
-      .select("id, name, category, variant, estimated_minutes, template_exercises(count)")
+      .select("id, name, category, variant, estimated_minutes, template_exercises(position, exercises(slug, muscle_groups(name)))")
       .is("program_id", null)
       .order("name"),
-  ) as unknown as (Omit<TemplateSummary, "exerciseCount"> & { template_exercises: { count: number }[] })[];
-  return found.map(({ template_exercises, ...t }) => ({ ...t, exerciseCount: template_exercises?.[0]?.count ?? 0 }));
+  ) as unknown as (Omit<TemplateSummary, "exerciseCount" | "slugs"> & {
+    template_exercises: EmbeddedExercise[];
+  })[];
+  return found.map(({ template_exercises, ...t }) => ({
+    ...t,
+    exerciseCount: template_exercises?.length ?? 0,
+    slugs: orderedSlugs(template_exercises),
+  }));
 }
 
 export type LibraryExercise = {
@@ -487,23 +507,54 @@ export type ProgramSummary = {
   description: string | null;
   phaseCount: number;
   templateCount: number;
+  /** Its first week's exercises' slugs, days in order, for the row thumbnail's main lift. */
+  slugs: string[];
 };
 
 /** Every program in the library, recovery first. */
 export async function listPrograms(): Promise<ProgramSummary[]> {
   const found = rows(
     await db().from("programs").select("id, name, kind, description, program_phases(count), templates(count)").eq("kind", "training").order("name"),
-  ) as unknown as (Omit<ProgramSummary, "phaseCount" | "templateCount"> & {
+  ) as unknown as (Omit<ProgramSummary, "phaseCount" | "templateCount" | "slugs"> & {
     program_phases: { count: number }[];
     templates: { count: number }[];
   })[];
+  const firstWeeks = await listProgramFirstWeekSlugs(found.map((p) => p.id));
   return found
     .map(({ program_phases, templates, ...p }) => ({
       ...p,
       phaseCount: program_phases?.[0]?.count ?? 0,
       templateCount: templates?.[0]?.count ?? 0,
+      slugs: firstWeeks.get(p.id) ?? [],
     }))
     .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "recovery" ? -1 : 1));
+}
+
+/**
+ * Each program's first week as one list of exercise slugs, its days in order, for the program row's thumbnail: the
+ * thumbnail shows the first drawn lift in it.
+ */
+export async function listProgramFirstWeekSlugs(programIds: string[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (programIds.length === 0) return out;
+  const found = rows(
+    await db()
+      .from("program_phases")
+      .select("program_id, template_phases(position, templates(template_exercises(position, exercises(slug, muscle_groups(name)))))")
+      .in("program_id", programIds)
+      .eq("position", 1),
+  ) as unknown as {
+    program_id: string;
+    template_phases: {
+      position: number | null;
+      templates: { template_exercises: EmbeddedExercise[] } | null;
+    }[];
+  }[];
+  for (const p of found) {
+    const days = [...p.template_phases].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    out.set(p.program_id, days.flatMap((d) => orderedSlugs(d.templates?.template_exercises)));
+  }
+  return out;
 }
 
 export type ProgramTemplateRow = {
@@ -513,6 +564,8 @@ export type ProgramTemplateRow = {
   variant: string | null;
   needs_signoff: string | null;
   exerciseCount: number;
+  /** The template's exercises' slugs in order, for the thumbnail drawn from their illustrations. */
+  slugs: string[];
 };
 
 export type ProgramPhaseRow = {
@@ -572,13 +625,15 @@ export async function getProgram(id: string): Promise<ProgramDetail | null> {
     ? ((await selectAll((a, b) =>
         db()
           .from("template_phases")
-          .select("phase_id, position, templates(id, name, category, variant, needs_signoff, template_exercises(count))")
+          .select("phase_id, position, templates(id, name, category, variant, needs_signoff, template_exercises(position, exercises(slug, muscle_groups(name))))")
           .in("phase_id", phaseIds)
           .range(a, b),
       )) as unknown as {
         phase_id: string;
         position: number | null;
-        templates: Omit<ProgramTemplateRow, "exerciseCount"> & { template_exercises: { count: number }[] };
+        templates: Omit<ProgramTemplateRow, "exerciseCount" | "slugs"> & {
+          template_exercises: EmbeddedExercise[];
+        };
       }[])
     : [];
 
@@ -587,7 +642,7 @@ export async function getProgram(id: string): Promise<ProgramDetail | null> {
     if (!l.templates) continue;
     const { template_exercises, ...t } = l.templates;
     const list = byPhase.get(l.phase_id) ?? [];
-    list.push({ position: l.position ?? 0, t: { ...t, exerciseCount: template_exercises?.[0]?.count ?? 0 } });
+    list.push({ position: l.position ?? 0, t: { ...t, exerciseCount: template_exercises?.length ?? 0, slugs: orderedSlugs(template_exercises) } });
     byPhase.set(l.phase_id, list);
   }
 

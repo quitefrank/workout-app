@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GlassCircleLink } from "@/components/glass";
 import { ChevronLeft } from "@/components/icons";
-import { LargeTitle, Row, Screen, SectionHeader, Thumb } from "@/components/page";
+import { LargeTitle, Row, Screen, SectionHeader } from "@/components/page";
+import { WorkoutThumb } from "@/components/workout-thumb";
 import { getProgram, type ProgramPhaseRow, type ProgramTemplateRow } from "@/lib/data/queries";
 import type { ProgramPhase } from "@/lib/programs/next";
 import { weeksLabel } from "@/lib/programs/label";
@@ -247,7 +248,7 @@ function TemplateRow({ t, last, start }: { t: Pick<ProgramTemplateRow, "id" | "n
   return (
     <Link href={`/templates/${t.id}${start ? "?start=1" : ""}`} className="block active:bg-fill">
       <Row
-        leading={<Thumb category={t.category} label={t.variant ?? t.name.slice(0, 1)} />}
+        leading={<WorkoutThumb category={t.category} label={t.variant ?? t.name.slice(0, 1)} slugs={t.slugs} />}
         title={t.name}
         subtitle={
           <>

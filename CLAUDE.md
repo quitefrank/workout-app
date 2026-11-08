@@ -409,6 +409,18 @@ A program's new name for an exercise the library already has is an alias, never 
 call, 2026-11-05): the same exercise goes in `LIBRARY_ALIASES`, and a row that differs by equipment or technique stays a
 row in its movement. Nippard's cues often match a Notion note word for word, which is how these duplicates show up.
 
+## Thumbnails: the main lift
+
+A workout's, template's or program's row thumbnail is its main lift's illustration (Frank's call, 2026-11-08, from the
+Nippard Covers review, https://claude.ai/artifact/UW134j66Qbj7f2SGVhKjCu): `WorkoutThumb` in
+`src/components/workout-thumb.tsx`, on every list (Home's Workouts and Up Next, History, a program's weeks, Programs on
+Templates, Choose Program, the start sheet). The tall cards on Templates show the main lift filling the card in place of
+the colour gradient, with dark gradients for the name and label. The main lift is the first working lift that has an
+illustration: `workingSlugs` in `src/lib/workout/workout-art.ts` drops the warm-up (Cardio and Stretches groups, and the
+activation drills in `ACTIVATION_SLUGS`) unless the workout is nothing else, and `mainLift` takes the first drawn one. A
+program's main lift comes from its first week. With nothing drawn, the lettered colour tile stays. The Nippard PDF photos
+were reviewed and rejected: they are blue duotone or dark grayscale in the source.
+
 ## Following a program is optional
 
 With no program followed, Home's Up Next is an empty state with Choose Program, which opens a sheet of

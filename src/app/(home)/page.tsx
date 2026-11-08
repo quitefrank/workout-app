@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { GlassCircleLink } from "@/components/glass";
 import { CheckIcon, ChevronRight, GearIcon, ListIcon } from "@/components/icons";
-import { Row, SectionHeader, Thumb } from "@/components/page";
+import { Row, SectionHeader } from "@/components/page";
+import { WorkoutThumb } from "@/components/workout-thumb";
 import { getActiveProgramId, getMonthWorkouts, getProgram, listPrograms, type WorkoutListItem } from "@/lib/data/queries";
 import { weeksLabel } from "@/lib/programs/label";
 import { programHasEnded } from "@/lib/programs/today";
@@ -99,7 +100,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             {upTemplates.map((t) => (
               <Link key={t.id} href={`/templates/${t.id}`} className="block active:bg-fill">
                 <Row
-                  leading={<Thumb category={t.category} label={t.variant ?? t.name.slice(0, 1)} />}
+                  leading={<WorkoutThumb category={t.category} label={t.variant ?? t.name.slice(0, 1)} slugs={t.slugs} />}
                   title={t.name}
                   subtitle={[
                     doneToday.has(t.id) ? "Done today" : t.category === "rehab" ? "Rehab" : "Next in the rotation",
@@ -126,7 +127,7 @@ function DayCard({ workout: w }: { workout: WorkoutListItem }) {
       href={w.completedAt ? `/workouts/${w.id}/summary` : `/workouts/${w.id}`}
       className="flex items-center gap-3.5 rounded-[22px] bg-card p-3.5 active:opacity-80"
     >
-      <Thumb category={w.category} label={w.name.slice(0, 1)} />
+      <WorkoutThumb category={w.category} label={w.name.slice(0, 1)} slugs={w.slugs} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[17px] font-semibold leading-[22px]">{w.name}</div>
         <div className="truncate text-[15px] text-ink-2">
