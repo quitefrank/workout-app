@@ -513,8 +513,12 @@ export function ActiveWorkout({
               )}
               onAnimationEnd={() => setAnim(null)}
             >
+              {/* First in the DOM so the header and "Last time" paint over it (the glass painter follows DOM order);
+                  `order` puts it back between them. */}
+              <Art slug={ex?.slug} large />
+
               <header
-                className="px-5 pt-3 [text-shadow:0_1px_12px_rgb(0_0_0/0.5)]"
+                className="relative order-first px-5 pt-3 [text-shadow:0_1px_12px_rgb(0_0_0/0.5)]"
                 aria-label={row ? rowLabel(shown.rows, rowIndex) : undefined}
               >
                 {resting && row ? (
@@ -560,8 +564,6 @@ export function ActiveWorkout({
                 </button>
               )}
 
-              <Art slug={ex?.slug} large />
-
               {resting ? (
                 <RestArc
                   remaining={timer.remaining}
@@ -569,7 +571,7 @@ export function ActiveWorkout({
                   onAdd={timer.add}
                 />
               ) : row && value ? (
-                <div className="px-5">
+                <div className="relative px-5">
                   <p className="pb-3 text-center text-[15px] text-white/65 [text-shadow:0_1px_8px_rgb(0_0_0/0.8)]">
                     {row.last
                       ? `Last time · ${formatNumber(row.last.weight) || "–"} ${unit} × ${row.last.reps ?? "–"}`
@@ -619,7 +621,7 @@ export function ActiveWorkout({
                   )}
                 </div>
               ) : (
-                <p className="px-5 pb-4 text-center text-[15px] text-white/65">
+                <p className="relative px-5 pb-4 text-center text-[15px] text-white/65">
                   {shown.rows.length} of {shown.rows.length} logged. Swipe for
                   the next exercise.
                 </p>
@@ -870,7 +872,8 @@ function Stage({ slug }: { slug: string | null | undefined }) {
 
 /**
  * The illustration, as large as the space between the header and "Last time" allows plus 35pt into each (Frank's
- * "Larger", 2026-11-08), centred in that space and never cropped. The header and the steppers draw over it.
+ * "Larger", 2026-11-08), centred in that space and never cropped. The header and the steppers draw over it, on the
+ * prototype's dark fades: one under the header and one rising into "Last time", so the text always reads.
  */
 function Art({
   slug,
@@ -908,6 +911,14 @@ function Art({
           style={{ width: size, height: size }}
         />
       )}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -top-[70px] h-[150px] bg-[linear-gradient(rgb(11_11_13/0)_0%,rgb(11_11_13/0.8)_45%,rgb(11_11_13/0.8)_55%,rgb(11_11_13/0)_100%)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 -bottom-[35px] h-[170px] bg-[linear-gradient(rgb(11_11_13/0)_0%,#0b0b0d_80%)]"
+      />
     </div>
   );
 }
@@ -926,7 +937,7 @@ function RestArc({
   const on = total ? Math.round((remaining / total) * N) : 0;
   return (
     <div
-      className="flex items-end justify-between px-5 pb-1"
+      className="relative flex items-end justify-between px-5 pb-1"
       role="timer"
       aria-live="off"
       aria-label={remaining ? `Rest, ${remaining} seconds left` : "Rest over"}
