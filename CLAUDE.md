@@ -693,8 +693,8 @@ dark. Blue is still the older `#007aff` / `#0a84ff` (the kit's iOS 27 blues, `#0
 Aligned with Ladder, except the ending, then settled in the Fixed Stage prototype (Frank's calls, 2026-11-08;
 https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v and https://claude.ai/artifact/Pi7NdnzFdCp5EWNetaSSZg).
 `src/app/workouts/[id]/active-workout.tsx` is one screen per set in the app's colours, light or dark like every other
-screen. The top bar is More alone. On its row, from the left: the timer, then the exercises as Apple's progress bar (blue
-for every logged set on the kit's Fills/Primary track, `bg-fill-2`, no other mark; tap a segment to look at that
+screen. The top bar is More alone. Its 44pt row stacks the timer (17pt, its own line) over the exercises as Apple's
+progress bar (Frank's call, 2026-11-09; blue for every logged set on the kit's Fills/Primary track, `bg-fill-2`, no other mark; tap a segment to look at that
 exercise). The percentage is gone. Under it the header: the set as blue text, the title and "Up next". The header is
 the same in work and rest; there is no rest header.
 
