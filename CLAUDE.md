@@ -739,8 +739,8 @@ The model is pure and tested in `src/lib/workout/active.ts`: `buildRows` turns a
 prescription's warm-ups and working sets, filled by logged sets, prefilled from the same set last time on the floor),
 and records, totals and stepper steps live there too. `journal.tsx` is the Journal's content (`JournalBody`), shown in the card. Warm-up circles show SF Symbols `flame.fill`
 (`SfFlameFillIcon`, a mask in `public/icons`, Frank's call, 2026-11-09, aware Apple licenses SF Symbols for Apple-platform
-apps) in the label colour, never orange. The current set's Log It circle has a blue ring (no outer ring) and its row a 15%
-blue band across the card, as Ladder tints its active row (no left-edge bar). It has no sections (supersets get none until there is a way to mark one): every exercise with set
+apps) in the label colour, never orange. The current set's Log It circle keeps the default ring (no blue, no outer ring; it got
+lost on the band) and its row a 15% blue band across the card, as Ladder tints its active row (no left-edge bar). It has no sections (supersets get none until there is a way to mark one): every exercise with set
 circles, the shown one open with Max Weight and Est. 1 Rep Max (`bests` in `getWorkout`), a floor chip on two-floor
 exercises, Swap, History and More (Do Later, Move Up, Move Down, Remove), and a Log It grid. `swap-sheet.tsx` is a
 carousel of `getSwapPicks` (the program's subs, versions of the movement done before, the muscle group's most done)

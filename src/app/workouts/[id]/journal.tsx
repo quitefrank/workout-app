@@ -326,7 +326,7 @@ function SetLine({
         aria-label={row.set ? `Undo set ${row.label}` : `Log set ${row.label}`}
         className={cn(
           "tabular relative grid size-[29px] place-items-center justify-self-center rounded-full border-[1.5px] text-[14px] font-semibold",
-          current ? "border-blue" : "border-ink",
+          "border-ink",
           row.set && "border-blue bg-blue text-white",
         )}
       >
