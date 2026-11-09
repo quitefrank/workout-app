@@ -710,21 +710,22 @@ prescription's rest, which takes the steppers' place as an arc, and the log butt
 exercise during rest shows a Rest capsule over the controls that goes back. The screen carries no floor, "Preview" or
 "Swapped from" labels (Frank's call).
 
-Four views, Frank's saved layouts, switched in Settings or from the workout's More menu (More > Settings opens a sheet,
-applied at once) and saved per device in the `workout_view` cookie (`VIEWS` in `src/lib/workout-layout.ts`,
-`src/components/workout-layout-controls.tsx`). Someone whose old `workout_log` was centred starts on View 2, everyone
-else on View 1.
+Three views, Frank's saved layouts (his calls of 2026-11-08 and 2026-11-09), switched in Settings or from the workout's
+More menu (More > Settings opens a sheet, applied at once) and saved per device in the `workout_view` cookie (`VIEWS` in
+`src/lib/workout-layout.ts`, `src/components/workout-layout-controls.tsx`). Someone whose old `workout_log` was centred
+starts on View 3, everyone else on View 1. A view sets the log control, where the set mark sits and its style: the set
+circles, or the set as blue text ("Set 2 of 3", "Warm-up 1 of 2"; `SetMark`), at the circles' height so the
+illustration never moves.
 
 - View 1: the pill, set circles in the header.
-- View 2: the centred log button (the toolbar: Journal with "1 of 4", the 72pt Glass Prominent log button, Swap), set
-  circles in the header.
-- View 3: the pill, set circles inside it (18pt, under the exercise's name).
-- View 4: the pill, set circles in the header under the title (Frank's call, 2026-11-09).
+- View 2: the pill, the set as text inside it (13pt, under the exercise's name).
+- View 3: the centred log button (the toolbar: Journal with "1 of 4", the 72pt Glass Prominent log button, Swap), the
+  set as text in the header (15pt semibold).
 
 The pill is Ladder's, in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass): its empty circle logs the set
 (`PillCheck`: a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, and Swap sits at
 its trailing end where the set count was. The More menu has no Swap. The prototype's other options (set circles under
-Last time or as text, steppers as an inset list) are not built; `StepperList` and `StepperRow` stay in `stepper.tsx`
+Last time, steppers as an inset list) are not built; `StepperList` and `StepperRow` stay in `stepper.tsx`
 unused.
 
 In the pill layout the Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1

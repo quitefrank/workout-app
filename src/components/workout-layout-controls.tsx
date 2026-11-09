@@ -3,7 +3,7 @@
 import { Group, Segmented } from "@/components/segmented";
 import { VIEWS, type WorkoutView } from "@/lib/workout-layout";
 
-/** The active workout's four views, in Settings and in the workout's More menu */
+/** The active workout's three views, in Settings and in the workout's More menu */
 export function WorkoutViewControls({
   value,
   onChange,
@@ -20,7 +20,6 @@ export function WorkoutViewControls({
           ["1", "View 1"],
           ["2", "View 2"],
           ["3", "View 3"],
-          ["4", "View 4"],
         ]}
         onChange={(v) => onChange(Number(v) as WorkoutView)}
       />

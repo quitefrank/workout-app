@@ -95,7 +95,7 @@ export function ActiveWorkout({
   const [view, setView] = useState(initialView);
   const pillLayout = VIEWS[view].log === "pill";
   const setsInPill = VIEWS[view].sets === "pill";
-  const titleFirst = !!VIEWS[view].titleFirst;
+  const setText = VIEWS[view].setStyle === "text";
   const [viewSheet, setViewSheet] = useState(false);
   const router = useRouter();
   const unit = settings.weight_unit;
@@ -507,11 +507,10 @@ export function ActiveWorkout({
                 style={{ minHeight: setsInPill ? HEADER_ROOM : HEADER_ROOM + 35 }}
                 aria-label={row ? rowLabel(shown.rows, rowIndex) : undefined}
               >
-                {!setsInPill && !titleFirst && <SetDots rows={shown.rows} current={rowIndex} className="mt-2.5" />}
+                {!setsInPill && <SetMark text={setText} rows={shown.rows} current={rowIndex} className="mt-2.5" />}
                 <h1 className="mt-2.5 text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
                   {exerciseTitle(shown.we.exercises)}
                 </h1>
-                {!setsInPill && titleFirst && <SetDots rows={shown.rows} current={rowIndex} className="mt-2.5" />}
                 <div className="mt-2.5 truncate text-[15px] leading-[18px] text-ink-2">
                   {upNext ? `Up next · ${exerciseTitle(upNext.we.exercises)}` : "Last exercise"}
                 </div>
@@ -612,7 +611,7 @@ export function ActiveWorkout({
               <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
                 {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
               </span>
-              {setsInPill && shown && <SetDots rows={shown.rows} current={rowIndex} mini />}
+              {setsInPill && shown && <SetMark text={setText} rows={shown.rows} current={rowIndex} mini />}
             </button>
             {/* Swap, where the set count was: the set circles already show where you are */}
             <button
@@ -787,8 +786,29 @@ export function ActiveWorkout({
 }
 
 /**
+ * Where you are in the exercise, as the view draws it: the set circles, or the set as blue text ("Set 2 of 3",
+ * "Warm-up 1 of 2", "All sets done"). The text keeps the circles' height (25pt in the header, 18pt in the pill), so
+ * switching views never moves the illustration.
+ */
+function SetMark({ text, ...p }: { text: boolean; rows: SetRowView[]; current: number; className?: string; mini?: boolean }) {
+  if (!text) return <SetDots {...p} />;
+  return (
+    <div
+      className={cn(
+        "truncate text-blue",
+        p.mini ? "text-[13px] leading-[18px]" : "text-[15px] font-semibold leading-[25px]",
+        p.className,
+      )}
+      aria-hidden
+    >
+      {p.current < 0 ? "All sets done" : rowLabel(p.rows, p.current)}
+    </div>
+  );
+}
+
+/**
  * The set circles: W for a warm-up, the set's number, D for a drop set; filled blue when logged, ringed in blue when
- * next. `mini` is the pill's size (18pt), under the exercise's name in View 3.
+ * next. `mini` is the pill's size (18pt), under the exercise's name.
  */
 export function SetDots({
   rows,
