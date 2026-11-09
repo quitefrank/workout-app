@@ -695,8 +695,8 @@ https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v and https://claude.ai/artifact
 `src/app/workouts/[id]/active-workout.tsx` is one screen per set in the app's colours, light or dark like every other
 screen. The top bar is More alone. On its row, from the left: the timer, then the exercises as Apple's progress bar (blue
 for every logged set on the kit's Fills/Primary track, `bg-fill-2`, no other mark; tap a segment to look at that
-exercise). The percentage is gone. Under it the header: the set circles (W, numbers, D; filled blue when logged, an outer
-blue ring on the next), the title and "Up next". The header is the same in work and rest; there is no rest header.
+exercise). The percentage is gone. Under it the header: the set as blue text, the title and "Up next". The header is
+the same in work and rest; there is no rest header.
 
 The illustration never moves or resizes: it is the screen's width, square, centred in the space between the header and
 the controls. Both zones hold their tallest size: the header has a minimum height for a two-line title
@@ -710,45 +710,35 @@ prescription's rest, which takes the steppers' place as an arc, and the log butt
 exercise during rest shows a Rest capsule over the controls that goes back. The screen carries no floor, "Preview" or
 "Swapped from" labels (Frank's call).
 
-Five views, Frank's saved layouts (his calls of 2026-11-08 and 2026-11-09; View 5 from his Figma frame,
-https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=7-2), switched in Settings or from the workout's
-More menu (More > Settings opens a sheet, applied at once) and saved per device in the `workout_view` cookie (`VIEWS` in
-`src/lib/workout-layout.ts`, `src/components/workout-layout-controls.tsx`). Someone whose old `workout_log` was centred
-starts on View 3, everyone else on View 1. A view sets the log control, where the set mark sits and its style: the set
-circles, or the set as blue text ("Set 2 of 3", "Warm-up 1 of 2"; `SetMark`), at the circles' height so the
-illustration never moves.
+One layout: View 5, the winner of five views Frank tried (his call, 2026-11-09, from his Figma frame,
+https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=7-2). The view switcher, its `workout_view` cookie and the
+centred log button were removed with the others; an old cookie is ignored.
 
-- View 1: the pill, set circles in the header.
-- View 2: the pill, the set as text inside it (13pt, under the exercise's name).
-- View 3: the centred log button (the toolbar: Journal with "1 of 4", the 72pt Glass Prominent log button, Swap), the
-  set as text in the header (15pt semibold).
-- View 4: the pill, the set as text in the header, and the set's rep target in blue before the exercise's name ("8x",
-  "8–10x"; `repTarget` in `active.ts`: the prescription for a working set, else the row's prefilled reps, else none).
-  Up next shows only on the exercise's last set, sliding in 10pt from the left as it fades (`.upnext-in`); it is
-  hidden, not removed, so nothing moves.
-- View 5: View 4's header, and the pill with set dots under the name instead of Swap (`PillDots`: 8pt, 4pt apart;
-  logged solid blue, current ringed in blue, upcoming Fills/Primary; logging fills the dot as a transition). Swap moves
-  to the More menu as Swap Exercise.
+- The header: the set as blue text ("Set 2 of 3", "Warm-up 1 of 2", `SetText`, 15pt semibold), then the set's rep
+  target in blue before the exercise's name ("8x Bench Press", "8–10x"; `repTarget` in `active.ts`: the prescription
+  for a working set, else the row's prefilled reps, else none). Up next shows only on the exercise's last set, sliding
+  in 10pt from the left as it fades (`.upnext-in`); it is hidden, not removed, so nothing moves.
+- The pill is Ladder's, in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass): its empty circle logs the
+  set (`PillCheck`: a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, with set
+  dots under the name (`PillDots`: 8pt, 4pt apart; logged solid blue, current ringed in blue, upcoming Fills/Primary;
+  logging fills the dot as a transition). Swap is Swap Exercise in the More menu.
 
-The pill is Ladder's, in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass): its empty circle logs the set
-(`PillCheck`: a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, and in Views 1, 2
-and 4 Swap sits at its trailing end where the set count was. Only View 5 has Swap in the More menu. The prototype's other options (set circles under
-Last time, steppers as an inset list) are not built; `StepperList` and `StepperRow` stay in `stepper.tsx`
-unused.
+The prototype's other options (set circles under Last time, steppers as an inset list) are not built; `StepperList` and
+`StepperRow` stay in `stepper.tsx` unused.
 
-In the pill layout the Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
+The Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
   open under the 62pt status bar; `.jcard` in globals.css). Its content is in it the whole way with the current exercise
   pinned under the header, as Ladder does, and the circle stays 50pt from the edge. A tap or swipe grows it, a drag past
   90pt or a flick opens it, the header pulls down to close (`src/lib/workout/journal-card.ts`, tested). The card is CSS
   on both glass paths: `[data-unpainted]` keeps it out of the painted page, as sheets are.
 
-Both use the kit's Stepper (Figma `wH8YZbekJXNew109clIJz1`, Steppers 5415:17699): 92 × 32pt, 46pt halves in
+The steppers are the kit's Stepper (Figma `wH8YZbekJXNew109clIJz1`, Steppers 5415:17699): 92 × 32pt, 46pt halves in
 Fills/Tertiary, a 1 × 24pt separator in Labels/Tertiary, − and + at 17pt semibold, touch areas padded to 44pt.
 
 The model is pure and tested in `src/lib/workout/active.ts`: `buildRows` turns a workout exercise into set rows (the
 prescription's warm-ups and working sets, filled by logged sets, prefilled from the same set last time on the floor),
-and records, totals and stepper steps live there too. `journal.tsx` is the Journal sheet, titled with the workout's
-name and with no other sections (supersets get none until there is a way to mark one): every exercise with set
+and records, totals and stepper steps live there too. `journal.tsx` is the Journal's content (`JournalBody`), shown in the card,
+with no sections (supersets get none until there is a way to mark one): every exercise with set
 circles, the shown one open with Max Weight and Est. 1 Rep Max (`bests` in `getWorkout`), a floor chip on two-floor
 exercises, Swap, History and More (Do Later, Move Up, Move Down, Remove), and a Log It grid. `swap-sheet.tsx` is a
 carousel of `getSwapPicks` (the program's subs, versions of the movement done before, the muscle group's most done)

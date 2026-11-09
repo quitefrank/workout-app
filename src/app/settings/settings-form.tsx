@@ -7,9 +7,7 @@ import { saveSettings } from "@/app/actions";
 import { debugSetting, setDebugSetting } from "@/glass/debug";
 import { ChevronUpDown } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
-import { WorkoutViewControls } from "@/components/workout-layout-controls";
 import { setTheme, type Theme } from "@/lib/appearance";
-import { setWorkoutView, type WorkoutView } from "@/lib/workout-layout";
 import { cn } from "@/lib/cn";
 import type { Settings } from "@/lib/data/queries";
 import { formatRest } from "@/lib/workout/format";
@@ -20,15 +18,12 @@ const REST_STEPS = [60, 90, 120, 150, 180, 210, 240, 300];
 export function SettingsForm({
   settings,
   theme: initialTheme,
-  view: initialView,
 }: {
   settings: Settings;
   theme: Theme;
-  view: WorkoutView;
 }) {
   const [s, setS] = useState(settings);
   const [theme, setThemeState] = useState(initialTheme);
-  const [view, setViewState] = useState(initialView);
   const router = useRouter();
   const [pending, start] = useTransition();
   // a device setting: the server renders it off, the device reads its own
@@ -73,14 +68,6 @@ export function SettingsForm({
           }}
         />
       </Group>
-
-      <WorkoutViewControls
-        value={view}
-        onChange={(v) => {
-          setViewState(v);
-          setWorkoutView(v);
-        }}
-      />
 
       <Group title="Units" footer="Machine and cardio readings always show the raw number, with no unit.">
         <Segmented

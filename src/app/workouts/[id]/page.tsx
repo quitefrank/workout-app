@@ -1,16 +1,13 @@
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getSettings, getWorkout } from "@/lib/data/queries";
-import { workoutViewFrom } from "@/lib/workout-layout";
 import { ActiveWorkout } from "./active-workout";
 
 export const metadata = { title: "Workout" };
 
 export default async function WorkoutPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [workout, settings, jar] = await Promise.all([getWorkout(id), getSettings(), cookies()]);
+  const [workout, settings] = await Promise.all([getWorkout(id), getSettings()]);
   if (!workout) notFound();
   if (workout.completed_at) redirect(`/workouts/${id}/summary`);
-  const view = workoutViewFrom((name) => jar.get(name)?.value);
-  return <ActiveWorkout workout={workout} settings={settings} view={view} />;
+  return <ActiveWorkout workout={workout} settings={settings} />;
 }

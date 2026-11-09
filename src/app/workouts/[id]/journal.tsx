@@ -7,7 +7,6 @@ import { setExerciseFloor } from "@/app/actions";
 import { ExerciseArt } from "@/components/exercise-art";
 import { ChevronUpDown, EllipsisIcon, ListIcon, SwapIcon } from "@/components/icons";
 import { ActionMenu } from "@/components/pop-up-menu";
-import { Sheet } from "@/components/sheet";
 import { cn } from "@/lib/cn";
 import type { SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
 import { totals, type Best, type SetRowView } from "@/lib/workout/active";
@@ -43,16 +42,8 @@ export type JournalProps = {
  * The Journal (Ladder's), pulled up from the focus screen: every exercise in the workout under its name. The current
  * one is open with its best weight and estimated 1RM, the floor (on a two-floor exercise), Swap, History and More, and a
  * Log It grid of every set; the others show their sets as circles. Tapping one opens it and moves the focus screen there.
- * The centred layout shows it in a sheet; the pill layout in the card that grows from the pill (journal-card.tsx).
+ * It shows in the card that grows from the pill (journal-card.tsx).
  */
-export function Journal({ open, onClose, title, ...props }: JournalProps & { open: boolean; onClose: () => void; title: string }) {
-  return (
-    <Sheet open={open} onClose={onClose} title={title}>
-      <JournalBody {...props} />
-    </Sheet>
-  );
-}
-
 export function JournalBody({
   entries,
   current,

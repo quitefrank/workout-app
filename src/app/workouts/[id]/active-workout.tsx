@@ -23,13 +23,7 @@ import {
 import { Button } from "@/components/button";
 import { hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
-import {
-  CheckIcon,
-  EllipsisIcon,
-  ListIcon,
-  SkipIcon,
-  SwapIcon,
-} from "@/components/icons";
+import { EllipsisIcon } from "@/components/icons";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { TopBar } from "@/components/top-bar";
@@ -54,10 +48,8 @@ import { formatClock, formatNumber } from "@/lib/workout/format";
 import { floorKey } from "@/lib/workout/machine-location";
 import { opensOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
 import { exerciseTitle } from "@/lib/workout/movements";
-import { setWorkoutView, VIEWS, type WorkoutView } from "@/lib/workout-layout";
-import { WorkoutViewControls } from "@/components/workout-layout-controls";
 import { FinishSheet } from "./finish-sheet";
-import { Journal, JournalBody, type JournalProps } from "./journal";
+import { JournalBody, type JournalProps } from "./journal";
 import { JournalCard, PillCheck, type CardControl } from "./journal-card";
 import { useRestTimer } from "./rest-timer";
 import { Stepper } from "./stepper";
@@ -76,9 +68,9 @@ import { SwapSheet } from "./swap-sheet";
  * both of those zones hold their tallest size (the header room for a two-line title, the controls the taller of the
  * steppers and the rest arc, stacked in one grid cell), so title length and rest change nothing around it.
  *
- * Five views, switched in Settings or from More (src/lib/workout-layout.ts): the pill or the centred log button, where
- * the set mark sits and how it looks, the rep target before the name, when Up next shows, set dots in the pill, and
- * where Swap lives.
+ * One layout, View 5 of the views Frank tried (his call, 2026-11-09; https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=7-2):
+ * the set as blue text and the rep target before the name in the header, Up next only on the exercise's last set, and
+ * Ladder's pill with set dots under the name. Swap is in the More menu.
  */
 
 export type Entry = { we: WorkoutExerciseRow; rows: SetRowView[] };
@@ -88,18 +80,10 @@ type Optimistic = { weId: string; add?: SetRow; remove?: string };
 export function ActiveWorkout({
   workout,
   settings,
-  view: initialView,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
-  view: WorkoutView;
 }) {
-  const [view, setView] = useState(initialView);
-  const pillLayout = VIEWS[view].log === "pill";
-  const setsInPill = VIEWS[view].sets === "pill";
-  const setText = VIEWS[view].setStyle === "text";
-  const spec = VIEWS[view];
-  const [viewSheet, setViewSheet] = useState(false);
   const router = useRouter();
   const unit = settings.weight_unit;
   const elapsed = useElapsed(workout.started_at);
@@ -238,10 +222,8 @@ export function ActiveWorkout({
       timer.start(
         entry.we.prescribed_rest_seconds ?? settings.default_rest_seconds,
       );
-    if (pillLayout) {
-      setFlash(true);
-      window.setTimeout(() => setFlash(false), 420);
-    }
+    setFlash(true);
+    window.setTimeout(() => setFlash(false), 420);
   };
   // the pill's circle fills for a moment when a set is logged
   const [flash, setFlash] = useState(false);
@@ -296,7 +278,6 @@ export function ActiveWorkout({
   };
 
   // each opening gets a fresh Journal and swap sheet (their own state resets with the key)
-  const [journal, setJournal] = useState(false);
   const [journalKey, setJournalKey] = useState(0);
   // the pill layout's card: mounted while open, grown by a tap or swipe or by the finger dragging the pill
   const card = useRef<CardControl | null>(null);
@@ -304,18 +285,16 @@ export function ActiveWorkout({
   const [cardOpen, setCardOpen] = useState<null | "tap" | "drag">(null);
   const openJournal = () => {
     setJournalKey((k) => k + 1);
-    if (pillLayout) {
-      cardP.current = 0;
-      setCardOpen("tap");
-    } else setJournal(true);
+    cardP.current = 0;
+    setCardOpen("tap");
   };
-  const closeJournal = () => (pillLayout ? card.current?.settle(0) : setJournal(false));
+  const closeJournal = () => card.current?.settle(0);
 
   // Drag the pill up: the card follows the finger from the first move, then opens or sinks back on release
   const pillDrag = useRef<{ x: number; y: number; t: number; last: number; v: number; up: number; d: number; on: boolean } | null>(null);
   const pillSwallow = useRef(0);
   const onPillDown = (e: ReactPointerEvent) => {
-    if (cardOpen || (e.target as HTMLElement).closest("[data-pill-check], [data-pill-swap]")) return;
+    if (cardOpen || (e.target as HTMLElement).closest("[data-pill-check]")) return;
     const dockBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-bottom")) || 21;
     const height = document.querySelector<HTMLElement>("[data-focus-screen]")?.clientHeight ?? window.innerHeight;
     pillDrag.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, last: 0, v: 0, up: 0, d: travel(height, dockBottom), on: false };
@@ -449,9 +428,7 @@ export function ActiveWorkout({
           className="relative flex h-full flex-col"
           style={{
             paddingTop: "var(--bar-top)",
-            paddingBottom: pillLayout
-              ? "calc(var(--dock-bottom) + 67px + 20px)"
-              : "calc(var(--dock-bottom) + 72px + 20px)",
+            paddingBottom: "calc(var(--dock-bottom) + 67px + 20px)",
           }}
         >
           {/* The More button's row: the timer, then the exercises as Apple's progress bar (blue for every logged set on the
@@ -507,28 +484,26 @@ export function ActiveWorkout({
                   leaves room under Up next and the illustration stays put. */}
               <header
                 className="relative order-first px-5"
-                style={{ minHeight: setsInPill ? HEADER_ROOM : HEADER_ROOM + 35 }}
+                style={{ minHeight: HEADER_ROOM + 35 }}
                 aria-label={row ? rowLabel(shown.rows, rowIndex) : undefined}
               >
-                {!setsInPill && <SetMark text={setText} rows={shown.rows} current={rowIndex} className="mt-2.5" />}
+                <SetText rows={shown.rows} current={rowIndex} className="mt-2.5" />
                 <h1 className="mt-2.5 text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
-                  {spec.reps && repTarget(shown.we, row) && (
+                  {repTarget(shown.we, row) && (
                     <span className="text-blue">{repTarget(shown.we, row)} </span>
                   )}
                   {exerciseTitle(shown.we.exercises)}
                 </h1>
-                {/* Views 4 and 5 show Up next only on the exercise's last set, sliding in 10pt from the left; hidden, not
-                    removed, so nothing below it moves */}
+                {/* Up next shows only on the exercise's last set, sliding in 10pt from the left; hidden, not removed, so
+                    nothing below it moves */}
                 {(() => {
-                  const onLast = rowIndex < 0 || rowIndex === shown.rows.length - 1;
-                  const show = spec.upNext === "always" || onLast;
+                  const show = rowIndex < 0 || rowIndex === shown.rows.length - 1;
                   return (
                     <div
-                      key={spec.upNext === "last" && show ? `up-${shown.we.id}` : "up"}
+                      key={show ? `up-${shown.we.id}` : "up"}
                       className={cn(
                         "mt-2.5 truncate text-[15px] leading-[18px] text-ink-2",
-                        !show && "invisible",
-                        spec.upNext === "last" && show && "upnext-in",
+                        show ? "upnext-in" : "invisible",
                       )}
                       aria-hidden={!show}
                     >
@@ -604,7 +579,7 @@ export function ActiveWorkout({
         </main>
       </div>
 
-      {/* The toolbar: Journal, the log button in the middle (Skip during rest), Swap */}
+      {/* The pill: the circle logs the set (Skip during rest), the middle opens the Journal */}
       <div
         data-glass-unit="dock"
         // a column, like every dock: a home screen app stretches the dock to the screen's height and bottom-aligns its
@@ -612,7 +587,6 @@ export function ActiveWorkout({
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col"
         style={{ paddingBottom: "var(--dock-bottom)" }}
       >
-        {pillLayout ? (
           <div
             className="glass pointer-events-auto relative mx-[29px] flex h-[67px] touch-none select-none items-center pl-[21px] pr-[17px] [--r:26px]"
             style={cardOpen ? { visibility: "hidden" } : undefined}
@@ -628,83 +602,14 @@ export function ActiveWorkout({
                 if (e.timeStamp - pillSwallow.current < 300) return;
                 openJournal();
               }}
-              className={cn(
-                "flex h-full min-w-0 flex-1 flex-col justify-center pl-[14px] text-left",
-                spec.pillDots ? "gap-1" : "gap-[5px]",
-              )}
+              className="flex h-full min-w-0 flex-1 flex-col justify-center gap-1 pl-[14px] text-left"
             >
               <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
                 {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
               </span>
-              {setsInPill && shown && <SetMark text={setText} rows={shown.rows} current={rowIndex} mini />}
-              {spec.pillDots && shown && <PillDots rows={shown.rows} current={rowIndex} />}
+              {shown && <PillDots rows={shown.rows} current={rowIndex} />}
             </button>
-            {/* Swap, where the set count was: the set circles already show where you are. View 5 moves it to More. */}
-            {spec.swap === "pill" && (
-            <button
-              type="button"
-              data-pill-swap
-              aria-label="Swap exercise"
-              disabled={!shown}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (shown) setSwapFor(shown.we);
-              }}
-              className="-mr-2 grid size-11 shrink-0 place-items-center disabled:opacity-40"
-            >
-              <SwapIcon size={22} />
-            </button>
-            )}
           </div>
-        ) : (
-        <div className="flex items-center justify-between px-[38px]">
-          <button
-            type="button"
-            aria-label="Journal"
-            onClick={openJournal}
-            className="glass pointer-events-auto grid size-14 shrink-0 content-center justify-items-center gap-0.5"
-          >
-            <ListIcon size={20} />
-            <span className="tabular text-[10px] font-semibold opacity-75">
-              {shown && rowIndex >= 0
-                ? `${rowIndex + 1} of ${shown.rows.length}`
-                : "All"}
-            </span>
-          </button>
-          <button
-            type="button"
-            data-glass-skip
-            aria-label={
-              resting ? "Skip rest" : !shown ? "Finish workout" : "Log set"
-            }
-            disabled={pending || (!resting && !!shown && rowIndex < 0)}
-            onClick={() =>
-              resting
-                ? timer.stop()
-                : !shown
-                  ? setFinishing(true)
-                  : log(shown, rowIndex)
-            }
-            className="glass glass-prominent pointer-events-auto relative grid size-[72px] shrink-0 place-items-center transition-transform active:scale-[1.06] disabled:opacity-50"
-          >
-            {resting ? (
-              <SkipIcon size={26} />
-            ) : (
-              <CheckIcon size={30} strokeWidth={2.6} />
-            )}
-          </button>
-          <button
-            type="button"
-            aria-label="Swap exercise"
-            disabled={!shown}
-            onClick={() => shown && setSwapFor(shown.we)}
-            className="glass pointer-events-auto grid size-14 shrink-0 content-center justify-items-center gap-0.5 disabled:opacity-40"
-          >
-            <SwapIcon size={20} />
-            <span className="text-[10px] font-semibold opacity-75">Swap</span>
-          </button>
-        </div>
-        )}
       </div>
 
       {menu && (
@@ -712,9 +617,8 @@ export function ActiveWorkout({
           rect={menu}
           items={[
             ...(shown ? [{ value: "Do Later" }] : []),
-            ...(shown && spec.swap === "menu" ? [{ value: "Swap Exercise" }] : []),
+            ...(shown ? [{ value: "Swap Exercise" }] : []),
             { value: "Journal" },
-            { value: "Settings" },
             { value: "Back to Home" },
             { value: "Finish Workout" },
             { value: "Discard Workout", destructive: true },
@@ -724,7 +628,6 @@ export function ActiveWorkout({
             if (v === "Do Later" && shown) move(shown.we, "end");
             else if (v === "Swap Exercise" && shown) setSwapFor(shown.we);
             else if (v === "Journal") openJournal();
-            else if (v === "Settings") setViewSheet(true);
             else if (v === "Back to Home") router.push("/");
             else if (v === "Finish Workout") setFinishing(true);
             else if (v === "Discard Workout") setConfirmDiscard(true);
@@ -732,31 +635,21 @@ export function ActiveWorkout({
         />
       )}
 
-      {pillLayout ? (
-        cardOpen && (
-          <JournalCard
-            key={`card-${journalKey}`}
-            controlRef={card}
-            startRef={cardP}
-            openOnMount={cardOpen === "tap"}
-            onClosed={() => setCardOpen(null)}
-            check={logCheck}
-            title={shown ? exerciseTitle(shown.we.exercises) : (workout.templates?.name ?? "Workout")}
-            label={shown && row ? rowLabel(shown.rows, rowIndex) : undefined}
-            count={shown && rowIndex >= 0 ? `${rowIndex + 1} of ${shown.rows.length}` : undefined}
-            current={shown?.we.id ?? null}
-          >
-            <JournalBody {...journalProps} />
-          </JournalCard>
-        )
-      ) : (
-        <Journal
-          key={`journal-${journalKey}`}
-          open={journal}
-          onClose={() => setJournal(false)}
-          title={workout.templates?.name ?? "Workout"}
-          {...journalProps}
-        />
+      {cardOpen && (
+        <JournalCard
+        key={`card-${journalKey}`}
+        controlRef={card}
+        startRef={cardP}
+        openOnMount={cardOpen === "tap"}
+        onClosed={() => setCardOpen(null)}
+        check={logCheck}
+        title={shown ? exerciseTitle(shown.we.exercises) : (workout.templates?.name ?? "Workout")}
+        label={shown && row ? rowLabel(shown.rows, rowIndex) : undefined}
+        count={shown && rowIndex >= 0 ? `${rowIndex + 1} of ${shown.rows.length}` : undefined}
+        current={shown?.we.id ?? null}
+      >
+        <JournalBody {...journalProps} />
+      </JournalCard>
       )}
 
       <SwapSheet
@@ -773,19 +666,6 @@ export function ActiveWorkout({
         elapsed={elapsed}
         unit={unit}
       />
-
-      {/* The views, switched here mid-workout as well as in Settings */}
-      <Sheet open={viewSheet} onClose={() => setViewSheet(false)} title="Settings">
-        <div className="flex flex-col gap-6 pb-4">
-          <WorkoutViewControls
-            value={view}
-            onChange={(next) => {
-              setView(next);
-              setWorkoutView(next);
-            }}
-          />
-        </div>
-      </Sheet>
 
       <Sheet
         open={confirmDiscard}
@@ -815,29 +695,17 @@ export function ActiveWorkout({
   );
 }
 
-/**
- * Where you are in the exercise, as the view draws it: the set circles, or the set as blue text ("Set 2 of 3",
- * "Warm-up 1 of 2", "All sets done"). The text keeps the circles' height (25pt in the header, 18pt in the pill), so
- * switching views never moves the illustration.
- */
-function SetMark({ text, ...p }: { text: boolean; rows: SetRowView[]; current: number; className?: string; mini?: boolean }) {
-  if (!text) return <SetDots {...p} />;
+/** Where you are in the exercise as blue text ("Set 2 of 3", "Warm-up 1 of 2", "All sets done"), 25pt tall. */
+function SetText({ rows, current, className }: { rows: SetRowView[]; current: number; className?: string }) {
   return (
-    <div
-      className={cn(
-        "truncate text-blue",
-        p.mini ? "text-[13px] leading-[18px]" : "text-[15px] font-semibold leading-[25px]",
-        p.className,
-      )}
-      aria-hidden
-    >
-      {p.current < 0 ? "All sets done" : rowLabel(p.rows, p.current)}
+    <div className={cn("truncate text-[15px] font-semibold leading-[25px] text-blue", className)} aria-hidden>
+      {current < 0 ? "All sets done" : rowLabel(rows, current)}
     </div>
   );
 }
 
 /**
- * View 5's set dots in the pill (Frank's Figma frame, 2026-11-09): 8pt, 4pt apart; logged solid blue, the current set
+ * The set dots in the pill (Frank's Figma frame, 2026-11-09): 8pt, 4pt apart; logged solid blue, the current set
  * ringed in blue, the rest in Fills/Primary. Logging fills the current dot to blue as a transition.
  */
 function PillDots({ rows, current }: { rows: SetRowView[]; current: number }) {
@@ -851,44 +719,6 @@ function PillDots({ rows, current }: { rows: SetRowView[]; current: number }) {
             r.set ? "border-blue bg-blue" : i === current ? "border-blue bg-transparent" : "border-transparent bg-fill-2",
           )}
         />
-      ))}
-    </div>
-  );
-}
-
-/**
- * The set circles: W for a warm-up, the set's number, D for a drop set; filled blue when logged, ringed in blue when
- * next. `mini` is the pill's size (18pt), under the exercise's name.
- */
-export function SetDots({
-  rows,
-  current,
-  className,
-  mini,
-}: {
-  rows: SetRowView[];
-  current: number;
-  className?: string;
-  mini?: boolean;
-}) {
-  return (
-    <div className={cn("flex flex-wrap", mini ? "gap-[5px]" : "gap-2", className)} aria-hidden>
-      {rows.map((r, i) => (
-        <span
-          key={i}
-          className={cn(
-            "tabular grid place-items-center rounded-full font-semibold",
-            mini ? "size-[18px] border-[1.25px] text-[9px]" : "size-[25px] border-[1.5px]",
-            !mini && (r.kind === "warm" ? "text-[10px]" : "text-[12px]"),
-            r.set ? "border-blue bg-blue text-white" : "border-current opacity-80",
-            i === current &&
-              (mini
-                ? "shadow-[0_0_0_1.5px_var(--ring-gap,var(--bg)),0_0_0_3px_var(--blue)]"
-                : "shadow-[0_0_0_2px_var(--ring-gap,var(--bg)),0_0_0_4px_var(--blue)]"),
-          )}
-        >
-          {r.label}
-        </span>
       ))}
     </div>
   );
