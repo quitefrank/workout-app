@@ -93,6 +93,23 @@ export function rowLabel(rows: readonly SetRowView[], i: number): string {
   return `Set ${work.indexOf(row) + 1} of ${work.length}`;
 }
 
+/**
+ * The rep target shown before the exercise's name ("8x", "8–10x"): the prescription for a working or drop set, else the
+ * reps the row is prefilled with (last time). Null with nothing to show, or for no row.
+ */
+export function repTarget(
+  we: Pick<Prescribed, "prescribed_reps_min" | "prescribed_reps_max">,
+  row: Pick<SetRowView, "kind" | "reps"> | null | undefined,
+): string | null {
+  if (!row) return null;
+  if (row.kind !== "warm") {
+    const lo = we.prescribed_reps_min ?? we.prescribed_reps_max;
+    const hi = we.prescribed_reps_max ?? we.prescribed_reps_min;
+    if (lo != null && hi != null) return lo === hi ? `${lo}x` : `${lo}–${hi}x`;
+  }
+  return row.reps != null && row.reps > 0 ? `${row.reps}x` : null;
+}
+
 /** Logged rows over all rows, across the workout. */
 export function progress(all: readonly (readonly SetRowView[])[]): { logged: number; total: number; percent: number } {
   let logged = 0;

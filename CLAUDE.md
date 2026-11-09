@@ -710,7 +710,8 @@ prescription's rest, which takes the steppers' place as an arc, and the log butt
 exercise during rest shows a Rest capsule over the controls that goes back. The screen carries no floor, "Preview" or
 "Swapped from" labels (Frank's call).
 
-Three views, Frank's saved layouts (his calls of 2026-11-08 and 2026-11-09), switched in Settings or from the workout's
+Five views, Frank's saved layouts (his calls of 2026-11-08 and 2026-11-09; View 5 from his Figma frame,
+https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=7-2), switched in Settings or from the workout's
 More menu (More > Settings opens a sheet, applied at once) and saved per device in the `workout_view` cookie (`VIEWS` in
 `src/lib/workout-layout.ts`, `src/components/workout-layout-controls.tsx`). Someone whose old `workout_log` was centred
 starts on View 3, everyone else on View 1. A view sets the log control, where the set mark sits and its style: the set
@@ -721,10 +722,17 @@ illustration never moves.
 - View 2: the pill, the set as text inside it (13pt, under the exercise's name).
 - View 3: the centred log button (the toolbar: Journal with "1 of 4", the 72pt Glass Prominent log button, Swap), the
   set as text in the header (15pt semibold).
+- View 4: the pill, the set as text in the header, and the set's rep target in blue before the exercise's name ("8x",
+  "8–10x"; `repTarget` in `active.ts`: the prescription for a working set, else the row's prefilled reps, else none).
+  Up next shows only on the exercise's last set, sliding in 10pt from the left as it fades (`.upnext-in`); it is
+  hidden, not removed, so nothing moves.
+- View 5: View 4's header, and the pill with set dots under the name instead of Swap (`PillDots`: 8pt, 4pt apart;
+  logged solid blue, current ringed in blue, upcoming Fills/Primary; logging fills the dot as a transition). Swap moves
+  to the More menu as Swap Exercise.
 
 The pill is Ladder's, in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass): its empty circle logs the set
-(`PillCheck`: a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, and Swap sits at
-its trailing end where the set count was. The More menu has no Swap. The prototype's other options (set circles under
+(`PillCheck`: a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, and in Views 1, 2
+and 4 Swap sits at its trailing end where the set count was. Only View 5 has Swap in the More menu. The prototype's other options (set circles under
 Last time, steppers as an inset list) are not built; `StepperList` and `StepperRow` stay in `stepper.tsx`
 unused.
 

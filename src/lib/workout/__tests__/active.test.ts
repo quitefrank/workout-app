@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LastTime, SetRow } from "@/lib/data/queries";
-import { best, buildRows, isDone, newRecord, nextRow, progress, rowLabel, step, swappedFrom, totals } from "../active";
+import { best, buildRows, repTarget, isDone, newRecord, nextRow, progress, rowLabel, step, swappedFrom, totals } from "../active";
 
 const set = (n: number, weight: number | null, reps: number | null, warm = false, drop = false): SetRow => ({
   id: `s${n}`,
@@ -131,5 +131,20 @@ describe("swappedFrom", () => {
     expect(swappedFrom({ exerciseId: "bench", swappedFrom: null }, "db")).toBe("bench");
     expect(swappedFrom({ exerciseId: "db", swappedFrom: "bench" }, "machine")).toBe("bench");
     expect(swappedFrom({ exerciseId: "db", swappedFrom: "bench" }, "bench")).toBeNull();
+  });
+});
+
+describe("repTarget", () => {
+  const rx = (min: number | null, max: number | null) => ({ prescribed_reps_min: min, prescribed_reps_max: max });
+  it("shows the prescription for a working set", () => {
+    expect(repTarget(rx(8, 8), { kind: "work", reps: 6 })).toBe("8x");
+    expect(repTarget(rx(8, 10), { kind: "work", reps: 6 })).toBe("8–10x");
+    expect(repTarget(rx(null, 12), { kind: "drop", reps: null })).toBe("12x");
+  });
+  it("falls back to the row's reps, and to nothing", () => {
+    expect(repTarget(rx(8, 10), { kind: "warm", reps: 5 })).toBe("5x");
+    expect(repTarget(rx(null, null), { kind: "work", reps: 7 })).toBe("7x");
+    expect(repTarget(rx(null, null), { kind: "warm", reps: null })).toBeNull();
+    expect(repTarget(rx(8, 8), null)).toBeNull();
   });
 });

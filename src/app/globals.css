@@ -409,6 +409,15 @@ body {
       animation: none;
     }
   }
+  /* Views 4 and 5: Up next arrives on an exercise's last set, 10pt in from the left as it fades in */
+  .upnext-in {
+    animation: upnext-in 0.35s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .upnext-in {
+      animation: none;
+    }
+  }
 
   /* ------------------------------------------------------------
      Glass material. Layers, bottom to top: the blurred backdrop, the
@@ -1113,6 +1122,9 @@ html.keyboard .sheet-body {
 }
 @keyframes focus-slide-r {
   from { transform: translateX(-60px); opacity: 0; }
+}
+@keyframes upnext-in {
+  from { transform: translateX(-10px); opacity: 0; }
 }
 
 /* The pill layout's Journal card (src/app/workouts/[id]/journal-card.tsx): one shape from Ladder's pill (--jp 0: 67pt

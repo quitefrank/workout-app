@@ -46,6 +46,7 @@ import {
   isDone,
   nextRow,
   progress,
+  repTarget,
   rowLabel,
   type SetRowView,
 } from "@/lib/workout/active";
@@ -75,8 +76,9 @@ import { SwapSheet } from "./swap-sheet";
  * both of those zones hold their tallest size (the header room for a two-line title, the controls the taller of the
  * steppers and the rest arc, stacked in one grid cell), so title length and rest change nothing around it.
  *
- * Three views, switched in Settings or from More (src/lib/workout-layout.ts): the pill or the centred log button, and
- * the set circles in the header or inside the pill.
+ * Five views, switched in Settings or from More (src/lib/workout-layout.ts): the pill or the centred log button, where
+ * the set mark sits and how it looks, the rep target before the name, when Up next shows, set dots in the pill, and
+ * where Swap lives.
  */
 
 export type Entry = { we: WorkoutExerciseRow; rows: SetRowView[] };
@@ -96,6 +98,7 @@ export function ActiveWorkout({
   const pillLayout = VIEWS[view].log === "pill";
   const setsInPill = VIEWS[view].sets === "pill";
   const setText = VIEWS[view].setStyle === "text";
+  const spec = VIEWS[view];
   const [viewSheet, setViewSheet] = useState(false);
   const router = useRouter();
   const unit = settings.weight_unit;
@@ -509,11 +512,30 @@ export function ActiveWorkout({
               >
                 {!setsInPill && <SetMark text={setText} rows={shown.rows} current={rowIndex} className="mt-2.5" />}
                 <h1 className="mt-2.5 text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
+                  {spec.reps && repTarget(shown.we, row) && (
+                    <span className="text-blue">{repTarget(shown.we, row)} </span>
+                  )}
                   {exerciseTitle(shown.we.exercises)}
                 </h1>
-                <div className="mt-2.5 truncate text-[15px] leading-[18px] text-ink-2">
-                  {upNext ? `Up next · ${exerciseTitle(upNext.we.exercises)}` : "Last exercise"}
-                </div>
+                {/* Views 4 and 5 show Up next only on the exercise's last set, sliding in 10pt from the left; hidden, not
+                    removed, so nothing below it moves */}
+                {(() => {
+                  const onLast = rowIndex < 0 || rowIndex === shown.rows.length - 1;
+                  const show = spec.upNext === "always" || onLast;
+                  return (
+                    <div
+                      key={spec.upNext === "last" && show ? `up-${shown.we.id}` : "up"}
+                      className={cn(
+                        "mt-2.5 truncate text-[15px] leading-[18px] text-ink-2",
+                        !show && "invisible",
+                        spec.upNext === "last" && show && "upnext-in",
+                      )}
+                      aria-hidden={!show}
+                    >
+                      {upNext ? `Up next · ${exerciseTitle(upNext.we.exercises)}` : "Last exercise"}
+                    </div>
+                  );
+                })()}
               </header>
 
               {/* The controls: last time and the steppers, or the rest arc, stacked in one cell so the zone is always the
@@ -606,14 +628,19 @@ export function ActiveWorkout({
                 if (e.timeStamp - pillSwallow.current < 300) return;
                 openJournal();
               }}
-              className="flex h-full min-w-0 flex-1 flex-col justify-center gap-[5px] pl-[14px] text-left"
+              className={cn(
+                "flex h-full min-w-0 flex-1 flex-col justify-center pl-[14px] text-left",
+                spec.pillDots ? "gap-1" : "gap-[5px]",
+              )}
             >
               <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
                 {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
               </span>
               {setsInPill && shown && <SetMark text={setText} rows={shown.rows} current={rowIndex} mini />}
+              {spec.pillDots && shown && <PillDots rows={shown.rows} current={rowIndex} />}
             </button>
-            {/* Swap, where the set count was: the set circles already show where you are */}
+            {/* Swap, where the set count was: the set circles already show where you are. View 5 moves it to More. */}
+            {spec.swap === "pill" && (
             <button
               type="button"
               data-pill-swap
@@ -627,6 +654,7 @@ export function ActiveWorkout({
             >
               <SwapIcon size={22} />
             </button>
+            )}
           </div>
         ) : (
         <div className="flex items-center justify-between px-[38px]">
@@ -684,6 +712,7 @@ export function ActiveWorkout({
           rect={menu}
           items={[
             ...(shown ? [{ value: "Do Later" }] : []),
+            ...(shown && spec.swap === "menu" ? [{ value: "Swap Exercise" }] : []),
             { value: "Journal" },
             { value: "Settings" },
             { value: "Back to Home" },
@@ -693,6 +722,7 @@ export function ActiveWorkout({
           onClose={() => setMenu(null)}
           onPick={(v) => {
             if (v === "Do Later" && shown) move(shown.we, "end");
+            else if (v === "Swap Exercise" && shown) setSwapFor(shown.we);
             else if (v === "Journal") openJournal();
             else if (v === "Settings") setViewSheet(true);
             else if (v === "Back to Home") router.push("/");
@@ -802,6 +832,26 @@ function SetMark({ text, ...p }: { text: boolean; rows: SetRowView[]; current: n
       aria-hidden
     >
       {p.current < 0 ? "All sets done" : rowLabel(p.rows, p.current)}
+    </div>
+  );
+}
+
+/**
+ * View 5's set dots in the pill (Frank's Figma frame, 2026-11-09): 8pt, 4pt apart; logged solid blue, the current set
+ * ringed in blue, the rest in Fills/Primary. Logging fills the current dot to blue as a transition.
+ */
+function PillDots({ rows, current }: { rows: SetRowView[]; current: number }) {
+  return (
+    <div className="flex gap-1" aria-hidden>
+      {rows.map((r, i) => (
+        <span
+          key={i}
+          className={cn(
+            "size-2 rounded-full border transition-[background-color,border-color] duration-300 ease-out",
+            r.set ? "border-blue bg-blue" : i === current ? "border-blue bg-transparent" : "border-transparent bg-fill-2",
+          )}
+        />
+      ))}
     </div>
   );
 }
