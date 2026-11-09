@@ -710,7 +710,7 @@ prescription's rest, which takes the steppers' place as an arc, and the log butt
 exercise during rest shows a Rest capsule over the controls that goes back. The screen carries no floor, "Preview" or
 "Swapped from" labels (Frank's call).
 
-Three views, Frank's saved layouts, switched in Settings or from the workout's More menu (More > Settings opens a sheet,
+Four views, Frank's saved layouts, switched in Settings or from the workout's More menu (More > Settings opens a sheet,
 applied at once) and saved per device in the `workout_view` cookie (`VIEWS` in `src/lib/workout-layout.ts`,
 `src/components/workout-layout-controls.tsx`). Someone whose old `workout_log` was centred starts on View 2, everyone
 else on View 1.
@@ -719,6 +719,7 @@ else on View 1.
 - View 2: the centred log button (the toolbar: Journal with "1 of 4", the 72pt Glass Prominent log button, Swap), set
   circles in the header.
 - View 3: the pill, set circles inside it (18pt, under the exercise's name).
+- View 4: the pill, set circles in the header under the title (Frank's call, 2026-11-09).
 
 The pill is Ladder's, in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass): its empty circle logs the set
 (`PillCheck`: a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, and Swap sits at

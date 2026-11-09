@@ -11,6 +11,7 @@ describe("workout views", () => {
   it("reads the saved view", () => {
     expect(workoutViewFrom(jar({ workout_view: "2" }))).toBe(2);
     expect(workoutViewFrom(jar({ workout_view: "3" }))).toBe(3);
+    expect(workoutViewFrom(jar({ workout_view: "4" }))).toBe(4);
   });
 
   it("keeps the centred log button for someone who picked it before views", () => {
@@ -25,9 +26,10 @@ describe("workout views", () => {
     expect(workoutViewFrom(jar({ workout_view: "7" }))).toBe(1);
   });
 
-  it("holds Frank's three views", () => {
+  it("holds Frank's four views", () => {
     expect(VIEWS[1]).toMatchObject({ log: "pill", sets: "header" });
     expect(VIEWS[2]).toMatchObject({ log: "centred", sets: "header" });
     expect(VIEWS[3]).toMatchObject({ log: "pill", sets: "pill" });
+    expect(VIEWS[4]).toMatchObject({ log: "pill", sets: "header", titleFirst: true });
   });
 });

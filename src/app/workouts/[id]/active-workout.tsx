@@ -95,6 +95,7 @@ export function ActiveWorkout({
   const [view, setView] = useState(initialView);
   const pillLayout = VIEWS[view].log === "pill";
   const setsInPill = VIEWS[view].sets === "pill";
+  const titleFirst = !!VIEWS[view].titleFirst;
   const [viewSheet, setViewSheet] = useState(false);
   const router = useRouter();
   const unit = settings.weight_unit;
@@ -506,10 +507,11 @@ export function ActiveWorkout({
                 style={{ minHeight: setsInPill ? HEADER_ROOM : HEADER_ROOM + 35 }}
                 aria-label={row ? rowLabel(shown.rows, rowIndex) : undefined}
               >
-                {!setsInPill && <SetDots rows={shown.rows} current={rowIndex} className="mt-2.5" />}
+                {!setsInPill && !titleFirst && <SetDots rows={shown.rows} current={rowIndex} className="mt-2.5" />}
                 <h1 className="mt-2.5 text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
                   {exerciseTitle(shown.we.exercises)}
                 </h1>
+                {!setsInPill && titleFirst && <SetDots rows={shown.rows} current={rowIndex} className="mt-2.5" />}
                 <div className="mt-2.5 truncate text-[15px] leading-[18px] text-ink-2">
                   {upNext ? `Up next · ${exerciseTitle(upNext.we.exercises)}` : "Last exercise"}
                 </div>
