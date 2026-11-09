@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { setExerciseFloor } from "@/app/actions";
 import { ExerciseArt } from "@/components/exercise-art";
-import { ChevronUpDown, EllipsisIcon, ListIcon, SwapIcon } from "@/components/icons";
+import { ChevronUpDown, EllipsisIcon, ListIcon, SfFlameFillIcon, SwapIcon } from "@/components/icons";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { cn } from "@/lib/cn";
 import type { SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
@@ -144,7 +144,7 @@ function Circles({ rows }: { rows: SetRowView[] }) {
             r.set ? "border-blue bg-blue text-white" : "border-ink-3 text-ink-2",
           )}
         >
-          {r.label}
+          {r.kind === "warm" ? <SfFlameFillIcon size={13} /> : r.label}
         </span>
       ))}
     </span>
@@ -243,7 +243,7 @@ function OpenExercise({
         </Chip>
       </div>
 
-      <div className="col-span-2 mt-6 grid grid-cols-[38px_66px_66px_1fr] items-center gap-x-[13px] gap-y-[17px]">
+      <div className="col-span-2 mt-6 isolate grid grid-cols-[38px_66px_66px_1fr] items-center gap-x-[13px] gap-y-[17px]">
         <span className="whitespace-nowrap text-[15px] text-blue">Log It</span>
         <span className="text-center text-[15px] text-ink-2">{unit}</span>
         <span className="text-center text-[15px] text-ink-2">Reps</span>
@@ -325,13 +325,18 @@ function SetLine({
         onClick={onToggle}
         aria-label={row.set ? `Undo set ${row.label}` : `Log set ${row.label}`}
         className={cn(
-          "tabular grid size-[29px] place-items-center justify-self-center rounded-full border-[1.5px] text-[14px] font-semibold",
-          row.kind === "warm" ? "border-orange text-[11px] text-orange" : "border-ink",
+          "tabular relative grid size-[29px] place-items-center justify-self-center rounded-full border-[1.5px] text-[14px] font-semibold",
+          current ? "border-blue" : "border-ink",
           row.set && "border-blue bg-blue text-white",
-          current && "shadow-[0_0_0_3px_var(--bg-elevated,var(--bg)),0_0_0_5px_var(--blue)]",
         )}
       >
-        {row.set ? "✓" : row.label}
+        {/* The current set's row is tinted blue across the card, as Ladder highlights it in its accent (Frank's call,
+            2026-11-09): 15% blue, from the card's left edge to its right, 58pt tall (the 41pt row and half the gap each side). Behind the
+            cells (the grid isolates), clipped by the card body. */}
+        {current && (
+          <span aria-hidden className="pointer-events-none absolute -bottom-[15.5px] -left-[21.5px] -top-[15.5px] -z-10 w-screen bg-blue/15" />
+        )}
+        {row.set ? "✓" : row.kind === "warm" ? <SfFlameFillIcon size={15} /> : row.label}
       </button>
       <input
         data-live

@@ -1188,6 +1188,8 @@ html.keyboard .sheet-body {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    /* the current set's band runs to the card's edges and no further */
+    overflow-x: hidden;
     overscroll-behavior: contain;
     scrollbar-width: none;
     padding: 0 16px calc(var(--dock-bottom) + 24px);

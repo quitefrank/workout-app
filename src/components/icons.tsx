@@ -271,3 +271,23 @@ export const ShirtIcon = (p: IconProps) => (
     <path d="m18.75 6.875-2.5 2.5L14.375 7.5v10h-8.75v-10L3.75 9.375l-2.5-2.5 3.278-3.278C5.313 2.813 6.068 2.5 7.181 2.5h.322s.35 1.875 2.5 1.875 2.5-1.875 2.5-1.875h.322c1.113 0 1.866.313 2.653 1.097l3.278 3.278z" />
   </NotionSvg>
 );
+
+/**
+ * SF Symbols `flame.fill` at semibold, the warm-up mark in the Journal's set circles (Frank's call, 2026-11-09, from the
+ * Warm-up Mark prototype, https://claude.ai/artifact/2Lb4eebsema49FRzfhnSSk). Apple's glyph, rendered by macOS and kept
+ * as a mask in public/icons, so it takes the text colour like the Notion icons above.
+ */
+export const SfFlameFillIcon = ({ size = 15, className }: { size?: number; className?: string }) => (
+  <span
+    aria-hidden="true"
+    className={className}
+    style={{
+      display: "block",
+      width: size,
+      height: size,
+      background: "currentColor",
+      WebkitMask: "url(/icons/sf-flame-fill.png) center / contain no-repeat",
+      mask: "url(/icons/sf-flame-fill.png) center / contain no-repeat",
+    }}
+  />
+);
