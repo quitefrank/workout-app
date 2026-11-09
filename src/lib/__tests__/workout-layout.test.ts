@@ -1,24 +1,33 @@
 import { describe, expect, it } from "vitest";
-import { workoutLayoutFrom } from "../workout-layout";
+import { VIEWS, workoutViewFrom } from "../workout-layout";
 
 const jar = (c: Record<string, string>) => (name: string) => c[name];
 
-describe("workout layout", () => {
-  it("defaults to the centred check and cards", () => {
-    expect(workoutLayoutFrom(jar({}))).toEqual({ log: "centred", steppers: "cards" });
+describe("workout views", () => {
+  it("defaults to View 1", () => {
+    expect(workoutViewFrom(jar({}))).toBe(1);
   });
 
-  it("reads each choice on its own", () => {
-    expect(workoutLayoutFrom(jar({ workout_log: "pill", workout_steppers: "cards" }))).toEqual({ log: "pill", steppers: "cards" });
-    expect(workoutLayoutFrom(jar({ workout_log: "centred", workout_steppers: "list" }))).toEqual({ log: "centred", steppers: "list" });
+  it("reads the saved view", () => {
+    expect(workoutViewFrom(jar({ workout_view: "2" }))).toBe(2);
+    expect(workoutViewFrom(jar({ workout_view: "3" }))).toBe(3);
   });
 
-  it("starts from the old single choice until a new one is saved", () => {
-    expect(workoutLayoutFrom(jar({ workout_layout: "pill" }))).toEqual({ log: "pill", steppers: "list" });
-    expect(workoutLayoutFrom(jar({ workout_layout: "pill", workout_steppers: "cards" }))).toEqual({ log: "pill", steppers: "cards" });
+  it("keeps the centred log button for someone who picked it before views", () => {
+    expect(workoutViewFrom(jar({ workout_log: "centred" }))).toBe(2);
+    expect(workoutViewFrom(jar({ workout_log: "pill" }))).toBe(1);
+    expect(workoutViewFrom(jar({ workout_layout: "centred" }))).toBe(2);
+    expect(workoutViewFrom(jar({ workout_layout: "pill" }))).toBe(1);
   });
 
-  it("ignores values it does not know", () => {
-    expect(workoutLayoutFrom(jar({ workout_log: "side", workout_steppers: "dial" }))).toEqual({ log: "centred", steppers: "cards" });
+  it("prefers a saved view over the old choices, and ignores values it does not know", () => {
+    expect(workoutViewFrom(jar({ workout_view: "3", workout_log: "centred" }))).toBe(3);
+    expect(workoutViewFrom(jar({ workout_view: "7" }))).toBe(1);
+  });
+
+  it("holds Frank's three views", () => {
+    expect(VIEWS[1]).toMatchObject({ log: "pill", sets: "header" });
+    expect(VIEWS[2]).toMatchObject({ log: "centred", sets: "header" });
+    expect(VIEWS[3]).toMatchObject({ log: "pill", sets: "pill" });
   });
 });

@@ -240,7 +240,7 @@ function Contents({
         </div>
       ) : (
         <div role="grid" onPointerDown={onDown} onPointerUp={onUp} onPointerCancel={() => (swipe.current = null)} className="touch-pan-y">
-          <div className="grid grid-cols-7 pb-1 pt-1 text-center text-[13px] font-semibold text-ink-3">
+          <div className="grid grid-cols-7 pb-1 pt-1 text-center text-[13px] font-semibold text-ink-2">
             {WEEKDAYS.map((d) => (
               <div key={d}>{d}</div>
             ))}

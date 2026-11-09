@@ -7,9 +7,9 @@ import { saveSettings } from "@/app/actions";
 import { debugSetting, setDebugSetting } from "@/glass/debug";
 import { ChevronUpDown } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
-import { WorkoutLayoutControls } from "@/components/workout-layout-controls";
+import { WorkoutViewControls } from "@/components/workout-layout-controls";
 import { setTheme, type Theme } from "@/lib/appearance";
-import { setWorkoutLayout, type WorkoutLayout } from "@/lib/workout-layout";
+import { setWorkoutView, type WorkoutView } from "@/lib/workout-layout";
 import { cn } from "@/lib/cn";
 import type { Settings } from "@/lib/data/queries";
 import { formatRest } from "@/lib/workout/format";
@@ -20,15 +20,15 @@ const REST_STEPS = [60, 90, 120, 150, 180, 210, 240, 300];
 export function SettingsForm({
   settings,
   theme: initialTheme,
-  layout: initialLayout,
+  view: initialView,
 }: {
   settings: Settings;
   theme: Theme;
-  layout: WorkoutLayout;
+  view: WorkoutView;
 }) {
   const [s, setS] = useState(settings);
   const [theme, setThemeState] = useState(initialTheme);
-  const [layout, setLayoutState] = useState(initialLayout);
+  const [view, setViewState] = useState(initialView);
   const router = useRouter();
   const [pending, start] = useTransition();
   // a device setting: the server renders it off, the device reads its own
@@ -74,11 +74,11 @@ export function SettingsForm({
         />
       </Group>
 
-      <WorkoutLayoutControls
-        value={layout}
+      <WorkoutViewControls
+        value={view}
         onChange={(v) => {
-          setLayoutState(v);
-          setWorkoutLayout(v);
+          setViewState(v);
+          setWorkoutView(v);
         }}
       />
 

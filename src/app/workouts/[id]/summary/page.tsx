@@ -83,7 +83,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
               {we.sets.length === 0 ? (
-                <p className="text-[15px] text-ink-3">Nothing logged</p>
+                <p className="text-[15px] text-ink-2">Nothing logged</p>
               ) : (
                 <p className="tabular mt-0.5 text-[15px] leading-6 text-ink-2">
                   {we.sets.map((s, i) => (
@@ -97,7 +97,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
                 </p>
               )}
               {tonnage > 0 && !raw && (
-                <p className="mt-1 text-[13px] text-ink-3">Volume {displayWeight(tonnage, we.exercises.equipment_type, unit)}</p>
+                <p className="mt-1 text-[13px] text-ink-2">Volume {displayWeight(tonnage, we.exercises.equipment_type, unit)}</p>
               )}
             </section>
           );

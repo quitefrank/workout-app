@@ -180,7 +180,7 @@ export function PillCheck({
       }}
       className={cn(
         "relative grid size-[26px] shrink-0 place-items-center rounded-full after:absolute after:-inset-[9px] after:content-[''] disabled:opacity-50",
-        flash ? "pill-check-fill bg-blue text-white" : "text-white/90 shadow-[inset_0_0_0_1.5px_rgb(255_255_255/0.85)]",
+        flash ? "pill-check-fill bg-blue text-white" : "opacity-90 shadow-[inset_0_0_0_1.5px_currentColor]",
       )}
     >
       {skip ? <SkipIcon size={13} /> : <CheckIcon size={14} strokeWidth={flash ? 2.6 : 1.8} />}

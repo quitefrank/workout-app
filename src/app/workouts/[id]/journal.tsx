@@ -254,9 +254,9 @@ function OpenExercise({
 
       <div className="col-span-2 mt-6 grid grid-cols-[38px_66px_66px_1fr] items-center gap-x-[13px] gap-y-[17px]">
         <span className="whitespace-nowrap text-[15px] text-blue">Log It</span>
-        <span className="text-center text-[15px] text-ink-3">{unit}</span>
-        <span className="text-center text-[15px] text-ink-3">Reps</span>
-        <span className="text-center text-[15px] text-ink-3">Last</span>
+        <span className="text-center text-[15px] text-ink-2">{unit}</span>
+        <span className="text-center text-[15px] text-ink-2">Reps</span>
+        <span className="text-center text-[15px] text-ink-2">Last</span>
         {rows.map((row, i) => (
           <SetLine
             key={`${row.set?.id ?? "new"}-${i}`}
@@ -368,7 +368,7 @@ function SetLine({
         }}
         className={cell}
       />
-      <span className="tabular whitespace-nowrap text-center text-[14px] text-ink-3">{row.last ? `${formatNumber(row.last.weight) || "–"} × ${row.last.reps ?? "–"}` : "--"}</span>
+      <span className="tabular whitespace-nowrap text-center text-[14px] text-ink-2">{row.last ? `${formatNumber(row.last.weight) || "–"} × ${row.last.reps ?? "–"}` : "--"}</span>
     </>
   );
 }

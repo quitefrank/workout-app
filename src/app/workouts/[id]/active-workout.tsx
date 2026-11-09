@@ -53,26 +53,30 @@ import { formatClock, formatNumber } from "@/lib/workout/format";
 import { floorKey } from "@/lib/workout/machine-location";
 import { opensOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
 import { exerciseTitle } from "@/lib/workout/movements";
-import { setWorkoutLayout, type WorkoutLayout } from "@/lib/workout-layout";
-import { WorkoutLayoutControls } from "@/components/workout-layout-controls";
+import { setWorkoutView, VIEWS, type WorkoutView } from "@/lib/workout-layout";
+import { WorkoutViewControls } from "@/components/workout-layout-controls";
 import { FinishSheet } from "./finish-sheet";
 import { Journal, JournalBody, type JournalProps } from "./journal";
 import { JournalCard, PillCheck, type CardControl } from "./journal-card";
 import { useRestTimer } from "./rest-timer";
-import { Stepper, StepperList, StepperRow } from "./stepper";
+import { Stepper } from "./stepper";
 import { SwapSheet } from "./swap-sheet";
 
 /**
- * The active workout, aligned with Ladder (Frank's call, 2026-11-08; prototype in the Workout App Teardown,
- * https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v). One screen per set on a dark stage: the exercise, its set circles
- * and what is up next, the illustration, last time, and weight and reps on the iOS 27 kit's stepper. Swipe sideways to
- * look through the exercises, swipe up for the Journal. Logging a working set starts rest, which takes over the steppers
- * as an arc. Two choices, switched in Settings or from More (src/lib/workout-layout.ts):
+ * The active workout, aligned with Ladder (Frank's calls, 2026-11-08; the Workout App Teardown,
+ * https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v, then the Fixed Stage prototype,
+ * https://claude.ai/artifact/Pi7NdnzFdCp5EWNetaSSZg). One screen per set, in the app's colours in light and dark. On
+ * the More button's row: the timer and the exercises as Apple's progress bar. Under it the set circles, the title and Up
+ * next, then the illustration, then last time and weight and reps on the iOS 27 kit's stepper. Swipe sideways to look
+ * through the exercises, swipe up for the Journal. Logging a working set starts rest, which takes the steppers' place as
+ * an arc; the header stays as it is.
  *
- * - Log button. Centred: a toolbar with the Journal, the Glass Prominent log button in the middle (Skip during rest)
- *   and Swap. Pill: Ladder's pill, whose empty circle logs and whose rest opens the Journal, growing into it under the
- *   finger (journal-card.tsx), with Swap in the top bar beside More.
- * - Weight and reps: cards over the kit's stepper, or the kit's inset list rows.
+ * The illustration never moves or resizes: it is the screen's width, centred between the header and the controls, and
+ * both of those zones hold their tallest size (the header room for a two-line title, the controls the taller of the
+ * steppers and the rest arc, stacked in one grid cell), so title length and rest change nothing around it.
+ *
+ * Three views, switched in Settings or from More (src/lib/workout-layout.ts): the pill or the centred log button, and
+ * the set circles in the header or inside the pill.
  */
 
 export type Entry = { we: WorkoutExerciseRow; rows: SetRowView[] };
@@ -82,16 +86,16 @@ type Optimistic = { weId: string; add?: SetRow; remove?: string };
 export function ActiveWorkout({
   workout,
   settings,
-  layout,
+  view: initialView,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
-  layout: WorkoutLayout;
+  view: WorkoutView;
 }) {
-  const [look, setLook] = useState(layout);
-  const pillLayout = look.log === "pill";
-  const listSteppers = look.steppers === "list";
-  const [layoutSheet, setLayoutSheet] = useState(false);
+  const [view, setView] = useState(initialView);
+  const pillLayout = VIEWS[view].log === "pill";
+  const setsInPill = VIEWS[view].sets === "pill";
+  const [viewSheet, setViewSheet] = useState(false);
   const router = useRouter();
   const unit = settings.weight_unit;
   const elapsed = useElapsed(workout.started_at);
@@ -307,7 +311,7 @@ export function ActiveWorkout({
   const pillDrag = useRef<{ x: number; y: number; t: number; last: number; v: number; up: number; d: number; on: boolean } | null>(null);
   const pillSwallow = useRef(0);
   const onPillDown = (e: ReactPointerEvent) => {
-    if (cardOpen || (e.target as HTMLElement).closest("[data-pill-check]")) return;
+    if (cardOpen || (e.target as HTMLElement).closest("[data-pill-check], [data-pill-swap]")) return;
     const dockBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-bottom")) || 21;
     const height = document.querySelector<HTMLElement>("[data-focus-screen]")?.clientHeight ?? window.innerHeight;
     pillDrag.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, last: 0, v: 0, up: 0, d: travel(height, dockBottom), on: false };
@@ -412,31 +416,14 @@ export function ActiveWorkout({
   return (
     <>
       <TopBar
-        edge="dim"
         spacer={false}
-        leading={
-          <span className="tabular whitespace-nowrap text-[28px] font-extrabold tracking-[-0.03em] text-white">
-            {elapsed == null ? "0:00" : formatClock(elapsed)} · {prog.percent}%
-          </span>
-        }
         trailing={
-          <div className="flex items-center gap-2.5">
-            {pillLayout && (
-              <GlassCircleButton
-                label="Swap exercise"
-                disabled={!shown}
-                onClick={() => shown && setSwapFor(shown.we)}
-              >
-                <SwapIcon size={20} />
-              </GlassCircleButton>
-            )}
-            <GlassCircleButton
-              label="Workout options"
-              onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}
-            >
-              <EllipsisIcon size={20} />
-            </GlassCircleButton>
-          </div>
+          <GlassCircleButton
+            label="Workout options"
+            onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}
+          >
+            <EllipsisIcon size={20} />
+          </GlassCircleButton>
         }
       />
 
@@ -452,59 +439,50 @@ export function ActiveWorkout({
           }
         }}
         data-focus-screen
-        className="fixed inset-0 touch-none select-none overflow-hidden bg-[#0b0b0d] text-white"
+        className="fixed inset-0 touch-none select-none overflow-hidden bg-bg text-ink"
       >
         <main
           className="relative flex h-full flex-col"
           style={{
-            paddingTop: "calc(var(--bar-top) + 44px)",
+            paddingTop: "var(--bar-top)",
             paddingBottom: pillLayout
               ? "calc(var(--dock-bottom) + 67px + 20px)"
               : "calc(var(--dock-bottom) + 72px + 20px)",
           }}
         >
-          <Stage slug={ex?.slug} />
-
-          {/* Exercises as segments: the current one taller and blue; tap one to look at it */}
-          <div
-            className="relative z-[1] flex gap-1 px-5 pt-1"
-            role="tablist"
-            aria-label="Exercises"
-          >
-            {entries.map((e) => {
-              const done = e.rows.filter((r) => r.set).length;
-              const on = shown?.we.id === e.we.id;
-              return (
-                <button
-                  key={e.we.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={on}
-                  aria-label={exerciseTitle(e.we.exercises)}
-                  onClick={() => {
-                    setViewId(e.we.id === queue?.we.id ? null : e.we.id);
-                    setAnim(entries.indexOf(e) > shownIndex ? "l" : "r");
-                  }}
-                  className="min-w-0 py-2"
-                  style={{ flex: e.rows.length }}
-                >
-                  <span
-                    className={cn(
-                      "relative block overflow-hidden rounded-full",
-                      on ? "h-1.5 bg-blue/35" : "h-1 bg-white/25",
-                    )}
+          {/* The More button's row: the timer, then the exercises as Apple's progress bar (blue for every logged set on the
+              kit's Fills/Primary track, nothing else). Tap a segment to look at that exercise. */}
+          <div className="relative z-[1] flex h-11 items-center gap-3 pl-5 pr-[72px]">
+            <span className="tabular shrink-0 text-[17px] font-semibold leading-[22px]">
+              {elapsed == null ? "0:00" : formatClock(elapsed)}
+            </span>
+            <div className="flex min-w-0 flex-1 gap-1" role="tablist" aria-label="Exercises">
+              {entries.map((e) => {
+                const done = e.rows.filter((r) => r.set).length;
+                return (
+                  <button
+                    key={e.we.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={shown?.we.id === e.we.id}
+                    aria-label={exerciseTitle(e.we.exercises)}
+                    onClick={() => {
+                      setViewId(e.we.id === queue?.we.id ? null : e.we.id);
+                      setAnim(entries.indexOf(e) > shownIndex ? "l" : "r");
+                    }}
+                    className="min-w-0 py-2"
+                    style={{ flex: e.rows.length }}
                   >
-                    <span
-                      className={cn(
-                        "absolute inset-y-0 left-0 rounded-full",
-                        on ? "bg-blue" : "bg-white",
-                      )}
-                      style={{ width: `${(100 * done) / e.rows.length}%` }}
-                    />
-                  </span>
-                </button>
-              );
-            })}
+                    <span className="relative block h-1 overflow-hidden rounded-full bg-fill-2">
+                      <span
+                        className="absolute inset-y-0 left-0 rounded-full bg-blue"
+                        style={{ width: `${(100 * done) / e.rows.length}%` }}
+                      />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {shown ? (
@@ -519,117 +497,71 @@ export function ActiveWorkout({
             >
               {/* First in the DOM so the header and "Last time" paint over it (the glass painter follows DOM order);
                   `order` puts it back between them. */}
-              <Art slug={ex?.slug} large />
+              <Art slug={ex?.slug} />
 
+              {/* The same in work and rest. Its minimum height is its height with a two-line title, so a shorter title
+                  leaves room under Up next and the illustration stays put. */}
               <header
-                className="relative order-first px-5 pt-3 [text-shadow:0_1px_12px_rgb(0_0_0/0.5)]"
+                className="relative order-first px-5"
+                style={{ minHeight: setsInPill ? HEADER_ROOM : HEADER_ROOM + 35 }}
                 aria-label={row ? rowLabel(shown.rows, rowIndex) : undefined}
               >
-                {resting && row ? (
-                  <>
-                    <div className="text-[15px] font-bold text-blue">
-                      Next · {rowLabel(shown.rows, rowIndex)}
-                    </div>
-                    <h1 className="text-[28px] font-extrabold leading-[1.08] tracking-[-0.02em]">
-                      {exerciseTitle(shown.we.exercises)}
-                    </h1>
-                    {value && (value.weight != null || value.reps != null) && (
-                      <div className="tabular mt-1 text-[14px] text-white/65">
-                        {formatNumber(value.weight) || "–"} {unit} ×{" "}
-                        {value.reps ?? "–"}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <h1 className="text-[28px] font-extrabold leading-[1.08] tracking-[-0.02em]">
-                      {exerciseTitle(shown.we.exercises)}
-                    </h1>
-                    <SetDots
-                      rows={shown.rows}
-                      current={rowIndex}
-                      className="mt-2"
-                    />
-                    <div className="mt-1 text-[14px] text-white/65">
-                      {upNext
-                        ? `Up next · ${exerciseTitle(upNext.we.exercises)}`
-                        : "Last exercise"}
-                    </div>
-                  </>
-                )}
+                {!setsInPill && <SetDots rows={shown.rows} current={rowIndex} className="mt-2.5" />}
+                <h1 className="mt-2.5 text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
+                  {exerciseTitle(shown.we.exercises)}
+                </h1>
+                <div className="mt-2.5 truncate text-[15px] leading-[18px] text-ink-2">
+                  {upNext ? `Up next · ${exerciseTitle(upNext.we.exercises)}` : "Last exercise"}
+                </div>
               </header>
-              {timer.endsAt != null && viewing && (
-                <button
-                  type="button"
-                  onClick={() => setViewId(null)}
-                  className="tabular absolute right-4 top-3 z-[2] h-[30px] rounded-full bg-blue px-3 text-[13px] font-semibold text-white"
-                >
-                  Rest {formatClock(timer.remaining)}
-                </button>
-              )}
 
-              {resting ? (
-                <RestArc
-                  remaining={timer.remaining}
-                  total={timer.total}
-                  onAdd={timer.add}
-                />
-              ) : row && value ? (
-                <div className="relative px-5">
-                  <p className="pb-3 text-center text-[15px] text-white/65 [text-shadow:0_1px_8px_rgb(0_0_0/0.8)]">
-                    {row.last
-                      ? `Last time · ${formatNumber(row.last.weight) || "–"} ${unit} × ${row.last.reps ?? "–"}`
-                      : "No history yet"}
-                  </p>
-                  {listSteppers ? (
-                    <StepperList>
-                      <StepperRow
-                        first
-                        field="weight"
-                        unit={unit}
-                        value={value.weight}
-                        onChange={(w) =>
-                          setDraft(shown.we.id, rowIndex, { ...value, weight: w })
-                        }
-                      />
-                      <StepperRow
-                        field="reps"
-                        unit={unit}
-                        value={value.reps}
-                        onChange={(r) =>
-                          setDraft(shown.we.id, rowIndex, { ...value, reps: r })
-                        }
-                      />
-                    </StepperList>
+              {/* The controls: last time and the steppers, or the rest arc, stacked in one cell so the zone is always the
+                  taller of the two; the one not in use is hidden, not removed. */}
+              <div className="relative grid items-end px-5">
+                <div className={cn("[grid-area:1/1]", resting && "invisible")}>
+                  {row && value ? (
+                    <>
+                      <p className="pb-3 text-center text-[15px] leading-[18px] text-ink-2">
+                        {row.last
+                          ? `Last time · ${formatNumber(row.last.weight) || "–"} ${unit} × ${row.last.reps ?? "–"}`
+                          : "No history yet"}
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <Stepper
+                          label={unit}
+                          field="weight"
+                          unit={unit}
+                          value={value.weight}
+                          onChange={(w) => setDraft(shown.we.id, rowIndex, { ...value, weight: w })}
+                        />
+                        <Stepper
+                          label="Reps"
+                          field="reps"
+                          unit={unit}
+                          value={value.reps}
+                          onChange={(r) => setDraft(shown.we.id, rowIndex, { ...value, reps: r })}
+                        />
+                      </div>
+                    </>
                   ) : (
-                    <div className="grid grid-cols-2 gap-3">
-                      <Stepper
-                        label={unit}
-                        field="weight"
-                        unit={unit}
-                        value={value.weight}
-                        onChange={(w) =>
-                          setDraft(shown.we.id, rowIndex, { ...value, weight: w })
-                        }
-                      />
-                      <Stepper
-                        label="Reps"
-                        field="reps"
-                        unit={unit}
-                        value={value.reps}
-                        onChange={(r) =>
-                          setDraft(shown.we.id, rowIndex, { ...value, reps: r })
-                        }
-                      />
-                    </div>
+                    <p className="pb-4 text-center text-[15px] text-ink-2">
+                      {shown.rows.length} of {shown.rows.length} logged. Swipe for the next exercise.
+                    </p>
                   )}
                 </div>
-              ) : (
-                <p className="relative px-5 pb-4 text-center text-[15px] text-white/65">
-                  {shown.rows.length} of {shown.rows.length} logged. Swipe for
-                  the next exercise.
-                </p>
-              )}
+                <div className={cn("[grid-area:1/1]", !resting && "invisible")} aria-hidden={!resting}>
+                  <RestArc remaining={timer.remaining} total={timer.total} onAdd={timer.add} />
+                </div>
+                {timer.endsAt != null && viewing && (
+                  <button
+                    type="button"
+                    onClick={() => setViewId(null)}
+                    className="tabular absolute -top-10 right-5 h-[30px] rounded-full bg-blue px-3 text-[13px] font-semibold text-white"
+                  >
+                    Rest {formatClock(timer.remaining)}
+                  </button>
+                )}
+              </div>
             </div>
           ) : (
             <div className="relative z-[1] flex flex-1 flex-col justify-end gap-4 px-5 pb-2">
@@ -652,7 +584,6 @@ export function ActiveWorkout({
       {/* The toolbar: Journal, the log button in the middle (Skip during rest), Swap */}
       <div
         data-glass-unit="dock"
-        data-edge="dim"
         // a column, like every dock: a home screen app stretches the dock to the screen's height and bottom-aligns its
         // children with justify-content (html.standalone in globals.css), which only works down a column
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col"
@@ -674,16 +605,26 @@ export function ActiveWorkout({
                 if (e.timeStamp - pillSwallow.current < 300) return;
                 openJournal();
               }}
-              className="flex h-full min-w-0 flex-1 items-center gap-3 pl-[14px] text-left"
+              className="flex h-full min-w-0 flex-1 flex-col justify-center gap-[5px] pl-[14px] text-left"
             >
-              <span className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-[-0.43px]">
+              <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
                 {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
               </span>
-              {shown && rowIndex >= 0 && (
-                <span className="tabular shrink-0 text-[17px] text-blue">
-                  {rowIndex + 1} of {shown.rows.length}
-                </span>
-              )}
+              {setsInPill && shown && <SetDots rows={shown.rows} current={rowIndex} mini />}
+            </button>
+            {/* Swap, where the set count was: the set circles already show where you are */}
+            <button
+              type="button"
+              data-pill-swap
+              aria-label="Swap exercise"
+              disabled={!shown}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (shown) setSwapFor(shown.we);
+              }}
+              className="-mr-2 grid size-11 shrink-0 place-items-center disabled:opacity-40"
+            >
+              <SwapIcon size={22} />
             </button>
           </div>
         ) : (
@@ -741,9 +682,7 @@ export function ActiveWorkout({
         <ActionMenu
           rect={menu}
           items={[
-            ...(shown
-              ? [{ value: "Swap Exercise" }, { value: "Do Later" }]
-              : []),
+            ...(shown ? [{ value: "Do Later" }] : []),
             { value: "Journal" },
             { value: "Settings" },
             { value: "Back to Home" },
@@ -752,10 +691,9 @@ export function ActiveWorkout({
           ]}
           onClose={() => setMenu(null)}
           onPick={(v) => {
-            if (v === "Swap Exercise" && shown) setSwapFor(shown.we);
-            else if (v === "Do Later" && shown) move(shown.we, "end");
+            if (v === "Do Later" && shown) move(shown.we, "end");
             else if (v === "Journal") openJournal();
-            else if (v === "Settings") setLayoutSheet(true);
+            else if (v === "Settings") setViewSheet(true);
             else if (v === "Back to Home") router.push("/");
             else if (v === "Finish Workout") setFinishing(true);
             else if (v === "Discard Workout") setConfirmDiscard(true);
@@ -805,14 +743,14 @@ export function ActiveWorkout({
         unit={unit}
       />
 
-      {/* The layout choices, switched here mid-workout as well as in Settings */}
-      <Sheet open={layoutSheet} onClose={() => setLayoutSheet(false)} title="Settings">
+      {/* The views, switched here mid-workout as well as in Settings */}
+      <Sheet open={viewSheet} onClose={() => setViewSheet(false)} title="Settings">
         <div className="flex flex-col gap-6 pb-4">
-          <WorkoutLayoutControls
-            value={look}
+          <WorkoutViewControls
+            value={view}
             onChange={(next) => {
-              setLook(next);
-              setWorkoutLayout(next);
+              setView(next);
+              setWorkoutView(next);
             }}
           />
         </div>
@@ -846,29 +784,35 @@ export function ActiveWorkout({
   );
 }
 
-/** The set circles: W for a warm-up, the set's number, D for a drop set; filled when logged, ringed when next. */
+/**
+ * The set circles: W for a warm-up, the set's number, D for a drop set; filled blue when logged, ringed in blue when
+ * next. `mini` is the pill's size (18pt), under the exercise's name in View 3.
+ */
 export function SetDots({
   rows,
   current,
   className,
+  mini,
 }: {
   rows: SetRowView[];
   current: number;
   className?: string;
+  mini?: boolean;
 }) {
   return (
-    <div className={cn("flex flex-wrap gap-2", className)} aria-hidden>
+    <div className={cn("flex flex-wrap", mini ? "gap-[5px]" : "gap-2", className)} aria-hidden>
       {rows.map((r, i) => (
         <span
           key={i}
           className={cn(
-            "tabular grid size-[25px] place-items-center rounded-full border-[1.5px] font-semibold",
-            r.kind === "warm" ? "text-[10px]" : "text-[12px]",
-            r.set
-              ? "border-blue bg-blue text-white"
-              : "border-current opacity-80",
+            "tabular grid place-items-center rounded-full font-semibold",
+            mini ? "size-[18px] border-[1.25px] text-[9px]" : "size-[25px] border-[1.5px]",
+            !mini && (r.kind === "warm" ? "text-[10px]" : "text-[12px]"),
+            r.set ? "border-blue bg-blue text-white" : "border-current opacity-80",
             i === current &&
-              "shadow-[0_0_0_2px_var(--ring-gap,#0b0b0d),0_0_0_4px_var(--blue)]",
+              (mini
+                ? "shadow-[0_0_0_1.5px_var(--ring-gap,var(--bg)),0_0_0_3px_var(--blue)]"
+                : "shadow-[0_0_0_2px_var(--ring-gap,var(--bg)),0_0_0_4px_var(--blue)]"),
           )}
         >
           {r.label}
@@ -878,47 +822,27 @@ export function SetDots({
   );
 }
 
-/** The dark stage behind everything, lit a little in the middle */
-function Stage({ slug }: { slug: string | null | undefined }) {
-  return (
-    <div
-      aria-hidden
-      data-slug={slug ?? ""}
-      className="pointer-events-none absolute inset-x-0 top-0 h-[72%] bg-[radial-gradient(110%_70%_at_50%_48%,#3b3b40_0%,#1a1a1d_62%,#0b0b0d_100%)]"
-    />
-  );
-}
+/** The header's room: its height with a two-line title and no set circles (title 10 + 60, Up next 10 + 18) */
+const HEADER_ROOM = 98;
 
 /**
- * The illustration, as large as the space between the header and "Last time" allows plus 35pt into each (Frank's
- * "Larger", 2026-11-08), centred in that space and never cropped. The header and the steppers draw over it, on the
- * short dark fades (65%) that cover only the image's bleed under "Up next" and "Last time", so the text reads
- * without washing out the image (Frank's call, 2026-11-08).
+ * The illustration: the screen's width, square, centred in the space between the header and the controls and never
+ * resized (Frank's call, 2026-11-08, from the Fixed Stage prototype). Both zones hold their tallest size, so this space
+ * is the same on every set; the image overlaps each zone by the same amount, behind short fades in the screen's colour
+ * that cover only Up next and Last time.
  */
-function Art({
-  slug,
-  large,
-}: {
-  slug: string | null | undefined;
-  large?: boolean;
-}) {
+function Art({ slug }: { slug: string | null | undefined }) {
   const box = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState(0);
   useLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const fit = () =>
-      setSize(
-        Math.max(
-          0,
-          Math.min(el.clientWidth + 40, el.clientHeight + (large ? 70 : -28)),
-        ),
-      );
+    const fit = () => setSize(el.clientWidth);
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [large]);
+  }, []);
   return (
     <div ref={box} className="relative min-h-0 flex-1">
       {hasExerciseImage(slug) && size > 0 && (
@@ -927,17 +851,19 @@ function Art({
           src={`/exercises/${slug}.webp`}
           alt=""
           draggable={false}
-          className="pointer-events-none absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_24px_30px_rgb(0_0_0/0.45)]"
+          className="pointer-events-none absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_24px_30px_var(--art-shadow)]"
           style={{ width: size, height: size }}
         />
       )}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-[35px] h-[70px] bg-[linear-gradient(rgb(11_11_13/0)_0%,rgb(11_11_13/0.65)_40%,rgb(11_11_13/0)_100%)]"
+        className="pointer-events-none absolute inset-x-0 -top-[35px] h-[70px]"
+        style={{ background: "linear-gradient(rgb(var(--bg-rgb) / 0) 0%, rgb(var(--bg-rgb) / 0.65) 40%, rgb(var(--bg-rgb) / 0) 100%)" }}
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 -bottom-[35px] h-[70px] bg-[linear-gradient(rgb(11_11_13/0)_0%,rgb(11_11_13/0.65)_55%,rgb(11_11_13/0.65)_100%)]"
+        className="pointer-events-none absolute inset-x-0 -bottom-[35px] h-[70px]"
+        style={{ background: "linear-gradient(rgb(var(--bg-rgb) / 0) 0%, rgb(var(--bg-rgb) / 0.65) 55%, rgb(var(--bg-rgb) / 0.65) 100%)" }}
       />
     </div>
   );
@@ -957,7 +883,7 @@ function RestArc({
   const on = total ? Math.round((remaining / total) * N) : 0;
   return (
     <div
-      className="relative flex items-end justify-between px-5 pb-1"
+      className="relative flex items-end justify-between pb-1"
       role="timer"
       aria-live="off"
       aria-label={remaining ? `Rest, ${remaining} seconds left` : "Rest over"}
@@ -965,7 +891,7 @@ function RestArc({
       <button
         type="button"
         onClick={() => onAdd(-15)}
-        className="tabular mb-1.5 grid size-[49px] place-items-center rounded-full bg-white/15 text-[15px] font-bold"
+        className="tabular mb-1.5 grid size-[49px] place-items-center rounded-full bg-fill-2 text-[15px] font-bold"
       >
         −15
       </button>
@@ -988,12 +914,12 @@ function RestArc({
                 y2={104 - 94 * s}
                 strokeWidth={5}
                 strokeLinecap="round"
-                stroke={i < on ? "var(--blue)" : "rgb(255 255 255 / 0.22)"}
+                stroke={i < on ? "var(--blue)" : "var(--fill-2)"}
               />
             );
           })}
         </svg>
-        <span className="absolute inset-x-0 top-[46px] text-center text-[13px] font-extrabold uppercase tracking-[0.1em] text-white/70">
+        <span className="absolute inset-x-0 top-[46px] text-center text-[13px] font-extrabold uppercase tracking-[0.1em] text-ink-2">
           {remaining ? "Rest" : "Go"}
         </span>
         <span className="tabular absolute inset-x-0 bottom-3.5 text-center text-[56px] font-extrabold leading-none tracking-[-0.03em]">
@@ -1003,7 +929,7 @@ function RestArc({
       <button
         type="button"
         onClick={() => onAdd(15)}
-        className="tabular mb-1.5 grid size-[49px] place-items-center rounded-full bg-white/15 text-[15px] font-bold"
+        className="tabular mb-1.5 grid size-[49px] place-items-center rounded-full bg-fill-2 text-[15px] font-bold"
       >
         +15
       </button>

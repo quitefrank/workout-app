@@ -61,7 +61,7 @@ export function FinishSheet({
           <ul className="grid gap-2.5">
             {records.map(({ we, record }) => (
               <li key={we.id} className="flex items-center gap-3">
-                <span className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[rgb(255_204_0/0.22)] text-[#b38f00]">
+                <span className="grid size-[34px] shrink-0 place-items-center rounded-full bg-[rgb(255_204_0/0.22)] text-[var(--gold)]">
                   <TrophyIcon size={17} />
                 </span>
                 <span className="min-w-0">

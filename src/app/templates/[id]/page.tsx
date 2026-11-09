@@ -101,7 +101,7 @@ export default async function TemplatePage({
           {template.rows.map((r, i) => (
             <Link key={r.id} href={`/exercises/${r.exercises.id}`} className="block active:bg-fill">
               <Row
-                leading={<span className="tabular w-5 shrink-0 text-center text-[15px] text-ink-3">{i + 1}</span>}
+                leading={<span className="tabular w-5 shrink-0 text-center text-[15px] text-ink-2">{i + 1}</span>}
                 title={
                   <>
                     {exerciseTitle(r.exercises)}

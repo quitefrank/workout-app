@@ -13,8 +13,9 @@ import { formatNumber } from "@/lib/workout/format";
  * - `StepperRow` (pill layout): the kit's list Row (Lists, Height=Regular 550:50627: 52pt, 16pt sides, Body title, the
  *   value in Body secondary) with the stepper trailing, two of them in an inset group (`StepperList`).
  *
- * Both use `KitStepper`, the kit's Stepper (Figma wH8YZbekJXNew109clIJz1, Steppers 5415:17699, dark values): 92 × 32pt,
- * two 46pt halves in Fills/Tertiary, a 1 × 24pt separator in Labels/Tertiary, − and + at Headline (17pt semibold).
+ * Both use `KitStepper`, the kit's Stepper (Figma wH8YZbekJXNew109clIJz1, Steppers 5415:17699): 92 × 32pt, two 46pt
+ * halves in Fills/Tertiary, a 1 × 24pt separator in Labels/Tertiary, − and + at Headline (17pt semibold). All colours are
+ * the app's tokens, so they follow light and dark.
  */
 
 type Field = "weight" | "reps";
@@ -50,8 +51,8 @@ export function Stepper(props: Props & { label: string }) {
   const f = useValueField(props);
   useLayoutEffect(() => fitText(input.current), [f.shown]);
   return (
-    <div className="grid gap-1 rounded-[24px] bg-white/10 px-2.5 pb-3 pt-2.5 text-center backdrop-blur-md">
-      <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-white/60">{label}</span>
+    <div className="grid gap-1 rounded-[24px] bg-card px-2.5 pb-3 pt-2.5 text-center">
+      <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-ink-2">{label}</span>
       <input
         ref={input}
         data-live
@@ -62,7 +63,7 @@ export function Stepper(props: Props & { label: string }) {
         placeholder="–"
         onChange={f.onChange}
         onBlur={f.onBlur}
-        className="tabular h-[41px] w-full min-w-0 bg-transparent p-0 text-center text-[34px] font-bold leading-[41px] tracking-[0.4px] text-white outline-none placeholder:text-white/30 focus:text-blue"
+        className="tabular h-[41px] w-full min-w-0 bg-transparent p-0 text-center text-[34px] font-bold leading-[41px] tracking-[0.4px] text-ink outline-none placeholder:text-ink-3 focus:text-blue"
       />
       <KitStepper {...props} className="mx-auto" />
     </div>
@@ -71,19 +72,19 @@ export function Stepper(props: Props & { label: string }) {
 
 /** The inset group that holds the pill layout's rows */
 export function StepperList({ children }: { children: React.ReactNode }) {
-  return <div className="overflow-hidden rounded-[26px] bg-[rgb(28_28_30/0.92)] backdrop-blur-md">{children}</div>;
+  return <div className="overflow-hidden rounded-[26px] bg-card">{children}</div>;
 }
 
 export function StepperRow(props: Props & { first?: boolean }) {
   const { field, unit, first } = props;
   const f = useValueField(props);
   return (
-    <div className="relative flex h-[52px] items-center gap-3 px-4 text-white">
-      {!first && <span aria-hidden className="absolute left-4 right-0 top-0 h-[0.5px] bg-[rgb(84_84_88/0.65)]" />}
+    <div className="relative flex h-[52px] items-center gap-3 px-4 text-ink">
+      {!first && <span aria-hidden className="absolute left-4 right-0 top-0 h-[0.5px] bg-sep" />}
       <span className="min-w-0 flex-1 truncate text-[17px] leading-[22px] tracking-[-0.43px]">
         {field === "weight" ? "Weight" : "Reps"}
       </span>
-      <label className="flex items-baseline gap-1 text-[17px] tracking-[-0.43px] text-[rgb(235_235_245/0.6)]">
+      <label className="flex items-baseline gap-1 text-[17px] tracking-[-0.43px] text-ink-2">
         <input
           data-live
           type="text"
@@ -112,7 +113,7 @@ function KitStepper({ field, unit, value, onChange, className }: Props & { class
       <StepButton side="rounded-r-full" label={`More ${what}`} onClick={() => onChange(step(value, field, 1, unit))}>
         +
       </StepButton>
-      <i aria-hidden className="pointer-events-none absolute left-1/2 top-1 h-6 w-px -translate-x-1/2 rounded-[8px] bg-[rgb(235_235_245/0.3)]" />
+      <i aria-hidden className="pointer-events-none absolute left-1/2 top-1 h-6 w-px -translate-x-1/2 rounded-[8px] bg-ink-3" />
     </span>
   );
 }
@@ -124,7 +125,7 @@ function StepButton({ side, label, onClick, children }: { side: string; label: s
       aria-label={label}
       onClick={onClick}
       // the half is 46 × 32; the ::after pads its touch area to 44pt tall (so the capsule is the halves' corners, not a clip)
-      className={`${side} relative grid h-8 w-[46px] place-items-center bg-[rgb(118_118_128/0.24)] text-[17px] font-semibold leading-none tracking-[-0.43px] text-white after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] active:bg-[rgb(118_118_128/0.4)]`}
+      className={`${side} relative grid h-8 w-[46px] place-items-center bg-fill text-[17px] font-semibold leading-none tracking-[-0.43px] text-ink after:absolute after:inset-x-0 after:-inset-y-1.5 after:content-[''] active:bg-fill-2`}
     >
       {children}
     </button>

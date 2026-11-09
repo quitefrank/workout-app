@@ -20,14 +20,19 @@
 :root {
   color-scheme: light;
 
-  /* Page, as the lab's light theme (Photos, light): a white page and #eeeef0 cards */
+  /* Apple's iOS 27 system colours (the kit's Colors page, Figma wH8YZbekJXNew109clIJz1; Frank's call, 2026-11-08):
+     the screen, a card on it, something inside a card; labels; the separator */
   --bg: #ffffff;
-  --card: #eeeef0;
-  --card-2: #e3e3e6;
+  --bg-rgb: 255 255 255;
+  --card: #f2f2f7;
+  --card-2: #ffffff;
   --ink: #000000;
   --ink-2: rgba(60, 60, 67, 0.6);
   --ink-3: rgba(60, 60, 67, 0.3);
-  --sep: rgba(60, 60, 67, 0.29);
+  --sep: rgba(0, 0, 0, 0.12);
+  /* the active workout's illustration shadow, and the gold of a new record */
+  --art-shadow: rgba(0, 0, 0, 0.18);
+  --gold: #b38f00;
   --fill: rgba(118, 118, 128, 0.12);
   --fill-2: rgba(118, 118, 128, 0.2);
   --blue: #007aff;
@@ -131,13 +136,16 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
-    --bg: #181919;
-    --card: #242526;
-    --card-2: #2f3031;
+    --bg: #000000;
+    --bg-rgb: 0 0 0;
+    --card: #1c1c1e;
+    --card-2: #2c2c2e;
     --ink: #ffffff;
-    --ink-2: rgba(235, 235, 245, 0.6);
+    --ink-2: rgba(235, 235, 245, 0.7);
     --ink-3: rgba(235, 235, 245, 0.3);
-    --sep: rgba(84, 84, 88, 0.65);
+    --sep: rgba(255, 255, 255, 0.17);
+    --art-shadow: rgba(0, 0, 0, 0.45);
+    --gold: #ffd60a;
     --fill: rgba(118, 118, 128, 0.24);
     --fill-2: rgba(118, 118, 128, 0.36);
     --blue: #0a84ff;
@@ -150,7 +158,7 @@
     --muscle-line: #d1d1d6;
     --muscle-body: #48484a;
     --muscle-hit: #ff383c; /* the exercise illustrations' red */
-    --muscle-tile: #242526;
+    --muscle-tile: #1c1c1e;
     --seg-on: #636366;
     --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
 
@@ -168,13 +176,16 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --bg: #181919;
-  --card: #242526;
-  --card-2: #2f3031;
+  --bg: #000000;
+  --bg-rgb: 0 0 0;
+  --card: #1c1c1e;
+  --card-2: #2c2c2e;
   --ink: #ffffff;
-  --ink-2: rgba(235, 235, 245, 0.6);
+  --ink-2: rgba(235, 235, 245, 0.7);
   --ink-3: rgba(235, 235, 245, 0.3);
-  --sep: rgba(84, 84, 88, 0.65);
+  --sep: rgba(255, 255, 255, 0.17);
+  --art-shadow: rgba(0, 0, 0, 0.45);
+  --gold: #ffd60a;
   --fill: rgba(118, 118, 128, 0.24);
   --fill-2: rgba(118, 118, 128, 0.36);
   --blue: #0a84ff;
@@ -187,7 +198,7 @@
   --muscle-line: #d1d1d6;
   --muscle-body: #48484a;
   --muscle-hit: #ff383c; /* the exercise illustrations' red */
-  --muscle-tile: #242526;
+  --muscle-tile: #1c1c1e;
   --seg-on: #636366;
   --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
 
@@ -201,6 +212,25 @@
   --sheet-solid: #1c1c1e;
 }
 
+
+/* Apple's elevated set: in dark, a sheet and the Journal card are one step lighter, and so is everything on them.
+   Light has no elevated set. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(.glass-sheet, .jcard) {
+    --bg: #1c1c1e;
+    --bg-rgb: 28 28 30;
+    --card: #2c2c2e;
+    --card-2: #3a3a3c;
+    --muscle-tile: #2c2c2e;
+  }
+}
+:root[data-theme="dark"] :is(.glass-sheet, .jcard) {
+  --bg: #1c1c1e;
+  --bg-rgb: 28 28 30;
+  --card: #2c2c2e;
+  --card-2: #3a3a3c;
+  --muscle-tile: #2c2c2e;
+}
 
 /* The page's side, until a unit has read what is behind it */
 :root {
@@ -1107,7 +1137,7 @@ html.keyboard .sheet-body {
   .jcard-scrim {
     position: absolute;
     inset: 0;
-    background: rgb(0 0 0 / calc(0.48 * var(--jp)));
+    background: rgb(0 0 0 / calc(var(--scrim-alpha) * var(--jp)));
   }
   .jcard {
     position: absolute;
@@ -1119,25 +1149,15 @@ html.keyboard .sheet-body {
     right: calc(29px * (1 - var(--jp)));
     bottom: calc(var(--dock-bottom) * (1 - var(--jp)));
     border-radius: calc(26px + 12px * var(--jp)) calc(26px + 12px * var(--jp)) calc(26px * (1 - var(--jp))) calc(26px * (1 - var(--jp)));
-    background: rgb(30 30 33 / calc(0.6 + 0.37 * var(--jp)));
+    background: rgb(var(--bg-rgb) / calc(0.6 + 0.37 * var(--jp)));
     -webkit-backdrop-filter: blur(22px) saturate(1.6);
     backdrop-filter: blur(22px) saturate(1.6);
     box-shadow:
       inset 0 1px 0.5px rgb(255 255 255 / calc(0.32 * (1 - var(--jp)))),
       inset 0 0 0 0.5px rgb(255 255 255 / 0.14),
       0 -10px 40px rgb(0 0 0 / calc(0.45 * var(--jp)));
-    color: #fff;
-    /* the Journal's content is dark here in either appearance, as the stage behind it is */
-    color-scheme: dark;
-    --ink: #ffffff;
-    --ink-2: rgba(235, 235, 245, 0.6);
-    --ink-3: rgba(235, 235, 245, 0.3);
-    --sep: rgba(84, 84, 88, 0.65);
-    --fill: rgba(118, 118, 128, 0.24);
-    --fill-2: rgba(118, 118, 128, 0.36);
-    --blue: #0a84ff;
-    --orange: #ff9f0a;
-    --bg-elevated: #1e1e21;
+    /* the app's colours, in light and dark (the elevated set in dark, above) */
+    color: var(--ink);
   }
   .jcard-head {
     flex: 0 0 calc(67px + 16px * var(--jp));
@@ -1147,7 +1167,7 @@ html.keyboard .sheet-body {
     /* the circle stays 50pt from the screen's edge: the padding gives back the card's inset */
     padding-left: calc(21px + 29px * var(--jp));
     padding-right: calc(17px + 4px * var(--jp));
-    border-bottom: 0.5px solid rgb(255 255 255 / calc(0.12 * var(--jp)));
+    border-bottom: 0.5px solid rgb(128 128 128 / calc(0.25 * var(--jp)));
   }
   .jcard-label {
     opacity: var(--jp);

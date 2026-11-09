@@ -1,43 +1,28 @@
 "use client";
 
 import { Group, Segmented } from "@/components/segmented";
-import type { WorkoutLayout } from "@/lib/workout-layout";
+import { VIEWS, type WorkoutView } from "@/lib/workout-layout";
 
-/** The two layout choices for the active workout, in Settings and in the workout's More menu */
-export function WorkoutLayoutControls({
+/** The active workout's three views, in Settings and in the workout's More menu */
+export function WorkoutViewControls({
   value,
   onChange,
 }: {
-  value: WorkoutLayout;
-  onChange: (next: WorkoutLayout) => void;
+  value: WorkoutView;
+  onChange: (next: WorkoutView) => void;
 }) {
   return (
-    <>
-      <Group
-        title="Log button"
-        footer="Centred: the ✓ between Journal and Swap. Pill: the circle in the pill logs, and the pill pulls up the Journal."
-      >
-        <Segmented
-          label="Log button"
-          value={value.log}
-          options={[
-            ["centred", "Centred"],
-            ["pill", "Pill"],
-          ]}
-          onChange={(log) => onChange({ ...value, log })}
-        />
-      </Group>
-      <Group title="Weight and reps" footer="Saved on this device only.">
-        <Segmented
-          label="Weight and reps"
-          value={value.steppers}
-          options={[
-            ["cards", "Cards"],
-            ["list", "Inset list"],
-          ]}
-          onChange={(steppers) => onChange({ ...value, steppers })}
-        />
-      </Group>
-    </>
+    <Group title="Workout view" footer={`${VIEWS[value].summary}. Saved on this device only.`}>
+      <Segmented
+        label="Workout view"
+        value={String(value)}
+        options={[
+          ["1", "View 1"],
+          ["2", "View 2"],
+          ["3", "View 3"],
+        ]}
+        onChange={(v) => onChange(Number(v) as WorkoutView)}
+      />
+    </Group>
   );
 }

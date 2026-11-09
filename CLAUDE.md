@@ -666,7 +666,7 @@ query directly.
 
 ## Colours: Apple's iOS 27 system colours
 
-Decided 2026-11-08, not built yet (Frank's call, from the Fixed Stage prototype,
+Decided and built 2026-11-08 (Frank's call, from the Fixed Stage prototype,
 https://claude.ai/artifact/Pi7NdnzFdCp5EWNetaSSZg). Every screen uses Apple's system colours from the iOS 27 kit's Colors
 page (Figma `wH8YZbekJXNew109clIJz1`, Backgrounds 5532:7801, Labels 5532:8406), in light and dark, as one set of tokens.
 The active workout, sheets and the Journal follow the appearance like every other screen; nothing keeps its own dark.
@@ -679,43 +679,52 @@ The active workout, sheets and the Journal follow the appearance like every othe
 | Primary text | `#000000` | `#ffffff` | |
 | Secondary text | `#3c3c43` at 60% | `#ebebf5` at 70% | |
 | Tertiary text | `#3c3c43` at 30% | `#ebebf5` at 30% | |
-| Divider | black at 12% (solved from a screenshot; confirm in Figma) | white at 17% | |
+| Divider | black at 12% | white at 17% | |
 
 A sheet redefines the same tokens to the dark column on the right (Apple's elevated set), so a card on a sheet steps up
 by itself; light has no elevated set. Fades over the active workout's illustration use the screen token. Text people need
 to read uses secondary; tertiary is for placeholders, chevrons, disabled items and icons in empty art. Text over images
-or a coloured tile stays fixed white. The gold record icon gets a token (`#b38f00` light, `#ffd60a` dark). The audit of
-what changes is in the session of 2026-11-08: `--ink-2` dark 60% to 70%, `--sep` both modes, readable `text-ink-3` to
-`text-ink-2`, and the active workout's hard-coded whites to the tokens.
+or a coloured tile stays fixed white. The gold record icon gets a token (`#b38f00` light, `#ffd60a` dark). In `globals.css`
+the dark elevated set is a rule on `.glass-sheet` and `.jcard`. The status bar colour and the manifest use `#000000` in
+dark. Blue is still the older `#007aff` / `#0a84ff` (the kit's iOS 27 blues, `#0088ff` / `#0091ff`, are not adopted).
 
 ## Active workout
 
-Aligned with Ladder, except the ending (Frank's calls, 2026-11-08, from the prototypes in the Workout App Teardown,
-https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v). `src/app/workouts/[id]/active-workout.tsx` is one screen per set on a
-dark stage, a media page: the top bar holds the clock and percent done (logged rows over all rows) and More; segments
-under it are the exercises (tap one to look at it); the header is the exercise name, its set circles (W, numbers, D;
-filled when logged, ringed when next) and "Up next"; the illustration fills the space between the header and "Last
-time" plus 35pt into each, never cropped. It comes first in the DOM (CSS `order` puts it back) because the glass
-painter draws in DOM order, so the header and "Last time" paint over it, each on a short 70pt dark fade at 65% that
-covers only the image's bleed, leaving the illustration at full strength (Frank's call, 2026-11-08); then weight and reps on `stepper.tsx` (the iOS stepper under a number that
-shrinks to fit, 5 lb or 2.5 kg and 1 rep a tap, typeable). The toolbar is Journal (with "1 of 4"), the 72pt Glass
-Prominent log button in the middle, and Swap. Swipe sideways to look through the exercises, swipe up for the Journal.
-Logging a working set starts the prescription's rest, which replaces the steppers with an arc, and the log button
-becomes Skip; looking at another exercise during rest shows a Rest capsule that goes back. The screen carries no
-floor, "Preview" or "Swapped from" labels (Frank's call).
+Aligned with Ladder, except the ending, then settled in the Fixed Stage prototype (Frank's calls, 2026-11-08;
+https://claude.ai/artifact/XKi4yGQMMGzJAbWqUQE37v and https://claude.ai/artifact/Pi7NdnzFdCp5EWNetaSSZg).
+`src/app/workouts/[id]/active-workout.tsx` is one screen per set in the app's colours, light or dark like every other
+screen. The top bar is More alone. On its row, from the left: the timer, then the exercises as Apple's progress bar (blue
+for every logged set on the kit's Fills/Primary track, `bg-fill-2`, no other mark; tap a segment to look at that
+exercise). The percentage is gone. Under it the header: the set circles (W, numbers, D; filled blue when logged, an outer
+blue ring on the next), the title and "Up next". The header is the same in work and rest; there is no rest header.
 
-Two independent choices Frank compares on his phone, switched in Settings or from the workout's More menu (More >
-Settings opens a sheet with both, applied at once) and saved per device in the `workout_log` and `workout_steppers`
-cookies (`src/lib/workout-layout.ts`, `src/components/workout-layout-controls.tsx`; his calls, 2026-11-08). The
-`workout_layout` cookie they replaced is read once as the starting point.
+The illustration never moves or resizes: it is the screen's width, square, centred in the space between the header and
+the controls. Both zones hold their tallest size: the header has a minimum height for a two-line title
+(`HEADER_ROOM`), and the controls stack last time with the steppers and the rest arc in one grid cell, the one not in use
+`invisible` (the glass painter skips `visibility: hidden`), so the cell is always the taller. The image comes first in
+the DOM (CSS `order` puts it back) because the painter draws in DOM order, so the header and "Last time" paint over it,
+each on a short 70pt fade at 65% of the screen colour (`--bg-rgb`) that covers only the image's bleed. Weight and reps
+are `Stepper` cards (`bg-card`, the iOS stepper under a number that shrinks to fit, 5 lb or 2.5 kg and 1 rep a tap,
+typeable). Swipe sideways to look through the exercises, swipe up for the Journal. Logging a working set starts the
+prescription's rest, which takes the steppers' place as an arc, and the log button becomes Skip; looking at another
+exercise during rest shows a Rest capsule over the controls that goes back. The screen carries no floor, "Preview" or
+"Swapped from" labels (Frank's call).
 
-- Log button, Centred (the default): the toolbar above.
-- Log button, Pill: Ladder's pill in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass). Its empty circle
-  logs the set (`PillCheck`: a blue fill for a moment when logged, Skip while resting) and the rest of it opens the
-  Journal. Swap moves to the top bar beside More, icon only.
-- Weight and reps, Cards (the default): `Stepper`, the number in Large Title Emphasized (34pt bold, shrinking to fit)
-  over the iOS 27 kit's stepper.
-- Weight and reps, Inset list: the kit's inset list rows (`StepperList`, `StepperRow`).
+Three views, Frank's saved layouts, switched in Settings or from the workout's More menu (More > Settings opens a sheet,
+applied at once) and saved per device in the `workout_view` cookie (`VIEWS` in `src/lib/workout-layout.ts`,
+`src/components/workout-layout-controls.tsx`). Someone whose old `workout_log` was centred starts on View 2, everyone
+else on View 1.
+
+- View 1: the pill, set circles in the header.
+- View 2: the centred log button (the toolbar: Journal with "1 of 4", the 72pt Glass Prominent log button, Swap), set
+  circles in the header.
+- View 3: the pill, set circles inside it (18pt, under the exercise's name).
+
+The pill is Ladder's, in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass): its empty circle logs the set
+(`PillCheck`: a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, and Swap sits at
+its trailing end where the set count was. The More menu has no Swap. The prototype's other options (set circles under
+Last time or as text, steppers as an inset list) are not built; `StepperList` and `StepperRow` stay in `stepper.tsx`
+unused.
 
 In the pill layout the Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
   open under the 62pt status bar; `.jcard` in globals.css). Its content is in it the whole way with the current exercise

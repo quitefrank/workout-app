@@ -93,7 +93,7 @@ export function SwapSheet({ we, onClose }: { we: WorkoutExerciseRow | null; onCl
             }}
             className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[calc(50%-120px)] pb-2 [scrollbar-width:none]"
           >
-            {picks == null && <div className="grid h-[290px] w-[240px] shrink-0 place-items-center text-[15px] text-ink-3">Finding swaps…</div>}
+            {picks == null && <div className="grid h-[290px] w-[240px] shrink-0 place-items-center text-[15px] text-ink-2">Finding swaps…</div>}
             {picks?.map((p) => (
               <div key={p.id} className="grid w-[240px] shrink-0 snap-center content-start gap-1 text-center">
                 <div className="aspect-[1.15] overflow-hidden rounded-[24px] bg-fill">
@@ -155,9 +155,9 @@ export function SwapSheet({ we, onClose }: { we: WorkoutExerciseRow | null; onCl
             />
           </label>
           {library == null ? (
-            <p className="py-8 text-center text-[15px] text-ink-3">Loading the library…</p>
+            <p className="py-8 text-center text-[15px] text-ink-2">Loading the library…</p>
           ) : results.length === 0 ? (
-            <p className="py-8 text-center text-[15px] text-ink-3">No exercise matches “{query}”.</p>
+            <p className="py-8 text-center text-[15px] text-ink-2">No exercise matches “{query}”.</p>
           ) : (
             <div className="grouped">
               {results.slice(0, 120).map((e) => (

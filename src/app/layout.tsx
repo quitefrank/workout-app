@@ -53,10 +53,10 @@ export async function generateViewport(): Promise<Viewport> {
       theme === "system"
         ? [
             { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-            { media: "(prefers-color-scheme: dark)", color: "#181919" },
+            { media: "(prefers-color-scheme: dark)", color: "#000000" },
           ]
         : theme === "dark"
-          ? "#181919"
+          ? "#000000"
           : "#ffffff",
     colorScheme: theme === "system" ? "light dark" : theme,
     width: "device-width",
