@@ -664,6 +664,30 @@ token block in `globals.css` exists twice, under the phone's
 `onAppearanceChange()` in `src/lib/appearance.ts`, never the media
 query directly.
 
+## Colours: Apple's iOS 27 system colours
+
+Decided 2026-11-08, not built yet (Frank's call, from the Fixed Stage prototype,
+https://claude.ai/artifact/Pi7NdnzFdCp5EWNetaSSZg). Every screen uses Apple's system colours from the iOS 27 kit's Colors
+page (Figma `wH8YZbekJXNew109clIJz1`, Backgrounds 5532:7801, Labels 5532:8406), in light and dark, as one set of tokens.
+The active workout, sheets and the Journal follow the appearance like every other screen; nothing keeps its own dark.
+
+| Token | Light | Dark | On a sheet (dark only) |
+|---|---|---|---|
+| Screen | `#ffffff` | `#000000` | `#1c1c1e` |
+| Card | `#f2f2f7` | `#1c1c1e` | `#2c2c2e` |
+| Inside a card | `#ffffff` | `#2c2c2e` | `#3a3a3c` |
+| Primary text | `#000000` | `#ffffff` | |
+| Secondary text | `#3c3c43` at 60% | `#ebebf5` at 70% | |
+| Tertiary text | `#3c3c43` at 30% | `#ebebf5` at 30% | |
+| Divider | black at 12% (solved from a screenshot; confirm in Figma) | white at 17% | |
+
+A sheet redefines the same tokens to the dark column on the right (Apple's elevated set), so a card on a sheet steps up
+by itself; light has no elevated set. Fades over the active workout's illustration use the screen token. Text people need
+to read uses secondary; tertiary is for placeholders, chevrons, disabled items and icons in empty art. Text over images
+or a coloured tile stays fixed white. The gold record icon gets a token (`#b38f00` light, `#ffd60a` dark). The audit of
+what changes is in the session of 2026-11-08: `--ink-2` dark 60% to 70%, `--sep` both modes, readable `text-ink-3` to
+`text-ink-2`, and the active workout's hard-coded whites to the tokens.
+
 ## Active workout
 
 Aligned with Ladder, except the ending (Frank's calls, 2026-11-08, from the prototypes in the Workout App Teardown,
