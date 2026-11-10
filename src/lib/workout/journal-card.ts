@@ -5,8 +5,11 @@
  */
 import { SHEET_STATUS_BAR } from "@/lib/sheet-detent";
 
-/** Ladder's pill, measured from Frank's screenshot at 3x: 67pt tall, 29pt from each side, about 26pt corners */
-export const PILL = { height: 67, inset: 29, radius: 26 } as const;
+/**
+ * Ladder's pill, measured from Frank's screenshot at 3x: 67pt tall, about 26pt corners. 20pt from each side, flush with
+ * the steppers, and its circle 8pt from every edge, as the iOS dock holds its icons (Frank's call, 2026-11-10).
+ */
+export const PILL = { height: 67, inset: 20, padding: 8, radius: 26 } as const;
 
 /** A drag past this many px up opens the card on release */
 export const OPEN_DISTANCE = 90;

@@ -155,8 +155,8 @@ export function JournalCard({
 
 /**
  * The circle that logs (Ladder's): empty until the set is logged, a blue fill for a moment when it is, Skip while
- * resting. 51pt with a 2pt #0082f0 ring and a 21.25pt check (Figma ZD41TUAEBtLJI7t0qChNup, 28:945); it sits 6pt inside
- * the pill, 35pt from the screen's edge, in the pill and in the card's header.
+ * resting. 51pt with a 2pt #0082f0 ring and a 21.25pt check (Figma ZD41TUAEBtLJI7t0qChNup, 28:945); it sits 8pt inside
+ * the pill on every side, 28pt from the screen's edge, in the pill and in the card's header.
  */
 export function PillCheck({
   state,

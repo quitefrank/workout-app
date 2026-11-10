@@ -766,8 +766,9 @@ Swap from More. The header is the same in both. The old `workout_view` cookie is
   target in blue before the exercise's name ("8x Bench Press", "8–10x"; `repTarget` in `active.ts`: the prescription
   for a working set, else the row's prefilled reps, else none). Up next shows only on the exercise's last set, sliding
   in 10pt from the left as it fades (`.upnext-in`); it is hidden, not removed, so nothing moves.
-- The pill is Ladder's, in the dock (67pt, 29pt from each side, 26pt corners, Liquid Glass): its empty circle logs the
-  set (`PillCheck`: 51pt, 6pt inside the pill, a 2pt `#0082f0` ring and a 21.25pt check, from Figma node 28:945, Frank's
+- The pill is Ladder's, in the dock (67pt, 20pt from each side so it lines up with the steppers, 26pt corners, Liquid
+  Glass; Frank's call, 2026-11-10): its empty circle logs the set (`PillCheck`: 51pt, 8pt from every edge of the pill as
+  the iOS dock holds its icons, a 2pt `#0082f0` ring and a 21.25pt check, from Figma node 28:945, Frank's
   call, 2026-11-10; a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, with set
   dots under the name (`PillDots`: 8pt, 4pt apart; logged solid blue, current ringed in blue, upcoming Fills/Primary;
   logging fills the dot as a transition). Swap is Swap Exercise in the More menu.
@@ -777,7 +778,7 @@ The prototype's other options (set circles under Last time, steppers as an inset
 
 The Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
   open under the 62pt status bar; `.jcard` in globals.css). Its content is in it the whole way with the current exercise
-  pinned under the header, as Ladder does, and the circle stays 35pt from the edge. A tap or swipe grows it, a drag past
+  pinned under the header, as Ladder does, and the circle stays 28pt from the edge. A tap or swipe grows it, a drag past
   90pt or a flick opens it, the header pulls down to close (`src/lib/workout/journal-card.ts`, tested). The card is CSS
   on both glass paths: `[data-unpainted]` keeps it out of the painted page, as sheets are.
 

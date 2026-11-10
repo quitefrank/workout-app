@@ -1128,7 +1128,7 @@ html.keyboard .sheet-body {
 }
 
 /* The pill layout's Journal card (src/app/workouts/[id]/journal-card.tsx): one shape from Ladder's pill (--jp 0: 67pt
-   tall, 29pt from each side, 26pt corners, resting on the dock's bottom) to the open sheet (--jp 1: edge to edge under
+   tall, 20pt from each side as the steppers above, 26pt corners, resting on the dock's bottom) to the open sheet (--jp 1: edge to edge under
    the 62pt status bar, 38pt top corners, as the iOS 27 kit's large sheet). The content stays in it the whole way. */
 @property --jp {
   syntax: "<number>";
@@ -1157,8 +1157,8 @@ html.keyboard .sheet-body {
     flex-direction: column;
     overflow: hidden;
     top: calc((100% - var(--dock-bottom) - 67px) * (1 - var(--jp)) + 62px * var(--jp));
-    left: calc(29px * (1 - var(--jp)));
-    right: calc(29px * (1 - var(--jp)));
+    left: calc(20px * (1 - var(--jp)));
+    right: calc(20px * (1 - var(--jp)));
     bottom: calc(var(--dock-bottom) * (1 - var(--jp)));
     border-radius: calc(26px + 12px * var(--jp)) calc(26px + 12px * var(--jp)) calc(26px * (1 - var(--jp))) calc(26px * (1 - var(--jp)));
     background: rgb(var(--bg-rgb) / calc(0.6 + 0.37 * var(--jp)));
@@ -1176,9 +1176,9 @@ html.keyboard .sheet-body {
     display: flex;
     align-items: center;
     gap: 17px;
-    /* the circle stays 35pt from the screen's edge: the padding gives back the card's inset */
-    padding-left: calc(6px + 29px * var(--jp));
-    padding-right: calc(17px + 4px * var(--jp));
+    /* the circle stays 28pt from the screen's edge: the padding gives back the card's inset */
+    padding-left: calc(8px + 20px * var(--jp));
+    padding-right: calc(8px + 13px * var(--jp));
     border-bottom: 0.5px solid rgb(128 128 128 / calc(0.25 * var(--jp)));
   }
   .jcard-label {

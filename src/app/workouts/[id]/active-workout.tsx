@@ -802,7 +802,7 @@ export function ActiveWorkout({
           </div>
         ) : (
           <div
-            className="glass pointer-events-auto relative mx-[29px] flex h-[67px] touch-none select-none items-center pl-[6px] pr-[17px] [--r:26px]"
+            className="glass pointer-events-auto relative mx-5 flex h-[67px] touch-none select-none items-center px-[8px] [--r:26px]"
             style={cardOpen ? { visibility: "hidden" } : undefined}
             onPointerDown={onPillDown}
           >
