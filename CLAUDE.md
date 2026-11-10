@@ -692,8 +692,13 @@ off: the keyboard rule fitting the scroller to the visible area, which moved the
 scrolling the window into the home screen app's 50pt overhang despite `overflow: hidden`, which
 `followVisualViewport` undoes once a frame and then sets the same selection again so the caret is redrawn. With
 nothing left to scroll, the focus screen lifts itself above the keyboard as the HIG's keyboard layout guide does:
-`--focus-lift` (`focusLift` in `src/lib/scroller.ts`, tested) moves its top and bottom, never a transform, so the
-focused card ends 16pt above the keyboard, and the caret is redrawn after each change. Tapping a stepper's number puts
+`--focus-lift` (`focusLift` in `src/lib/scroller.ts`, tested) moves its top and bottom, never a transform, until the
+focused field is centred in what the keyboard leaves visible. That is where iOS itself scrolls a field it reveals
+(measured on the phone with a frame recorder: 196pt above and below in a 433pt viewport), so switching fields moves
+nothing. The lift glides with a transition and the caret is redrawn when it settles. A scroll iOS makes anyway (379pt
+in one frame as the keyboard opens) is absorbed in the same event: the window goes back to 0 and the lift takes over
+where the screen shows, then glides on. Undoing it a frame later, or holding the lift after the keyboard closes, read
+as jumps on the phone. Tapping a stepper's number puts
 the caret after the digits.
 
 Muscle art: Frank's Notion Muscle Groups covers, traced by

@@ -417,6 +417,20 @@ html.keyboard .app-scroller:has([data-focus-screen]) > div {
 /* Keyed on the lift alone, not html.keyboard, which can drop for a moment while focus moves between fields */
 [data-focus-screen] {
   top: calc(-1 * var(--focus-lift, 0px));
+  /* glides with the keyboard; .lift-snap holds it still while a scroll iOS made is absorbed */
+  transition:
+    top 0.35s cubic-bezier(0.32, 0.72, 0, 1),
+    bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+html.lift-snap [data-focus-screen] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-focus-screen] {
+    transition: none;
+  }
 }
 
 html:not(.standalone) [data-focus-screen] {

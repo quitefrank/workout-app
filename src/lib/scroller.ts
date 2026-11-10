@@ -31,18 +31,14 @@ export function scrollTop(): number {
   return appScroller()?.scrollTop ?? 0;
 }
 
-/** Room left between the focused stepper's card and the top of the keyboard's accessory bar, in pt */
-export const LIFT_CLEARANCE = 16;
-
-/** How long the keyboard must stay down before the focus screen drops back, in ms (a field switch is shorter) */
-export const LIFT_HOLD_MS = 180;
-
 /**
- * How far to lift the focus screen so a card whose bottom sits at `restingBottom` (unlifted, on screen) clears the
- * visible area's bottom edge by LIFT_CLEARANCE; never down, whole points.
+ * How far to lift the focus screen so the focused field sits centred in what the keyboard leaves visible, which is
+ * where iOS itself scrolls a field it reveals (measured on the phone, 2026-11-10: a switch between steppers scrolled
+ * the field to exactly 196pt above and below it in a 433pt viewport). With the field already there, iOS has nothing
+ * to scroll. `restingCenter` is the field's centre with no lift; never down, whole points.
  */
-export function focusLift(restingBottom: number, visibleBottom: number): number {
-  return Math.max(0, Math.ceil(restingBottom + LIFT_CLEARANCE - visibleBottom));
+export function focusLift(restingCenter: number, visibleHeight: number): number {
+  return Math.max(0, Math.round(restingCenter - visibleHeight / 2));
 }
 
 /**
@@ -75,35 +71,39 @@ export function followVisualViewport(): () => void {
     html.classList.add("standalone");
     html.style.setProperty("--screen-h", `${window.screen.height}px`);
   }
-  // The focus screen never scrolls, so iOS has nothing to scroll to reveal a stepper and the keyboard covers it. As
-  // the keyboard layout guide does, the screen is lifted (--focus-lift, globals.css) just enough to keep the focused
-  // stepper's card above the keyboard, and the caret, which iOS does not move with the field, is redrawn after.
-  // Moving between fields (a tap or the keyboard's arrows) blurs one before focusing the next, and iOS can report the
-  // keyboard gone for a moment in between, so the lift is held: it only grows while the keyboard is up (a card already
-  // in view moves nothing, focus and caret just switch), and drops back only once the keyboard has stayed down.
+  // The focus screen never scrolls, so the keyboard would cover its steppers. As the keyboard layout guide does, the
+  // screen is lifted (--focus-lift, globals.css) until the focused field sits where iOS reveals a field, centred in
+  // what is visible, so switching fields moves nothing. A lift glides (a transition on top) and the caret, which iOS
+  // does not move with the field, is redrawn when it settles; a scroll iOS makes anyway is absorbed at once (below).
   let lift = 0;
-  let dropTimer = 0;
-  const setLift = (next: number, el: Element | null) => {
+  const focusedField = (): HTMLInputElement | null => {
+    const el = document.activeElement;
+    return el instanceof HTMLInputElement && el.closest("[data-focus-screen]") ? el : null;
+  };
+  const setLift = (next: number, snap: boolean) => {
     if (next === lift) return;
     lift = next;
+    if (snap) html.classList.add("lift-snap");
     html.style.setProperty("--focus-lift", `${lift}px`);
-    if (el instanceof HTMLInputElement) requestAnimationFrame(() => redrawCaret(el));
+    if (snap) {
+      void getComputedStyle(document.querySelector("[data-focus-screen]") ?? html).top;
+      html.classList.remove("lift-snap");
+      const el = focusedField();
+      if (el) requestAnimationFrame(() => redrawCaret(el));
+    }
   };
   const liftFocusScreen = () => {
-    if (!html.classList.contains("keyboard")) {
-      if (lift && !dropTimer)
-        dropTimer = window.setTimeout(() => {
-          dropTimer = 0;
-          if (!html.classList.contains("keyboard")) setLift(0, null);
-        }, LIFT_HOLD_MS);
-      return;
-    }
-    clearTimeout(dropTimer);
-    dropTimer = 0;
-    const el = document.activeElement;
-    const card = el instanceof HTMLInputElement && el.closest("[data-focus-screen]") ? el.parentElement : null;
-    if (!card) return;
-    setLift(Math.max(lift, focusLift(card.getBoundingClientRect().bottom + lift, vv.height)), el);
+    if (!html.classList.contains("keyboard")) return setLift(0, false);
+    const el = focusedField();
+    const screen = el?.closest<HTMLElement>("[data-focus-screen]");
+    if (!el || !screen) return;
+    const r = el.getBoundingClientRect();
+    // measured from the screen's own top, so a lift still gliding does not count
+    setLift(focusLift(r.top - screen.getBoundingClientRect().top + r.height / 2, vv.height), false);
+  };
+  const onLiftSettled = (e: TransitionEvent) => {
+    const el = focusedField();
+    if (el && e.propertyName === "top" && (e.target as Element).matches?.("[data-focus-screen]")) redrawCaret(el);
   };
   const update = () => {
     html.style.setProperty("--vv-top", `${Math.max(0, Math.round(vv.offsetTop))}px`);
@@ -116,10 +116,10 @@ export function followVisualViewport(): () => void {
     const t = e.target instanceof Element ? e.target : null;
     if (!t?.closest(`${SCROLLER}, .glass-sheet`)) e.preventDefault();
   };
-  // The window never scrolls, but iOS ignores overflow: hidden when it reveals a focused field, and a home screen
-  // app's 50pt-short window leaves the 812pt scroller 50pt of overhang to scroll. The caret stays where it was drawn
-  // before that scroll, 50pt off. So the window goes back to 0 once a frame (never a loop with iOS's own animation),
-  // and the caret is redrawn once per focus by setting the same selection again. vv.offsetTop is left alone (above).
+  // The window never scrolls, but iOS ignores overflow: hidden when it reveals a focused field (as the keyboard opens
+  // it scrolled 379pt in one frame). On the focus screen the scroll is absorbed in the same event: the window goes back
+  // to 0 and the lift takes the same amount, so nothing on screen moves, then the lift glides on to its target.
+  // Elsewhere the window goes back to 0 once a frame, and the caret is redrawn once per focus.
   let resetFrame = 0;
   let reasserted: Element | null = null;
   const resetWindow = () => {
@@ -133,6 +133,17 @@ export function followVisualViewport(): () => void {
     }
   };
   const onWindowScroll = () => {
+    const y = Math.round(window.scrollY);
+    const screen = focusedField()?.closest<HTMLElement>("[data-focus-screen]");
+    if (y > 0 && screen) {
+      // where the screen shows now, with iOS's scroll and any glide in progress, held while the window goes back
+      const shown = Math.max(0, Math.round(-screen.getBoundingClientRect().top));
+      window.scrollTo(0, 0);
+      lift = -1;
+      setLift(shown, true);
+      requestAnimationFrame(liftFocusScreen);
+      return;
+    }
     if (!resetFrame) resetFrame = requestAnimationFrame(resetWindow);
   };
   const onFocusOut = () => {
@@ -147,14 +158,15 @@ export function followVisualViewport(): () => void {
   document.addEventListener("focusout", onFocusOut);
   document.addEventListener("focusin", onFocusIn);
   document.addEventListener("touchmove", hold, { passive: false });
+  document.addEventListener("transitionend", onLiftSettled);
   return () => {
+    document.removeEventListener("transitionend", onLiftSettled);
     vv.removeEventListener("resize", update);
     vv.removeEventListener("scroll", update);
     window.removeEventListener("scroll", onWindowScroll);
     document.removeEventListener("focusout", onFocusOut);
     document.removeEventListener("focusin", onFocusIn);
     cancelAnimationFrame(resetFrame);
-    clearTimeout(dropTimer);
     document.removeEventListener("touchmove", hold);
     html.style.removeProperty("--focus-lift");
     html.style.removeProperty("--vv-top");
