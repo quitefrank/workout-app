@@ -690,7 +690,11 @@ moves without an edit, so nothing may move a focused field afterwards. Two thing
 off: the keyboard rule fitting the scroller to the visible area, which moved the focus screen (absolute under
 `html.gpu`, so the scroller is its containing block), now skipped under `:has([data-focus-screen])`; and iOS
 scrolling the window into the home screen app's 50pt overhang despite `overflow: hidden`, which
-`followVisualViewport` undoes once a frame and then sets the same selection again so the caret is redrawn.
+`followVisualViewport` undoes once a frame and then sets the same selection again so the caret is redrawn. With
+nothing left to scroll, the focus screen lifts itself above the keyboard as the HIG's keyboard layout guide does:
+`--focus-lift` (`focusLift` in `src/lib/scroller.ts`, tested) moves its top and bottom, never a transform, so the
+focused card ends 16pt above the keyboard, and the caret is redrawn after each change. Tapping a stepper's number puts
+the caret after the digits.
 
 Muscle art: Frank's Notion Muscle Groups covers, traced by
 `scripts/trace-muscle-art.ts` into `src/components/muscle-art/paths.ts`

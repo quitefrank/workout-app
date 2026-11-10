@@ -38,6 +38,18 @@ function useValueField({ field, value, onChange }: Props) {
       commit(e.target.value);
     },
     onBlur: () => setText(null),
+    // the caret goes after the digits, wherever the tap landed, so a backspace or a digit edits the number's end;
+    // iOS places the caret from the tap after focus, so this runs a frame later and once more after the tap settles
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => {
+      const el = e.currentTarget;
+      const toEnd = () => {
+        if (document.activeElement !== el) return;
+        const end = el.value.length;
+        el.setSelectionRange(end, end);
+      };
+      requestAnimationFrame(toEnd);
+      setTimeout(toEnd, 120);
+    },
   };
 }
 
@@ -80,6 +92,7 @@ export function Stepper(props: Props & { label: string; glass?: boolean }) {
         placeholder="–"
         onChange={f.onChange}
         onBlur={f.onBlur}
+        onFocus={f.onFocus}
         className="tabular h-[41px] w-full min-w-0 bg-transparent p-0 text-center text-[34px] font-bold leading-[41px] tracking-[0.4px] text-ink outline-none placeholder:text-ink-3 focus:text-blue"
       />
       <KitStepper {...props} className="mx-auto" />
@@ -111,6 +124,7 @@ export function StepperRow(props: Props & { first?: boolean }) {
           placeholder="–"
           onChange={f.onChange}
           onBlur={f.onBlur}
+        onFocus={f.onFocus}
           className="tabular w-16 bg-transparent p-0 text-right text-[17px] text-inherit outline-none focus:text-blue"
         />
         {field === "weight" && <span>{unit}</span>}
