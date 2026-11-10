@@ -25,7 +25,7 @@ import { hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
-import { setGlassSteppers, setPillSwap, setWorkoutVersion, VERSIONS, type WorkoutVersion } from "@/lib/workout-layout";
+import { PILL_STYLES, setGlassSteppers, setPillStyle, setPillSwap, setWorkoutVersion, VERSIONS, type PillStyle, type WorkoutVersion } from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { TopBar } from "@/components/top-bar";
@@ -98,18 +98,22 @@ export function ActiveWorkout({
   version: initialVersion,
   glassSteppers: initialGlass,
   pillSwap: initialPillSwap,
+  pillStyle: initialPillStyle,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
   version: WorkoutVersion;
   glassSteppers: boolean;
   pillSwap: boolean;
+  pillStyle: PillStyle;
 }) {
   // Version 1 is the pill, Version 2 the toolbar under the steppers (src/lib/workout-layout.ts), switched in More
   const [version, setVersion] = useState(initialVersion);
   // Glass stepper cards, a Settings switch saved on this device (src/lib/workout-layout.ts)
   const [glassSteppers, setGlass] = useState(initialGlass);
   const [pillSwap, setSwapInPill] = useState(initialPillSwap);
+  const [pillStyle, setStyleOfPill] = useState(initialPillStyle);
+  const pill = PILL_STYLES[pillStyle];
   const toolbar = version === 2;
   const [journalSheet, setJournalSheet] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -509,14 +513,10 @@ export function ActiveWorkout({
       <SwapIcon size={22} />
     </button>
   );
-  const logCheck = (
-    <PillCheck
-      state={logState}
-      flash={flash}
-      disabled={logDisabled}
-      onClick={onLogTap}
-    />
+  const checkAt = (size: number) => (
+    <PillCheck state={logState} flash={flash} disabled={logDisabled} onClick={onLogTap} size={size} />
   );
+  const logCheck = checkAt(51);
 
   return (
     <>
@@ -550,7 +550,7 @@ export function ActiveWorkout({
           className="relative flex h-full flex-col"
           style={{
             paddingTop: "var(--bar-top)",
-            paddingBottom: toolbar ? "calc(var(--dock-bottom) + 72px + 20px)" : "calc(var(--dock-bottom) + 67px + 20px)",
+            paddingBottom: toolbar ? "calc(var(--dock-bottom) + 72px + 20px)" : `calc(var(--dock-bottom) + ${pill.height}px + 20px)`,
           }}
         >
           {/* The More button's row holds the timer, centred on the button; under it the exercises as Apple's progress bar
@@ -824,31 +824,33 @@ export function ActiveWorkout({
             </button>
           </div>
         ) : (
-          <div
-            className="glass pointer-events-auto relative mx-5 flex h-[67px] touch-none select-none items-center px-[8px] [--r:26px]"
-            style={cardOpen ? { visibility: "hidden" } : undefined}
+          <Pill
+            style={pillStyle}
+            hidden={!!cardOpen}
             onPointerDown={onPillDown}
-          >
-            <span data-pill-check className="contents">
-              {logCheck}
-            </span>
-            <button
-              type="button"
-              aria-label="Journal"
-              onClick={(e) => {
-                if (e.timeStamp - pillSwallow.current < 300) return;
-                openJournal();
-              }}
-              className="flex h-full min-w-0 flex-1 flex-col justify-center gap-1 pl-[17px] text-left"
-            >
-              {shown && <PillDots rows={shown.rows} current={rowIndex} />}
-              <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
-                {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
-              </span>
-            </button>
-            {/* Swap at the trailing end (Figma 3:164: 44pt, the 22pt icon), behind Settings' Swap in Pill switch */}
-            {pillSwap && pillSwapButton}
-          </div>
+            check={checkAt}
+            swap={pillSwap ? pillSwapButton : null}
+            swapGlass={
+              pillSwap ? (
+                <button
+                  type="button"
+                  data-pill-swap
+                  aria-label="Swap exercise"
+                  disabled={!shown}
+                  onClick={() => shown && setSwapFor(shown.we)}
+                  className="glass pointer-events-auto grid size-12 shrink-0 place-items-center disabled:opacity-40 [--r:24px]"
+                >
+                  <SwapIcon size={22} />
+                </button>
+              ) : null
+            }
+            onJournal={(e) => {
+              if (e.timeStamp - pillSwallow.current < 300) return;
+              openJournal();
+            }}
+            dots={shown ? <PillDots rows={shown.rows} current={rowIndex} /> : null}
+            title={shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
+          />
         )}
       </div>
 
@@ -918,7 +920,17 @@ export function ActiveWorkout({
             />
           </Group>
           {!toolbar && (
-            <Group title="Pill" footer="A Swap button at the end of the pill. Off, Swap Exercise is in More. Saved on this device only.">
+            <Group title="Pill" footer="Ladder's pill or one of iOS 27's smaller bars, and a Swap button at the end. Off, Swap Exercise is in More. Saved on this device only.">
+              <Segmented
+                label="Pill style"
+                value={pillStyle}
+                options={(Object.keys(PILL_STYLES) as PillStyle[]).map((k) => [k, PILL_STYLES[k].label])}
+                onChange={(v) => {
+                  const next = v as PillStyle;
+                  setStyleOfPill(next);
+                  setPillStyle(next);
+                }}
+              />
               <SwitchRow
                 label="Swap in Pill"
                 on={pillSwap}
@@ -943,6 +955,7 @@ export function ActiveWorkout({
         title={shown ? exerciseTitle(shown.we.exercises) : (workout.templates?.name ?? "Workout")}
         dots={shown ? <PillDots rows={shown.rows} current={rowIndex} /> : undefined}
         trailing={pillSwap ? pillSwapButton : undefined}
+        pillShape={{ "--pill-h": `${pill.height}px`, "--pill-inset": `${pill.inset}px`, "--pill-r": `${pill.radius}px` } as React.CSSProperties}
         current={shown?.we.id ?? null}
       >
         <JournalBody {...journalProps} />
@@ -1005,6 +1018,109 @@ function SetText({ rows, current, className }: { rows: SetRowView[]; current: nu
  * The set dots in the pill (Frank's Figma frame, 2026-11-09): 8pt, 4pt apart; logged solid blue, the current set
  * ringed in blue, the rest in Fills/Primary. Logging fills the current dot to blue as a transition.
  */
+/**
+ * The pill in its four styles (PILL_STYLES in src/lib/workout-layout.ts). Every style keeps the log check leading, 28pt
+ * from the screen's edge, the set dots over the title in the middle (a tap opens the Journal, a drag up pulls it open), and
+ * Swap trailing when Settings has it on. Glass on each separate shape, as iOS 27's bars draw them.
+ */
+function Pill({
+  style,
+  hidden,
+  onPointerDown,
+  check,
+  swap,
+  swapGlass,
+  onJournal,
+  dots,
+  title,
+}: {
+  style: PillStyle;
+  hidden: boolean;
+  onPointerDown: (e: ReactPointerEvent) => void;
+  check: (size: number) => React.ReactNode;
+  /** Swap as a plain 44pt button (inside a pill) */
+  swap: React.ReactNode;
+  /** Swap as its own 48pt glass circle (the split style) */
+  swapGlass: React.ReactNode;
+  onJournal: (e: React.MouseEvent) => void;
+  dots: React.ReactNode;
+  title: string;
+}) {
+  const vis = hidden ? ({ visibility: "hidden" } as const) : undefined;
+  const middle = (pad: string, small?: boolean) => (
+    <button
+      type="button"
+      aria-label="Journal"
+      onClick={onJournal}
+      className={cn("flex h-full min-w-0 flex-1 flex-col justify-center text-left", small ? "gap-0.5" : "gap-1", pad)}
+    >
+      {dots}
+      <span
+        className={cn(
+          "w-full truncate font-semibold tracking-[-0.43px]",
+          small ? "text-[15px] leading-[18px]" : "text-[17px] leading-[22px]",
+        )}
+      >
+        {title}
+      </span>
+    </button>
+  );
+
+  if (style === "capsule")
+    return (
+      <div
+        className="glass pointer-events-auto relative mx-[21px] flex h-[50px] touch-none select-none items-center px-[7px] [--r:25px]"
+        style={vis}
+        onPointerDown={onPointerDown}
+      >
+        <span data-pill-check className="contents">
+          {check(36)}
+        </span>
+        {middle("pl-3")}
+        {swap && <span className="grid size-9 shrink-0 place-items-center rounded-full bg-fill [&>button]:size-9">{swap}</span>}
+      </div>
+    );
+
+  if (style === "split")
+    return (
+      <div className="pointer-events-auto mx-7 flex h-12 touch-none select-none items-center gap-3" style={vis} onPointerDown={onPointerDown}>
+        <span data-pill-check className="glass grid size-12 shrink-0 place-items-center [--r:24px]">
+          {check(48)}
+        </span>
+        <div className="glass flex h-12 min-w-0 flex-1 items-center [--r:24px]">{middle("px-4", true)}</div>
+        {swapGlass}
+      </div>
+    );
+
+  if (style === "leading")
+    return (
+      <div className="pointer-events-auto mx-7 flex h-10 touch-none select-none items-center gap-3" style={vis} onPointerDown={onPointerDown}>
+        <span data-pill-check className="glass grid size-10 shrink-0 place-items-center [--r:20px]">
+          {check(40)}
+        </span>
+        <div className="glass flex h-10 min-w-0 flex-1 items-center pr-1 [--r:20px]">
+          {middle("pl-4", true)}
+          {swap && <span className="grid size-9 shrink-0 place-items-center [&>button]:size-9">{swap}</span>}
+        </div>
+      </div>
+    );
+
+  return (
+    <div
+      className="glass pointer-events-auto relative mx-5 flex h-[67px] touch-none select-none items-center px-[8px] [--r:26px]"
+      style={vis}
+      onPointerDown={onPointerDown}
+    >
+      <span data-pill-check className="contents">
+        {check(51)}
+      </span>
+      {middle("pl-[17px]")}
+      {/* Swap at the trailing end (Figma 3:164: 44pt, the 22pt icon), behind Settings' Swap in Pill switch */}
+      {swap}
+    </div>
+  );
+}
+
 /** A Settings row with the iOS switch (51 × 31pt, green when on) */
 function SwitchRow({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
   return (

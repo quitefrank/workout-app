@@ -33,8 +33,11 @@ export function JournalCard({
   dots,
   trailing,
   current,
+  pillShape,
   children,
 }: {
+  /** the pill it grows from: --pill-h, --pill-inset and --pill-r (globals.css), Ladder's 67, 20 and 26 by default */
+  pillShape?: React.CSSProperties;
   controlRef: MutableRefObject<CardControl | null>;
   /** where the card starts: the finger's progress if a drag opened it, else 0 */
   startRef: MutableRefObject<number>;
@@ -129,7 +132,7 @@ export function JournalCard({
   };
 
   return createPortal(
-    <div ref={stage} data-unpainted className="jcard-stage" role="dialog" aria-modal="true" aria-label="Journal">
+    <div ref={stage} data-unpainted className="jcard-stage" role="dialog" aria-modal="true" aria-label="Journal" style={pillShape}>
       <div className="jcard-scrim" onClick={() => controlRef.current?.settle(0)} />
       <div className="jcard">
         <div
@@ -171,7 +174,10 @@ export function PillCheck({
   flash,
   disabled,
   onClick,
+  size = 51,
 }: {
+  /** the circle's size in pt; the icons scale with it (51 in Ladder's pill, 36 to 48 in the iOS 27 styles) */
+  size?: number;
   /** start and stop run a timed set: a stretch's hold, an outdoor run's stopwatch */
   state: "log" | "skip" | "finish" | "start" | "stop";
   flash: boolean;
@@ -179,6 +185,7 @@ export function PillCheck({
   onClick: () => void;
 }) {
   const skip = state === "skip" && !flash;
+  const k = size / 51;
   return (
     <button
       type="button"
@@ -199,18 +206,19 @@ export function PillCheck({
         onClick();
       }}
       className={cn(
-        "relative grid size-[51px] shrink-0 place-items-center rounded-full disabled:opacity-50",
+        "relative grid shrink-0 place-items-center rounded-full disabled:opacity-50",
         flash ? "pill-check-fill bg-blue text-white" : "shadow-[inset_0_0_0_2px_#0082f0]",
       )}
+      style={{ width: size, height: size }}
     >
       {skip ? (
-        <SkipIcon size={20} />
+        <SkipIcon size={20 * k} />
       ) : state === "start" && !flash ? (
-        <PlayIcon size={18} className="translate-x-[1.5px]" />
+        <PlayIcon size={18 * k} className="translate-x-[1.5px]" />
       ) : state === "stop" && !flash ? (
-        <StopIcon size={17} />
+        <StopIcon size={17 * k} />
       ) : (
-        <CheckIcon size={21.25} strokeWidth={2.6} />
+        <CheckIcon size={21.25 * k} strokeWidth={2.6} />
       )}
     </button>
   );

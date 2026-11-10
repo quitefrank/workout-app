@@ -811,6 +811,13 @@ lifts over the canvas while typing.
   (Figma 3:164), behind Settings' Swap in Pill switch, on by default and saved per device in the `workout_pill_swap`
   cookie (Frank's call, 2026-11-10); while it is on, Swap Exercise leaves the More menu, and off, it is back there. The open Journal's header keeps the same
   button at the same place.
+- Pill Style in the same Settings group (Frank's call, 2026-11-10, a view to experiment with, saved per device in the
+  `workout_pill_style` cookie; `PILL_STYLES` in `src/lib/workout-layout.ts`, `Pill` in `active-workout.tsx`): Ladder (the
+  pill above, the default) or one of iOS 27's smaller bars measured off Figma 56:3 at 375pt. Capsule (ChatGPT's): one 50pt
+  capsule 21pt from the sides with a 36pt check and a 36pt Swap 7pt in. Split: 48pt glass circles 28pt from the edges and
+  12pt from a 48pt capsule. Leading (Messages'): a 40pt circle 12pt from a 40pt capsule with Swap inside at its end. The
+  check is 28pt from the edge in every style (`PillCheck` takes a size), and the Journal card grows from the chosen shape
+  (`--pill-h`, `--pill-inset`, `--pill-r` on `.jcard-stage`).
 
 The prototype's other options (set circles under Last time, steppers as an inset list) are not built; `StepperList` and
 `StepperRow` stay in `stepper.tsx` unused.

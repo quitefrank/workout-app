@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getSettings, getWorkout } from "@/lib/data/queries";
-import { glassSteppersFrom, pillSwapFrom, workoutVersionFrom } from "@/lib/workout-layout";
+import { glassSteppersFrom, pillStyleFrom, pillSwapFrom, workoutVersionFrom } from "@/lib/workout-layout";
 import { ActiveWorkout } from "./active-workout";
 
 export const metadata = { title: "Workout" };
@@ -19,6 +19,7 @@ export default async function WorkoutPage({ params }: { params: Promise<{ id: st
       version={workoutVersionFrom(cookie)}
       glassSteppers={glassSteppersFrom(cookie)}
       pillSwap={pillSwapFrom(cookie)}
+      pillStyle={pillStyleFrom(cookie)}
     />
   );
 }

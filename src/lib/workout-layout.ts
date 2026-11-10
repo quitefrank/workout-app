@@ -55,3 +55,31 @@ export function pillSwapFrom(get: (name: string) => string | undefined): boolean
 export function setPillSwap(on: boolean) {
   document.cookie = `${PILL_SWAP_COOKIE}=${on ? 1 : 0}; path=/; max-age=31536000; samesite=lax`;
 }
+
+/**
+ * The pill's style (Frank's call, 2026-11-10, from the iOS 27 bars in Figma ZD41TUAEBtLJI7t0qChNup 56:3, measured at
+ * 375pt). Ladder's pill is the default; the others are iOS 27's smaller nav bars, the log check always leading and Swap
+ * trailing, the check 28pt from the screen's edge in every style.
+ * - `capsule` (ChatGPT's): one 50pt capsule 21pt from the sides, a 36pt check and a 36pt Swap inside, 7pt in.
+ * - `split` (search, field, compose): a 48pt glass circle each side, 28pt from the edges, 12pt from a 48pt capsule.
+ * - `leading` (Messages'): a 40pt glass circle, 12pt from a 40pt capsule with Swap inside at its trailing end.
+ */
+export type PillStyle = "ladder" | "capsule" | "split" | "leading";
+
+export const PILL_STYLES: Record<PillStyle, { label: string; height: number; inset: number; radius: number }> = {
+  ladder: { label: "Ladder", height: 67, inset: 20, radius: 26 },
+  capsule: { label: "Capsule", height: 50, inset: 21, radius: 25 },
+  split: { label: "Split", height: 48, inset: 28, radius: 24 },
+  leading: { label: "Leading", height: 40, inset: 28, radius: 20 },
+};
+
+export const PILL_STYLE_COOKIE = "workout_pill_style";
+
+export function pillStyleFrom(get: (name: string) => string | undefined): PillStyle {
+  const v = get(PILL_STYLE_COOKIE);
+  return v === "capsule" || v === "split" || v === "leading" ? v : "ladder";
+}
+
+export function setPillStyle(style: PillStyle) {
+  document.cookie = `${PILL_STYLE_COOKIE}=${style}; path=/; max-age=31536000; samesite=lax`;
+}
