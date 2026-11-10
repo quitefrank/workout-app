@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { debugState } from "./debug-state";
+import { startTrace } from "@/lib/trace";
 
 /**
  * A readout of the glass renderer's state, for checking it on the phone where there is no console. Off unless the URL
@@ -51,6 +52,8 @@ export function GlassDebug() {
       document.removeEventListener("focusin", soon); document.removeEventListener("focusout", soon);
     };
   }, []);
+  // the temporary frame recorder for the stepper keyboard bug runs while the readout is on
+  useEffect(() => (on ? startTrace() : undefined), [on]);
   if (!on) return null;
   const s = debugState;
   const gpu = typeof document !== "undefined" && document.documentElement.classList.contains("gpu");
