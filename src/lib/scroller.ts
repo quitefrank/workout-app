@@ -34,6 +34,9 @@ export function scrollTop(): number {
 /** Room left between the focused stepper's card and the top of the keyboard's accessory bar, in pt */
 export const LIFT_CLEARANCE = 16;
 
+/** How long the keyboard must stay down before the focus screen drops back, in ms (a field switch is shorter) */
+export const LIFT_HOLD_MS = 180;
+
 /**
  * How far to lift the focus screen so a card whose bottom sits at `restingBottom` (unlifted, on screen) clears the
  * visible area's bottom edge by LIFT_CLEARANCE; never down, whole points.
@@ -75,15 +78,32 @@ export function followVisualViewport(): () => void {
   // The focus screen never scrolls, so iOS has nothing to scroll to reveal a stepper and the keyboard covers it. As
   // the keyboard layout guide does, the screen is lifted (--focus-lift, globals.css) just enough to keep the focused
   // stepper's card above the keyboard, and the caret, which iOS does not move with the field, is redrawn after.
+  // Moving between fields (a tap or the keyboard's arrows) blurs one before focusing the next, and iOS can report the
+  // keyboard gone for a moment in between, so the lift is held: it only grows while the keyboard is up (a card already
+  // in view moves nothing, focus and caret just switch), and drops back only once the keyboard has stayed down.
   let lift = 0;
-  const liftFocusScreen = () => {
-    const el = document.activeElement;
-    const card = el instanceof HTMLInputElement && el.closest("[data-focus-screen]") ? el.parentElement : null;
-    const next = card && html.classList.contains("keyboard") ? focusLift(card.getBoundingClientRect().bottom + lift, vv.height) : 0;
+  let dropTimer = 0;
+  const setLift = (next: number, el: Element | null) => {
     if (next === lift) return;
     lift = next;
     html.style.setProperty("--focus-lift", `${lift}px`);
     if (el instanceof HTMLInputElement) requestAnimationFrame(() => redrawCaret(el));
+  };
+  const liftFocusScreen = () => {
+    if (!html.classList.contains("keyboard")) {
+      if (lift && !dropTimer)
+        dropTimer = window.setTimeout(() => {
+          dropTimer = 0;
+          if (!html.classList.contains("keyboard")) setLift(0, null);
+        }, LIFT_HOLD_MS);
+      return;
+    }
+    clearTimeout(dropTimer);
+    dropTimer = 0;
+    const el = document.activeElement;
+    const card = el instanceof HTMLInputElement && el.closest("[data-focus-screen]") ? el.parentElement : null;
+    if (!card) return;
+    setLift(Math.max(lift, focusLift(card.getBoundingClientRect().bottom + lift, vv.height)), el);
   };
   const update = () => {
     html.style.setProperty("--vv-top", `${Math.max(0, Math.round(vv.offsetTop))}px`);
@@ -134,6 +154,7 @@ export function followVisualViewport(): () => void {
     document.removeEventListener("focusout", onFocusOut);
     document.removeEventListener("focusin", onFocusIn);
     cancelAnimationFrame(resetFrame);
+    clearTimeout(dropTimer);
     document.removeEventListener("touchmove", hold);
     html.style.removeProperty("--focus-lift");
     html.style.removeProperty("--vv-top");

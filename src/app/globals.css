@@ -414,13 +414,13 @@ html.keyboard .app-scroller:has([data-focus-screen]) > div {
 
 /* With nothing to scroll, the focus screen moves itself above the keyboard (--focus-lift, src/lib/scroller.ts) by
    its top and bottom, never a transform, which would make a stacking context and sink the live field under the canvas */
-html.keyboard [data-focus-screen] {
+/* Keyed on the lift alone, not html.keyboard, which can drop for a moment while focus moves between fields */
+[data-focus-screen] {
   top: calc(-1 * var(--focus-lift, 0px));
-  bottom: var(--focus-lift, 0px);
 }
 
-html.standalone.keyboard [data-focus-screen] {
-  bottom: auto;
+html:not(.standalone) [data-focus-screen] {
+  bottom: var(--focus-lift, 0px);
 }
 
 body {
