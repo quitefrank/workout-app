@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { glassSteppersFrom, PILL_STYLES, pillStyleFrom, pillSwapFrom, workoutVersionFrom } from "../workout-layout";
+import { glassSteppersFrom, pillSwapFrom, workoutVersionFrom } from "../workout-layout";
 
 describe("glassSteppersFrom", () => {
   it("is on only when its cookie says 1", () => {
@@ -24,23 +24,5 @@ describe("pillSwapFrom", () => {
     expect(pillSwapFrom(() => undefined)).toBe(true);
     expect(pillSwapFrom((n) => (n === "workout_pill_swap" ? "1" : undefined))).toBe(true);
     expect(pillSwapFrom((n) => (n === "workout_pill_swap" ? "0" : undefined))).toBe(false);
-  });
-});
-
-describe("pillStyleFrom", () => {
-  it("reads the three iOS 27 styles and defaults to Ladder's pill", () => {
-    expect(pillStyleFrom(() => undefined)).toBe("ladder");
-    expect(pillStyleFrom((n) => (n === "workout_pill_style" ? "split" : undefined))).toBe("split");
-    expect(pillStyleFrom((n) => (n === "workout_pill_style" ? "capsule" : undefined))).toBe("capsule");
-    expect(pillStyleFrom((n) => (n === "workout_pill_style" ? "leading" : undefined))).toBe("leading");
-    expect(pillStyleFrom((n) => (n === "workout_pill_style" ? "nonsense" : undefined))).toBe("ladder");
-  });
-
-  it("puts the log check 28pt from the screen's edge in every style", () => {
-    // capsule: 21pt inset plus 7pt in; split and leading: the circle at the inset; Ladder: 20pt plus 8pt
-    expect(PILL_STYLES.capsule.inset + (PILL_STYLES.capsule.height - 36) / 2).toBe(28);
-    expect(PILL_STYLES.split.inset).toBe(28);
-    expect(PILL_STYLES.leading.inset).toBe(28);
-    expect(PILL_STYLES.ladder.inset + 8).toBe(28);
   });
 });

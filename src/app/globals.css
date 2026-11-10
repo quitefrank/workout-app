@@ -1284,11 +1284,11 @@ html.keyboard .sheet-body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    top: calc((100% - var(--dock-bottom) - var(--pill-h, 67px)) * (1 - var(--jp)) + 62px * var(--jp));
-    left: calc(var(--pill-inset, 20px) * (1 - var(--jp)));
-    right: calc(var(--pill-inset, 20px) * (1 - var(--jp)));
+    top: calc((100% - var(--dock-bottom) - 67px) * (1 - var(--jp)) + 62px * var(--jp));
+    left: calc(20px * (1 - var(--jp)));
+    right: calc(20px * (1 - var(--jp)));
     bottom: calc(var(--dock-bottom) * (1 - var(--jp)));
-    border-radius: calc(var(--pill-r, 26px) + (38px - var(--pill-r, 26px)) * var(--jp)) calc(var(--pill-r, 26px) + (38px - var(--pill-r, 26px)) * var(--jp)) calc(var(--pill-r, 26px) * (1 - var(--jp))) calc(var(--pill-r, 26px) * (1 - var(--jp)));
+    border-radius: calc(26px + 12px * var(--jp)) calc(26px + 12px * var(--jp)) calc(26px * (1 - var(--jp))) calc(26px * (1 - var(--jp)));
     background: rgb(var(--bg-rgb) / calc(0.6 + 0.37 * var(--jp)));
     -webkit-backdrop-filter: blur(22px) saturate(1.6);
     backdrop-filter: blur(22px) saturate(1.6);
@@ -1300,14 +1300,14 @@ html.keyboard .sheet-body {
     color: var(--ink);
   }
   .jcard-head {
-    flex: 0 0 calc(var(--pill-h, 67px) + (83px - var(--pill-h, 67px)) * var(--jp));
+    flex: 0 0 calc(67px + 16px * var(--jp));
     display: flex;
     align-items: center;
     gap: 17px;
     /* the circle stays 28pt from the screen's edge, where it is in the pill, lined up with the exercise cards' content
        (8pt card inset plus 20pt padding): the padding gives back the card's inset */
-    padding-left: calc((28px - var(--pill-inset, 20px)) * (1 - var(--jp)) + 28px * var(--jp));
-    padding-right: calc((28px - var(--pill-inset, 20px)) * (1 - var(--jp)) + 28px * var(--jp));
+    padding-left: calc(8px + 20px * var(--jp));
+    padding-right: calc(8px + 20px * var(--jp));
     border-bottom: 0.5px solid rgb(128 128 128 / calc(0.25 * var(--jp)));
   }
   .jcard-body {
