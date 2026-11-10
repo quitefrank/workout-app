@@ -593,8 +593,21 @@ export function ActiveWorkout({
                 style={{ minHeight: HEADER_ROOM + 35 }}
                 aria-label={row ? rowLabel(shown.rows, rowIndex) : undefined}
               >
-                <SetText rows={shown.rows} current={rowIndex} className="mt-2.5" />
-                <h1 className="mt-2.5 text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
+                {/* The text's box, so the fade's bottom edge sits under Up next whatever the title's height */}
+                <div className="relative">
+                {/* One fade from the header's top that clears just under Up next, so it never ends in a band across the
+                    figure and stays the same whether Up next shows. First in the DOM so the text paints over it; it
+                    stops at the header because the timer row above is earlier in the DOM and would be dimmed. */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-x-5 top-0 -bottom-6"
+                  style={{
+                    background:
+                      "linear-gradient(rgb(var(--bg-rgb) / 0.65) 0%, rgb(var(--bg-rgb) / 0.65) calc(100% - 40px), rgb(var(--bg-rgb) / 0) 100%)",
+                  }}
+                />
+                <SetText rows={shown.rows} current={rowIndex} className="relative mt-2.5" />
+                <h1 className="relative mt-2.5 text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
                   {repTarget(shown.we, row) && (
                     <span className="text-blue">{repTarget(shown.we, row)} </span>
                   )}
@@ -607,16 +620,16 @@ export function ActiveWorkout({
                   return (
                     <div
                       key={show ? `up-${shown.we.id}` : "up"}
-                      className={cn(
-                        "mt-2.5 truncate text-[15px] leading-[18px] text-ink-2",
-                        show ? "upnext-in" : "invisible",
-                      )}
+                      className={cn("relative mt-2.5", show ? "upnext-in" : "invisible")}
                       aria-hidden={!show}
                     >
-                      {upNext ? `Up next · ${exerciseTitle(upNext.we.exercises)}` : "Last exercise"}
+                      <div className="truncate text-[15px] leading-[18px] text-ink-2">
+                        {upNext ? `Up next · ${exerciseTitle(upNext.we.exercises)}` : "Last exercise"}
+                      </div>
                     </div>
                   );
                 })()}
+                </div>
               </header>
 
               {/* The controls: last time and the steppers, or the rest arc, stacked in one cell so the zone is always the
@@ -629,9 +642,12 @@ export function ActiveWorkout({
                     // calls, 2026-11-09)
                     measureFields.length > 0 && (
                       <>
-                        <p className="pb-3 text-center text-[15px] leading-[18px] text-ink-2">
-                          {row.last ? `Last time · ${summarize(measure, row.last, unit)}` : "No history yet"}
-                        </p>
+                        <div className="relative mb-3">
+                          <TextFade />
+                          <p className="relative text-center text-[15px] leading-[18px] text-ink-2">
+                            {row.last ? `Last time · ${summarize(measure, row.last, unit)}` : "No history yet"}
+                          </p>
+                        </div>
                         <div
                           className={cn("grid justify-center", zoneColumns > 2 ? "gap-2" : "gap-3")}
                           style={{
@@ -964,8 +980,8 @@ const HEADER_ROOM = 98;
 /**
  * The illustration: the screen's width, square, centred in the space between the header and the controls and never
  * resized (Frank's call, 2026-11-08, from the Fixed Stage prototype). Both zones hold their tallest size, so this space
- * is the same on every set; the image overlaps each zone by the same amount, behind short fades in the screen's colour
- * that cover only Up next and Last time.
+ * is the same on every set; the image overlaps each zone by the same amount. Above it, one fade runs from the header's top to
+ * just under Up next; below it, `TextFade` sits behind Last time and hides with it.
  */
 function Art({ slug }: { slug: string | null | undefined }) {
   const box = useRef<HTMLDivElement>(null);
@@ -991,17 +1007,24 @@ function Art({ slug }: { slug: string | null | undefined }) {
           style={{ width: size, height: size }}
         />
       )}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-[35px] h-[70px]"
-        style={{ background: "linear-gradient(rgb(var(--bg-rgb) / 0) 0%, rgb(var(--bg-rgb) / 0.65) 40%, rgb(var(--bg-rgb) / 0) 100%)" }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -bottom-[35px] h-[70px]"
-        style={{ background: "linear-gradient(rgb(var(--bg-rgb) / 0) 0%, rgb(var(--bg-rgb) / 0.65) 55%, rgb(var(--bg-rgb) / 0.65) 100%)" }}
-      />
     </div>
+  );
+}
+
+/**
+ * A soft band in the screen's colour behind one line of text over the illustration: clear at both edges, so it never
+ * ends in a hard line across the figure, and full width. It lives inside the text's own box, so it hides with it.
+ */
+function TextFade() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute -inset-x-10 -inset-y-4"
+      style={{
+        background:
+          "linear-gradient(rgb(var(--bg-rgb) / 0) 0%, rgb(var(--bg-rgb) / 0.65) 35%, rgb(var(--bg-rgb) / 0.65) 65%, rgb(var(--bg-rgb) / 0) 100%)",
+      }}
+    />
   );
 }
 
