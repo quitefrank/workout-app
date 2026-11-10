@@ -70,6 +70,15 @@ export function focusWithoutScroll(target?: (e: React.TouchEvent<HTMLElement>) =
       if (!(el instanceof HTMLInputElement)) return;
       const t = e.changedTouches[0];
       const moved = !start || !t || Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10;
+      // While the keyboard is up the field's box reaches above its digits (--field-reach). A tap up there is a tap
+      // outside the field, so it closes the keyboard; the box keeps taking taps, since iOS's ^ v arrows skip a field
+      // that does not (pointer-events: none greyed them out on the phone).
+      const reach = parseFloat(getComputedStyle(el).paddingTop) || 0;
+      if (t && reach > 0 && t.clientY < el.getBoundingClientRect().top + reach) {
+        e.preventDefault();
+        if (!moved && document.activeElement instanceof HTMLElement) document.activeElement.blur();
+        return;
+      }
       if (moved || document.activeElement === el) return;
       e.preventDefault();
       el.focus({ preventScroll: true });
@@ -138,9 +147,7 @@ export function followVisualViewport(): () => void {
     if (next === reach) return;
     reach = next;
     html.style.setProperty("--field-reach", `${reach}px`);
-    // the reaching box takes no taps (they would land above the card), so a tap there still closes the keyboard and
-    // the card passes taps on its number to the field (`Stepper`)
-    html.classList.toggle("field-reach", reach > 0);
+
   };
   const liftFocusScreen = () => {
     const keyboard = html.classList.contains("keyboard");
@@ -250,7 +257,6 @@ export function followVisualViewport(): () => void {
     document.removeEventListener("touchmove", hold);
     html.style.removeProperty("--focus-lift");
     html.style.removeProperty("--field-reach");
-    html.classList.remove("field-reach");
     html.style.removeProperty("--vv-top");
     html.style.removeProperty("--vv-h");
     html.style.removeProperty("--screen-h");

@@ -432,11 +432,6 @@ html.keyboard .app-scroller:has([data-focus-screen]) > div {
   height: calc(41px + var(--field-reach, 0px));
 }
 
-/* the reaching box takes no taps, so a tap above the cards still closes the keyboard; the card hands on taps on it */
-html.field-reach [data-focus-screen] input[data-reach] {
-  pointer-events: none;
-}
-
 html.lift-snap [data-focus-screen] {
   transition: none;
 }
