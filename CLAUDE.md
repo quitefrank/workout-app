@@ -770,7 +770,7 @@ Swap from More. The header is the same in both. The old `workout_view` cookie is
   Glass; Frank's call, 2026-11-10): its empty circle logs the set (`PillCheck`: 51pt, 8pt from every edge of the pill as
   the iOS dock holds its icons, a 2pt `#0082f0` ring and a 21.25pt check, from Figma node 28:945, Frank's
   call, 2026-11-10; a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, with set
-  dots under the name (`PillDots`: 8pt, 4pt apart; logged solid blue, current ringed in blue, upcoming Fills/Primary;
+  dots above the name (Frank's call, 2026-11-10; `PillDots`: 8pt, 4pt apart; logged solid blue, current ringed in blue, upcoming Fills/Primary;
   logging fills the dot as a transition). Swap is Swap Exercise in the More menu.
 
 The prototype's other options (set circles under Last time, steppers as an inset list) are not built; `StepperList` and

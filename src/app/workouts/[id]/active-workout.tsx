@@ -86,7 +86,7 @@ import { SwapSheet } from "./swap-sheet";
  *
  * One layout, View 5 of the views Frank tried (his call, 2026-11-09; https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=7-2):
  * the set as blue text and the rep target before the name in the header, Up next only on the exercise's last set, and
- * Ladder's pill with set dots under the name. Swap is in the More menu.
+ * Ladder's pill with set dots above the name. Swap is in the More menu.
  */
 
 export type Entry = { we: WorkoutExerciseRow; rows: SetRowView[] };
@@ -818,10 +818,10 @@ export function ActiveWorkout({
               }}
               className="flex h-full min-w-0 flex-1 flex-col justify-center gap-1 pl-[17px] text-left"
             >
+              {shown && <PillDots rows={shown.rows} current={rowIndex} />}
               <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
                 {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
               </span>
-              {shown && <PillDots rows={shown.rows} current={rowIndex} />}
             </button>
           </div>
         )}
