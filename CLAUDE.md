@@ -176,7 +176,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 545 tests across 49 files.
+Run `bun run test` to exercise them. 546 tests across 50 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -753,9 +753,14 @@ prescription's rest, which takes the steppers' place as an arc, and the log butt
 exercise during rest shows a Rest capsule over the controls that goes back. The screen carries no floor, "Preview" or
 "Swapped from" labels (Frank's call).
 
-One layout: View 5, the winner of five views Frank tried (his call, 2026-11-09, from his Figma frame,
-https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=7-2). The view switcher, its `workout_view` cookie and the
-centred log button were removed with the others; an old cookie is ignored.
+Two versions, switched in the workout's More menu under Settings and saved per device in the `workout_version` cookie
+(`src/lib/workout-layout.ts`, Frank's call, 2026-11-09). Version 1, the default, is View 5 of the five views Frank
+tried (https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=7-2): the pill below. Version 2 brings back the old
+View 3 toolbar under the steppers (https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=28-1716): the 72pt
+Glass Prominent log button in the middle (Skip, Play and Stop as the pill's circle has them), Journal (56pt, the set
+count under its icon) and Swap (56pt) each centred under the stepper card above it, which is a two-column grid with
+the steppers' 20pt sides and 12pt gap. Version 2 opens the Journal as a sheet (`Journal` in `journal.tsx`) and drops
+Swap from More. The header is the same in both. The old `workout_view` cookie is ignored.
 
 - The header: the set as blue text ("Set 2 of 3", "Warm-up 1 of 2", `SetText`, 15pt semibold), then the set's rep
   target in blue before the exercise's name ("8x Bench Press", "8–10x"; `repTarget` in `active.ts`: the prescription

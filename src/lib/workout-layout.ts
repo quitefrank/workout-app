@@ -1,0 +1,27 @@
+/**
+ * The active workout's two versions (Frank's call, 2026-11-09), switched from the workout's More menu under Settings and
+ * saved per device in a cookie, as Appearance is.
+ *
+ * - Version 1: Ladder's pill in the dock (its circle logs, its middle opens the Journal card), set dots under the name,
+ *   Swap in More. View 5 of the views Frank tried.
+ * - Version 2: the toolbar under the steppers, the old View 3 brought back. The Glass Prominent ✓ logs in the middle,
+ *   with Journal and Swap either side, each centred under the stepper card above it (Frank's Figma frame,
+ *   https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=28-1716). The Journal opens as a sheet.
+ */
+export type WorkoutVersion = 1 | 2;
+
+export const VERSION_COOKIE = "workout_version";
+
+export const VERSIONS: Record<WorkoutVersion, string> = {
+  1: "The pill in the dock logs the set and opens the Journal",
+  2: "The log button under the steppers, with Journal and Swap either side",
+};
+
+export function workoutVersionFrom(get: (name: string) => string | undefined): WorkoutVersion {
+  return get(VERSION_COOKIE) === "2" ? 2 : 1;
+}
+
+/** Save the choice on this device */
+export function setWorkoutVersion(version: WorkoutVersion) {
+  document.cookie = `${VERSION_COOKIE}=${version}; path=/; max-age=31536000; samesite=lax`;
+}

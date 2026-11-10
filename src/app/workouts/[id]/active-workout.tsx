@@ -23,7 +23,9 @@ import {
 import { Button } from "@/components/button";
 import { hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
-import { EllipsisIcon } from "@/components/icons";
+import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
+import { Group, Segmented } from "@/components/segmented";
+import { setWorkoutVersion, VERSIONS, type WorkoutVersion } from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { TopBar } from "@/components/top-bar";
@@ -60,7 +62,7 @@ import { floorKey } from "@/lib/workout/machine-location";
 import { opensOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
 import { exerciseTitle } from "@/lib/workout/movements";
 import { FinishSheet } from "./finish-sheet";
-import { JournalBody, type JournalProps } from "./journal";
+import { Journal, JournalBody, type JournalProps } from "./journal";
 import { JournalCard, PillCheck, type CardControl } from "./journal-card";
 import { useRestTimer } from "./rest-timer";
 import { useSetTimer } from "./set-timer";
@@ -94,10 +96,17 @@ type Optimistic = { weId: string; add?: SetRow; remove?: string };
 export function ActiveWorkout({
   workout,
   settings,
+  version: initialVersion,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
+  version: WorkoutVersion;
 }) {
+  // Version 1 is the pill, Version 2 the toolbar under the steppers (src/lib/workout-layout.ts), switched in More
+  const [version, setVersion] = useState(initialVersion);
+  const toolbar = version === 2;
+  const [journalSheet, setJournalSheet] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const router = useRouter();
   const unit = settings.weight_unit;
   const elapsed = useElapsed(workout.started_at);
@@ -357,10 +366,11 @@ export function ActiveWorkout({
   const [cardOpen, setCardOpen] = useState<null | "tap" | "drag">(null);
   const openJournal = () => {
     setJournalKey((k) => k + 1);
+    if (toolbar) return setJournalSheet(true);
     cardP.current = 0;
     setCardOpen("tap");
   };
-  const closeJournal = () => card.current?.settle(0);
+  const closeJournal = () => (toolbar ? setJournalSheet(false) : card.current?.settle(0));
 
   // Drag the pill up: the card follows the finger from the first move, then opens or sinks back on release
   const pillDrag = useRef<{ x: number; y: number; t: number; last: number; v: number; up: number; d: number; on: boolean } | null>(null);
@@ -466,25 +476,28 @@ export function ActiveWorkout({
     },
   };
 
-  // The pill layout's circle, in the pill and in the card's header: logs the set, Skip while resting, Finish when done
+  // What the log button does now, in either version: Skip while resting, Finish when done, Start and Stop for a timed
+  // set, else log
+  const logState: "skip" | "finish" | "stop" | "start" | "log" = resting
+    ? "skip"
+    : !shown
+      ? "finish"
+      : timing
+        ? "stop"
+        : rowIndex >= 0 && timedMode(measure)
+          ? "start"
+          : "log";
+  const logDisabled = pending || (!resting && !!shown && rowIndex < 0);
+  const onLogTap = () =>
+    resting ? timer.stop() : !shown ? setFinishing(true) : log(shown, rowIndex);
+
+  // The pill layout's circle, in the pill and in the card's header
   const logCheck = (
     <PillCheck
-      state={
-        resting
-          ? "skip"
-          : !shown
-            ? "finish"
-            : timing
-              ? "stop"
-              : rowIndex >= 0 && timedMode(measure)
-                ? "start"
-                : "log"
-      }
+      state={logState}
       flash={flash}
-      disabled={pending || (!resting && !!shown && rowIndex < 0)}
-      onClick={() =>
-        resting ? timer.stop() : !shown ? setFinishing(true) : log(shown, rowIndex)
-      }
+      disabled={logDisabled}
+      onClick={onLogTap}
     />
   );
 
@@ -520,7 +533,7 @@ export function ActiveWorkout({
           className="relative flex h-full flex-col"
           style={{
             paddingTop: "var(--bar-top)",
-            paddingBottom: "calc(var(--dock-bottom) + 67px + 20px)",
+            paddingBottom: toolbar ? "calc(var(--dock-bottom) + 72px + 20px)" : "calc(var(--dock-bottom) + 67px + 20px)",
           }}
         >
           {/* The More button's row: the timer on its own line, and under it the exercises as Apple's progress bar (blue for
@@ -709,7 +722,9 @@ export function ActiveWorkout({
         </main>
       </div>
 
-      {/* The pill: the circle logs the set (Skip during rest), the middle opens the Journal */}
+      {/* Version 1, the pill: the circle logs the set (Skip during rest), the middle opens the Journal. Version 2, the
+          toolbar: the log button in the middle, Journal and Swap each centred under the stepper card above it (two
+          columns with the steppers' 20pt sides and 12pt gap; Frank's Figma frame, node 28-1716) */}
       <div
         data-glass-unit="dock"
         // a column, like every dock: a home screen app stretches the dock to the screen's height and bottom-aligns its
@@ -717,6 +732,59 @@ export function ActiveWorkout({
         className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col"
         style={{ paddingBottom: "var(--dock-bottom)" }}
       >
+        {toolbar ? (
+          <div className="relative grid h-[72px] grid-cols-2 items-center gap-3 px-5">
+            <button
+              type="button"
+              aria-label="Journal"
+              onClick={openJournal}
+              className="glass pointer-events-auto grid size-14 shrink-0 content-center justify-items-center gap-0.5 justify-self-center"
+            >
+              <ListIcon size={20} />
+              <span className="tabular text-[10px] font-semibold opacity-75">
+                {shown && rowIndex >= 0 ? `${rowIndex + 1} of ${shown.rows.length}` : "All"}
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label="Swap exercise"
+              disabled={!shown}
+              onClick={() => shown && setSwapFor(shown.we)}
+              className="glass pointer-events-auto grid size-14 shrink-0 content-center justify-items-center gap-0.5 justify-self-center disabled:opacity-40"
+            >
+              <SwapIcon size={20} />
+              <span className="text-[10px] font-semibold opacity-75">Swap</span>
+            </button>
+            <button
+              type="button"
+              data-glass-skip
+              aria-label={
+                logState === "skip"
+                  ? "Skip rest"
+                  : logState === "finish"
+                    ? "Finish workout"
+                    : logState === "start"
+                      ? "Start set"
+                      : logState === "stop"
+                        ? "Stop and log set"
+                        : "Log set"
+              }
+              disabled={logDisabled}
+              onClick={onLogTap}
+              className="glass glass-prominent pointer-events-auto absolute left-1/2 top-0 grid size-[72px] -translate-x-1/2 place-items-center transition-transform active:scale-[1.06] disabled:opacity-50"
+            >
+              {logState === "skip" ? (
+                <SkipIcon size={26} />
+              ) : logState === "start" ? (
+                <PlayIcon size={26} className="translate-x-[2px]" />
+              ) : logState === "stop" ? (
+                <StopIcon size={24} />
+              ) : (
+                <CheckIcon size={30} strokeWidth={2.6} />
+              )}
+            </button>
+          </div>
+        ) : (
           <div
             className="glass pointer-events-auto relative mx-[29px] flex h-[67px] touch-none select-none items-center pl-[21px] pr-[17px] [--r:26px]"
             style={cardOpen ? { visibility: "hidden" } : undefined}
@@ -740,6 +808,7 @@ export function ActiveWorkout({
               {shown && <PillDots rows={shown.rows} current={rowIndex} />}
             </button>
           </div>
+        )}
       </div>
 
       {menu && (
@@ -747,8 +816,9 @@ export function ActiveWorkout({
           rect={menu}
           items={[
             ...(shown ? [{ value: "Do Later" }] : []),
-            ...(shown ? [{ value: "Swap Exercise" }] : []),
+            ...(shown && !toolbar ? [{ value: "Swap Exercise" }] : []),
             { value: "Journal" },
+            { value: "Settings" },
             { value: "Back to Home" },
             { value: "Finish Workout" },
             { value: "Discard Workout", destructive: true },
@@ -758,6 +828,7 @@ export function ActiveWorkout({
             if (v === "Do Later" && shown) move(shown.we, "end");
             else if (v === "Swap Exercise" && shown) setSwapFor(shown.we);
             else if (v === "Journal") openJournal();
+            else if (v === "Settings") setSettingsOpen(true);
             else if (v === "Back to Home") router.push("/");
             else if (v === "Finish Workout") setFinishing(true);
             else if (v === "Discard Workout") setConfirmDiscard(true);
@@ -765,7 +836,40 @@ export function ActiveWorkout({
         />
       )}
 
-      {cardOpen && (
+      {toolbar && (
+        <Journal
+          key={`journal-${journalKey}`}
+          open={journalSheet}
+          onClose={() => setJournalSheet(false)}
+          title={workout.templates?.name ?? "Workout"}
+          {...journalProps}
+        />
+      )}
+
+      {/* The two versions, switched here mid-workout and saved on this device */}
+      <Sheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
+        <div className="flex flex-col gap-6 pb-4">
+          <Group title="Workout view" footer={`${VERSIONS[version]}. Saved on this device only.`}>
+            <Segmented
+              label="Workout view"
+              value={String(version)}
+              options={[
+                ["1", "Version 1"],
+                ["2", "Version 2"],
+              ]}
+              onChange={(v) => {
+                const next: WorkoutVersion = v === "2" ? 2 : 1;
+                setCardOpen(null);
+                setJournalSheet(false);
+                setVersion(next);
+                setWorkoutVersion(next);
+              }}
+            />
+          </Group>
+        </div>
+      </Sheet>
+
+      {!toolbar && cardOpen && (
         <JournalCard
         key={`card-${journalKey}`}
         controlRef={card}
