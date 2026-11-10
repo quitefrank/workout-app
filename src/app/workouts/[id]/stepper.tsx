@@ -93,7 +93,7 @@ export function Stepper(props: Props & { label: string; glass?: boolean }) {
         onChange={f.onChange}
         onBlur={f.onBlur}
         onFocus={f.onFocus}
-        className="tabular h-[41px] w-full min-w-0 bg-transparent p-0 text-center text-[34px] font-bold leading-[41px] tracking-[0.4px] text-ink outline-none placeholder:text-ink-3 focus:text-blue"
+        className="tabular h-[41px] w-full min-w-0 bg-transparent p-0 text-center text-[34px] font-bold leading-[41px] tracking-[0.4px] text-ink outline-none placeholder:text-ink-3 caret-blue"
       />
       <KitStepper {...props} className="mx-auto" />
     </div>
@@ -125,7 +125,7 @@ export function StepperRow(props: Props & { first?: boolean }) {
           onChange={f.onChange}
           onBlur={f.onBlur}
         onFocus={f.onFocus}
-          className="tabular w-16 bg-transparent p-0 text-right text-[17px] text-inherit outline-none focus:text-blue"
+          className="tabular w-16 bg-transparent p-0 text-right text-[17px] text-inherit outline-none caret-blue"
         />
         {field === "weight" && <span>{unit}</span>}
       </label>
