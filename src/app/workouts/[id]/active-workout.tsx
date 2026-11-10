@@ -802,7 +802,7 @@ export function ActiveWorkout({
           </div>
         ) : (
           <div
-            className="glass pointer-events-auto relative mx-[29px] flex h-[67px] touch-none select-none items-center pl-[21px] pr-[17px] [--r:26px]"
+            className="glass pointer-events-auto relative mx-[29px] flex h-[67px] touch-none select-none items-center pl-[6px] pr-[17px] [--r:26px]"
             style={cardOpen ? { visibility: "hidden" } : undefined}
             onPointerDown={onPillDown}
           >
@@ -816,7 +816,7 @@ export function ActiveWorkout({
                 if (e.timeStamp - pillSwallow.current < 300) return;
                 openJournal();
               }}
-              className="flex h-full min-w-0 flex-1 flex-col justify-center gap-1 pl-[14px] text-left"
+              className="flex h-full min-w-0 flex-1 flex-col justify-center gap-1 pl-[17px] text-left"
             >
               <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
                 {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}

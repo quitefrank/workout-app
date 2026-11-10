@@ -1175,9 +1175,9 @@ html.keyboard .sheet-body {
     flex: 0 0 calc(67px + 16px * var(--jp));
     display: flex;
     align-items: center;
-    gap: 14px;
-    /* the circle stays 50pt from the screen's edge: the padding gives back the card's inset */
-    padding-left: calc(21px + 29px * var(--jp));
+    gap: 17px;
+    /* the circle stays 35pt from the screen's edge: the padding gives back the card's inset */
+    padding-left: calc(6px + 29px * var(--jp));
     padding-right: calc(17px + 4px * var(--jp));
     border-bottom: 0.5px solid rgb(128 128 128 / calc(0.25 * var(--jp)));
   }

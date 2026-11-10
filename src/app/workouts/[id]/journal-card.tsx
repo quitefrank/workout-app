@@ -155,7 +155,8 @@ export function JournalCard({
 
 /**
  * The circle that logs (Ladder's): empty until the set is logged, a blue fill for a moment when it is, Skip while
- * resting. 26pt with a 44pt touch area; it sits 50pt from the screen's edge in the pill and in the card's header.
+ * resting. 51pt with a 2pt #0082f0 ring and a 21.25pt check (Figma ZD41TUAEBtLJI7t0qChNup, 28:945); it sits 6pt inside
+ * the pill, 35pt from the screen's edge, in the pill and in the card's header.
  */
 export function PillCheck({
   state,
@@ -190,18 +191,18 @@ export function PillCheck({
         onClick();
       }}
       className={cn(
-        "relative grid size-[26px] shrink-0 place-items-center rounded-full after:absolute after:-inset-[9px] after:content-[''] disabled:opacity-50",
-        flash ? "pill-check-fill bg-blue text-white" : "opacity-90 shadow-[inset_0_0_0_1.5px_currentColor]",
+        "relative grid size-[51px] shrink-0 place-items-center rounded-full disabled:opacity-50",
+        flash ? "pill-check-fill bg-blue text-white" : "shadow-[inset_0_0_0_2px_#0082f0]",
       )}
     >
       {skip ? (
-        <SkipIcon size={13} />
+        <SkipIcon size={20} />
       ) : state === "start" && !flash ? (
-        <PlayIcon size={12} className="translate-x-[1px]" />
+        <PlayIcon size={18} className="translate-x-[1.5px]" />
       ) : state === "stop" && !flash ? (
-        <StopIcon size={12} />
+        <StopIcon size={17} />
       ) : (
-        <CheckIcon size={14} strokeWidth={flash ? 2.6 : 1.8} />
+        <CheckIcon size={21.25} strokeWidth={2.6} />
       )}
     </button>
   );
