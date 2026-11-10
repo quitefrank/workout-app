@@ -68,7 +68,7 @@ import { useRestTimer } from "./rest-timer";
 import { useSetTimer } from "./set-timer";
 import type { SetTimerMode, StoredSetTimer } from "@/lib/workout/set-timer";
 import { stretchPairs } from "@/lib/workout/pairs";
-import { Stepper, stepperCard } from "./stepper";
+import { GlassLayers, Stepper, stepperCard } from "./stepper";
 import { SwapSheet } from "./swap-sheet";
 
 /**
@@ -654,8 +654,6 @@ export function ActiveWorkout({
                           </p>
                         </div>
                         <div
-                          // glass cards sitting together are one unit for the context rule
-                          data-glass-unit={glassSteppers ? "box" : undefined}
                           className={cn("grid justify-center", zoneColumns > 2 ? "gap-2" : "gap-3")}
                           style={{
                             gridTemplateColumns:
@@ -1146,6 +1144,7 @@ function timedMode(measure: ReturnType<typeof measureOf>): SetTimerMode | null {
 function Readout({ label, value, live, glass }: { label: string; value: number | null; live: boolean; glass: boolean }) {
   return (
     <div className={stepperCard(glass)} role="timer" aria-label={label}>
+      <GlassLayers on={glass} />
       <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-ink-2">{label}</span>
       <span
         className={cn(

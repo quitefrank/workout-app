@@ -42,11 +42,23 @@ function useValueField({ field, value, onChange }: Props) {
 }
 
 /**
- * A stepper card's box: Apple's grey card, or with Settings' Glass Steppers switch on, the Liquid Glass material at 26pt
- * corners (Frank's Figma frame, 38:2134). Only the background changes; what sits on it stays the same.
+ * A stepper card's box: Apple's grey card, or with Settings' Glass Steppers switch on, the painted glass at 26pt corners
+ * (Frank's Figma frame, 38:2134; `.glass-card` in globals.css, with `GlassLayers` as its first children). Only the
+ * background changes; what sits on it stays the same.
  */
 export function stepperCard(glass: boolean): string {
-  return `grid gap-1 px-2.5 pb-3 pt-2.5 text-center ${glass ? "glass [--r:26px]" : "rounded-[24px] bg-card"}`;
+  return `grid gap-1 px-2.5 pb-3 pt-2.5 text-center ${glass ? "glass-card" : "rounded-[24px] bg-card"}`;
+}
+
+/** The painted glass's rim and body, behind the card's content */
+export function GlassLayers({ on }: { on: boolean }) {
+  if (!on) return null;
+  return (
+    <>
+      <span aria-hidden className="gc-rim" />
+      <span aria-hidden className="gc-body" />
+    </>
+  );
 }
 
 export function Stepper(props: Props & { label: string; glass?: boolean }) {
@@ -56,6 +68,7 @@ export function Stepper(props: Props & { label: string; glass?: boolean }) {
   useLayoutEffect(() => fitText(input.current), [f.shown]);
   return (
     <div className={stepperCard(!!props.glass)}>
+      <GlassLayers on={!!props.glass} />
       <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-ink-2">{label}</span>
       <input
         ref={input}

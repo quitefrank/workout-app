@@ -51,6 +51,13 @@
   --muscle-tile: #ffffff;
   /* Behind an exercise illustration: one gray in both appearances (Frank's call, 2026-11-05) */
   --exercise-tile: #dedee1;
+  /* Glass Steppers' painted glass (.glass-card), measured off the shader's card at 2x on 2026-11-10: light is a
+     near-white body with a faint top shade and the preset's ring and cast */
+  --gc-body: #fdfdfd;
+  --gc-edge: rgb(0 0 0 / 0.025);
+  --gc-edge-mid: rgb(0 0 0 / 0.01);
+  --gc-rim: 0.55;
+  --gc-outer: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 8px 15px rgba(0, 0, 0, 0.03);
   --seg-on: #ffffff;
   --seg-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
 
@@ -136,6 +143,12 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
 
+    /* dark: #191919 body, the edge glow lifting it to about #262626 at the top and bottom, a 1px rim of white at 31% */
+    --gc-body: #191919;
+    --gc-edge: rgb(255 255 255 / 0.055);
+    --gc-edge-mid: rgb(255 255 255 / 0.022);
+    --gc-rim: 0.31;
+    --gc-outer: 0 0 0 0.5px rgba(0, 0, 0, 0.35), 0 8px 15px rgba(0, 0, 0, 0.04);
     --bg: #000000;
     --bg-rgb: 0 0 0;
     --card: #1c1c1e;
@@ -176,6 +189,11 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
+  --gc-body: #191919;
+  --gc-edge: rgb(255 255 255 / 0.055);
+  --gc-edge-mid: rgb(255 255 255 / 0.022);
+  --gc-rim: 0.31;
+  --gc-outer: 0 0 0 0.5px rgba(0, 0, 0, 0.35), 0 8px 15px rgba(0, 0, 0, 0.04);
   --bg: #000000;
   --bg-rgb: 0 0 0;
   --card: #1c1c1e;
@@ -505,6 +523,53 @@ body {
 
   .glass::after {
     opacity: var(--glass-rim);
+  }
+
+  /* Glass Steppers (Frank's call, 2026-11-10): the stepper cards' glass drawn from real layers the page painter can
+     draw (src/glass/paint), so on the WebGPU path it is painted with the page and slides with the image when the
+     exercise changes. Shader glass is rebuilt for every new element and arrives after the slide. The rim is .glass's
+     1px light ring (the same stops, a box under the body inset 1px), the body carries the edge glow, all measured off the
+     shader's card. Same look on both paths. */
+  /* No stacking context here (no isolation, no z-index): the focused number field is lifted over the WebGPU canvas
+     while typing, and one would trap it under the canvas. The layers come first in the DOM and the content after them
+     is positioned too, so it paints over them. */
+  .glass-card {
+    position: relative;
+    border-radius: 26px;
+    box-shadow: var(--gc-outer);
+  }
+  .glass-card > * {
+    position: relative;
+  }
+  .glass-card > .gc-rim,
+  .glass-card > .gc-body {
+    position: absolute;
+    pointer-events: none;
+  }
+  .glass-card > .gc-rim {
+    inset: 0;
+    border-radius: 26px;
+    opacity: var(--gc-rim);
+    background: linear-gradient(
+      to bottom,
+      #fff 0%,
+      rgb(255 255 255 / 0.26) 10%,
+      rgb(255 255 255 / 0.047) 20%,
+      rgb(255 255 255 / 0.004) 30%,
+      transparent 50%,
+      rgb(255 255 255 / 0.004) 70%,
+      rgb(255 255 255 / 0.047) 80%,
+      rgb(255 255 255 / 0.26) 90%,
+      #fff 100%
+    );
+  }
+  .glass-card > .gc-body {
+    inset: 1px;
+    border-radius: 25px;
+    background:
+      linear-gradient(to bottom, var(--gc-edge) 0px, var(--gc-edge-mid) 5px, transparent 12px),
+      linear-gradient(to top, var(--gc-edge) 0px, var(--gc-edge-mid) 5px, transparent 12px),
+      var(--gc-body);
   }
 
   /* Apple's Glass Prominent on the CSS path: the kit's stack (see prominentMaterial) as far as CSS can blend it. The white

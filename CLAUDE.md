@@ -764,9 +764,14 @@ Swap from More. The header is the same in both. The old `workout_view` cookie is
 
 Settings also has a Glass Steppers switch, off by default, saved per device in the `workout_glass_steppers` cookie
 (Frank's call, 2026-11-10, from https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=38-2134). On, the stepper
-cards (and the outdoor run's Time readout) take the `.glass` material at 26pt corners in place of `bg-card`
-(`stepperCard` in `stepper.tsx`); the label, number and kit stepper on them are unchanged, and the row is one
-`data-glass-unit="box"`. It applies in both versions.
+cards (and the outdoor run's Time readout) take painted glass at 26pt corners in place of `bg-card`
+(`stepperCard` and `GlassLayers` in `stepper.tsx`, `.glass-card` and the `--gc-*` tokens in `globals.css`); the label,
+number and kit stepper on them are unchanged. It applies in both versions. The glass is not `.glass`: it is a rim layer
+(`.glass`'s 1px light ring stops) under a body inset 1px with the edge glow, measured off the shader's card, so the page
+painter draws it with the page on the WebGPU path and it slides with the image when the exercise changes. Shader glass
+was tried first and arrived after the slide, because the focus content remounts per exercise and the stage rebuilds a
+new element's shaders before showing it. `.glass-card` makes no stacking context, so the focused number field still
+lifts over the canvas while typing.
 
 - The header: the set as blue text ("Set 2 of 3", "Warm-up 1 of 2", `SetText`, 15pt semibold), then the set's rep
   target in blue before the exercise's name ("8x Bench Press", "8–10x"; `repTarget` in `active.ts`: the prescription
@@ -856,15 +861,16 @@ Liquid Glass" (219) and "Build a SwiftUI app with the new design"
   scrolling content shows its label and its material moving apart.
   One exception, behind a switch: the active workout's Glass Steppers
   (Frank's call, 2026-11-10). It is allowed because that screen never
-  scrolls, so nothing can drift. Glass outside the dock is hidden on the
-  WebGPU path when its HTML is `visibility: hidden` (`stage.ts`), so the
-  cards vanish under the rest arc as they do on the CSS path. Glass in the
-  page is lifted over the canvas by `z-index: 6`, so nothing between it
+  scrolls, so nothing can drift. The cards are painted glass, part of the
+  page (see "Active workout"). Glass outside the dock is hidden on the
+  WebGPU path when its HTML is `visibility: hidden` (`stage.ts`). Any lifted
+  glass or live field in the page is lifted over the canvas by `z-index: 6`, so nothing between it
   and the root may make a stacking context (a z-index, `position: fixed`,
   a transform or `translate`, opacity): one sinks the glass's contents
   under the opaque canvas and only the material shows. That is why the
-  focus screen is `absolute` under `html.gpu`, its content has no z-index,
-  and the keyboard `translate` applies to the top and dock units only.
+  focus screen is `absolute` under `html.gpu` (so a focused number field
+  shows while typing), its content has no z-index, and the keyboard
+  `translate` applies to the top and dock units only.
 
 In the lab: surfaces with `flip: true` follow the rule; `UNITS.of`
 names each control's unit, `UNITS.band` the band a pinned bar reads,
