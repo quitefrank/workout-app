@@ -553,13 +553,16 @@ export function ActiveWorkout({
             paddingBottom: toolbar ? "calc(var(--dock-bottom) + 72px + 20px)" : "calc(var(--dock-bottom) + 67px + 20px)",
           }}
         >
-          {/* The More button's row: the timer on its own line, and under it the exercises as Apple's progress bar (blue for
-              every logged set on the kit's Fills/Primary track, nothing else), stacked in the row's 44pt (Frank's call,
-              2026-11-09, from his Figma frame). Tap a segment to look at that exercise. */}
-          <div className="relative z-[1] flex h-11 flex-col justify-center pl-5 pr-[72px]">
-            <span className="tabular self-start text-[17px] font-semibold leading-[22px]">
+          {/* The More button's row holds the timer, centred on the button; under it the exercises as Apple's progress bar
+              (blue for every logged set on the kit's Fills/Primary track, nothing else) runs the full width, under the
+              button too, as Ladder lays them out (Frank's call, 2026-11-10, Figma ZD41TUAEBtLJI7t0qChNup 11:705: the bar
+              about 14pt under the button). Tap a segment to look at that exercise. */}
+          <div className="relative z-[1] flex h-11 items-center pl-5 pr-[72px]">
+            <span className="tabular text-[17px] font-semibold leading-[22px]">
               {elapsed == null ? "0:00" : formatClock(elapsed)}
             </span>
+          </div>
+          <div className="relative z-[1] px-5 pt-1">
             <div className="flex min-w-0 gap-1" role="tablist" aria-label="Exercises">
               {entries.map((e) => {
                 const done = e.rows.filter((r) => r.set).length;
