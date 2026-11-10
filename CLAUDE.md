@@ -814,8 +814,13 @@ The prototype's other options (set circles under Last time, steppers as an inset
 The Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
   open under the 62pt status bar; `.jcard` in globals.css). Its content is in it the whole way with the current exercise
   pinned under the header, as Ladder does. The header is the pill's own content, the circle and the set dots over the
-  title, with no set label or count, and the circle eases from the pill's 28pt to the body's 16pt edge (Frank's call,
-  2026-11-10). A tap or swipe grows it, a drag past
+  title, with no set label or count, and the circle stays 28pt from the screen's edge, lined up with the exercise cards'
+  content (Frank's call, 2026-11-10). Each exercise is Ladder's card (`ExerciseCard` in `journal.tsx`, measured off
+  Ladder, Figma `ZD41TUAEBtLJI7t0qChNup` 11:706): 8pt from the Journal's edges, 4pt apart, 20pt corners, `bg-card` (the
+  elevated step: `#2c2c2e` on the dark Journal, `#f2f2f7` on the light), 20pt sides, 14pt top, a 58pt thumbnail 20pt
+  from the title, 36pt chips 8pt apart, and a 56pt band on the current set. Tapping a card's header opens or closes it,
+  its body's height animating; the current exercise starts open, any number can be open, and opening one moves the
+  focus screen there. A tap or swipe grows it, a drag past
   90pt or a flick opens it, the header pulls down to close (`src/lib/workout/journal-card.ts`, tested). The card is CSS
   on both glass paths: `[data-unpainted]` keeps it out of the painted page, as sheets are.
 

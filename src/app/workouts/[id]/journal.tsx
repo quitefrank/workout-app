@@ -41,9 +41,10 @@ export type JournalProps = {
 };
 
 /**
- * The Journal (Ladder's), pulled up from the focus screen: every exercise in the workout under its name. The current
- * one is open with its best weight and estimated 1RM, the floor (on a two-floor exercise), Swap, History and More, and a
- * Log It grid of every set; the others show their sets as circles. Tapping one opens it and moves the focus screen there.
+ * The Journal (Ladder's), pulled up from the focus screen: every exercise in the workout as a card (`ExerciseCard`). The
+ * current one starts open with its best weight and estimated 1RM, the floor (on a two-floor exercise), Swap, History and
+ * More, and a Log It grid of every set; the others start closed, their sets as circles. Tapping a card's header opens or
+ * closes it; opening one also moves the focus screen there.
  * Version 1 shows it in the card that grows from the pill (journal-card.tsx); Version 2, with no pill, in a sheet.
  */
 export function Journal({ open, onClose, title, ...props }: JournalProps & { open: boolean; onClose: () => void; title: string }) {
@@ -74,9 +75,19 @@ export function JournalBody({
   onRemove,
   onFinish,
 }: JournalProps) {
-  // the open exercise: the one picked here, else the current one (the parent keys the Journal per opening)
-  const [picked, setPicked] = useState<string | null>(null);
-  const openId = picked ?? current;
+  // Which cards are open: the current exercise to start with (the parent keys the Journal per opening); a tap on a card's
+  // header opens or closes it, and any number can be open at once (Frank's call, 2026-11-10)
+  const [openIds, setOpenIds] = useState<ReadonlySet<string>>(() => new Set(current ? [current] : []));
+  const toggle = (we: WorkoutExerciseRow) =>
+    setOpenIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(we.id)) next.delete(we.id);
+      else {
+        next.add(we.id);
+        onPick(we);
+      }
+      return next;
+    });
   const t = totals(entries.flatMap((e) => e.we.sets));
 
   return (
@@ -84,50 +95,34 @@ export function JournalBody({
       <p className="tabular px-1 pb-3 text-center text-[13px] text-ink-2">
         {percent}% done · {t.sets} {t.sets === 1 ? "set" : "sets"} · {formatNumber(t.volume)} {unit}
       </p>
-      <div className="flex flex-col">
-        {entries.map((entry, idx) =>
-          entry.we.id === openId ? (
-            <OpenExercise
-              key={entry.we.id}
-              id={entry.we.id}
-              entry={entry}
-              first={idx === 0}
-              last={idx === entries.length - 1}
-              currentRow={entry.we.id === current ? currentRow : -1}
-              unit={unit}
-              best={bests[floorKey(entry.we.exercises.id, entry.we.machine_location)] ?? null}
-              pending={pending}
-              valueOf={valueOf}
-              setDraft={setDraft}
-              onLog={onLog}
-              onUnlog={onUnlog}
-              onEditLogged={onEditLogged}
-              onAddRow={onAddRow}
-              onSwap={onSwap}
-              onMove={onMove}
-              onRemove={onRemove}
-            />
-          ) : (
-            <button
-              key={entry.we.id}
-              data-we={entry.we.id}
-              type="button"
-              onClick={() => {
-                setPicked(entry.we.id);
-                onPick(entry.we);
-              }}
-              className="grid grid-cols-[62px_1fr] items-center gap-x-[23px] py-[17px] text-left"
-            >
-              <Thumb we={entry.we} />
-              <span className="min-w-0">
-                <span className="block truncate text-[16px] font-semibold">{exerciseTitle(entry.we.exercises)}</span>
-                <Circles rows={entry.rows} />
-              </span>
-            </button>
-          ),
-        )}
+      {/* Ladder's stack: a card per exercise, 4pt apart (measured off Ladder, Figma ZD41TUAEBtLJI7t0qChNup 11:706) */}
+      <div className="flex flex-col gap-1">
+        {entries.map((entry, idx) => (
+          <ExerciseCard
+            key={entry.we.id}
+            id={entry.we.id}
+            entry={entry}
+            open={openIds.has(entry.we.id)}
+            onToggle={() => toggle(entry.we)}
+            first={idx === 0}
+            last={idx === entries.length - 1}
+            currentRow={entry.we.id === current ? currentRow : -1}
+            unit={unit}
+            best={bests[floorKey(entry.we.exercises.id, entry.we.machine_location)] ?? null}
+            pending={pending}
+            valueOf={valueOf}
+            setDraft={setDraft}
+            onLog={onLog}
+            onUnlog={onUnlog}
+            onEditLogged={onEditLogged}
+            onAddRow={onAddRow}
+            onSwap={onSwap}
+            onMove={onMove}
+            onRemove={onRemove}
+          />
+        ))}
       </div>
-      <button type="button" onClick={onFinish} className="mt-4 h-[56px] w-full rounded-full bg-blue text-[17px] font-semibold text-white">
+      <button type="button" onClick={onFinish} className="mx-3 mt-4 h-[56px] w-[calc(100%-24px)] rounded-full bg-blue text-[17px] font-semibold text-white">
         Finish Workout
       </button>
     </>
@@ -136,7 +131,7 @@ export function JournalBody({
 
 function Thumb({ we }: { we: WorkoutExerciseRow }) {
   return (
-    <span className="block size-[62px] overflow-hidden rounded-[10px] bg-fill">
+    <span className="block size-[58px] overflow-hidden rounded-[10px] bg-fill">
       <ExerciseArt slug={we.exercises.slug} art={<ListIcon size={20} className="m-auto mt-5 text-ink-3" />} pad="p-0" />
     </span>
   );
@@ -161,9 +156,19 @@ function Circles({ rows }: { rows: SetRowView[] }) {
   );
 }
 
-function OpenExercise({
+/**
+ * One exercise as Ladder's card (measured off Ladder at 375pt: 20pt corners, 20pt sides, 14pt top, a 58pt thumbnail with
+ * the title 20pt from it, 36pt chips 8pt apart and 26pt under the thumbnail, a 56pt band on the current set). The card is
+ * the elevated step above the Journal (`bg-card`: #2c2c2e on the dark Journal, #f2f2f7 on the light), its chips and cells
+ * a step above that (`bg-fill`). The header (thumbnail and title) opens and closes it; closed, the title has the sets as
+ * circles under it, open, the best weight and estimated 1RM, then the chips, the Log It grid and Add Set, whose height
+ * animates.
+ */
+function ExerciseCard({
   id,
   entry,
+  open,
+  onToggle,
   first,
   last,
   currentRow,
@@ -182,6 +187,8 @@ function OpenExercise({
 }: {
   id: string;
   entry: Entry;
+  open: boolean;
+  onToggle: () => void;
   first: boolean;
   last: boolean;
   currentRow: number;
@@ -208,20 +215,35 @@ function OpenExercise({
   const [floorPending, startFloor] = useTransition();
 
   return (
-    <div data-we={id} className="grid grid-cols-[62px_1fr] items-center gap-x-[23px] py-[17px]">
-      <Thumb we={we} />
-      <span className="min-w-0">
-        <span className="block truncate text-[16px] font-semibold">{exerciseTitle(ex)}</span>
-        <span className="mt-0.5 block text-[15px] leading-[1.35] text-ink-2">
-          Max Weight: <span className="text-ink">{best ? `${formatNumber(best.weight)} ${unit}` : "--"}</span>
-          <br />
-          Est. 1 Rep Max: <span className="text-ink">{best ? `${Math.round(best.e1rm)} ${unit}` : "--"}</span>
+    <div data-we={id} className="overflow-hidden rounded-[20px] bg-card">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="grid w-full grid-cols-[58px_1fr] items-center gap-x-5 px-5 pb-[14px] pt-[14px] text-left"
+      >
+        <Thumb we={we} />
+        <span className="min-w-0">
+          <span className="block truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">{exerciseTitle(ex)}</span>
+          {open ? (
+            <span className="mt-0.5 block text-[15px] leading-[1.35] text-ink-2">
+              Max Weight: <span className="text-ink">{best ? `${formatNumber(best.weight)} ${unit}` : "--"}</span>
+              <br />
+              Est. 1 Rep Max: <span className="text-ink">{best ? `${Math.round(best.e1rm)} ${unit}` : "--"}</span>
+            </span>
+          ) : (
+            <Circles rows={rows} />
+          )}
         </span>
-      </span>
+      </button>
 
-      <div className="col-span-2 mt-[22px] flex gap-[9px] overflow-x-auto [scrollbar-width:none]">
+      {/* the body's height animates open and closed (grid rows from 0fr to 1fr); closed, it is inert */}
+      <div className={cn("grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+      <div className="min-h-0 overflow-hidden" inert={!open}>
+      <div className="grid grid-cols-[58px_1fr] gap-x-5 px-5 pb-[14px]">
+      <div className="col-span-2 mt-3 flex gap-2 overflow-x-auto [scrollbar-width:none]">
         {ex.has_floors && (
-          <label className={cn("relative inline-flex h-[37px] shrink-0 items-center gap-1 rounded-full bg-fill px-4 text-[15px] font-medium", floorPending && "opacity-50")}>
+          <label className={cn("relative inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-fill px-4 text-[15px] font-medium", floorPending && "opacity-50")}>
             {floorLabel(we.machine_location) ?? "Floor"}
             <ChevronUpDown size={13} strokeWidth={2.2} />
             <select
@@ -249,7 +271,7 @@ function OpenExercise({
         <Chip onClick={() => onSwap(we)}>
           <SwapIcon size={15} /> Swap
         </Chip>
-        <Link href={`/exercises/${ex.id}`} className="inline-flex h-[37px] shrink-0 items-center gap-1.5 rounded-full bg-fill px-4 text-[15px] font-medium">
+        <Link href={`/exercises/${ex.id}`} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-fill px-4 text-[15px] font-medium">
           History
         </Link>
         <Chip label="More" onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}>
@@ -258,7 +280,7 @@ function OpenExercise({
       </div>
 
       <div
-        className="col-span-2 mt-6 isolate grid items-center gap-x-[13px] gap-y-[17px]"
+        className="col-span-2 mt-6 isolate grid items-center gap-x-[13px] gap-y-[15px]"
         style={{ gridTemplateColumns: `38px ${fields.map(() => `${cellWidth}px`).join(" ")} 1fr` }}
       >
         <span className="whitespace-nowrap text-[15px] text-blue">Log It</span>
@@ -286,6 +308,9 @@ function OpenExercise({
       <button type="button" onClick={() => onAddRow(we)} className="col-span-2 mt-4 justify-self-start text-[15px] font-semibold text-blue">
         + Add Set
       </button>
+      </div>
+      </div>
+      </div>
 
       {menu && (
         <ActionMenu
@@ -311,7 +336,7 @@ function OpenExercise({
 
 function Chip({ label, onClick, children }: { label?: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; children: React.ReactNode }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className="inline-flex h-[37px] shrink-0 items-center gap-1.5 rounded-full bg-fill px-4 text-[15px] font-medium">
+    <button type="button" aria-label={label} onClick={onClick} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-fill px-4 text-[15px] font-medium">
       {children}
     </button>
   );
@@ -357,10 +382,10 @@ function SetLine({
         )}
       >
         {/* The current set's row is tinted blue across the card, as Ladder highlights it in its accent (Frank's call,
-            2026-11-09): 15% blue, from the card's left edge to its right, 58pt tall (the 41pt row and half the gap each side). Behind the
-            cells (the grid isolates), clipped by the card body. */}
+            2026-11-09): 15% blue, from the card's left edge to its right, 56pt tall as Ladder's (the 41pt row and half the 15pt
+            gap each side). Behind the cells (the grid isolates), clipped by the card. */}
         {current && (
-          <span aria-hidden className="pointer-events-none absolute -bottom-[15.5px] -left-[21.5px] -top-[15.5px] -z-10 w-screen bg-blue/15" />
+          <span aria-hidden className="pointer-events-none absolute -bottom-[14.5px] -left-[24.5px] -top-[14.5px] -z-10 w-screen bg-blue/15" />
         )}
         {row.set ? "✓" : row.kind === "warm" ? <SfFlameFillIcon size={15} /> : row.label}
       </button>

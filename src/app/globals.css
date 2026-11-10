@@ -1304,9 +1304,10 @@ html.keyboard .sheet-body {
     display: flex;
     align-items: center;
     gap: 17px;
-    /* the circle eases from the pill's 28pt to the body's 16pt edge, lined up with the content under it */
-    padding-left: calc(8px + 8px * var(--jp));
-    padding-right: calc(8px + 8px * var(--jp));
+    /* the circle stays 28pt from the screen's edge, where it is in the pill, lined up with the exercise cards' content
+       (8pt card inset plus 20pt padding): the padding gives back the card's inset */
+    padding-left: calc(8px + 20px * var(--jp));
+    padding-right: calc(8px + 20px * var(--jp));
     border-bottom: 0.5px solid rgb(128 128 128 / calc(0.25 * var(--jp)));
   }
   .jcard-body {
@@ -1317,7 +1318,8 @@ html.keyboard .sheet-body {
     overflow-x: hidden;
     overscroll-behavior: contain;
     scrollbar-width: none;
-    padding: 0 16px calc(var(--dock-bottom) + 24px);
+    /* the exercise cards sit 8pt from the card's edges, as Ladder's do */
+    padding: 0 8px calc(var(--dock-bottom) + 24px);
   }
   .jcard-body::-webkit-scrollbar {
     display: none;
