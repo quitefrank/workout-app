@@ -65,6 +65,7 @@ import { JournalCard, PillCheck, type CardControl } from "./journal-card";
 import { useRestTimer } from "./rest-timer";
 import { useSetTimer } from "./set-timer";
 import type { SetTimerMode, StoredSetTimer } from "@/lib/workout/set-timer";
+import { stretchPairs } from "@/lib/workout/pairs";
 import { Stepper } from "./stepper";
 import { SwapSheet } from "./swap-sheet";
 
@@ -145,6 +146,9 @@ export function ActiveWorkout({
       }),
     [exercises, workout.lastTime, extra],
   );
+
+  // Each lift with a stretch between its sets, and back (Nippard's "Superset A" pairs)
+  const pairs = useMemo(() => stretchPairs(entries.map((e) => e.we)), [entries]);
 
   // What the focus screen shows: an exercise swiped to, else the one picked in the Journal, else the first not done
   const [pinned, setPinned] = useState<string | null>(null);
@@ -255,12 +259,33 @@ export function ActiveWorkout({
       setPinned(entry.we.id);
       setViewId(null);
     }
-    // Rest only after a working set; stretches and cardio rest only when the prescription says so
-    if (!isWarmUp)
-      timer.start(
-        entry.we.prescribed_rest_seconds ??
-          (restsByDefault(measure) ? settings.default_rest_seconds : 0),
+    // A lift paired with a stretch moves straight to the stretch and starts its hold, which stands in for rest; a
+    // logged stretch comes back for the lift's next set (src/lib/workout/pairs.ts)
+    const stretch = isWarmUp ? undefined : entries.find((e) => e.we.id === pairs.stretchOf.get(entry.we.id));
+    const stretchRow = stretch ? nextRow(stretch.rows) : -1;
+    const lift = entries.find((e) => e.we.id === pairs.liftOf.get(entry.we.id));
+    if (stretch && stretchRow >= 0) {
+      timer.stop();
+      setTimer.start(
+        stretch.we.id,
+        stretchRow,
+        "hold",
+        valueOf(stretch.we.id, stretchRow, stretch.rows[stretchRow]).seconds ?? DEFAULT_HOLD_SECONDS,
       );
+      setPinned(stretch.we.id);
+      setViewId(null);
+    } else {
+      if (lift && nextRow(lift.rows) >= 0) {
+        setPinned(lift.we.id);
+        setViewId(null);
+      }
+      // Rest only after a working set; stretches and cardio rest only when the prescription says so
+      if (!isWarmUp)
+        timer.start(
+          entry.we.prescribed_rest_seconds ??
+            (restsByDefault(measure) ? settings.default_rest_seconds : 0),
+        );
+    }
     setFlash(true);
     window.setTimeout(() => setFlash(false), 420);
   };

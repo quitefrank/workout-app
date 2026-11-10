@@ -176,7 +176,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 542 tests across 48 files.
+Run `bun run test` to exercise them. 545 tests across 49 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -366,6 +366,12 @@ shows Play, then Stop. A `hold` counts down its seconds in the controls zone (th
 itself at zero with a chime; Stop logs the seconds held so far. An `outdoor` run counts up in a Time card beside the
 distance stepper (a `Readout`: a stepper card without the stepper) and Stop logs the time with the distance, which can
 still be empty. Looking at another exercise meanwhile shows a Hold or Run capsule that goes back.
+
+A stretch between sets stands in for rest (Frank's call, 2026-11-09). Nippard writes the pair as a lift and the static
+stretch right after it, both notes opening "Superset A." (`stretchPairs` in `src/lib/workout/pairs.ts`, tested; a
+template variant before a "·" is allowed). Logging a working set of the lift moves the screen to the stretch and starts
+its hold with no rest; the logged stretch (at zero or on Stop) comes back for the lift's next set, and the lift's rest
+applies only once the stretch has no sets left. Warm-ups skip the stretch. Supersets of two lifts are still not built.
 
 | Measure | Controls | Examples |
 |---|---|---|
@@ -861,6 +867,7 @@ measurements in `docs/lab/glass-presets.md`.
 - Done: programs in the UI (`/programs/[id]`, Programs on Templates,
   Up Next on Home) and the Achilles rehab templates by phase.
 - Done (2026-11-08): the Ladder-aligned active workout, with swapping, Do Later, Move and Remove (see "Active workout").
-  Not built: adding an exercise mid-workout, and supersets that alternate (no way to mark a superset yet).
+  Not built: adding an exercise mid-workout, and supersets of two lifts that alternate. A lift with a static stretch
+  between its sets is built (see "What a set measures").
 - `_notion_id` stays: it is the ownership key for the three seeds
   (`template:`, `achilles:`, `program:`), not a temporary import column
