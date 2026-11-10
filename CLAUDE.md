@@ -806,7 +806,9 @@ lifts over the canvas while typing.
   the iOS dock holds its icons, a 2pt `#0082f0` ring and a 21.25pt check, from Figma node 28:945, Frank's
   call, 2026-11-10; a blue fill for a moment when logged, Skip while resting), its middle opens the Journal, with set
   dots above the name (Frank's call, 2026-11-10; `PillDots`: 8pt, 4pt apart; logged solid blue, current ringed in blue, upcoming Fills/Primary;
-  logging fills the dot as a transition). Swap is Swap Exercise in the More menu.
+  logging fills the dot as a transition). Swap is a 44pt button with the 22pt swap icon at the pill's trailing end
+  (Figma 3:164), behind Settings' Swap in Pill switch, on by default and saved per device in the `workout_pill_swap`
+  cookie (Frank's call, 2026-11-10); while it is on, Swap Exercise leaves the More menu, and off, it is back there.
 
 The prototype's other options (set circles under Last time, steppers as an inset list) are not built; `StepperList` and
 `StepperRow` stay in `stepper.tsx` unused.

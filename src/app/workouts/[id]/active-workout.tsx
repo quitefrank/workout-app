@@ -25,7 +25,7 @@ import { hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
-import { setGlassSteppers, setWorkoutVersion, VERSIONS, type WorkoutVersion } from "@/lib/workout-layout";
+import { setGlassSteppers, setPillSwap, setWorkoutVersion, VERSIONS, type WorkoutVersion } from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { TopBar } from "@/components/top-bar";
@@ -98,16 +98,19 @@ export function ActiveWorkout({
   settings,
   version: initialVersion,
   glassSteppers: initialGlass,
+  pillSwap: initialPillSwap,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
   version: WorkoutVersion;
   glassSteppers: boolean;
+  pillSwap: boolean;
 }) {
   // Version 1 is the pill, Version 2 the toolbar under the steppers (src/lib/workout-layout.ts), switched in More
   const [version, setVersion] = useState(initialVersion);
   // Glass stepper cards, a Settings switch saved on this device (src/lib/workout-layout.ts)
   const [glassSteppers, setGlass] = useState(initialGlass);
+  const [pillSwap, setSwapInPill] = useState(initialPillSwap);
   const toolbar = version === 2;
   const [journalSheet, setJournalSheet] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -380,7 +383,7 @@ export function ActiveWorkout({
   const pillDrag = useRef<{ x: number; y: number; t: number; last: number; v: number; up: number; d: number; on: boolean } | null>(null);
   const pillSwallow = useRef(0);
   const onPillDown = (e: ReactPointerEvent) => {
-    if (cardOpen || (e.target as HTMLElement).closest("[data-pill-check]")) return;
+    if (cardOpen || (e.target as HTMLElement).closest("[data-pill-check], [data-pill-swap]")) return;
     const dockBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-bottom")) || 21;
     const height = document.querySelector<HTMLElement>("[data-focus-screen]")?.clientHeight ?? window.innerHeight;
     pillDrag.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, last: 0, v: 0, up: 0, d: travel(height, dockBottom), on: false };
@@ -830,6 +833,19 @@ export function ActiveWorkout({
                 {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
               </span>
             </button>
+            {/* Swap at the trailing end (Figma 3:164: 44pt, the 22pt icon), behind Settings' Swap in Pill switch */}
+            {pillSwap && (
+              <button
+                type="button"
+                data-pill-swap
+                aria-label="Swap exercise"
+                disabled={!shown}
+                onClick={() => shown && setSwapFor(shown.we)}
+                className="grid size-11 shrink-0 place-items-center disabled:opacity-40"
+              >
+                <SwapIcon size={22} />
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -839,7 +855,7 @@ export function ActiveWorkout({
           rect={menu}
           items={[
             ...(shown ? [{ value: "Do Later" }] : []),
-            ...(shown && !toolbar ? [{ value: "Swap Exercise" }] : []),
+            ...(shown && !toolbar && !pillSwap ? [{ value: "Swap Exercise" }] : []),
             { value: "Journal" },
             { value: "Settings" },
             { value: "Back to Home" },
@@ -890,31 +906,27 @@ export function ActiveWorkout({
             />
           </Group>
           <Group title="Steppers" footer="Liquid Glass behind the steppers. Saved on this device only.">
-            <div className="flex min-h-[52px] items-center gap-3 px-4">
-              <span className="flex-1 text-[17px] tracking-[-0.43px]">Glass Steppers</span>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={glassSteppers}
-                aria-label="Glass Steppers"
-                onClick={() => {
-                  setGlass(!glassSteppers);
-                  setGlassSteppers(!glassSteppers);
-                }}
-                className={cn(
-                  "relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors",
-                  glassSteppers ? "bg-green" : "bg-fill-2",
-                )}
-              >
-                <span
-                  className={cn(
-                    "absolute left-0.5 top-0.5 size-[27px] rounded-full bg-white shadow transition-transform",
-                    glassSteppers && "translate-x-5",
-                  )}
-                />
-              </button>
-            </div>
+            <SwitchRow
+              label="Glass Steppers"
+              on={glassSteppers}
+              onChange={(on) => {
+                setGlass(on);
+                setGlassSteppers(on);
+              }}
+            />
           </Group>
+          {!toolbar && (
+            <Group title="Pill" footer="A Swap button at the end of the pill. Off, Swap Exercise is in More. Saved on this device only.">
+              <SwitchRow
+                label="Swap in Pill"
+                on={pillSwap}
+                onChange={(on) => {
+                  setSwapInPill(on);
+                  setPillSwap(on);
+                }}
+              />
+            </Group>
+          )}
         </div>
       </Sheet>
 
@@ -990,6 +1002,25 @@ function SetText({ rows, current, className }: { rows: SetRowView[]; current: nu
  * The set dots in the pill (Frank's Figma frame, 2026-11-09): 8pt, 4pt apart; logged solid blue, the current set
  * ringed in blue, the rest in Fills/Primary. Logging fills the current dot to blue as a transition.
  */
+/** A Settings row with the iOS switch (51 × 31pt, green when on) */
+function SwitchRow({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
+  return (
+    <div className="flex min-h-[52px] items-center gap-3 px-4">
+      <span className="flex-1 text-[17px] tracking-[-0.43px]">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={on}
+        aria-label={label}
+        onClick={() => onChange(!on)}
+        className={cn("relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors", on ? "bg-green" : "bg-fill-2")}
+      >
+        <span className={cn("absolute left-0.5 top-0.5 size-[27px] rounded-full bg-white shadow transition-transform", on && "translate-x-5")} />
+      </button>
+    </div>
+  );
+}
+
 function PillDots({ rows, current }: { rows: SetRowView[]; current: number }) {
   return (
     <div className="flex gap-1" aria-hidden>
