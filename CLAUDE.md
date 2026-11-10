@@ -699,7 +699,9 @@ frame recorder: 132pt on a switch, 196pt above and below the field in a 433pt vi
 (`focusWithoutScroll`; iOS's 379pt scroll as the keyboard opened overshot the lift and read as a spring), and a switch
 by the keyboard's arrows gives iOS nothing to scroll: while the keyboard is up each stepper field's box reaches up
 (`--field-reach`, `fieldReach`, padding-top with an equal negative margin) until its centre is the visible area's, where
-iOS centres a field, while the digits stay put. Undoing iOS's scroll after the fact still showed 2 to 3 frames of a
+iOS centres a field, while the digits stay put. A tap on the reaching part, above the digits, closes the keyboard
+(`focusWithoutScroll`). The box must keep taking taps: with `pointer-events: none` iOS's ^ v arrows skipped the fields
+and greyed out. Undoing iOS's scroll after the fact still showed 2 to 3 frames of a
 132pt pan, since iOS moves the screen before the page hears of it. The glide starts on the tap with the visible
 height the keyboard left last time and drops as focus leaves, so it moves with the keyboard rather than after it. The lift glides with a transition and the caret is redrawn when it settles. A scroll iOS makes anyway (379pt
 in one frame as the keyboard opens) is absorbed in the same event: the window goes back to 0 and the lift takes over
