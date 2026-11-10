@@ -10,7 +10,7 @@ import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { cn } from "@/lib/cn";
 import type { SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
-import { totals, valuesOf, type Best, type SetRowView } from "@/lib/workout/active";
+import { valuesOf, type Best, type SetRowView } from "@/lib/workout/active";
 import { formatNumber } from "@/lib/workout/format";
 import { FIELDS, fieldLabel, formatField, measureOf, parseField, summarizeShort, type Field, type SetValues } from "@/lib/workout/measure";
 import { FLOORS, floorKey, floorLabel, type MachineLocation } from "@/lib/workout/machine-location";
@@ -25,7 +25,6 @@ export type JournalProps = {
   currentRow: number;
   unit: "lbs" | "kg";
   bests: Record<string, Best>;
-  percent: number;
   pending: boolean;
   valueOf: (weId: string, i: number, row: SetRowView) => Draft;
   setDraft: (weId: string, i: number, d: Draft) => void;
@@ -61,7 +60,6 @@ export function JournalBody({
   currentRow,
   unit,
   bests,
-  percent,
   pending,
   valueOf,
   setDraft,
@@ -88,13 +86,9 @@ export function JournalBody({
       }
       return next;
     });
-  const t = totals(entries.flatMap((e) => e.we.sets));
 
   return (
     <>
-      <p className="tabular px-1 pb-3 text-center text-[13px] text-ink-2">
-        {percent}% done · {t.sets} {t.sets === 1 ? "set" : "sets"} · {formatNumber(t.volume)} {unit}
-      </p>
       {/* Ladder's stack: a card per exercise, 4pt apart (measured off Ladder, Figma ZD41TUAEBtLJI7t0qChNup 11:706) */}
       <div className="flex flex-col gap-1">
         {entries.map((entry, idx) => (

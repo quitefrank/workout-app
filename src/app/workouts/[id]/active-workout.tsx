@@ -41,7 +41,6 @@ import {
   buildRows,
   isDone,
   nextRow,
-  progress,
   repTarget,
   rowLabel,
   valuesOf,
@@ -182,7 +181,6 @@ export function ActiveWorkout({
   const shownIndex = shown ? entries.indexOf(shown) : -1;
   const rowIndex = shown ? nextRow(shown.rows) : -1;
   const resting = timer.endsAt != null && !viewing;
-  const prog = progress(entries.map((e) => e.rows));
 
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const valueOf = (weId: string, i: number, row: SetRowView): Draft =>
@@ -462,7 +460,6 @@ export function ActiveWorkout({
     currentRow: shown ? rowIndex : -1,
     unit,
     bests: workout.bests,
-    percent: prog.percent,
     pending,
     valueOf,
     setDraft,
@@ -499,6 +496,19 @@ export function ActiveWorkout({
     resting ? timer.stop() : !shown ? setFinishing(true) : log(shown, rowIndex);
 
   // The pill layout's circle, in the pill and in the card's header
+  // Swap in the pill and, while it is open, in the Journal's header, at the same place (Frank's calls, 2026-11-10)
+  const pillSwapButton = (
+    <button
+      type="button"
+      data-pill-swap
+      aria-label="Swap exercise"
+      disabled={!shown}
+      onClick={() => shown && setSwapFor(shown.we)}
+      className="grid size-11 shrink-0 place-items-center disabled:opacity-40"
+    >
+      <SwapIcon size={22} />
+    </button>
+  );
   const logCheck = (
     <PillCheck
       state={logState}
@@ -834,18 +844,7 @@ export function ActiveWorkout({
               </span>
             </button>
             {/* Swap at the trailing end (Figma 3:164: 44pt, the 22pt icon), behind Settings' Swap in Pill switch */}
-            {pillSwap && (
-              <button
-                type="button"
-                data-pill-swap
-                aria-label="Swap exercise"
-                disabled={!shown}
-                onClick={() => shown && setSwapFor(shown.we)}
-                className="grid size-11 shrink-0 place-items-center disabled:opacity-40"
-              >
-                <SwapIcon size={22} />
-              </button>
-            )}
+            {pillSwap && pillSwapButton}
           </div>
         )}
       </div>
@@ -940,6 +939,7 @@ export function ActiveWorkout({
         check={logCheck}
         title={shown ? exerciseTitle(shown.we.exercises) : (workout.templates?.name ?? "Workout")}
         dots={shown ? <PillDots rows={shown.rows} current={rowIndex} /> : undefined}
+        trailing={pillSwap ? pillSwapButton : undefined}
         current={shown?.we.id ?? null}
       >
         <JournalBody {...journalProps} />

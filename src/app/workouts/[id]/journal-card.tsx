@@ -31,6 +31,7 @@ export function JournalCard({
   check,
   title,
   dots,
+  trailing,
   current,
   children,
 }: {
@@ -44,6 +45,8 @@ export function JournalCard({
   title: string;
   /** the set dots, above the title as the pill shows them */
   dots?: ReactNode;
+  /** the pill's trailing control (Swap), kept at the same place in the header */
+  trailing?: ReactNode;
   /** the exercise to pin under the header */
   current: string | null;
   children: ReactNode;
@@ -142,6 +145,12 @@ export function JournalCard({
             {dots}
             <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">{title}</span>
           </span>
+          {trailing && (
+            // a tap on it must not start the header's pull-to-close
+            <span className="contents" onPointerDown={(e) => e.stopPropagation()}>
+              {trailing}
+            </span>
+          )}
         </div>
         <div ref={body} className="jcard-body">
           {children}

@@ -808,7 +808,8 @@ lifts over the canvas while typing.
   dots above the name (Frank's call, 2026-11-10; `PillDots`: 8pt, 4pt apart; logged solid blue, current ringed in blue, upcoming Fills/Primary;
   logging fills the dot as a transition). Swap is a 44pt button with the 22pt swap icon at the pill's trailing end
   (Figma 3:164), behind Settings' Swap in Pill switch, on by default and saved per device in the `workout_pill_swap`
-  cookie (Frank's call, 2026-11-10); while it is on, Swap Exercise leaves the More menu, and off, it is back there.
+  cookie (Frank's call, 2026-11-10); while it is on, Swap Exercise leaves the More menu, and off, it is back there. The open Journal's header keeps the same
+  button at the same place.
 
 The prototype's other options (set circles under Last time, steppers as an inset list) are not built; `StepperList` and
 `StepperRow` stay in `stepper.tsx` unused.
@@ -816,7 +817,7 @@ The prototype's other options (set circles under Last time, steppers as an inset
 The Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
   open under the 62pt status bar; `.jcard` in globals.css). Its content is in it the whole way with the current exercise
   pinned under the header, as Ladder does. The header is the pill's own content, the circle and the set dots over the
-  title, with no set label or count, and the circle stays 28pt from the screen's edge, lined up with the exercise cards'
+  title (and Swap, when it is in the pill), with no set label or count; the body has no summary line, and the circle stays 28pt from the screen's edge, lined up with the exercise cards'
   content (Frank's call, 2026-11-10). Each exercise is Ladder's card (`ExerciseCard` in `journal.tsx`, measured off
   Ladder, Figma `ZD41TUAEBtLJI7t0qChNup` 11:706): 8pt from the Journal's edges, 4pt apart, 20pt corners, `bg-card` (the
   elevated step: `#2c2c2e` on the dark Journal, `#f2f2f7` on the light), 20pt sides, 14pt top, a 58pt thumbnail 20pt
