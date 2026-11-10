@@ -31,14 +31,40 @@ export function scrollTop(): number {
   return appScroller()?.scrollTop ?? 0;
 }
 
+/** Room left between the focused stepper's card and the top of the keyboard's bar, in pt (Frank's call, 2026-11-10) */
+export const LIFT_CLEARANCE = 16;
+
 /**
- * How far to lift the focus screen so the focused field sits centred in what the keyboard leaves visible, which is
- * where iOS itself scrolls a field it reveals (measured on the phone, 2026-11-10: a switch between steppers scrolled
- * the field to exactly 196pt above and below it in a 433pt viewport). With the field already there, iOS has nothing
- * to scroll. `restingCenter` is the field's centre with no lift; never down, whole points.
+ * How far to lift the focus screen so a card whose bottom rests at `restingBottom` (no lift) ends LIFT_CLEARANCE above
+ * the visible area's bottom edge; never down, whole points. Centring the field, where iOS itself puts a field it
+ * reveals, sat too high (Frank, 2026-11-10), so iOS's scroll on a switch is prevented or undone instead.
  */
-export function focusLift(restingCenter: number, visibleHeight: number): number {
-  return Math.max(0, Math.round(restingCenter - visibleHeight / 2));
+export function focusLift(restingBottom: number, visibleHeight: number): number {
+  return Math.max(0, Math.ceil(restingBottom + LIFT_CLEARANCE - visibleHeight));
+}
+
+/**
+ * A tap on another field while one has focus: focus it with preventScroll, so iOS does not scroll to centre it, and
+ * cancel the tap's own focus. A drag (a swipe between exercises) is left alone. Returns the touch handlers to spread
+ * on the input.
+ */
+export function focusWithoutScroll() {
+  let start: { x: number; y: number } | null = null;
+  return {
+    onTouchStart: (e: React.TouchEvent<HTMLInputElement>) => {
+      const t = e.touches[0];
+      start = t ? { x: t.clientX, y: t.clientY } : null;
+    },
+    onTouchEnd: (e: React.TouchEvent<HTMLInputElement>) => {
+      const el = e.currentTarget;
+      const other = document.activeElement;
+      const t = e.changedTouches[0];
+      const moved = !start || !t || Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10;
+      if (moved || !(other instanceof HTMLInputElement) || other === el) return;
+      e.preventDefault();
+      el.focus({ preventScroll: true });
+    },
+  };
 }
 
 /**
@@ -72,9 +98,10 @@ export function followVisualViewport(): () => void {
     html.style.setProperty("--screen-h", `${window.screen.height}px`);
   }
   // The focus screen never scrolls, so the keyboard would cover its steppers. As the keyboard layout guide does, the
-  // screen is lifted (--focus-lift, globals.css) until the focused field sits where iOS reveals a field, centred in
-  // what is visible, so switching fields moves nothing. A lift glides (a transition on top) and the caret, which iOS
-  // does not move with the field, is redrawn when it settles; a scroll iOS makes anyway is absorbed at once (below).
+  // screen is lifted (--focus-lift, globals.css) until the focused card ends just above the keyboard's bar. A lift
+  // glides (a transition on top) and the caret, which iOS does not move with the field, is redrawn when it settles.
+  // iOS scrolls to centre a focused field: as the keyboard opens that scroll is absorbed into the lift, and on a switch
+  // it is undone (below), or never made when the switch is a tap (`focusWithoutScroll`).
   let lift = 0;
   const focusedField = (): HTMLInputElement | null => {
     const el = document.activeElement;
@@ -93,13 +120,16 @@ export function followVisualViewport(): () => void {
     }
   };
   const liftFocusScreen = () => {
-    if (!html.classList.contains("keyboard")) return setLift(0, false);
+    if (!html.classList.contains("keyboard")) {
+      switching = false;
+      return setLift(0, false);
+    }
     const el = focusedField();
     const screen = el?.closest<HTMLElement>("[data-focus-screen]");
     if (!el || !screen) return;
-    const r = el.getBoundingClientRect();
+    const card = (el.parentElement ?? el).getBoundingClientRect();
     // measured from the screen's own top, so a lift still gliding does not count
-    setLift(focusLift(r.top - screen.getBoundingClientRect().top + r.height / 2, vv.height), false);
+    setLift(focusLift(card.bottom - screen.getBoundingClientRect().top, vv.height), false);
   };
   const onLiftSettled = (e: TransitionEvent) => {
     const el = focusedField();
@@ -135,8 +165,16 @@ export function followVisualViewport(): () => void {
   const onWindowScroll = () => {
     const y = Math.round(window.scrollY);
     const screen = focusedField()?.closest<HTMLElement>("[data-focus-screen]");
+    if (y > 0 && screen && switching) {
+      // a switch with the keyboard already up: iOS centres the new field (132pt on the phone); the screen is already
+      // where it belongs, so the scroll is undone in the same event and the caret redrawn
+      window.scrollTo(0, 0);
+      const el = focusedField();
+      if (el) requestAnimationFrame(() => redrawCaret(el));
+      return;
+    }
     if (y > 0 && screen) {
-      // where the screen shows now, with iOS's scroll and any glide in progress, held while the window goes back
+      // the keyboard opening: where the screen shows now, with iOS's scroll and any glide in progress, held while the window goes back
       const shown = Math.max(0, Math.round(-screen.getBoundingClientRect().top));
       window.scrollTo(0, 0);
       lift = -1;
@@ -150,7 +188,12 @@ export function followVisualViewport(): () => void {
     reasserted = null;
   };
   // the keyboard's up and down arrows move focus with the keyboard already up, so no viewport event follows
-  const onFocusIn = () => requestAnimationFrame(liftFocusScreen);
+  // whether focus moved with the keyboard already up (a switch), as opposed to the keyboard opening
+  let switching = false;
+  const onFocusIn = () => {
+    switching = html.classList.contains("keyboard");
+    requestAnimationFrame(liftFocusScreen);
+  };
   update();
   vv.addEventListener("resize", update);
   vv.addEventListener("scroll", update);

@@ -2,6 +2,7 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { formatField, parseField, stepField, type Field } from "@/lib/workout/measure";
+import { focusWithoutScroll } from "@/lib/scroller";
 
 /**
  * The focus screen's steppers (weight, reps, time, incline, speed or distance, by the exercise's measure), in the two forms Frank picked per layout (2026-11-08, from the teardown prototype):
@@ -26,12 +27,15 @@ type Props = {
 
 function useValueField({ field, value, onChange }: Props) {
   const [text, setText] = useState<string | null>(null);
+  // a tap from the other field switches focus without iOS scrolling to centre this one
+  const [touch] = useState(focusWithoutScroll);
   const shown = text ?? formatField(field, value);
   const commit = (s: string) => {
     const n = parseField(field, s);
     if (n !== undefined) onChange(n);
   };
   return {
+    ...touch,
     shown,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       setText(e.target.value);
@@ -93,6 +97,8 @@ export function Stepper(props: Props & { label: string; glass?: boolean }) {
         onChange={f.onChange}
         onBlur={f.onBlur}
         onFocus={f.onFocus}
+        onTouchStart={f.onTouchStart}
+        onTouchEnd={f.onTouchEnd}
         className="tabular h-[41px] w-full min-w-0 bg-transparent p-0 text-center text-[34px] font-bold leading-[41px] tracking-[0.4px] text-ink outline-none placeholder:text-ink-3 caret-blue"
       />
       <KitStepper {...props} className="mx-auto" />
@@ -125,6 +131,8 @@ export function StepperRow(props: Props & { first?: boolean }) {
           onChange={f.onChange}
           onBlur={f.onBlur}
         onFocus={f.onFocus}
+        onTouchStart={f.onTouchStart}
+        onTouchEnd={f.onTouchEnd}
           className="tabular w-16 bg-transparent p-0 text-right text-[17px] text-inherit outline-none caret-blue"
         />
         {field === "weight" && <span>{unit}</span>}
