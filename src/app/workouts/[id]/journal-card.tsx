@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, type MutableRefObject, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { CheckIcon, SkipIcon } from "@/components/icons";
+import { CheckIcon, PlayIcon, SkipIcon, StopIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { closesOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
 
@@ -163,7 +163,8 @@ export function PillCheck({
   disabled,
   onClick,
 }: {
-  state: "log" | "skip" | "finish";
+  /** start and stop run a timed set: a stretch's hold, an outdoor run's stopwatch */
+  state: "log" | "skip" | "finish" | "start" | "stop";
   flash: boolean;
   disabled?: boolean;
   onClick: () => void;
@@ -172,7 +173,17 @@ export function PillCheck({
   return (
     <button
       type="button"
-      aria-label={skip ? "Skip rest" : state === "finish" ? "Finish workout" : "Log set"}
+      aria-label={
+        skip
+          ? "Skip rest"
+          : state === "finish"
+            ? "Finish workout"
+            : state === "start"
+              ? "Start set"
+              : state === "stop"
+                ? "Stop and log set"
+                : "Log set"
+      }
       disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
@@ -183,7 +194,15 @@ export function PillCheck({
         flash ? "pill-check-fill bg-blue text-white" : "opacity-90 shadow-[inset_0_0_0_1.5px_currentColor]",
       )}
     >
-      {skip ? <SkipIcon size={13} /> : <CheckIcon size={14} strokeWidth={flash ? 2.6 : 1.8} />}
+      {skip ? (
+        <SkipIcon size={13} />
+      ) : state === "start" && !flash ? (
+        <PlayIcon size={12} className="translate-x-[1px]" />
+      ) : state === "stop" && !flash ? (
+        <StopIcon size={12} />
+      ) : (
+        <CheckIcon size={14} strokeWidth={flash ? 2.6 : 1.8} />
+      )}
     </button>
   );
 }

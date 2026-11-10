@@ -18,10 +18,10 @@ export type Timer = {
 
 type Stored = { endsAt: number; total: number };
 
-// localStorage is the timer's store; this event tells this tab it changed ("storage" covers other tabs)
+// localStorage is the timers' store (rest here, the set timer in set-timer.tsx); this event tells this tab it changed ("storage" covers other tabs)
 const CHANGED = "rest-timer-change";
 
-const readRaw = (key: string): string | null => {
+export const readRaw = (key: string): string | null => {
   try {
     return localStorage.getItem(key);
   } catch {
@@ -39,7 +39,7 @@ const parse = (raw: string | null): Stored | null => {
   }
 };
 
-const write = (key: string, v: Stored | null) => {
+export const write = (key: string, v: object | null) => {
   try {
     if (v) localStorage.setItem(key, JSON.stringify(v));
     else localStorage.removeItem(key);
@@ -49,7 +49,7 @@ const write = (key: string, v: Stored | null) => {
   window.dispatchEvent(new Event(CHANGED));
 };
 
-const subscribe = (onChange: () => void) => {
+export const subscribe = (onChange: () => void) => {
   window.addEventListener(CHANGED, onChange);
   window.addEventListener("storage", onChange);
   return () => {
@@ -121,7 +121,7 @@ export function useRestTimer(workoutId: string): Timer {
   return { endsAt, total: state?.total ?? 0, remaining, start, add, stop };
 }
 
-function chime(ctx: AudioContext | null) {
+export function chime(ctx: AudioContext | null) {
   if (!ctx) return;
   try {
     const t = ctx.currentTime;

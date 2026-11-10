@@ -118,6 +118,13 @@ export const PlayIcon = (p: IconProps) => (
   </Svg>
 );
 
+/** SF's stop.fill: a rounded square, Stop on a running set timer */
+export const StopIcon = (p: IconProps) => (
+  <Svg {...p} fill="currentColor" stroke="none">
+    <rect x="5.5" y="5.5" width="13" height="13" rx="2.5" />
+  </Svg>
+);
+
 export const TimerIcon = (p: IconProps) => (
   <Svg {...p}>
     <circle cx="12" cy="13.5" r="7.5" />

@@ -46,6 +46,7 @@ import {
   type SetRowView,
 } from "@/lib/workout/active";
 import {
+  DEFAULT_HOLD_SECONDS,
   FIELDS,
   fieldLabel,
   hasValue,
@@ -62,6 +63,8 @@ import { FinishSheet } from "./finish-sheet";
 import { JournalBody, type JournalProps } from "./journal";
 import { JournalCard, PillCheck, type CardControl } from "./journal-card";
 import { useRestTimer } from "./rest-timer";
+import { useSetTimer } from "./set-timer";
+import type { SetTimerMode, StoredSetTimer } from "@/lib/workout/set-timer";
 import { Stepper } from "./stepper";
 import { SwapSheet } from "./swap-sheet";
 
@@ -98,6 +101,9 @@ export function ActiveWorkout({
   const unit = settings.weight_unit;
   const elapsed = useElapsed(workout.started_at);
   const timer = useRestTimer(workout.id);
+  // a stretch's hold or an outdoor run's stopwatch, running during the set; a hold logs itself at zero
+  const holdDoneRef = useRef<(t: StoredSetTimer) => void>(() => {});
+  const setTimer = useSetTimer(workout.id, (t) => holdDoneRef.current(t));
   const [pending, start] = useTransition();
 
   const [exercises, apply] = useOptimistic(
@@ -178,17 +184,39 @@ export function ActiveWorkout({
     [],
   );
 
-  const log = (entry: Entry, i: number) => {
+  const log = (entry: Entry, i: number, override?: Partial<SetValues>) => {
     const row = entry.rows[i];
     if (!row || row.set) return;
     const measure = measureOf(entry.we.exercises);
-    const v = valueOf(entry.we.id, i, row);
+    // A timed set starts its timer on the first tap and logs on the second (or, for a hold, at zero)
+    const mode = timedMode(measure);
+    if (mode && !override) {
+      const t = setTimer.state;
+      if (t && t.weId === entry.we.id && t.row === i) {
+        override = { seconds: setTimer.finish() };
+      } else {
+        timer.stop();
+        setTimer.start(
+          entry.we.id,
+          i,
+          mode,
+          mode === "hold" ? (valueOf(entry.we.id, i, row).seconds ?? DEFAULT_HOLD_SECONDS) : 0,
+        );
+        if (viewing) {
+          setPinned(entry.we.id);
+          setViewId(null);
+        }
+        return;
+      }
+    }
+    const v = { ...valueOf(entry.we.id, i, row), ...override };
     const prescribed =
       entry.we.prescribed_sets_max ??
       entry.we.prescribed_sets_min ??
       entry.we.prescribed_reps_max ??
       entry.we.warm_up_sets_max;
-    if (!hasValue(measure, v) && prescribed != null) {
+    // a stopped timer is a value in itself, so a run logs its time even before its distance is entered
+    if (!hasValue(measure, v) && override?.seconds == null && prescribed != null) {
       toast.error(
         `Set ${FIELDS[measure].map((f) => fieldLabel(f, measure, unit).toLowerCase()).join(" or ")} first.`,
       );
@@ -238,6 +266,15 @@ export function ActiveWorkout({
   };
   // the pill's circle fills for a moment when a set is logged
   const [flash, setFlash] = useState(false);
+
+  const holdDone = (t: StoredSetTimer) => {
+    setTimer.stop();
+    const entry = entries.find((e) => e.we.id === t.weId);
+    if (entry) log(entry, t.row, { seconds: t.total });
+  };
+  useLayoutEffect(() => {
+    holdDoneRef.current = holdDone;
+  });
 
   const unlog = (entry: Entry, set: SetRow) =>
     run(async () => {
@@ -368,6 +405,14 @@ export function ActiveWorkout({
   const value = shown && row ? valueOf(shown.we.id, rowIndex, row) : null;
   const measure = measureOf(ex);
   const measureFields = FIELDS[measure];
+  const timing =
+    setTimer.state && shown && setTimer.state.weId === shown.we.id && setTimer.state.row === rowIndex
+      ? setTimer.state
+      : null;
+  const holding = !!timing && timing.mode === "hold" && !resting;
+  // an outdoor run shows its time beside the distance, kept by the app: live while running, else the row's
+  const readout = measure === "outdoor";
+  const zoneColumns = measureFields.length + (readout ? 1 : 0);
 
   const journalProps: JournalProps = {
     entries,
@@ -399,7 +444,17 @@ export function ActiveWorkout({
   // The pill layout's circle, in the pill and in the card's header: logs the set, Skip while resting, Finish when done
   const logCheck = (
     <PillCheck
-      state={resting ? "skip" : !shown ? "finish" : "log"}
+      state={
+        resting
+          ? "skip"
+          : !shown
+            ? "finish"
+            : timing
+              ? "stop"
+              : rowIndex >= 0 && timedMode(measure)
+                ? "start"
+                : "log"
+      }
       flash={flash}
       disabled={pending || (!resting && !!shown && rowIndex < 0)}
       onClick={() =>
@@ -529,7 +584,7 @@ export function ActiveWorkout({
               {/* The controls: last time and the steppers, or the rest arc, stacked in one cell so the zone is always the
                   taller of the two; the one not in use is hidden, not removed. */}
               <div className="relative grid items-end px-5">
-                <div className={cn("[grid-area:1/1]", resting && "invisible")}>
+                <div className={cn("[grid-area:1/1]", (resting || holding) && "invisible")}>
                   {row && value ? (
                     // One stepper per field the exercise measures: side by side, a lone one at the same half width
                     // and centred, three for a treadmill, or none for a held stretch, which hides the zone (Frank's
@@ -540,12 +595,12 @@ export function ActiveWorkout({
                           {row.last ? `Last time · ${summarize(measure, row.last, unit)}` : "No history yet"}
                         </p>
                         <div
-                          className={cn("grid justify-center", measureFields.length > 2 ? "gap-2" : "gap-3")}
+                          className={cn("grid justify-center", zoneColumns > 2 ? "gap-2" : "gap-3")}
                           style={{
                             gridTemplateColumns:
-                              measureFields.length > 2
-                                ? `repeat(${measureFields.length}, minmax(0, 1fr))`
-                                : `repeat(${measureFields.length}, calc((100% - 12px) / 2))`,
+                              zoneColumns > 2
+                                ? `repeat(${zoneColumns}, minmax(0, 1fr))`
+                                : `repeat(${zoneColumns}, calc((100% - 12px) / 2))`,
                           }}
                         >
                           {measureFields.map((f) => (
@@ -558,6 +613,13 @@ export function ActiveWorkout({
                               onChange={(x) => setDraft(shown.we.id, rowIndex, { ...value, [f]: x })}
                             />
                           ))}
+                          {readout && (
+                            <Readout
+                              label="Time"
+                              value={timing ? (setTimer.view?.elapsed ?? 0) : value.seconds}
+                              live={!!timing}
+                            />
+                          )}
                         </div>
                       </>
                     )
@@ -570,6 +632,29 @@ export function ActiveWorkout({
                 <div className={cn("[grid-area:1/1]", !resting && "invisible")} aria-hidden={!resting}>
                   <RestArc remaining={timer.remaining} total={timer.total} onAdd={timer.add} />
                 </div>
+                {/* a running hold takes the controls' place as the same arc, labelled Hold */}
+                <div className={cn("[grid-area:1/1]", !holding && "invisible")} aria-hidden={!holding}>
+                  <RestArc
+                    label="Hold"
+                    remaining={holding ? (setTimer.view?.remaining ?? 0) : 0}
+                    total={timing?.total ?? 0}
+                    onAdd={setTimer.add}
+                  />
+                </div>
+                {setTimer.state && shown && setTimer.state.weId !== shown.we.id && !resting && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPinned(setTimer.state!.weId);
+                      setViewId(null);
+                    }}
+                    className="tabular absolute -top-10 right-5 h-[30px] rounded-full bg-blue px-3 text-[13px] font-semibold text-white"
+                  >
+                    {setTimer.state.mode === "hold"
+                      ? `Hold ${formatClock(setTimer.view?.remaining ?? 0)}`
+                      : `Run ${formatClock(setTimer.view?.elapsed ?? 0)}`}
+                  </button>
+                )}
                 {timer.endsAt != null && viewing && (
                   <button
                     type="button"
@@ -796,10 +881,13 @@ function RestArc({
   remaining,
   total,
   onAdd,
+  label = "Rest",
 }: {
   remaining: number;
   total: number;
   onAdd: (s: number) => void;
+  /** "Rest" after a set, "Hold" during a stretch */
+  label?: "Rest" | "Hold";
 }) {
   const N = 34;
   const on = total ? Math.round((remaining / total) * N) : 0;
@@ -808,7 +896,7 @@ function RestArc({
       className="relative flex items-end justify-between pb-1"
       role="timer"
       aria-live="off"
-      aria-label={remaining ? `Rest, ${remaining} seconds left` : "Rest over"}
+      aria-label={remaining ? `${label}, ${remaining} seconds left` : `${label} over`}
     >
       <button
         type="button"
@@ -842,7 +930,7 @@ function RestArc({
           })}
         </svg>
         <span className="absolute inset-x-0 top-[46px] text-center text-[13px] font-extrabold uppercase tracking-[0.1em] text-ink-2">
-          {remaining ? "Rest" : "Go"}
+          {remaining ? label : label === "Hold" ? "Done" : "Go"}
         </span>
         <span className="tabular absolute inset-x-0 bottom-3.5 text-center text-[56px] font-extrabold leading-none tracking-[-0.03em]">
           {formatClock(remaining)}
@@ -855,6 +943,32 @@ function RestArc({
       >
         +15
       </button>
+    </div>
+  );
+}
+
+/** The timer a measure runs during its set: a held stretch counts down, an outdoor run counts up. */
+function timedMode(measure: ReturnType<typeof measureOf>): SetTimerMode | null {
+  return measure === "hold" ? "hold" : measure === "outdoor" ? "watch" : null;
+}
+
+/**
+ * A stepper's card without the stepper, for a value the app keeps (an outdoor run's time): the same label, number and
+ * height, so it sits beside a stepper as its pair.
+ */
+function Readout({ label, value, live }: { label: string; value: number | null; live: boolean }) {
+  return (
+    <div className="grid gap-1 rounded-[24px] bg-card px-2.5 pb-3 pt-2.5 text-center" role="timer" aria-label={label}>
+      <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-ink-2">{label}</span>
+      <span
+        className={cn(
+          "tabular h-[41px] text-[34px] font-bold leading-[41px] tracking-[0.4px]",
+          value == null ? "text-ink-3" : live ? "text-blue" : "text-ink",
+        )}
+      >
+        {value == null ? "–" : formatClock(value)}
+      </span>
+      <span aria-hidden className="h-8" />
     </div>
   );
 }
