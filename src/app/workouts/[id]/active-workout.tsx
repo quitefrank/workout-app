@@ -927,8 +927,7 @@ export function ActiveWorkout({
         onClosed={() => setCardOpen(null)}
         check={logCheck}
         title={shown ? exerciseTitle(shown.we.exercises) : (workout.templates?.name ?? "Workout")}
-        label={shown && row ? rowLabel(shown.rows, rowIndex) : undefined}
-        count={shown && rowIndex >= 0 ? `${rowIndex + 1} of ${shown.rows.length}` : undefined}
+        dots={shown ? <PillDots rows={shown.rows} current={rowIndex} /> : undefined}
         current={shown?.we.id ?? null}
       >
         <JournalBody {...journalProps} />

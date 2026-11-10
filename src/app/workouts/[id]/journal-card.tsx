@@ -10,8 +10,8 @@ import { closesOnRelease, progressFor, travel } from "@/lib/workout/journal-card
  * The pill layout's Journal (Frank's call, 2026-11-08, aligned in the teardown prototype): the pill grows into it and
  * back. One card whose shape follows `--jp`, a registered property from 0 (exactly the pill) to 1 (open under the status
  * bar): its sides and bottom move out to the edges, its top follows the finger, and the content is in it the whole time,
- * the current exercise pinned under the header, as Ladder does (Supercut hW8oIanK6sdvLXdtmNSqaH). The circle never moves
- * sideways: the header's padding gives back what the card's inset takes. Geometry in `.jcard` (globals.css), decisions in
+ * the current exercise pinned under the header, as Ladder does (Supercut hW8oIanK6sdvLXdtmNSqaH). The header is the pill's
+ * content (circle, set dots over the title), and the circle eases from the pill's 28pt to the content's 16pt edge. Geometry in `.jcard` (globals.css), decisions in
  * src/lib/workout/journal-card.ts.
  *
  * The parent drives it: `controlRef` sets the progress while a finger drags the pill and settles it open or closed. The card
@@ -30,8 +30,7 @@ export function JournalCard({
   onClosed,
   check,
   title,
-  label,
-  count,
+  dots,
   current,
   children,
 }: {
@@ -43,8 +42,8 @@ export function JournalCard({
   onClosed: () => void;
   check: ReactNode;
   title: string;
-  label?: string;
-  count?: string;
+  /** the set dots, above the title as the pill shows them */
+  dots?: ReactNode;
   /** the exercise to pin under the header */
   current: string | null;
   children: ReactNode;
@@ -138,11 +137,11 @@ export function JournalCard({
           onPointerCancel={onUp}
         >
           {check}
-          <span className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-[-0.43px]">
-            {title}
-            {label && <span className="jcard-label text-blue"> · {label}</span>}
+          {/* the pill's own content, dots over the title, so the header reads as the pill grown (Frank's call, 2026-11-10) */}
+          <span className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+            {dots}
+            <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">{title}</span>
           </span>
-          {count && <span className="tabular shrink-0 text-[17px] text-blue">{count}</span>}
         </div>
         <div ref={body} className="jcard-body">
           {children}
@@ -156,7 +155,7 @@ export function JournalCard({
 /**
  * The circle that logs (Ladder's): empty until the set is logged, a blue fill for a moment when it is, Skip while
  * resting. 51pt with a 2pt #0082f0 ring and a 21.25pt check (Figma ZD41TUAEBtLJI7t0qChNup, 28:945); it sits 8pt inside
- * the pill on every side, 28pt from the screen's edge, in the pill and in the card's header.
+ * the pill on every side, 28pt from the screen's edge, and on the content's 16pt edge in the open card's header.
  */
 export function PillCheck({
   state,
