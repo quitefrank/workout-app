@@ -685,6 +685,13 @@ which does so on iOS only): one would sink every glass label and live
 input inside it under the canvas. Read scroll position with `scrollTop()`, never
 `window.scrollY`.
 
+The caret rule (2026-11-10): iOS draws a field's caret when it gets focus and does not redraw it when the field
+moves without an edit, so nothing may move a focused field afterwards. Two things did, each leaving the caret 50pt
+off: the keyboard rule fitting the scroller to the visible area, which moved the focus screen (absolute under
+`html.gpu`, so the scroller is its containing block), now skipped under `:has([data-focus-screen])`; and iOS
+scrolling the window into the home screen app's 50pt overhang despite `overflow: hidden`, which
+`followVisualViewport` undoes once a frame and then sets the same selection again so the caret is redrawn.
+
 Muscle art: Frank's Notion Muscle Groups covers, traced by
 `scripts/trace-muscle-art.ts` into `src/components/muscle-art/paths.ts`
 (generated, committed; downloads and `preview.png` gitignored in

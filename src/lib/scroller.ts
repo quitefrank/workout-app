@@ -61,13 +61,43 @@ export function followVisualViewport(): () => void {
     const t = e.target instanceof Element ? e.target : null;
     if (!t?.closest(`${SCROLLER}, .glass-sheet`)) e.preventDefault();
   };
+  // The window never scrolls, but iOS ignores overflow: hidden when it reveals a focused field, and a home screen
+  // app's 50pt-short window leaves the 812pt scroller 50pt of overhang to scroll. The caret stays where it was drawn
+  // before that scroll, 50pt off. So the window goes back to 0 once a frame (never a loop with iOS's own animation),
+  // and the caret is redrawn once per focus by setting the same selection again. vv.offsetTop is left alone (above).
+  let resetFrame = 0;
+  let reasserted: Element | null = null;
+  const resetWindow = () => {
+    resetFrame = 0;
+    if (window.scrollY === 0 && window.scrollX === 0) return;
+    window.scrollTo(0, 0);
+    const el = document.activeElement;
+    if (el instanceof HTMLInputElement && el !== reasserted) {
+      reasserted = el;
+      requestAnimationFrame(() => {
+        const { selectionStart: start, selectionEnd: end } = el;
+        if (document.activeElement === el && start !== null && end !== null) el.setSelectionRange(start, end);
+      });
+    }
+  };
+  const onWindowScroll = () => {
+    if (!resetFrame) resetFrame = requestAnimationFrame(resetWindow);
+  };
+  const onFocusOut = () => {
+    reasserted = null;
+  };
   update();
   vv.addEventListener("resize", update);
   vv.addEventListener("scroll", update);
+  window.addEventListener("scroll", onWindowScroll, { passive: true });
+  document.addEventListener("focusout", onFocusOut);
   document.addEventListener("touchmove", hold, { passive: false });
   return () => {
     vv.removeEventListener("resize", update);
     vv.removeEventListener("scroll", update);
+    window.removeEventListener("scroll", onWindowScroll);
+    document.removeEventListener("focusout", onFocusOut);
+    cancelAnimationFrame(resetFrame);
     document.removeEventListener("touchmove", hold);
     html.style.removeProperty("--vv-top");
     html.style.removeProperty("--vv-h");

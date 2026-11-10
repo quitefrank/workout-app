@@ -393,6 +393,25 @@ html.keyboard .app-scroller > div {
   min-height: calc(100% + 1px);
 }
 
+/* Except under the active workout's focus screen, which never scrolls and is absolute under html.gpu, so the
+   scroller is its containing block: fitting the scroller to the keyboard moved the focused stepper after iOS had
+   drawn the caret, and the caret stayed behind, 50pt off. The scroller keeps its resting box and nothing to scroll;
+   the focus screen is touch-none, so a drag never slides the viewport. */
+html.keyboard .app-scroller:has([data-focus-screen]) {
+  top: 0;
+  bottom: 0;
+  height: auto;
+}
+
+html.standalone.keyboard .app-scroller:has([data-focus-screen]) {
+  bottom: auto;
+  height: var(--screen-h);
+}
+
+html.keyboard .app-scroller:has([data-focus-screen]) > div {
+  min-height: 100%;
+}
+
 body {
   background: var(--bg);
   color: var(--ink);
