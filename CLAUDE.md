@@ -176,7 +176,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 537 tests across 47 files.
+Run `bun run test` to exercise them. 542 tests across 48 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -355,9 +355,17 @@ the Notion seed bringing the duplicates back.
 ## What a set measures
 
 Each exercise says what a set records, `exercises.measure` (migration 0027, Frank's calls, 2026-11-09), and the active
-workout shows only those controls: two steppers side by side, one across the full width, three across for a treadmill,
-or none, which hides the zone. "Last time", the Journal's Log It columns and the header's target follow it.
+workout shows only those controls: two steppers side by side, a lone one at the same half width and centred, three
+across for a treadmill, or none, which hides the zone. "Last time", the Journal's Log It columns, the header's target
+and a finished workout's set list (`summarizeLogged`; volume only for `weight_reps`) follow it.
 `src/lib/workout/measure.ts` holds the fields, labels, steps and summaries (tested).
+
+Two measures run a timer during the set (`src/lib/workout/set-timer.ts`, tested; the hook is
+`src/app/workouts/[id]/set-timer.tsx`, stored in localStorage like rest, so it survives a reload). The pill's circle
+shows Play, then Stop. A `hold` counts down its seconds in the controls zone (the rest arc, labelled Hold, ±15) and logs
+itself at zero with a chime; Stop logs the seconds held so far. An `outdoor` run counts up in a Time card beside the
+distance stepper (a `Readout`: a stepper card without the stepper) and Stop logs the time with the distance, which can
+still be empty. Looking at another exercise meanwhile shows a Hold or Run capsule that goes back.
 
 | Measure | Controls | Examples |
 |---|---|---|
@@ -368,7 +376,7 @@ or none, which hides the zone. "Last time", the Journal's Log It columns and the
 | `time` | time | Plank, Long-Lever Plank, elliptical, bike, rower |
 | `hold` | none; the header reads "30s Pec Stretch" | static stretches; 30 s when no dose is written |
 | `treadmill` | incline, speed, time | Warm up Walk, Treadmill Run, Max-Incline Walk |
-| `outdoor` | distance (time to be kept by the app) | Outdoor Run, Warm up Run |
+| `outdoor` | distance, with time kept by the app | Outdoor Run, Warm up Run |
 
 Steps per tap: weight 5 lb or 2.5 kg, reps 1, time 30 s, incline 0.5 %, speed 0.5 km/h, distance 0.5 km. Time is typed
 as m:ss (a bare number is seconds). Incline, speed and distance are `sets` columns in %, km/h and km. A hold, a treadmill

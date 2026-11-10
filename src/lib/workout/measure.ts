@@ -156,6 +156,25 @@ export function summarizeShort(measure: Measure, v: Partial<SetValues>): string 
   }
 }
 
+/**
+ * A logged set in a finished workout's list: "135×8" (BW with no weight), "15", "0:30", "5% · 6 km/h · 10:00",
+ * "5 km · 30:00". Reps-only lists say "reps" once, after the last set.
+ */
+export function summarizeLogged(measure: Measure, v: Partial<SetValues>, unit: "lbs" | "kg"): string {
+  const w = formatNumber(v.weight ?? null) || "BW";
+  switch (measure) {
+    case "weight_reps":
+    case "weight_steps":
+      return v.reps != null ? `${w}×${v.reps}` : w;
+    case "weight_time":
+      return v.seconds != null ? `${w}×${formatClock(v.seconds)}` : w;
+    case "reps":
+      return String(v.reps ?? "–");
+    default:
+      return summarize(measure, v, unit);
+  }
+}
+
 /** True when a set records time rather than reps, so the header shows a duration ("30s Plank"). */
 export function isTimed(measure: Measure): boolean {
   return measure === "time" || measure === "hold" || measure === "weight_time";

@@ -11,6 +11,7 @@ import {
   restsByDefault,
   stepField,
   summarize,
+  summarizeLogged,
 } from "../measure";
 
 describe("FIELDS", () => {
@@ -116,5 +117,16 @@ describe("durations and defaults", () => {
     expect(hasValue("hold", {})).toBe(true);
     expect(hasValue("reps", { weight: 10 })).toBe(false);
     expect(hasValue("treadmill", { speed: 6 })).toBe(true);
+  });
+});
+
+describe("summarizeLogged", () => {
+  it("writes a finished workout's sets per measure", () => {
+    expect(summarizeLogged("weight_reps", { weight: 135, reps: 8 }, "lbs")).toBe("135×8");
+    expect(summarizeLogged("weight_reps", { weight: null, reps: 8 }, "lbs")).toBe("BW×8");
+    expect(summarizeLogged("reps", { weight: null, reps: 15 }, "lbs")).toBe("15");
+    expect(summarizeLogged("hold", { seconds: 30 }, "lbs")).toBe("0:30");
+    expect(summarizeLogged("treadmill", { incline: 5, speed: 6, seconds: 600 }, "lbs")).toBe("5% · 6 km/h · 10:00");
+    expect(summarizeLogged("weight_time", { weight: 315, seconds: 10 }, "lbs")).toBe("315×0:10");
   });
 });

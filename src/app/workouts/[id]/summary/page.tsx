@@ -8,7 +8,9 @@ import { cn } from "@/lib/cn";
 import { getSettings, getTopSets, getWorkout } from "@/lib/data/queries";
 import { dayLabel, durationMinutes } from "@/lib/workout/dates";
 import { exerciseTitle } from "@/lib/workout/movements";
-import { displayWeight, formatNumber, isRawReading } from "@/lib/workout/format";
+import { valuesOf } from "@/lib/workout/active";
+import { displayWeight, isRawReading } from "@/lib/workout/format";
+import { measureOf, summarizeLogged } from "@/lib/workout/measure";
 import { floorKey, floorLabel } from "@/lib/workout/machine-location";
 import { prs } from "@/lib/workout/progress";
 import { DeleteWorkout } from "./delete-workout";
@@ -63,7 +65,8 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
         )}
         {workout.notes && <p className="rounded-[20px] bg-card px-4 py-3 text-[15px] text-ink-2">{workout.notes}</p>}
         {workout.exercises.map((we) => {
-          const raw = isRawReading(we.exercises.equipment_type);
+          // volume is weight × reps, so only an exercise that measures both has one
+          const raw = isRawReading(we.exercises.equipment_type) || measureOf(we.exercises) !== "weight_reps";
           const tonnage = we.sets
             .filter((s) => !s.is_warm_up && s.weight != null && s.reps != null)
             .reduce((n, s) => n + Number(s.weight) * s.reps!, 0);
@@ -89,9 +92,9 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
                   {we.sets.map((s, i) => (
                     <span key={s.id} className={s.is_warm_up ? "text-ink-3" : ""}>
                       {i > 0 && ", "}
-                      {formatNumber(s.weight) || "BW"}
-                      {s.reps != null && `×${s.reps}`}
+                      {summarizeLogged(measureOf(we.exercises), valuesOf(s), unit)}
                       {s.is_drop_set && " drop"}
+                      {measureOf(we.exercises) === "reps" && i === we.sets.length - 1 && " reps"}
                     </span>
                   ))}
                 </p>
