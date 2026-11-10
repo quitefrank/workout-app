@@ -762,6 +762,12 @@ count under its icon) and Swap (56pt) each centred under the stepper card above 
 the steppers' 20pt sides and 12pt gap. Version 2 opens the Journal as a sheet (`Journal` in `journal.tsx`) and drops
 Swap from More. The header is the same in both. The old `workout_view` cookie is ignored.
 
+Settings also has a Glass Steppers switch, off by default, saved per device in the `workout_glass_steppers` cookie
+(Frank's call, 2026-11-10, from https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=38-2134). On, the stepper
+cards (and the outdoor run's Time readout) take the `.glass` material at 26pt corners in place of `bg-card`
+(`stepperCard` in `stepper.tsx`); the label, number and kit stepper on them are unchanged, and the row is one
+`data-glass-unit="box"`. It applies in both versions.
+
 - The header: the set as blue text ("Set 2 of 3", "Warm-up 1 of 2", `SetText`, 15pt semibold), then the set's rep
   target in blue before the exercise's name ("8x Bench Press", "8–10x"; `repTarget` in `active.ts`: the prescription
   for a working set, else the row's prefilled reps, else none). Up next shows only on the exercise's last set, sliding
@@ -848,6 +854,11 @@ Liquid Glass" (219) and "Build a SwiftUI app with the new design"
   a white veil over media), per Apple's HIG ("Don't use Liquid Glass
   in the content layer") and Frank's call (2026-10-14): glass in
   scrolling content shows its label and its material moving apart.
+  One exception, behind a switch: the active workout's Glass Steppers
+  (Frank's call, 2026-11-10). It is allowed because that screen never
+  scrolls, so nothing can drift. Glass outside the dock is hidden on the
+  WebGPU path when its HTML is `visibility: hidden` (`stage.ts`), so the
+  cards vanish under the rest arc as they do on the CSS path.
 
 In the lab: surfaces with `flip: true` follow the rule; `UNITS.of`
 names each control's unit, `UNITS.band` the band a pinned bar reads,

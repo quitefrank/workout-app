@@ -25,7 +25,7 @@ import { hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
-import { setWorkoutVersion, VERSIONS, type WorkoutVersion } from "@/lib/workout-layout";
+import { setGlassSteppers, setWorkoutVersion, VERSIONS, type WorkoutVersion } from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { TopBar } from "@/components/top-bar";
@@ -68,7 +68,7 @@ import { useRestTimer } from "./rest-timer";
 import { useSetTimer } from "./set-timer";
 import type { SetTimerMode, StoredSetTimer } from "@/lib/workout/set-timer";
 import { stretchPairs } from "@/lib/workout/pairs";
-import { Stepper } from "./stepper";
+import { Stepper, stepperCard } from "./stepper";
 import { SwapSheet } from "./swap-sheet";
 
 /**
@@ -97,13 +97,17 @@ export function ActiveWorkout({
   workout,
   settings,
   version: initialVersion,
+  glassSteppers: initialGlass,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
   version: WorkoutVersion;
+  glassSteppers: boolean;
 }) {
   // Version 1 is the pill, Version 2 the toolbar under the steppers (src/lib/workout-layout.ts), switched in More
   const [version, setVersion] = useState(initialVersion);
+  // Glass stepper cards, a Settings switch saved on this device (src/lib/workout-layout.ts)
+  const [glassSteppers, setGlass] = useState(initialGlass);
   const toolbar = version === 2;
   const [journalSheet, setJournalSheet] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -649,6 +653,8 @@ export function ActiveWorkout({
                           </p>
                         </div>
                         <div
+                          // glass cards sitting together are one unit for the context rule
+                          data-glass-unit={glassSteppers ? "box" : undefined}
                           className={cn("grid justify-center", zoneColumns > 2 ? "gap-2" : "gap-3")}
                           style={{
                             gridTemplateColumns:
@@ -665,10 +671,12 @@ export function ActiveWorkout({
                               unit={unit}
                               value={value[f]}
                               onChange={(x) => setDraft(shown.we.id, rowIndex, { ...value, [f]: x })}
+                              glass={glassSteppers}
                             />
                           ))}
                           {readout && (
                             <Readout
+                              glass={glassSteppers}
                               label="Time"
                               value={timing ? (setTimer.view?.elapsed ?? 0) : value.seconds}
                               live={!!timing}
@@ -881,6 +889,32 @@ export function ActiveWorkout({
                 setWorkoutVersion(next);
               }}
             />
+          </Group>
+          <Group title="Steppers" footer="Liquid Glass behind the steppers. Saved on this device only.">
+            <div className="flex min-h-[52px] items-center gap-3 px-4">
+              <span className="flex-1 text-[17px] tracking-[-0.43px]">Glass Steppers</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={glassSteppers}
+                aria-label="Glass Steppers"
+                onClick={() => {
+                  setGlass(!glassSteppers);
+                  setGlassSteppers(!glassSteppers);
+                }}
+                className={cn(
+                  "relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors",
+                  glassSteppers ? "bg-green" : "bg-fill-2",
+                )}
+              >
+                <span
+                  className={cn(
+                    "absolute left-0.5 top-0.5 size-[27px] rounded-full bg-white shadow transition-transform",
+                    glassSteppers && "translate-x-5",
+                  )}
+                />
+              </button>
+            </div>
           </Group>
         </div>
       </Sheet>
@@ -1108,9 +1142,9 @@ function timedMode(measure: ReturnType<typeof measureOf>): SetTimerMode | null {
  * A stepper's card without the stepper, for a value the app keeps (an outdoor run's time): the same label, number and
  * height, so it sits beside a stepper as its pair.
  */
-function Readout({ label, value, live }: { label: string; value: number | null; live: boolean }) {
+function Readout({ label, value, live, glass }: { label: string; value: number | null; live: boolean; glass: boolean }) {
   return (
-    <div className="grid gap-1 rounded-[24px] bg-card px-2.5 pb-3 pt-2.5 text-center" role="timer" aria-label={label}>
+    <div className={stepperCard(glass)} role="timer" aria-label={label}>
       <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-ink-2">{label}</span>
       <span
         className={cn(

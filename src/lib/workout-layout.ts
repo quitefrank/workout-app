@@ -25,3 +25,19 @@ export function workoutVersionFrom(get: (name: string) => string | undefined): W
 export function setWorkoutVersion(version: WorkoutVersion) {
   document.cookie = `${VERSION_COOKIE}=${version}; path=/; max-age=31536000; samesite=lax`;
 }
+
+/**
+ * Glass stepper cards (Frank's call, 2026-11-10, from https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=38-2134):
+ * a Settings switch that gives the stepper cards' background the Liquid Glass material, the steppers and values on top
+ * unchanged. Off by default; saved per device like the version. An exception to "glass is the control layer only",
+ * allowed because the active workout never scrolls, so the cards cannot drift.
+ */
+export const GLASS_STEPPERS_COOKIE = "workout_glass_steppers";
+
+export function glassSteppersFrom(get: (name: string) => string | undefined): boolean {
+  return get(GLASS_STEPPERS_COOKIE) === "1";
+}
+
+export function setGlassSteppers(on: boolean) {
+  document.cookie = `${GLASS_STEPPERS_COOKIE}=${on ? 1 : 0}; path=/; max-age=31536000; samesite=lax`;
+}

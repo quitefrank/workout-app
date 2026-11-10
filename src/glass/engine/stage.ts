@@ -247,7 +247,10 @@ function setup(o: StageOptions, renderer: any): () => void {
       const laidOut = shown(e.el);
       if (laidOut && !e.ready) allReady = false;
       // the dock steps aside while a sheet is up (visibility hidden keeps its layout, so check the class)
-      const vis = e.ready && laidOut && !(sheetOpen && e.el.closest("[data-glass-unit='dock']"));
+      const inDock = !!e.el.closest("[data-glass-unit='dock']");
+      // glass in the content hides with its HTML (the active workout's stepper cards under the rest arc)
+      const vis =
+        e.ready && laidOut && !(sheetOpen && inDock) && (inDock || getComputedStyle(e.el).visibility !== "hidden");
       e.mesh.visible = e.cast.visible = vis;
       if (!vis) continue;
       const r = rectOf(e.el);

@@ -41,13 +41,21 @@ function useValueField({ field, value, onChange }: Props) {
   };
 }
 
-export function Stepper(props: Props & { label: string }) {
+/**
+ * A stepper card's box: Apple's grey card, or with Settings' Glass Steppers switch on, the Liquid Glass material at 26pt
+ * corners (Frank's Figma frame, 38:2134). Only the background changes; what sits on it stays the same.
+ */
+export function stepperCard(glass: boolean): string {
+  return `grid gap-1 px-2.5 pb-3 pt-2.5 text-center ${glass ? "glass [--r:26px]" : "rounded-[24px] bg-card"}`;
+}
+
+export function Stepper(props: Props & { label: string; glass?: boolean }) {
   const { label, field, unit } = props;
   const input = useRef<HTMLInputElement>(null);
   const f = useValueField(props);
   useLayoutEffect(() => fitText(input.current), [f.shown]);
   return (
-    <div className="grid gap-1 rounded-[24px] bg-card px-2.5 pb-3 pt-2.5 text-center">
+    <div className={stepperCard(!!props.glass)}>
       <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-ink-2">{label}</span>
       <input
         ref={input}
