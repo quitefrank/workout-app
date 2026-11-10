@@ -44,8 +44,9 @@ export function focusLift(restingBottom: number, visibleHeight: number): number 
 }
 
 /**
- * A tap on another field while one has focus: focus it with preventScroll, so iOS does not scroll to centre it, and
- * cancel the tap's own focus. A drag (a swipe between exercises) is left alone. Returns the touch handlers to spread
+ * A tap on a stepper's field, first or a switch: focus it with preventScroll, so iOS does not scroll to centre it (as
+ * the keyboard opened it scrolled 379pt past where the screen glides to, read as a spring), and cancel the tap's own
+ * focus. A drag (a swipe between exercises) is left alone. Returns the touch handlers to spread
  * on the input.
  */
 export function focusWithoutScroll() {
@@ -60,7 +61,7 @@ export function focusWithoutScroll() {
       const other = document.activeElement;
       const t = e.changedTouches[0];
       const moved = !start || !t || Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10;
-      if (moved || !(other instanceof HTMLInputElement) || other === el) return;
+      if (moved || other === el) return;
       e.preventDefault();
       el.focus({ preventScroll: true });
     },
@@ -119,18 +120,24 @@ export function followVisualViewport(): () => void {
       if (el) requestAnimationFrame(() => redrawCaret(el));
     }
   };
+  // The glide starts on the tap, with the keyboard, using the visible height the keyboard left last time (on an 812pt
+  // screen the number pad leaves 433pt, so 53% until the first measure), and settles on the measured height once iOS
+  // reports it. Waiting for iOS's report started it after the keyboard was already up.
+  let lastVisible = 0;
   const liftFocusScreen = () => {
-    if (!html.classList.contains("keyboard")) {
-      switching = false;
-      return setLift(0, false);
-    }
+    const keyboard = html.classList.contains("keyboard");
+    if (keyboard) lastVisible = vv.height;
+    else switching = false;
     const el = focusedField();
     const screen = el?.closest<HTMLElement>("[data-focus-screen]");
-    if (!el || !screen) return;
+    // no field: the drop starts as focus leaves, a beat before iOS reports the keyboard going
+    if (!el || !screen) return setLift(0, false);
+    const visible = keyboard ? vv.height : lastVisible || Math.round(window.innerHeight * 0.533);
     const card = (el.parentElement ?? el).getBoundingClientRect();
     // measured from the screen's own top, so a lift still gliding does not count
-    setLift(focusLift(card.bottom - screen.getBoundingClientRect().top, vv.height), false);
+    setLift(focusLift(card.bottom - screen.getBoundingClientRect().top, visible), false);
   };
+
   const onLiftSettled = (e: TransitionEvent) => {
     const el = focusedField();
     if (el && e.propertyName === "top" && (e.target as Element).matches?.("[data-focus-screen]")) redrawCaret(el);
@@ -186,6 +193,8 @@ export function followVisualViewport(): () => void {
   };
   const onFocusOut = () => {
     reasserted = null;
+    // a switch focuses the next field in the same task, so by the next frame only a real blur has no field
+    requestAnimationFrame(liftFocusScreen);
   };
   // the keyboard's up and down arrows move focus with the keyboard already up, so no viewport event follows
   // whether focus moved with the keyboard already up (a switch), as opposed to the keyboard opening

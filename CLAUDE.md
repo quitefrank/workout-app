@@ -695,8 +695,10 @@ nothing left to scroll, the focus screen lifts itself above the keyboard as the 
 `--focus-lift` (`focusLift` in `src/lib/scroller.ts`, tested) moves its top and bottom, never a transform, until the
 focused card ends 16pt above the keyboard's bar. iOS scrolls to centre a field it focuses (measured on the phone with a
 frame recorder: 132pt on a switch, 196pt above and below the field in a 433pt viewport), but centring sat too high
-(Frank's call, 2026-11-10), so a tap on the other field focuses it with `preventScroll` (`focusWithoutScroll`) and a
-switch by the keyboard's arrows has iOS's scroll undone in the same event. The lift glides with a transition and the caret is redrawn when it settles. A scroll iOS makes anyway (379pt
+(Frank's call, 2026-11-10), so every tap on a stepper's field, first or a switch, focuses it with `preventScroll`
+(`focusWithoutScroll`; iOS's 379pt scroll as the keyboard opened overshot the lift and read as a spring), and a switch
+by the keyboard's arrows has iOS's scroll undone in the same event. The glide starts on the tap with the visible
+height the keyboard left last time and drops as focus leaves, so it moves with the keyboard rather than after it. The lift glides with a transition and the caret is redrawn when it settles. A scroll iOS makes anyway (379pt
 in one frame as the keyboard opens) is absorbed in the same event: the window goes back to 0 and the lift takes over
 where the screen shows, then glides on. Undoing it a frame later, or holding the lift after the keyboard closes, read
 as jumps on the phone. Tapping a stepper's number puts
