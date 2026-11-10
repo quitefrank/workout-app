@@ -89,6 +89,7 @@ export function Stepper(props: Props & { label: string; glass?: boolean }) {
       <input
         ref={input}
         data-live
+        data-reach
         type="text"
         inputMode={inputMode(field)}
         aria-label={ariaLabel(field, unit)}

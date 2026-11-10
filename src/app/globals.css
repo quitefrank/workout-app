@@ -423,6 +423,15 @@ html.keyboard .app-scroller:has([data-focus-screen]) > div {
     bottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
+/* While the keyboard is up, a stepper's field reaches up (--field-reach, src/lib/scroller.ts) so its box is centred in
+   what is visible, where iOS centres a field it focuses, while the digits stay where they are: the padding moves the
+   text down by what the margin moves the box up. A switch by the keyboard's arrows then gives iOS nothing to scroll. */
+[data-focus-screen] input[data-reach] {
+  padding-top: var(--field-reach, 0px);
+  margin-top: calc(-1 * var(--field-reach, 0px));
+  height: calc(41px + var(--field-reach, 0px));
+}
+
 html.lift-snap [data-focus-screen] {
   transition: none;
 }

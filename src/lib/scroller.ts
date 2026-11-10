@@ -44,6 +44,15 @@ export function focusLift(restingBottom: number, visibleHeight: number): number 
 }
 
 /**
+ * How far a field's box must reach up so its centre is the visible area's centre, given where its text box sits once
+ * lifted (`textTop`, on screen) and how tall it is: twice the distance from the visible centre to the field's own
+ * centre, since only the top edge moves. Never negative, whole points.
+ */
+export function fieldReach(textTop: number, height: number, visibleHeight: number): number {
+  return Math.max(0, Math.round(2 * (textTop + height / 2 - visibleHeight / 2)));
+}
+
+/**
  * A tap on a stepper's field, first or a switch: focus it with preventScroll, so iOS does not scroll to centre it (as
  * the keyboard opened it scrolled 379pt past where the screen glides to, read as a spring), and cancel the tap's own
  * focus. A drag (a swipe between exercises) is left alone. Returns the touch handlers to spread
@@ -124,6 +133,12 @@ export function followVisualViewport(): () => void {
   // screen the number pad leaves 433pt, so 53% until the first measure), and settles on the measured height once iOS
   // reports it. Waiting for iOS's report started it after the keyboard was already up.
   let lastVisible = 0;
+  let reach = 0;
+  const setReach = (next: number) => {
+    if (next === reach) return;
+    reach = next;
+    html.style.setProperty("--field-reach", `${reach}px`);
+  };
   const liftFocusScreen = () => {
     const keyboard = html.classList.contains("keyboard");
     if (keyboard) lastVisible = vv.height;
@@ -131,11 +146,21 @@ export function followVisualViewport(): () => void {
     const el = focusedField();
     const screen = el?.closest<HTMLElement>("[data-focus-screen]");
     // no field: the drop starts as focus leaves, a beat before iOS reports the keyboard going
-    if (!el || !screen) return setLift(0, false);
+    if (!el || !screen) {
+      setReach(0);
+      return setLift(0, false);
+    }
     const visible = keyboard ? vv.height : lastVisible || Math.round(window.innerHeight * 0.533);
+    const top = screen.getBoundingClientRect().top;
     const card = (el.parentElement ?? el).getBoundingClientRect();
     // measured from the screen's own top, so a lift still gliding does not count
-    setLift(focusLift(card.bottom - screen.getBoundingClientRect().top, visible), false);
+    const target = focusLift(card.bottom - top, visible);
+    setLift(target, false);
+    // the field's box reaches up until its centre is the visible area's, where iOS centres a focused field, so a
+    // switch by the keyboard's arrows finds the next field already there (both fields sit at the same height)
+    const r = el.getBoundingClientRect();
+    const textTop = r.top + reach - top - target;
+    setReach(keyboard ? fieldReach(textTop, r.height - reach, visible) : 0);
   };
 
   const onLiftSettled = (e: TransitionEvent) => {
@@ -221,6 +246,7 @@ export function followVisualViewport(): () => void {
     cancelAnimationFrame(resetFrame);
     document.removeEventListener("touchmove", hold);
     html.style.removeProperty("--focus-lift");
+    html.style.removeProperty("--field-reach");
     html.style.removeProperty("--vv-top");
     html.style.removeProperty("--vv-h");
     html.style.removeProperty("--screen-h");
