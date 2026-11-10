@@ -798,7 +798,8 @@ was tried first and arrived after the slide, because the focus content remounts 
 new element's shaders before showing it. `.glass-card` makes no stacking context, so the focused number field still
 lifts over the canvas while typing.
 
-- The header: the set as blue text ("Set 2 of 3", "Warm-up 1 of 2", `SetText`, 15pt semibold), then the set's rep
+- The header: the set as blue text ("Set 2 of 3", "Warm-up 1 of 2", `SetText`, 15pt semibold, 25pt line), 3pt above
+  the title and the title 6pt above Up next (Frank's call, 2026-11-10, Figma 4:48), then the set's rep
   target in blue before the exercise's name ("8x Bench Press", "8–10x"; `repTarget` in `active.ts`: the prescription
   for a working set, else the row's prefilled reps, else none). Up next shows only on the exercise's last set, sliding
   in 10pt from the left as it fades (`.upnext-in`); it is hidden, not removed, so nothing moves.

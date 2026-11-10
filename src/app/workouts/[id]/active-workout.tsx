@@ -628,7 +628,8 @@ export function ActiveWorkout({
                   }}
                 />
                 <SetText rows={shown.rows} current={rowIndex} className="relative mt-2.5" />
-                <h1 className="relative mt-2.5 text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
+                {/* Figma ZD41TUAEBtLJI7t0qChNup 4:48 (Frank's call, 2026-11-10): 3pt from the set to the title, 6pt to Up next */}
+                <h1 className="relative mt-[3px] text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
                   {repTarget(shown.we, row) && (
                     <span className="text-blue">{repTarget(shown.we, row)} </span>
                   )}
@@ -641,7 +642,7 @@ export function ActiveWorkout({
                   return (
                     <div
                       key={show ? `up-${shown.we.id}` : "up"}
-                      className={cn("relative mt-2.5", show ? "upnext-in" : "invisible")}
+                      className={cn("relative mt-1.5", show ? "upnext-in" : "invisible")}
                       aria-hidden={!show}
                     >
                       <div className="truncate text-[15px] leading-[18px] text-ink-2">
@@ -1040,8 +1041,8 @@ function PillDots({ rows, current }: { rows: SetRowView[]; current: number }) {
   );
 }
 
-/** The header's room: its height with a two-line title and no set circles (title 10 + 60, Up next 10 + 18) */
-const HEADER_ROOM = 98;
+/** The header's room: its height with a two-line title, under the set text's 10 + 25 (title 3 + 60, Up next 6 + 18) */
+const HEADER_ROOM = 87;
 
 /**
  * The illustration: the screen's width, square, centred in the space between the header and the controls and never
