@@ -81,9 +81,16 @@ export function Stepper(props: Props & { label: string; glass?: boolean }) {
   const { label, field, unit } = props;
   const input = useRef<HTMLInputElement>(null);
   const f = useValueField(props);
+  // while the keyboard is up the field's box reaches above the card and takes no taps, so the card hands a tap on it
+  // (not on the stepper's buttons) to the field
+  const [cardTouch] = useState(() =>
+    focusWithoutScroll((e) =>
+      document.documentElement.classList.contains("field-reach") && !(e.target as Element).closest("button") ? input.current : null,
+    ),
+  );
   useLayoutEffect(() => fitText(input.current), [f.shown]);
   return (
-    <div className={stepperCard(!!props.glass)}>
+    <div className={stepperCard(!!props.glass)} onTouchStart={cardTouch.onTouchStart} onTouchEnd={cardTouch.onTouchEnd}>
       <GlassLayers on={!!props.glass} />
       <span className="text-[12px] font-bold uppercase tracking-[0.06em] text-ink-2">{label}</span>
       <input

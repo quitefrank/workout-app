@@ -58,19 +58,19 @@ export function fieldReach(textTop: number, height: number, visibleHeight: numbe
  * focus. A drag (a swipe between exercises) is left alone. Returns the touch handlers to spread
  * on the input.
  */
-export function focusWithoutScroll() {
+export function focusWithoutScroll(target?: (e: React.TouchEvent<HTMLElement>) => HTMLInputElement | null) {
   let start: { x: number; y: number } | null = null;
   return {
-    onTouchStart: (e: React.TouchEvent<HTMLInputElement>) => {
+    onTouchStart: (e: React.TouchEvent<HTMLElement>) => {
       const t = e.touches[0];
       start = t ? { x: t.clientX, y: t.clientY } : null;
     },
-    onTouchEnd: (e: React.TouchEvent<HTMLInputElement>) => {
-      const el = e.currentTarget;
-      const other = document.activeElement;
+    onTouchEnd: (e: React.TouchEvent<HTMLElement>) => {
+      const el = target ? target(e) : e.currentTarget;
+      if (!(el instanceof HTMLInputElement)) return;
       const t = e.changedTouches[0];
       const moved = !start || !t || Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10;
-      if (moved || other === el) return;
+      if (moved || document.activeElement === el) return;
       e.preventDefault();
       el.focus({ preventScroll: true });
     },
@@ -138,6 +138,9 @@ export function followVisualViewport(): () => void {
     if (next === reach) return;
     reach = next;
     html.style.setProperty("--field-reach", `${reach}px`);
+    // the reaching box takes no taps (they would land above the card), so a tap there still closes the keyboard and
+    // the card passes taps on its number to the field (`Stepper`)
+    html.classList.toggle("field-reach", reach > 0);
   };
   const liftFocusScreen = () => {
     const keyboard = html.classList.contains("keyboard");
@@ -247,6 +250,7 @@ export function followVisualViewport(): () => void {
     document.removeEventListener("touchmove", hold);
     html.style.removeProperty("--focus-lift");
     html.style.removeProperty("--field-reach");
+    html.classList.remove("field-reach");
     html.style.removeProperty("--vv-top");
     html.style.removeProperty("--vv-h");
     html.style.removeProperty("--screen-h");
