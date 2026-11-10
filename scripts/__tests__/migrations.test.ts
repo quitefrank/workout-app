@@ -116,6 +116,7 @@ describe("supabase migrations on PGlite", () => {
       "0024_omni_grip_pull_up_video.sql",
       "0025_workout_exercise_swapped_from.sql",
       "0026_swapped_from_without_foreign_key.sql",
+      "0027_exercise_measures.sql",
     ]);
   });
 

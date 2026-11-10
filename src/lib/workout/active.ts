@@ -6,27 +6,34 @@
 
 import type { LastTime, SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
 import { epley } from "./format";
+import { EMPTY, FIELDS, formatDuration, isTimed, measureOf, prescribedSeconds, type Measure, type SetValues } from "./measure";
 import type { TopSet } from "./progress";
 
 export type RowKind = "warm" | "work" | "drop";
 
-export type SetRowView = {
+export type SetRowView = SetValues & {
   kind: RowKind;
   /** "W", "D" or the working set's number */
   label: string;
   /** The logged set, when there is one */
   set: SetRow | null;
   /** The same set last time on this floor */
-  last: { weight: number | null; reps: number | null } | null;
-  /** What the row starts with: the logged values, else last time, else the row before it, else the prescription */
-  weight: number | null;
-  reps: number | null;
+  last: SetValues | null;
 };
 
 type Prescribed = Pick<
   WorkoutExerciseRow,
-  "prescribed_sets_min" | "prescribed_sets_max" | "prescribed_reps_min" | "prescribed_reps_max" | "warm_up_sets_min" | "warm_up_sets_max"
-> & { sets: SetRow[] };
+  | "prescribed_sets_min"
+  | "prescribed_sets_max"
+  | "prescribed_reps_min"
+  | "prescribed_reps_max"
+  | "warm_up_sets_min"
+  | "warm_up_sets_max"
+> &
+  Partial<Pick<WorkoutExerciseRow, "prescribed_seconds_min" | "prescribed_seconds_max">> & {
+    sets: SetRow[];
+    exercises?: { measure?: Measure | null } | null;
+  };
 
 /** Working sets the prescription asks for (its upper bound), 0 when it does not say. */
 export function workTarget(we: Pick<Prescribed, "prescribed_sets_min" | "prescribed_sets_max">): number {
@@ -37,22 +44,49 @@ export function warmTarget(we: Pick<Prescribed, "warm_up_sets_min" | "warm_up_se
   return we.warm_up_sets_max ?? we.warm_up_sets_min ?? 0;
 }
 
+type Recorded = Pick<SetRow, "weight" | "reps"> & Partial<Pick<SetRow, "seconds" | "incline" | "speed" | "distance">>;
+
+/** A logged or remembered set's values, every field present */
+export function valuesOf(s: Recorded): SetValues {
+  return {
+    weight: s.weight,
+    reps: s.reps,
+    seconds: s.seconds ?? null,
+    incline: s.incline ?? null,
+    speed: s.speed ?? null,
+    distance: s.distance ?? null,
+  };
+}
+
 export function buildRows(we: Prescribed, lastTime: LastTime | null): SetRowView[] {
+  const measure = measureOf(we.exercises);
   const warmLogged = we.sets.filter((s) => s.is_warm_up);
   const workLogged = we.sets.filter((s) => !s.is_warm_up);
   const lastWarm = lastTime?.sets.filter((s) => s.is_warm_up) ?? [];
   const lastWork = lastTime?.sets.filter((s) => !s.is_warm_up && !s.is_drop_set) ?? [];
-  const prescribedReps = we.prescribed_reps_max ?? we.prescribed_reps_min ?? null;
+  const prescribedReps = FIELDS[measure].includes("reps") ? (we.prescribed_reps_max ?? we.prescribed_reps_min ?? null) : null;
+  const seconds = prescribedSeconds(measure, {
+    prescribed_seconds_min: we.prescribed_seconds_min ?? null,
+    prescribed_seconds_max: we.prescribed_seconds_max ?? null,
+  });
   const rows: SetRowView[] = [];
+
+  // What an unlogged row starts with: last time, else the weight of the row before it, else the prescription
+  const prefill = (last: SetValues | null, prevWeight: number | null, reps: number | null): SetValues => ({
+    ...(last ?? EMPTY),
+    weight: last?.weight ?? prevWeight,
+    reps: last?.reps ?? reps,
+    seconds: last?.seconds ?? seconds,
+  });
 
   const warmCount = Math.max(warmTarget(we), warmLogged.length);
   let prevWeight: number | null = null;
   for (let i = 0; i < warmCount; i++) {
     const set = warmLogged[i] ?? null;
-    const last = lastWarm[i] ? { weight: lastWarm[i].weight, reps: lastWarm[i].reps } : null;
-    const weight: number | null = set ? set.weight : (last?.weight ?? prevWeight);
-    rows.push({ kind: "warm", label: "W", set, last, weight, reps: set ? set.reps : (last?.reps ?? null) });
-    prevWeight = weight;
+    const last = lastWarm[i] ? valuesOf(lastWarm[i]) : null;
+    const v: SetValues = set ? valuesOf(set) : prefill(last, prevWeight, null);
+    rows.push({ kind: "warm", label: "W", set, last, ...v });
+    prevWeight = v.weight;
   }
 
   // An exercise with no prescription still has one row, so it can be logged and finished
@@ -61,13 +95,13 @@ export function buildRows(we: Prescribed, lastTime: LastTime | null): SetRowView
   let n = 0;
   for (let i = 0; i < workCount; i++) {
     const set = workLogged[i] ?? null;
-    const last = lastWork[i] ? { weight: lastWork[i].weight, reps: lastWork[i].reps } : (lastWork.length ? { weight: lastWork[lastWork.length - 1].weight, reps: lastWork[lastWork.length - 1].reps } : null);
+    const source = lastWork[i] ?? lastWork[lastWork.length - 1];
+    const last = source ? valuesOf(source) : null;
     const kind: RowKind = set?.is_drop_set ? "drop" : "work";
     if (kind === "work") n++;
-    const weight: number | null = set ? set.weight : (last?.weight ?? prevWeight);
-    const reps = set ? set.reps : (last?.reps ?? prescribedReps);
-    rows.push({ kind, label: kind === "drop" ? "D" : String(n), set, last: lastWork[i] ? last : null, weight, reps });
-    prevWeight = weight;
+    const v: SetValues = set ? valuesOf(set) : prefill(last, prevWeight, prescribedReps);
+    rows.push({ kind, label: kind === "drop" ? "D" : String(n), set, last: lastWork[i] ? last : null, ...v });
+    prevWeight = v.weight;
   }
   return rows;
 }
@@ -98,10 +132,18 @@ export function rowLabel(rows: readonly SetRowView[], i: number): string {
  * reps the row is prefilled with (last time). Null with nothing to show, or for no row.
  */
 export function repTarget(
-  we: Pick<Prescribed, "prescribed_reps_min" | "prescribed_reps_max">,
-  row: Pick<SetRowView, "kind" | "reps"> | null | undefined,
+  we: Pick<Prescribed, "prescribed_reps_min" | "prescribed_reps_max" | "exercises"> &
+    Partial<Pick<Prescribed, "prescribed_seconds_min" | "prescribed_seconds_max">>,
+  row: Pick<SetRowView, "kind" | "reps"> & Partial<Pick<SetRowView, "seconds">> | null | undefined,
 ): string | null {
   if (!row) return null;
+  const measure = measureOf(we.exercises);
+  // A timed set shows its duration ("30s Pec Stretch"); cardio shows none
+  if (isTimed(measure)) {
+    const s = row.seconds ?? prescribedSeconds(measure, { prescribed_seconds_min: we.prescribed_seconds_min ?? null, prescribed_seconds_max: we.prescribed_seconds_max ?? null });
+    return s != null && s > 0 ? formatDuration(s) : null;
+  }
+  if (!FIELDS[measure].includes("reps")) return null;
   if (row.kind !== "warm") {
     const lo = we.prescribed_reps_min ?? we.prescribed_reps_max;
     const hi = we.prescribed_reps_max ?? we.prescribed_reps_min;

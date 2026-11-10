@@ -436,13 +436,33 @@ export async function setExerciseFloor(workoutExerciseId: string, floor: Machine
 // Sets
 // ------------------------------------------------------------
 
-export type SetInput = { weight: number | null; reps: number | null; isWarmUp: boolean; isDropSet: boolean; allowEmpty?: boolean };
+export type SetInput = {
+  weight: number | null;
+  reps: number | null;
+  /** Time, incline (%), speed (km/h) and distance (km), for the measures that record them (migration 0027) */
+  seconds?: number | null;
+  incline?: number | null;
+  speed?: number | null;
+  distance?: number | null;
+  isWarmUp: boolean;
+  isDropSet: boolean;
+  allowEmpty?: boolean;
+};
+
+const nonNegative = (v: number | null | undefined, max = Infinity) =>
+  v != null && Number.isFinite(v) && v >= 0 && v <= max ? v : null;
+const wholeNonNegative = (v: number | null | undefined) => (v != null && Number.isInteger(v) && v >= 0 ? v : null);
 
 function cleanSet(input: SetInput) {
-  const weight = input.weight != null && Number.isFinite(input.weight) && input.weight >= 0 ? input.weight : null;
-  const reps = input.reps != null && Number.isInteger(input.reps) && input.reps >= 0 ? input.reps : null;
-  if (weight == null && reps == null && !input.allowEmpty) throw new Error("Enter a weight or reps.");
-  return { weight, reps, is_warm_up: input.isWarmUp, is_drop_set: input.isDropSet && !input.isWarmUp };
+  const weight = nonNegative(input.weight);
+  const reps = wholeNonNegative(input.reps);
+  const seconds = wholeNonNegative(input.seconds);
+  const incline = nonNegative(input.incline, 40);
+  const speed = nonNegative(input.speed, 40);
+  const distance = nonNegative(input.distance);
+  if ([weight, reps, seconds, incline, speed, distance].every((v) => v == null) && !input.allowEmpty)
+    throw new Error("Enter a weight or reps.");
+  return { weight, reps, seconds, incline, speed, distance, is_warm_up: input.isWarmUp, is_drop_set: input.isDropSet && !input.isWarmUp };
 }
 
 export async function logSet(workoutExerciseId: string, input: SetInput): Promise<void> {

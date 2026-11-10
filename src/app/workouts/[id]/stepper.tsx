@@ -1,11 +1,10 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { step } from "@/lib/workout/active";
-import { formatNumber } from "@/lib/workout/format";
+import { formatField, parseField, stepField, type Field } from "@/lib/workout/measure";
 
 /**
- * Weight and reps on the focus screen, in the two forms Frank picked per layout (2026-11-08, from the teardown prototype):
+ * The focus screen's steppers (weight, reps, time, incline, speed or distance, by the exercise's measure), in the two forms Frank picked per layout (2026-11-08, from the teardown prototype):
  *
  * - `Stepper` (centred layout): a card with the value in Apple's Large Title Emphasized (34pt bold, shrinking to fit so
  *   185 or 182.5 never clip) over the iOS 27 kit's stepper. The number can be typed for a big jump, as the HIG pairs a
@@ -18,7 +17,6 @@ import { formatNumber } from "@/lib/workout/format";
  * the app's tokens, so they follow light and dark.
  */
 
-type Field = "weight" | "reps";
 type Props = {
   field: Field;
   unit: "lbs" | "kg";
@@ -28,12 +26,10 @@ type Props = {
 
 function useValueField({ field, value, onChange }: Props) {
   const [text, setText] = useState<string | null>(null);
-  const shown = text ?? (value == null ? "" : field === "weight" ? formatNumber(value) : String(value));
+  const shown = text ?? formatField(field, value);
   const commit = (s: string) => {
-    const t = s.trim();
-    if (t === "") return onChange(null);
-    const n = Number(t);
-    if (Number.isFinite(n) && n >= 0) onChange(field === "reps" ? Math.round(n) : n);
+    const n = parseField(field, s);
+    if (n !== undefined) onChange(n);
   };
   return {
     shown,
@@ -57,8 +53,8 @@ export function Stepper(props: Props & { label: string }) {
         ref={input}
         data-live
         type="text"
-        inputMode={field === "weight" ? "decimal" : "numeric"}
-        aria-label={field === "weight" ? `Weight in ${unit}` : "Reps"}
+        inputMode={inputMode(field)}
+        aria-label={ariaLabel(field, unit)}
         value={f.shown}
         placeholder="–"
         onChange={f.onChange}
@@ -88,8 +84,8 @@ export function StepperRow(props: Props & { first?: boolean }) {
         <input
           data-live
           type="text"
-          inputMode={field === "weight" ? "decimal" : "numeric"}
-          aria-label={field === "weight" ? `Weight in ${unit}` : "Reps"}
+          inputMode={inputMode(field)}
+          aria-label={ariaLabel(field, unit)}
           value={f.shown}
           placeholder="–"
           onChange={f.onChange}
@@ -103,14 +99,32 @@ export function StepperRow(props: Props & { first?: boolean }) {
   );
 }
 
+function inputMode(field: Field): "decimal" | "numeric" | "text" {
+  // time takes a colon ("1:30"), which the numeric keypad lacks
+  return field === "seconds" ? "text" : field === "reps" ? "numeric" : "decimal";
+}
+
+const ARIA: Record<Field, string> = {
+  weight: "Weight",
+  reps: "Reps",
+  seconds: "Time",
+  incline: "Incline in percent",
+  speed: "Speed in kilometres per hour",
+  distance: "Distance in kilometres",
+};
+
+function ariaLabel(field: Field, unit: "lbs" | "kg"): string {
+  return field === "weight" ? `Weight in ${unit}` : ARIA[field];
+}
+
 function KitStepper({ field, unit, value, onChange, className }: Props & { className?: string }) {
-  const what = field === "weight" ? unit : "reps";
+  const what = field === "weight" ? unit : ARIA[field].split(" ")[0].toLowerCase();
   return (
     <span className={`relative inline-flex h-8 w-[92px] shrink-0 ${className ?? ""}`}>
-      <StepButton side="rounded-l-full" label={`Less ${what}`} onClick={() => onChange(step(value, field, -1, unit))}>
+      <StepButton side="rounded-l-full" label={`Less ${what}`} onClick={() => onChange(stepField(value, field, -1, unit))}>
         −
       </StepButton>
-      <StepButton side="rounded-r-full" label={`More ${what}`} onClick={() => onChange(step(value, field, 1, unit))}>
+      <StepButton side="rounded-r-full" label={`More ${what}`} onClick={() => onChange(stepField(value, field, 1, unit))}>
         +
       </StepButton>
       <i aria-hidden className="pointer-events-none absolute left-1/2 top-1 h-6 w-px -translate-x-1/2 rounded-[8px] bg-ink-3" />

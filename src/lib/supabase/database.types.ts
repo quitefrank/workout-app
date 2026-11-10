@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   graphql_public: {
     Tables: {
@@ -267,22 +267,23 @@ export type Database = {
           equipment_type: Database["public"]["Enums"]["equipment_type"]
           floor_transfer_required: boolean | null
           has_floors: boolean
-          movement: string | null
-          option_equipment: string | null
-          option_technique: string | null
-          option_position: string | null
-          option_rank: number | null
-          title: string | null
           id: string
           load_direction: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot: boolean | null
           max_sessions_per_week: number | null
+          measure: Database["public"]["Enums"]["exercise_measure"]
           min_hours_between_sessions: number | null
+          movement: string | null
           muscle_group_id: string | null
           name: string
           notes: string | null
+          option_equipment: string | null
+          option_position: string | null
+          option_rank: number | null
+          option_technique: string | null
           slug: string | null
           support_required: Database["public"]["Enums"]["support_type"] | null
+          title: string | null
           updated_at: string
           video_credit: string | null
           video_url: string | null
@@ -298,22 +299,23 @@ export type Database = {
           equipment_type?: Database["public"]["Enums"]["equipment_type"]
           floor_transfer_required?: boolean | null
           has_floors?: boolean
-          movement?: string | null
-          option_equipment?: string | null
-          option_technique?: string | null
-          option_position?: string | null
-          option_rank?: number | null
-          title?: string | null
           id?: string
           load_direction?: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot?: boolean | null
           max_sessions_per_week?: number | null
+          measure?: Database["public"]["Enums"]["exercise_measure"]
           min_hours_between_sessions?: number | null
+          movement?: string | null
           muscle_group_id?: string | null
           name: string
           notes?: string | null
+          option_equipment?: string | null
+          option_position?: string | null
+          option_rank?: number | null
+          option_technique?: string | null
           slug?: string | null
           support_required?: Database["public"]["Enums"]["support_type"] | null
+          title?: string | null
           updated_at?: string
           video_credit?: string | null
           video_url?: string | null
@@ -329,22 +331,23 @@ export type Database = {
           equipment_type?: Database["public"]["Enums"]["equipment_type"]
           floor_transfer_required?: boolean | null
           has_floors?: boolean
-          movement?: string | null
-          option_equipment?: string | null
-          option_technique?: string | null
-          option_position?: string | null
-          option_rank?: number | null
-          title?: string | null
           id?: string
           load_direction?: Database["public"]["Enums"]["load_direction"] | null
           loads_booted_foot?: boolean | null
           max_sessions_per_week?: number | null
+          measure?: Database["public"]["Enums"]["exercise_measure"]
           min_hours_between_sessions?: number | null
+          movement?: string | null
           muscle_group_id?: string | null
           name?: string
           notes?: string | null
+          option_equipment?: string | null
+          option_position?: string | null
+          option_rank?: number | null
+          option_technique?: string | null
           slug?: string | null
           support_required?: Database["public"]["Enums"]["support_type"] | null
+          title?: string | null
           updated_at?: string
           video_credit?: string | null
           video_url?: string | null
@@ -590,7 +593,9 @@ export type Database = {
           _notion_id: string | null
           completed_at: string | null
           created_at: string
+          distance: number | null
           id: string
+          incline: number | null
           is_drop_set: boolean
           is_warm_up: boolean
           notes: string | null
@@ -598,6 +603,7 @@ export type Database = {
           rpe: number | null
           seconds: number | null
           set_number: number
+          speed: number | null
           weight: number | null
           workout_exercise_id: string
         }
@@ -605,7 +611,9 @@ export type Database = {
           _notion_id?: string | null
           completed_at?: string | null
           created_at?: string
+          distance?: number | null
           id?: string
+          incline?: number | null
           is_drop_set?: boolean
           is_warm_up?: boolean
           notes?: string | null
@@ -613,6 +621,7 @@ export type Database = {
           rpe?: number | null
           seconds?: number | null
           set_number: number
+          speed?: number | null
           weight?: number | null
           workout_exercise_id: string
         }
@@ -620,7 +629,9 @@ export type Database = {
           _notion_id?: string | null
           completed_at?: string | null
           created_at?: string
+          distance?: number | null
           id?: string
+          incline?: number | null
           is_drop_set?: boolean
           is_warm_up?: boolean
           notes?: string | null
@@ -628,6 +639,7 @@ export type Database = {
           rpe?: number | null
           seconds?: number | null
           set_number?: number
+          speed?: number | null
           weight?: number | null
           workout_exercise_id?: string
         }
@@ -875,6 +887,13 @@ export type Database = {
             referencedRelation: "programs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "templates_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_settings: {
@@ -885,10 +904,10 @@ export type Database = {
             | Database["public"]["Enums"]["machine_location"]
             | null
           default_rest_seconds: number
-          program_phase_position: number | null
           equipment_available:
             | Database["public"]["Enums"]["equipment_item"][]
             | null
+          program_phase_position: number | null
           updated_at: string
           user_id: string
           weight_unit: Database["public"]["Enums"]["weight_unit"]
@@ -900,10 +919,10 @@ export type Database = {
             | Database["public"]["Enums"]["machine_location"]
             | null
           default_rest_seconds?: number
-          program_phase_position?: number | null
           equipment_available?:
             | Database["public"]["Enums"]["equipment_item"][]
             | null
+          program_phase_position?: number | null
           updated_at?: string
           user_id: string
           weight_unit?: Database["public"]["Enums"]["weight_unit"]
@@ -915,15 +934,23 @@ export type Database = {
             | Database["public"]["Enums"]["machine_location"]
             | null
           default_rest_seconds?: number
-          program_phase_position?: number | null
           equipment_available?:
             | Database["public"]["Enums"]["equipment_item"][]
             | null
+          program_phase_position?: number | null
           updated_at?: string
           user_id?: string
           weight_unit?: Database["public"]["Enums"]["weight_unit"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_active_program_id_fkey"
+            columns: ["active_program_id"]
+            isOneToOne: false
+            referencedRelation: "programs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       workout_exercises: {
         Row: {
@@ -1165,13 +1192,15 @@ export type Database = {
         Row: {
           completed_at: string | null
           exercise_id: string | null
+          machine_location:
+            | Database["public"]["Enums"]["machine_location"]
+            | null
           reps: number | null
           set_id: string | null
           user_id: string | null
           volume: number | null
           weight: number | null
           workout_completed_at: string | null
-          machine_location: Database["public"]["Enums"]["machine_location"] | null
           workout_exercise_id: string | null
           workout_id: string | null
         }
@@ -1241,6 +1270,15 @@ export type Database = {
         | "cardio_machine"
         | "other"
       event_kind: "appointment" | "milestone" | "reminder"
+      exercise_measure:
+        | "weight_reps"
+        | "reps"
+        | "weight_steps"
+        | "weight_time"
+        | "time"
+        | "hold"
+        | "treadmill"
+        | "outdoor"
       load_direction: "vertical" | "sagittal" | "lateral" | "none"
       machine_location: "upstairs" | "downstairs"
       program_kind: "recovery" | "training"
@@ -1445,6 +1483,16 @@ export const Constants = {
         "other",
       ],
       event_kind: ["appointment", "milestone", "reminder"],
+      exercise_measure: [
+        "weight_reps",
+        "reps",
+        "weight_steps",
+        "weight_time",
+        "time",
+        "hold",
+        "treadmill",
+        "outdoor",
+      ],
       load_direction: ["vertical", "sagittal", "lateral", "none"],
       machine_location: ["upstairs", "downstairs"],
       program_kind: ["recovery", "training"],

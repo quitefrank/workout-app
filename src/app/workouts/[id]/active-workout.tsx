@@ -42,9 +42,19 @@ import {
   progress,
   repTarget,
   rowLabel,
+  valuesOf,
   type SetRowView,
 } from "@/lib/workout/active";
-import { formatClock, formatNumber } from "@/lib/workout/format";
+import {
+  FIELDS,
+  fieldLabel,
+  hasValue,
+  measureOf,
+  restsByDefault,
+  summarize,
+  type SetValues,
+} from "@/lib/workout/measure";
+import { formatClock } from "@/lib/workout/format";
 import { floorKey } from "@/lib/workout/machine-location";
 import { opensOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
 import { exerciseTitle } from "@/lib/workout/movements";
@@ -74,7 +84,7 @@ import { SwapSheet } from "./swap-sheet";
  */
 
 export type Entry = { we: WorkoutExerciseRow; rows: SetRowView[] };
-type Draft = { weight: number | null; reps: number | null };
+type Draft = SetValues;
 type Optimistic = { weId: string; add?: SetRow; remove?: string };
 
 export function ActiveWorkout({
@@ -119,12 +129,11 @@ export function ActiveWorkout({
         let n = rows.filter((r) => r.kind === "work").length;
         for (let i = 0; i < more; i++)
           rows.push({
+            ...(lastWork ? valuesOf(lastWork) : valuesOf({ weight: null, reps: null })),
             kind: "work",
             label: String(++n),
             set: null,
             last: null,
-            weight: lastWork?.weight ?? null,
-            reps: lastWork?.reps ?? null,
           });
         return { we, rows };
       }),
@@ -151,7 +160,7 @@ export function ActiveWorkout({
 
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const valueOf = (weId: string, i: number, row: SetRowView): Draft =>
-    drafts[`${weId}:${i}`] ?? { weight: row.weight, reps: row.reps };
+    drafts[`${weId}:${i}`] ?? valuesOf(row);
   const setDraft = (weId: string, i: number, d: Draft) =>
     setDrafts((cur) => ({ ...cur, [`${weId}:${i}`]: d }));
 
@@ -172,14 +181,17 @@ export function ActiveWorkout({
   const log = (entry: Entry, i: number) => {
     const row = entry.rows[i];
     if (!row || row.set) return;
+    const measure = measureOf(entry.we.exercises);
     const v = valueOf(entry.we.id, i, row);
     const prescribed =
       entry.we.prescribed_sets_max ??
       entry.we.prescribed_sets_min ??
       entry.we.prescribed_reps_max ??
       entry.we.warm_up_sets_max;
-    if (v.weight == null && v.reps == null && prescribed != null) {
-      toast.error("Set a weight or reps first.");
+    if (!hasValue(measure, v) && prescribed != null) {
+      toast.error(
+        `Set ${FIELDS[measure].map((f) => fieldLabel(f, measure, unit).toLowerCase()).join(" or ")} first.`,
+      );
       return;
     }
     const isWarmUp = row.kind === "warm";
@@ -193,17 +205,14 @@ export function ActiveWorkout({
           set_number: setNumber,
           is_warm_up: isWarmUp,
           is_drop_set: false,
-          weight: v.weight,
-          reps: v.reps,
-          seconds: null,
+          ...v,
           rpe: null,
           notes: null,
           completed_at: new Date().toISOString(),
         },
       });
       await logSet(entry.we.id, {
-        weight: v.weight,
-        reps: v.reps,
+        ...v,
         isWarmUp,
         isDropSet: false,
         allowEmpty: true,
@@ -218,9 +227,11 @@ export function ActiveWorkout({
       setPinned(entry.we.id);
       setViewId(null);
     }
+    // Rest only after a working set; stretches and cardio rest only when the prescription says so
     if (!isWarmUp)
       timer.start(
-        entry.we.prescribed_rest_seconds ?? settings.default_rest_seconds,
+        entry.we.prescribed_rest_seconds ??
+          (restsByDefault(measure) ? settings.default_rest_seconds : 0),
       );
     setFlash(true);
     window.setTimeout(() => setFlash(false), 420);
@@ -238,8 +249,7 @@ export function ActiveWorkout({
     run(
       () =>
         updateSet(set.id, {
-          weight: d.weight,
-          reps: d.reps,
+          ...d,
           isWarmUp: set.is_warm_up,
           isDropSet: set.is_drop_set,
           allowEmpty: true,
@@ -356,6 +366,8 @@ export function ActiveWorkout({
   const ex = shown?.we.exercises;
   const row = shown && rowIndex >= 0 ? shown.rows[rowIndex] : null;
   const value = shown && row ? valueOf(shown.we.id, rowIndex, row) : null;
+  const measure = measureOf(ex);
+  const measureFields = FIELDS[measure];
 
   const journalProps: JournalProps = {
     entries,
@@ -519,29 +531,36 @@ export function ActiveWorkout({
               <div className="relative grid items-end px-5">
                 <div className={cn("[grid-area:1/1]", resting && "invisible")}>
                   {row && value ? (
-                    <>
-                      <p className="pb-3 text-center text-[15px] leading-[18px] text-ink-2">
-                        {row.last
-                          ? `Last time · ${formatNumber(row.last.weight) || "–"} ${unit} × ${row.last.reps ?? "–"}`
-                          : "No history yet"}
-                      </p>
-                      <div className="grid grid-cols-2 gap-3">
-                        <Stepper
-                          label={unit}
-                          field="weight"
-                          unit={unit}
-                          value={value.weight}
-                          onChange={(w) => setDraft(shown.we.id, rowIndex, { ...value, weight: w })}
-                        />
-                        <Stepper
-                          label="Reps"
-                          field="reps"
-                          unit={unit}
-                          value={value.reps}
-                          onChange={(r) => setDraft(shown.we.id, rowIndex, { ...value, reps: r })}
-                        />
-                      </div>
-                    </>
+                    // One stepper per field the exercise measures: side by side, a lone one at the same half width
+                    // and centred, three for a treadmill, or none for a held stretch, which hides the zone (Frank's
+                    // calls, 2026-11-09)
+                    measureFields.length > 0 && (
+                      <>
+                        <p className="pb-3 text-center text-[15px] leading-[18px] text-ink-2">
+                          {row.last ? `Last time · ${summarize(measure, row.last, unit)}` : "No history yet"}
+                        </p>
+                        <div
+                          className={cn("grid justify-center", measureFields.length > 2 ? "gap-2" : "gap-3")}
+                          style={{
+                            gridTemplateColumns:
+                              measureFields.length > 2
+                                ? `repeat(${measureFields.length}, minmax(0, 1fr))`
+                                : `repeat(${measureFields.length}, calc((100% - 12px) / 2))`,
+                          }}
+                        >
+                          {measureFields.map((f) => (
+                            <Stepper
+                              key={f}
+                              label={fieldLabel(f, measure, unit)}
+                              field={f}
+                              unit={unit}
+                              value={value[f]}
+                              onChange={(x) => setDraft(shown.we.id, rowIndex, { ...value, [f]: x })}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )
                   ) : (
                     <p className="pb-4 text-center text-[15px] text-ink-2">
                       {shown.rows.length} of {shown.rows.length} logged. Swipe for the next exercise.

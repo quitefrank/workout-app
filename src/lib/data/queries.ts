@@ -8,6 +8,7 @@ import { floorKey, type MachineLocation } from "@/lib/workout/machine-location";
 import type { MovementOption } from "@/lib/workout/movements";
 import type { TopSet } from "@/lib/workout/progress";
 import { best, type Best } from "@/lib/workout/active";
+import type { Measure } from "@/lib/workout/measure";
 
 /** Server-side reads for the screens. Every per-user query filters by the app's one user. */
 
@@ -21,7 +22,7 @@ function rows<T>(res: { data: T[] | null; error: { message: string } | null }): 
   return check(res) ?? [];
 }
 
-const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name), movement, option_equipment, option_position, option_technique, option_rank, title";
+const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name), movement, option_equipment, option_position, option_technique, option_rank, title, measure";
 
 export type Settings = {
   weight_unit: WeightUnit;
@@ -214,6 +215,7 @@ export type LibraryExercise = {
   option_technique: string | null;
   option_rank: number | null;
   title: string | null;
+  measure: Measure;
 };
 
 export type PrescribedRow = {
@@ -271,6 +273,9 @@ export type SetRow = {
   weight: number | null;
   reps: number | null;
   seconds: number | null;
+  incline: number | null;
+  speed: number | null;
+  distance: number | null;
   rpe: number | null;
   notes: string | null;
   completed_at: string | null;
@@ -278,7 +283,10 @@ export type SetRow = {
 
 export type WorkoutExerciseRow = PrescribedRow & { machine_location: MachineLocation | null; swapped_from_exercise_id: string | null; sets: SetRow[] };
 
-export type LastTime = { completedAt: string; sets: Pick<SetRow, "set_number" | "is_warm_up" | "is_drop_set" | "weight" | "reps">[] };
+export type LastTime = {
+  completedAt: string;
+  sets: Pick<SetRow, "set_number" | "is_warm_up" | "is_drop_set" | "weight" | "reps" | "seconds" | "incline" | "speed" | "distance">[];
+};
 
 export type WorkoutDetail = {
   id: string;
@@ -374,41 +382,54 @@ export async function getMovementOptions(movements: (string | null)[]): Promise<
 
 async function getLastTimes(exerciseIds: string[], excludeWorkoutId: string): Promise<Record<string, LastTime>> {
   if (exerciseIds.length === 0) return {};
-  const tops = rows(
-    await db()
-      .from("v_workout_exercise_top_set")
-      .select("exercise_id, workout_id, workout_exercise_id, workout_completed_at, machine_location")
-      .eq("user_id", userId())
+  // Every completed session with a logged working set, not the top-set view: that view needs weight and reps, so a
+  // reps-only, timed or cardio exercise would never have a last time (migration 0027).
+  const done = (await selectAll((a, b) =>
+    db()
+      .from("workout_exercises")
+      .select("id, exercise_id, machine_location, workouts!inner(user_id, completed_at), sets!inner(is_warm_up)")
+      .eq("workouts.user_id", userId())
+      .not("workouts.completed_at", "is", null)
+      .eq("sets.is_warm_up", false)
       .in("exercise_id", exerciseIds)
       .neq("workout_id", excludeWorkoutId)
-      .not("workout_completed_at", "is", null)
-      .order("workout_completed_at", { ascending: false })
-      .limit(exerciseIds.length * 20),
-  );
+      .order("id")
+      .range(a, b),
+  )) as unknown as { id: string; exercise_id: string; machine_location: MachineLocation | null; workouts: { completed_at: string } }[];
   const latest = new Map<string, { weId: string; at: string }>();
-  for (const t of tops) {
-    if (!t.exercise_id || !t.workout_exercise_id || !t.workout_completed_at) continue;
-    const key = floorKey(t.exercise_id, t.machine_location);
-    if (!latest.has(key)) latest.set(key, { weId: t.workout_exercise_id, at: t.workout_completed_at });
+  for (const we of done.sort((a, b) => b.workouts.completed_at.localeCompare(a.workouts.completed_at))) {
+    const key = floorKey(we.exercise_id, we.machine_location);
+    if (!latest.has(key)) latest.set(key, { weId: we.id, at: we.workouts.completed_at });
   }
   if (latest.size === 0) return {};
   const sets = rows(
     await db()
       .from("sets")
-      .select("workout_exercise_id, set_number, is_warm_up, is_drop_set, weight, reps")
+      .select("workout_exercise_id, set_number, is_warm_up, is_drop_set, weight, reps, seconds, incline, speed, distance")
       .in(
         "workout_exercise_id",
         [...latest.values()].map((v) => v.weId),
       )
       .order("set_number"),
   );
+  const num = (v: number | string | null) => (v == null ? null : Number(v));
   const out: Record<string, LastTime> = {};
   for (const [key, { weId, at }] of latest) {
     out[key] = {
       completedAt: at,
       sets: sets
         .filter((s) => s.workout_exercise_id === weId)
-        .map((s) => ({ set_number: s.set_number, is_warm_up: s.is_warm_up, is_drop_set: s.is_drop_set, weight: s.weight, reps: s.reps })),
+        .map((s) => ({
+          set_number: s.set_number,
+          is_warm_up: s.is_warm_up,
+          is_drop_set: s.is_drop_set,
+          weight: num(s.weight),
+          reps: s.reps,
+          seconds: s.seconds,
+          incline: num(s.incline),
+          speed: num(s.speed),
+          distance: num(s.distance),
+        })),
     };
   }
   return out;

@@ -9,13 +9,14 @@ import { ChevronUpDown, EllipsisIcon, ListIcon, SfFlameFillIcon, SwapIcon } from
 import { ActionMenu } from "@/components/pop-up-menu";
 import { cn } from "@/lib/cn";
 import type { SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
-import { totals, type Best, type SetRowView } from "@/lib/workout/active";
+import { totals, valuesOf, type Best, type SetRowView } from "@/lib/workout/active";
 import { formatNumber } from "@/lib/workout/format";
+import { FIELDS, fieldLabel, formatField, measureOf, parseField, summarizeShort, type Field, type SetValues } from "@/lib/workout/measure";
 import { FLOORS, floorKey, floorLabel, type MachineLocation } from "@/lib/workout/machine-location";
 import { exerciseTitle } from "@/lib/workout/movements";
 import type { Entry } from "./active-workout";
 
-type Draft = { weight: number | null; reps: number | null };
+type Draft = SetValues;
 
 export type JournalProps = {
   entries: Entry[];
@@ -190,6 +191,10 @@ function OpenExercise({
 }) {
   const { we, rows } = entry;
   const ex = we.exercises;
+  const measure = measureOf(ex);
+  const fields = FIELDS[measure];
+  // circle, one cell per field (narrower for a treadmill's three), then last time
+  const cellWidth = fields.length > 2 ? 58 : 66;
   const [menu, setMenu] = useState<DOMRect | null>(null);
   const [floorPending, startFloor] = useTransition();
 
@@ -243,16 +248,25 @@ function OpenExercise({
         </Chip>
       </div>
 
-      <div className="col-span-2 mt-6 isolate grid grid-cols-[38px_66px_66px_1fr] items-center gap-x-[13px] gap-y-[17px]">
+      <div
+        className="col-span-2 mt-6 isolate grid items-center gap-x-[13px] gap-y-[17px]"
+        style={{ gridTemplateColumns: `38px ${fields.map(() => `${cellWidth}px`).join(" ")} 1fr` }}
+      >
         <span className="whitespace-nowrap text-[15px] text-blue">Log It</span>
-        <span className="text-center text-[15px] text-ink-2">{unit}</span>
-        <span className="text-center text-[15px] text-ink-2">Reps</span>
+        {fields.map((f) => (
+          <span key={f} className="text-center text-[15px] text-ink-2">
+            {fieldLabel(f, measure, unit)}
+          </span>
+        ))}
         <span className="text-center text-[15px] text-ink-2">Last</span>
         {rows.map((row, i) => (
           <SetLine
             key={`${row.set?.id ?? "new"}-${i}`}
             row={row}
-            value={row.set ? { weight: row.set.weight, reps: row.set.reps } : valueOf(we.id, i, row)}
+            fields={fields}
+            width={cellWidth}
+            last={row.last ? summarizeShort(measure, row.last) : "--"}
+            value={row.set ? valuesOf(row.set) : valueOf(we.id, i, row)}
             current={i === currentRow}
             disabled={pending}
             onToggle={() => (row.set ? onUnlog(entry, row.set) : onLog(entry, i))}
@@ -294,9 +308,12 @@ function Chip({ label, onClick, children }: { label?: string; onClick: (e: React
   );
 }
 
-/** One set in the grid: the Log It circle (tap to log, tap again to undo), weight, reps and last time. */
+/** One set in the grid: the Log It circle (tap to log, tap again to undo), a cell per field and last time. */
 function SetLine({
   row,
+  fields,
+  width,
+  last,
   value,
   current,
   disabled,
@@ -304,17 +321,17 @@ function SetLine({
   onChange,
 }: {
   row: SetRowView;
+  fields: readonly Field[];
+  width: number;
+  last: string;
   value: Draft;
   current: boolean;
   disabled: boolean;
   onToggle: () => void;
   onChange: (d: Draft) => void;
 }) {
-  const [w, setW] = useState<string | null>(null);
-  const [r, setR] = useState<string | null>(null);
-  const num = (s: string) => (s.trim() === "" ? null : Number.isFinite(Number(s)) ? Number(s) : null);
   const cell = cn(
-    "tabular h-[41px] w-[66px] rounded-[10px] border-[1.5px] border-sep bg-transparent p-0 text-center text-[17px] font-semibold outline-none focus:border-blue placeholder:text-ink-3",
+    "tabular h-[41px] rounded-[10px] border-[1.5px] border-sep bg-transparent p-0 text-center text-[17px] font-semibold outline-none focus:border-blue placeholder:text-ink-3",
     row.set && "text-blue",
   );
   return (
@@ -338,33 +355,45 @@ function SetLine({
         )}
         {row.set ? "✓" : row.kind === "warm" ? <SfFlameFillIcon size={15} /> : row.label}
       </button>
-      <input
-        data-live
-        inputMode="decimal"
-        aria-label="Weight"
-        value={w ?? formatNumber(value.weight)}
-        placeholder="--"
-        onChange={(e) => setW(e.target.value)}
-        onBlur={() => {
-          if (w != null && num(w) !== value.weight) onChange({ ...value, weight: num(w) });
-          setW(null);
-        }}
-        className={cell}
-      />
-      <input
-        data-live
-        inputMode="numeric"
-        aria-label="Reps"
-        value={r ?? (value.reps != null ? String(value.reps) : "")}
-        placeholder="--"
-        onChange={(e) => setR(e.target.value)}
-        onBlur={() => {
-          if (r != null && num(r) !== value.reps) onChange({ ...value, reps: num(r) == null ? null : Math.round(num(r)!) });
-          setR(null);
-        }}
-        className={cell}
-      />
-      <span className="tabular whitespace-nowrap text-center text-[14px] text-ink-2">{row.last ? `${formatNumber(row.last.weight) || "–"} × ${row.last.reps ?? "–"}` : "--"}</span>
+      {fields.map((f) => (
+        <FieldCell key={f} field={f} value={value[f]} width={width} className={cell} onCommit={(v) => onChange({ ...value, [f]: v })} />
+      ))}
+      <span className="tabular truncate whitespace-nowrap text-center text-[14px] text-ink-2">{last}</span>
     </>
+  );
+}
+
+function FieldCell({
+  field,
+  value,
+  width,
+  className,
+  onCommit,
+}: {
+  field: Field;
+  value: number | null;
+  width: number;
+  className: string;
+  onCommit: (v: number | null) => void;
+}) {
+  const [text, setText] = useState<string | null>(null);
+  return (
+    <input
+      data-live
+      inputMode={field === "seconds" ? "text" : field === "reps" ? "numeric" : "decimal"}
+      aria-label={field === "seconds" ? "Time" : field[0].toUpperCase() + field.slice(1)}
+      value={text ?? formatField(field, value)}
+      placeholder="--"
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => {
+        if (text != null) {
+          const v = parseField(field, text);
+          if (v !== undefined && v !== value) onCommit(v);
+        }
+        setText(null);
+      }}
+      className={className}
+      style={{ width }}
+    />
   );
 }

@@ -10,10 +10,15 @@ const set = (n: number, weight: number | null, reps: number | null, warm = false
   weight,
   reps,
   seconds: null,
+  incline: null,
+  speed: null,
+  distance: null,
   rpe: null,
   notes: null,
   completed_at: "2026-11-08T12:00:00Z",
 });
+
+const cardio = { seconds: null, incline: null, speed: null, distance: null };
 
 const bench = {
   prescribed_sets_min: 1,
@@ -28,10 +33,10 @@ const bench = {
 const benchLast: LastTime = {
   completedAt: "2026-07-21T12:00:00Z",
   sets: [
-    { set_number: 1, is_warm_up: true, is_drop_set: false, weight: 50, reps: 4 },
-    { set_number: 2, is_warm_up: true, is_drop_set: false, weight: 70, reps: 4 },
-    { set_number: 3, is_warm_up: true, is_drop_set: false, weight: 90, reps: 4 },
-    { set_number: 4, is_warm_up: false, is_drop_set: false, weight: 180, reps: 4 },
+    { set_number: 1, is_warm_up: true, is_drop_set: false, weight: 50, reps: 4, ...cardio },
+    { set_number: 2, is_warm_up: true, is_drop_set: false, weight: 70, reps: 4, ...cardio },
+    { set_number: 3, is_warm_up: true, is_drop_set: false, weight: 90, reps: 4, ...cardio },
+    { set_number: 4, is_warm_up: false, is_drop_set: false, weight: 180, reps: 4, ...cardio },
   ],
 };
 
@@ -146,5 +151,46 @@ describe("repTarget", () => {
     expect(repTarget(rx(null, null), { kind: "work", reps: 7 })).toBe("7x");
     expect(repTarget(rx(null, null), { kind: "warm", reps: null })).toBeNull();
     expect(repTarget(rx(8, 8), null)).toBeNull();
+  });
+});
+
+describe("measures (migration 0027)", () => {
+  const plain = {
+    prescribed_sets_min: 2,
+    prescribed_sets_max: 2,
+    prescribed_reps_min: null,
+    prescribed_reps_max: null,
+    warm_up_sets_min: null,
+    warm_up_sets_max: null,
+    sets: [] as SetRow[],
+  };
+
+  it("prefills a held stretch with 30 seconds and heads it with the duration", () => {
+    const we = { ...plain, prescribed_seconds_min: null, prescribed_seconds_max: null, exercises: { measure: "hold" as const } };
+    const rows = buildRows(we, null);
+    expect(rows.map((r) => r.seconds)).toEqual([30, 30]);
+    expect(repTarget(we, rows[0])).toBe("30s");
+  });
+
+  it("prefills a plank from its prescribed seconds", () => {
+    const we = { ...plain, prescribed_seconds_min: 30, prescribed_seconds_max: 30, exercises: { measure: "time" as const } };
+    expect(buildRows(we, null)[0].seconds).toBe(30);
+    expect(repTarget(we, buildRows(we, null)[0])).toBe("30s");
+  });
+
+  it("carries a treadmill's last incline, speed and time, with no rep target", () => {
+    const we = { ...plain, prescribed_sets_min: 1, prescribed_sets_max: 1, exercises: { measure: "treadmill" as const } };
+    const last: LastTime = {
+      completedAt: "2026-11-01T12:00:00Z",
+      sets: [{ set_number: 1, is_warm_up: false, is_drop_set: false, weight: null, reps: null, seconds: 600, incline: 5, speed: 6, distance: null }],
+    };
+    const [row] = buildRows(we, last);
+    expect([row.incline, row.speed, row.seconds]).toEqual([5, 6, 600]);
+    expect(repTarget(we, row)).toBeNull();
+  });
+
+  it("keeps the rep target for reps-only work", () => {
+    const we = { ...plain, prescribed_reps_min: 10, prescribed_reps_max: 12, exercises: { measure: "reps" as const } };
+    expect(repTarget(we, buildRows(we, null)[0])).toBe("10–12x");
   });
 });

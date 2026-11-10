@@ -87,10 +87,10 @@ Per user (RLS on `auth.uid()`):
 - `recoveries`, `clearances` (insert-only; void is one-way), `events`,
   `rules`, `daily_checks`
 
-Thirteen enums: `equipment_type`, `machine_location`, `template_category`,
+Fourteen enums: `equipment_type`, `machine_location`, `template_category`,
 `weight_unit`, `support_type`, `load_direction`, `equipment_item`,
 `program_kind`, `source_kind`, `clearance_kind`, `clearance_source`,
-`event_kind`, `rule_kind`.
+`event_kind`, `rule_kind`, `exercise_measure`.
 
 Five analytics views in `0002_analytics_views.sql`, all with
 `security_invoker = true` so RLS on underlying tables applies.
@@ -176,7 +176,7 @@ Eleven pure modules with full unit-test coverage:
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
 
-Run `bun run test` to exercise them. 477 tests across 41 files.
+Run `bun run test` to exercise them. 537 tests across 47 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -351,6 +351,35 @@ sheet and Progress show one floor at a time. The control is always the pop-up bu
 rule, 2026-11-04), a pop-up button sets a value. In the sheet it sits under the tabs
 and not on How to, which is the same on either floor. `scripts/data/merged-exercises.ts` stops
 the Notion seed bringing the duplicates back.
+
+## What a set measures
+
+Each exercise says what a set records, `exercises.measure` (migration 0027, Frank's calls, 2026-11-09), and the active
+workout shows only those controls: two steppers side by side, one across the full width, three across for a treadmill,
+or none, which hides the zone. "Last time", the Journal's Log It columns and the header's target follow it.
+`src/lib/workout/measure.ts` holds the fields, labels, steps and summaries (tested).
+
+| Measure | Controls | Examples |
+|---|---|---|
+| `weight_reps` | weight, reps | every loaded lift (the default) |
+| `reps` | reps | push-ups, leg raises, chin-ups, dips, band work, active stretches |
+| `weight_steps` | weight, steps (stored in reps) | Farmers Walks |
+| `weight_time` | weight, time | Squat Walk-Out |
+| `time` | time | Plank, Long-Lever Plank, elliptical, bike, rower |
+| `hold` | none; the header reads "30s Pec Stretch" | static stretches; 30 s when no dose is written |
+| `treadmill` | incline, speed, time | Warm up Walk, Treadmill Run, Max-Incline Walk |
+| `outdoor` | distance (time to be kept by the app) | Outdoor Run, Warm up Run |
+
+Steps per tap: weight 5 lb or 2.5 kg, reps 1, time 30 s, incline 0.5 %, speed 0.5 km/h, distance 0.5 km. Time is typed
+as m:ss (a bare number is seconds). Incline, speed and distance are `sets` columns in %, km/h and km. A hold, a treadmill
+or an outdoor run rests only when the prescription gives a rest. A loaded version of a bodyweight move is its own
+Weighted row, so `reps` never hides a weight anyone uses. The seeds never touch `measure`; a change is a migration, and
+a new exercise needs its measure set by hand.
+
+Running is one family with two versions: Treadmill Run (`library:treadmill-run`, used by Run (indoor)) and Outdoor Run
+(the Notion row, used by Run (outdoor)). A rerun of the Notion seed would point Run (indoor) back at the Notion row, so
+redo that repoint if the seed is ever run again. Last time comes from the latest completed session with a working set,
+not `v_workout_exercise_top_set`, which needs weight and reps.
 
 ## Drop sets
 
