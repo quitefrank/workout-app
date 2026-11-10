@@ -1043,6 +1043,15 @@ html.gpu [data-scrim] {
   background: transparent;
 }
 
+/* Glass in the active workout (the Glass Steppers cards) is lifted over the canvas with the z-index above, which only
+   works if nothing between it and the root makes a stacking context: one would sink the glass's labels and controls
+   under the opaque canvas, leaving only the shader's material. A fixed box always makes one, so the focus screen is
+   absolute here (the window never scrolls, so it sits in the same place). The box unit round the cards carries no
+   translate for the same reason (see the keyboard rule below, which is for the pinned bars only). */
+html.gpu [data-focus-screen] {
+  position: absolute;
+}
+
 html.gpu.sheet-open [data-glass-unit="dock"] {
   visibility: hidden;
 }
@@ -1051,7 +1060,8 @@ html.gpu.sheet-open [data-glass-unit="dock"] {
    canvas with it, so the bars stay put and the glass stays under them. iOS reports rects relative to what is on
    screen, which is where the canvas then draws. */
 .glass-canvas,
-[data-glass-unit],
+[data-glass-unit="top"],
+[data-glass-unit="dock"],
 .glass-sheet[role="dialog"],
 [data-scrim],
 [data-glass-debug] {

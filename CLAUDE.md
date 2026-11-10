@@ -858,7 +858,13 @@ Liquid Glass" (219) and "Build a SwiftUI app with the new design"
   (Frank's call, 2026-11-10). It is allowed because that screen never
   scrolls, so nothing can drift. Glass outside the dock is hidden on the
   WebGPU path when its HTML is `visibility: hidden` (`stage.ts`), so the
-  cards vanish under the rest arc as they do on the CSS path.
+  cards vanish under the rest arc as they do on the CSS path. Glass in the
+  page is lifted over the canvas by `z-index: 6`, so nothing between it
+  and the root may make a stacking context (a z-index, `position: fixed`,
+  a transform or `translate`, opacity): one sinks the glass's contents
+  under the opaque canvas and only the material shows. That is why the
+  focus screen is `absolute` under `html.gpu`, its content has no z-index,
+  and the keyboard `translate` applies to the top and dock units only.
 
 In the lab: surfaces with `flip: true` follow the rule; `UNITS.of`
 names each control's unit, `UNITS.band` the band a pinned bar reads,

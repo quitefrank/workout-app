@@ -580,7 +580,8 @@ export function ActiveWorkout({
             <div
               key={shown.we.id}
               className={cn(
-                "relative z-[1] flex min-h-0 flex-1 flex-col",
+                // no z-index: it would make a stacking context and sink Glass Steppers under the WebGPU canvas
+                "relative flex min-h-0 flex-1 flex-col",
                 anim === "l" && "focus-slide-l",
                 anim === "r" && "focus-slide-r",
               )}
