@@ -484,14 +484,14 @@ body {
   .upnext-in {
     animation: upnext-in 0.35s cubic-bezier(0.2, 0.9, 0.25, 1) both;
   }
-  /* An unpainted control on a page arriving by a push comes in with the page (src/lib/page-push.ts); the curve is the
-     smooth spring's 0.5s response as near as a bezier gets */
+  /* An unpainted control on a page arriving by a push comes in with the page (src/lib/page-push.ts): the push's spring
+     (UIKit's curve 7, 90% at 250ms) fitted to a bezier, within 0.8% over its 0.5s */
   .push-in {
-    animation: push-in 0.55s cubic-bezier(0.25, 0.9, 0.3, 1) both;
+    animation: push-in 0.5s cubic-bezier(0.3, 0.45, 0.14, 1) both;
   }
-  /* going back the arriving page is the one underneath, coming from 30% left */
+  /* going back the arriving page is the one underneath, coming from a quarter left */
   .push-in-back {
-    animation: push-in-back 0.55s cubic-bezier(0.25, 0.9, 0.3, 1) both;
+    animation: push-in-back 0.5s cubic-bezier(0.3, 0.45, 0.14, 1) both;
   }
   @media (prefers-reduced-motion: reduce) {
     .upnext-in,
@@ -1271,7 +1271,7 @@ html.keyboard .sheet-body {
 }
 
 @keyframes push-in-back {
-  from { transform: translateX(-30vw); }
+  from { transform: translateX(-25vw); }
 }
 
 /* The pill layout's Journal card (src/app/workouts/[id]/journal-card.tsx): one shape from Ladder's pill (--jp 0: 67pt

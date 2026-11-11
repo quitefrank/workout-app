@@ -861,9 +861,10 @@ points down and turns up. A right chevron means another page. Never use a bare `
 painter draws it even when it is closed.
 
 Going to a page pushes it as UINavigationController does (Frank's call, 2026-11-10). Forward, the new page slides in
-from the right over the old one, which drifts 30% left and dims. Back reverses it. Tab switches and query-only changes
-(a calendar day) don't push. The timing and layer arithmetic is pure and tested in `src/lib/page-push.ts` (a smooth
-spring with a 0.5s response, hand-tuned until a recording exists). `PageTransitions` (in the root layout) starts a push
+from the right over the old one, which drifts a quarter of the width left and dims. Back reverses it. Tab switches and
+query-only changes (a calendar day) don't push. The timing and layer arithmetic is pure and tested in
+`src/lib/page-push.ts`: UIKit's curve 7 (90% of the way at 250ms, done at 500ms), with the sources in its header, not
+yet measured on iOS 26. `PageTransitions` (in the root layout) starts a push
 on a link tap, on a `data-nav="back"` link (a `GlassCircleLink` whose label starts with "Back") or `BackButton`, and on
 history back. A `data-nav="none"` area (the tab bar) never pushes. The push runs in the glass stage's page pass
 (`src/glass/nav-state.ts`, the NAV uniforms in `stage.ts`): the tap copies the painted page, the stage holds it until

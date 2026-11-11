@@ -14,27 +14,28 @@ describe("pushProgress", () => {
     expect(pushProgress(PUSH.durationMs)).toBe(1);
   });
 
-  it("has all but arrived by the end of its response", () => {
-    expect(pushProgress(500)).toBeGreaterThan(0.98);
-    expect(pushProgress(250)).toBeGreaterThan(0.8);
+  it("follows UIKit's curve 7: 90% of the way at 250ms, settled by 500ms", () => {
+    expect(pushProgress(250)).toBeCloseTo(0.9, 2);
+    expect(pushProgress(499)).toBeGreaterThan(0.995);
+    expect(PUSH.durationMs).toBe(500);
   });
 });
 
 describe("pushLayers", () => {
   const W = 400;
 
-  it("going forward, the new page comes in from the right over the old, which drifts 30% left", () => {
+  it("going forward, the new page comes in from the right over the old, which drifts a quarter left", () => {
     expect(pushLayers("forward", 0, W)).toEqual({ topX: W, underX: -0, topIsNew: true, dim: 0 });
     const end = pushLayers("forward", 1, W);
     expect(end.topX).toBe(0);
-    expect(end.underX).toBeCloseTo(-120);
+    expect(end.underX).toBeCloseTo(-100);
     expect(end.dim).toBeCloseTo(PUSH.dim);
   });
 
-  it("going back, the page you leave slides out right and the one under comes back from 30% left", () => {
+  it("going back, the page you leave slides out right and the one under comes back from a quarter left", () => {
     const start = pushLayers("back", 0, W);
     expect(start.topX).toBe(0);
-    expect(start.underX).toBeCloseTo(-120);
+    expect(start.underX).toBeCloseTo(-100);
     expect(start.topIsNew).toBe(false);
     expect(start.dim).toBeCloseTo(PUSH.dim);
     expect(pushLayers("back", 1, W)).toEqual({ topX: W, underX: -0, topIsNew: false, dim: 0 });

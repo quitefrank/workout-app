@@ -1,25 +1,32 @@
 /**
  * The page push, as UINavigationController moves its pages (Frank's call, 2026-11-10): going forward the new page
- * slides in from the right over the old one, which drifts 30% of the width left and dims; going back the page you leave
- * slides out to the right and the one under it comes back from 30% left. The bars stay where they are.
+ * slides in from the right over the old one, which drifts a quarter of the width left and dims; going back the page you
+ * leave slides out to the right and the one under it comes back from a quarter left. The bars stay where they are.
  *
- * The curve is SwiftUI's smooth spring (critically damped) with a 0.5s response, hand-tuned and not measured until a
- * screen recording of the phone exists. Pure, so the glass stage and the tests share it.
+ * Cross-referenced 2026-11-10 (Frank asked; the first cut at a 0.5s response read slow). UIKit's push runs on the
+ * private animation curve 7, a CASpringAnimation of mass 3, stiffness 1000, damping 500 played over 0.5s (printed from
+ * the live animation, leavez.xyz/2017/03/20/animation-curve; React Native found the same values inspecting the native
+ * push). Measured, it starts from rest, is 90% of the way at about half its 0.5s and settles with a long tail. The
+ * curve here is a critically damped spring through those points: 90% at 250ms, so a 0.404s response, done by 500ms.
+ * The geometry (the page under drifts a quarter of the width, a 10% black dim, a 6pt shadow) is from a side-by-side
+ * re-creation of the iOS 10 push (gist.github.com/stuartjmoore/037dda91cc25daf66cd2d6578de41285). Neither has been
+ * measured on iOS 26; replace them from a frame-sampled recording of the phone when one exists. Pure, so the glass
+ * stage and the tests share it.
  */
 
 export type PushDirection = "forward" | "back";
 
 export const PUSH = {
-  /** SwiftUI's response, in seconds: the spring's period */
-  response: 0.5,
-  /** the run ends here and snaps the last fraction of a point, which the spring has all but covered */
-  durationMs: 600,
+  /** the spring's period in seconds (SwiftUI's response): critically damped, 90% of the way at 250ms, as curve 7 is */
+  response: 0.404,
+  /** curve 7's 0.5s; the run snaps the last 0.4% here, under 2pt across a phone */
+  durationMs: 500,
   /** how far the page underneath sits left of its place, as a share of the width */
-  under: 0.3,
+  under: 0.25,
   /** how much the page underneath is dimmed when fully covered */
   dim: 0.1,
   /** the soft shadow off the top page's leading edge: its width in pt and its darkness at the edge */
-  shadowWidth: 16,
+  shadowWidth: 6,
   shadowAlpha: 0.12,
   /** waiting for the new page longer than this gives up on the push and shows it as it is */
   holdMaxMs: 2000,
