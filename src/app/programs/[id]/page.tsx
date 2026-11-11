@@ -11,7 +11,7 @@ import { weeksLabel } from "@/lib/programs/label";
 import { programToday } from "@/lib/programs/today";
 import { timeZone } from "@/lib/supabase/server";
 import { dayLabel, localDate } from "@/lib/workout/dates";
-import { FollowButton, PhaseButton } from "./program-controls";
+import { AboutButton, FollowButton, PhaseButton } from "./program-controls";
 
 export const metadata = { title: "Program" };
 
@@ -49,6 +49,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
   const phaseAt = (position: number | null) => program.phases.find((p) => p.position === position) ?? null;
 
   const title = program.recovery?.label ?? program.name;
+  const hasAbout = Boolean(program.description || program.citation || program.authority_notes);
 
   return (
     <Screen>
@@ -61,10 +62,19 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
           </GlassCircleLink>
         }
       />
-      <div className="mt-3 flex items-center gap-3 px-4">
-        <FollowButton programId={program.id} following={program.following} />
-        {program.following && <span className="text-[15px] text-ink-2">Its next workout shows in Up Next on Home.</span>}
+      <div className="mt-3 flex gap-3 px-4">
+        <FollowButton programId={program.id} following={program.following} className="flex-1" />
+        {hasAbout && (
+          <AboutButton
+            title="About"
+            description={program.description}
+            authorityNotes={program.authority_notes}
+            citation={program.citation}
+            className="flex-1"
+          />
+        )}
       </div>
+      {program.following && <p className="mt-2 px-4 text-[15px] text-ink-2">Its next workout shows in Up Next on Home.</p>}
 
       {started && (
         <>
@@ -192,17 +202,6 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
           );
         })}
       </div>
-
-      {(program.description || program.citation || program.authority_notes) && (
-        <>
-          <SectionHeader title="About" />
-          <div className="space-y-2 px-4 text-[15px] leading-5 text-ink-2">
-            {program.description && <p>{program.description}</p>}
-            {program.authority_notes && <p>{program.authority_notes}</p>}
-            {program.citation && <p className="text-[13px] leading-[18px]">{program.citation}</p>}
-          </div>
-        </>
-      )}
     </Screen>
   );
 }
