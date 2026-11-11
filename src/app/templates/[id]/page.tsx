@@ -12,14 +12,14 @@ import { weeksLabel } from "@/lib/programs/label";
 import { CATEGORY_LABELS, EQUIPMENT_LABELS, prescriptionFacts } from "@/lib/workout/format";
 import { mainLift, workingSlugs } from "@/lib/workout/workout-art";
 import { repTarget } from "@/lib/workout/active";
-import { buttonLook } from "@/components/button";
 import { StartTemplate } from "./start-template";
 
 /**
  * A workout before it starts. The hero shows the main lift on the screen's colour in place of the colour gradient,
  * with the program, or the category, in blue over the name, set as the active workout's header sets it. Each exercise
  * row leads with the active workout's rep target ("8–10x Standing Arnold Press") with its warm-ups and sets under it,
- * and Start Workout is the filled blue button pinned at the bottom (Frank's calls, 2026-11-10).
+ * and Start Workout is the filled blue button pinned at the bottom (Frank's calls, 2026-11-10). There is no Tutorial
+ * button: every exercise has its own demonstration (Frank's call, 2026-11-10).
  */
 export default async function TemplatePage({
   params,
@@ -89,13 +89,6 @@ export default async function TemplatePage({
               {[`${template.rows.length} exercises`, template.estimated_minutes && `${template.estimated_minutes} min`]
                 .filter(Boolean)
                 .join(" · ")}
-            </div>
-          )}
-          {template.tutorial_url && (
-            <div className="mt-5 flex">
-              <a href={template.tutorial_url} target="_blank" rel="noreferrer" {...buttonLook(lift ? "gray" : "veil")}>
-                Tutorial
-              </a>
             </div>
           )}
         </div>
