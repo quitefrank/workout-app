@@ -58,14 +58,6 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         }
       />
 
-      {selected !== today && (
-        <div className="flex justify-end px-4 pt-1 text-[15px] text-blue">
-          <Link href="/" scroll={false}>
-            Today
-          </Link>
-        </div>
-      )}
-
       {/* only a day with something logged has this section */}
       {selectedWorkouts.length > 0 && (
         <>

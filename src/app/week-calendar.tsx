@@ -74,7 +74,7 @@ export function WeekCalendar({ selected, today, days, trailing }: { selected: st
     return () => observer.disconnect();
   }, []);
 
-  // Before the first paint and whenever the day moves from outside the strip (the panel, the Today link)
+  // Before the first paint and whenever the day moves from outside the strip (the month panel)
   useLayoutEffect(() => {
     const el = strip.current;
     if (el && width && Math.abs(el.scrollLeft - dayWeek * width) > width / 2) {
