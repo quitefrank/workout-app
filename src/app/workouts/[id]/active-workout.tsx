@@ -513,6 +513,7 @@ export function ActiveWorkout({
     <PillCheck
       state={logState}
       flash={flash}
+      done={!resting && !!shown && rowIndex < 0}
       disabled={logDisabled}
       onClick={onLogTap}
     />
@@ -702,7 +703,8 @@ export function ActiveWorkout({
                       </>
                     )
                   ) : (
-                    <p className="pb-4 text-center text-[15px] text-ink-2">
+                    // 12pt above the pill, the gap between Last time and the steppers (the zone ends 20pt above it)
+                    <p className="-mb-2 text-center text-[15px] leading-[18px] text-ink-2">
                       {shown.rows.length} of {shown.rows.length} logged. Swipe for the next exercise.
                     </p>
                   )}

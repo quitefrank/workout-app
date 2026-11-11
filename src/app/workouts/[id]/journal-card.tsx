@@ -169,9 +169,12 @@ export function JournalCard({
 export function PillCheck({
   state,
   flash,
+  done,
   disabled,
   onClick,
 }: {
+  /** every set of the shown exercise is logged: solid blue with a white check, at full strength (Frank's call, 2026-11-10) */
+  done?: boolean;
   /** start and stop run a timed set: a stretch's hold, an outdoor run's stopwatch */
   state: "log" | "skip" | "finish" | "start" | "stop";
   flash: boolean;
@@ -183,7 +186,9 @@ export function PillCheck({
     <button
       type="button"
       aria-label={
-        skip
+        done
+          ? "All sets logged"
+          : skip
           ? "Skip rest"
           : state === "finish"
             ? "Finish workout"
@@ -199,8 +204,9 @@ export function PillCheck({
         onClick();
       }}
       className={cn(
-        "relative grid size-[51px] shrink-0 place-items-center rounded-full disabled:opacity-50",
-        flash ? "pill-check-fill bg-blue text-white" : "shadow-[inset_0_0_0_2px_#0082f0]",
+        "relative grid size-[51px] shrink-0 place-items-center rounded-full",
+        done ? "bg-blue text-white" : "disabled:opacity-50",
+        flash ? "pill-check-fill bg-blue text-white" : !done && "shadow-[inset_0_0_0_2px_#0082f0]",
       )}
     >
       {skip ? (
