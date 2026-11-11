@@ -862,7 +862,10 @@ painter draws it even when it is closed.
 
 Going to a page pushes it as UINavigationController does (Frank's call, 2026-11-10). Forward, the new page slides in
 from the right over the old one, which drifts a quarter of the width left and dims. Back reverses it. Tab switches and
-query-only changes (a calendar day) don't push. The timing and layer arithmetic is pure and tested in
+query-only changes (a calendar day) don't push. Tabs switch instantly with no transition, by Frank's call
+(2026-11-10), checked against the iOS 27 HIG (Motion: avoid motion on frequent interactions); only the tab bar's lens
+moves. The reasoning and sources for all three motions (push, tab switch, accordion) are in
+`Templates/liquid-glass/liquid-glass-reference.md` in the vault, under Navigation transitions. The timing and layer arithmetic is pure and tested in
 `src/lib/page-push.ts`: UIKit's curve 7 (90% of the way at 250ms, done at 500ms), with the sources in its header, not
 yet measured on iOS 26. `PageTransitions` (in the root layout) starts a push
 on a link tap, on a `data-nav="back"` link (a `GlassCircleLink` whose label starts with "Back") or `BackButton`, and on
