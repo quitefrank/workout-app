@@ -40,7 +40,7 @@ export default async function TemplatesPage() {
                   }
                   title={p.name}
                   subtitle={[
-                    p.id === activeId && "Following",
+                    p.id === activeId && "In progress",
                     p.kind === "recovery" ? `${p.phaseCount} phases` : `${p.phaseCount} weeks`,
                     `${p.templateCount} templates`,
                   ]

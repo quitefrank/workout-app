@@ -59,7 +59,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
       />
       <div className="mt-3 flex items-center gap-3 px-4">
         <FollowButton programId={program.id} following={program.following} />
-        {program.following && <span className="text-[15px] text-ink-2">Its next workout shows on the calendar.</span>}
+        {program.following && <span className="text-[15px] text-ink-2">Its next workout shows in Up Next on Home.</span>}
       </div>
 
       <SectionHeader title="Today" />
@@ -162,8 +162,10 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
                       .join(" · ")}
                   </div>
                 </div>
-                <svg width="8" height="13" viewBox="0 0 8 13" aria-hidden className="shrink-0 text-ink-3 transition-transform group-open:rotate-90">
-                  <path d="M1.5 1.5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                {/* An accordion opens in place, so its chevron points down and turns up when open; a right chevron
+                    means another page (Frank's call, 2026-11-10) */}
+                <svg width="13" height="8" viewBox="0 0 13 8" aria-hidden className="shrink-0 text-ink-3 transition-transform group-open:rotate-180">
+                  <path d="M1.5 1.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </summary>
               <div>

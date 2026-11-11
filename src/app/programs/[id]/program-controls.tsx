@@ -18,16 +18,19 @@ function useAction() {
   return [pending, run] as const;
 }
 
-/** Follow this program, so the calendar shows its next workout, or stop. */
+/**
+ * Start this program, so Home's Up Next shows its next workout, or end it. Labelled Start and End Program, not Follow
+ * (Frank's call, 2026-11-10); underneath it is still the followed program, `user_settings.active_program_id`.
+ */
 export function FollowButton({ programId, following }: { programId: string; following: boolean }) {
   const [pending, run] = useAction();
   return following ? (
     <Button small variant="gray" disabled={pending} onClick={() => run(() => followProgram(null))}>
-      Stop Following
+      End Program
     </Button>
   ) : (
     <Button small variant="filled" disabled={pending} onClick={() => run(() => followProgram(programId))}>
-      Follow
+      Start Program
     </Button>
   );
 }
