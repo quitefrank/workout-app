@@ -1,9 +1,11 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { startWorkout } from "@/app/actions";
 import { Button } from "@/components/button";
+import { navState } from "@/glass/nav-state";
+import { cn } from "@/lib/cn";
 
 /**
  * Start a workout from this template: the app's filled blue button, pinned at the bottom 20pt from each side (Frank's
@@ -11,6 +13,10 @@ import { Button } from "@/components/button";
  */
 export function StartTemplate({ templateId }: { templateId: string }) {
   const [pending, start] = useTransition();
+  // it is not in the painted page, so on a push it slides in itself, with the page (it mounts as the push runs)
+  const [pushIn] = useState(() =>
+    navState.phase === "idle" ? null : navState.direction === "back" ? "push-in-back" : "push-in",
+  );
 
   const go = () =>
     start(async () => {
@@ -29,7 +35,7 @@ export function StartTemplate({ templateId }: { templateId: string }) {
       // scroll, so its painted copy slid up the list under the real button
       data-unpainted
       // a column, like every dock: a home screen app bottom-aligns its children down a column (html.standalone)
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col"
+      className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col", pushIn)}
       style={{ paddingBottom: "var(--dock-bottom)" }}
     >
       <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto mx-5">

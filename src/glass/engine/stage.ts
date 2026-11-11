@@ -6,6 +6,8 @@ import { debugState } from "../debug-state";
 import { makeFrost } from "./frost";
 import { CAST_MARGIN, GLASS_MARGIN, makeCastMaterial, makeGlassMaterial, makeUniforms, type Uniforms } from "./materials";
 import { lensState } from "../lens-state";
+import { holdExpired, navState } from "../nav-state";
+import { PUSH, pushLayers, pushProgress } from "@/lib/page-push";
 import { makeTabsLayer } from "./tabs";
 
 /* The Glass Lab V3's GPU surface (makeGpu, lines 4275 to 4501), for the app: a canvas, a content texture the painter
@@ -50,13 +52,20 @@ export async function startStage(o: StageOptions): Promise<() => void> {
 
 function setup(o: StageOptions, renderer: any): () => void {
   const { THREE, T, W, H, dpr } = o;
-  const { Fn, uv, vec2, vec3, float, int, ivec2, max, min, floor, clamp, mix, smoothstep, texture, textureLoad, uniform, sRGBTransferEOTF, screenCoordinate, Loop } = T;
+  const { Fn, uv, vec2, vec3, float, int, ivec2, max, min, floor, clamp, mix, smoothstep, step: stepNode, texture, textureLoad, uniform, sRGBTransferEOTF, screenCoordinate, Loop } = T;
   const contentCanvas = document.createElement("canvas"); contentCanvas.width = Math.round(W * dpr); contentCanvas.height = Math.round(H * dpr);
   const cctx = contentCanvas.getContext("2d")!;
   // raw sRGB bytes (no decode on sampling): the frost averages them as they are, and the optics decode where they read
   const rawTex = new THREE.CanvasTexture(contentCanvas); rawTex.colorSpace = THREE.NoColorSpace;
   rawTex.generateMipmaps = true; rawTex.minFilter = THREE.LinearMipmapLinearFilter; rawTex.magFilter = THREE.LinearFilter;
   const cw = contentCanvas.width, ch = contentCanvas.height;
+  // The page push (src/lib/page-push.ts): a copy of the page that was on screen when a link was tapped, slid against the
+  // new page in the page pass below, so the bars stay put and refract both as they move, as the phone's do
+  const prevCanvas = document.createElement("canvas"); prevCanvas.width = cw; prevCanvas.height = ch;
+  const prevCtx = prevCanvas.getContext("2d")!;
+  const prevTex = new THREE.CanvasTexture(prevCanvas); prevTex.colorSpace = THREE.NoColorSpace;
+  prevTex.generateMipmaps = false; prevTex.minFilter = THREE.LinearFilter; prevTex.magFilter = THREE.LinearFilter;
+  const NAV = { on: uniform(0), topX: uniform(0), underX: uniform(0), topIsNew: uniform(1), dim: uniform(0), shadow: uniform(0) };
   // The page with its scroll edge effect is rendered once into pageTex whenever the page or the effect moves; the screen
   // shows it, and the glass and its frosts read it, so a bar refracts and blurs the dimmed band it sits on, as the phone's
   // do. The edge blur alone reads the raw page.
@@ -78,7 +87,17 @@ function setup(o: StageOptions, renderer: any): () => void {
   pageMat.colorNode = Fn(() => {
     // a render target reads back flipped, so this pass writes the page upside down (the frost's two passes cancel out)
     const fu = vec2(uv().x, float(1).sub(uv().y));
-    const sharp = texture(rawTex, fu).rgb, soft = texture(edgeFrost.tex, fu).rgb;
+    // the push: the top page from topX rightwards, the page under it shifted by underX, dimmed, with a soft shadow off
+    // the top page's leading edge. During a push the edge blur reads the composite unblurred (no frost of the copy).
+    const px = fu.x.mul(W);
+    const tu = vec2(px.sub(NAV.topX).div(W), fu.y), uu = vec2(px.sub(NAV.underX).div(W), fu.y);
+    const topC = mix(texture(prevTex, tu).rgb, texture(rawTex, tu).rgb, NAV.topIsNew);
+    const shade = float(1).sub(clamp(NAV.topX.sub(px).div(PUSH.shadowWidth), 0, 1));
+    const underC = mix(texture(rawTex, uu).rgb, texture(prevTex, uu).rgb, NAV.topIsNew)
+      .mul(float(1).sub(NAV.dim))
+      .mul(float(1).sub(shade.mul(shade).mul(NAV.shadow)));
+    const pushed = mix(underC, topC, stepNode(NAV.topX, px));
+    const sharp = mix(texture(rawTex, fu).rgb, pushed, NAV.on), soft = mix(texture(edgeFrost.tex, fu).rgb, pushed, NAV.on);
     const y = float(1).sub(fu.y).mul(H);
     // weight 1 at the screen edge, falling to 0 at the reach (smoothstep over the last four fifths)
     const wTop = float(1).sub(smoothstep(EDGE.topReach.mul(0.2), EDGE.topReach, y)).mul(EDGE.topOn);
@@ -215,6 +234,15 @@ function setup(o: StageOptions, renderer: any): () => void {
   };
 
   let lastSig: string | null = null, pageDirty = true, lastEdgeKey = "", lastT = performance.now(), frame = 0, stopped = false, readySent = false;
+  let pushT0 = 0;
+  // A tap copies the page on screen, once the shader is showing it (before that the CSS material is, and nothing pushes)
+  navState.snapshot = () => {
+    if (stopped || !html.classList.contains("gpu")) return false;
+    prevCtx.clearRect(0, 0, cw, ch);
+    prevCtx.drawImage(contentCanvas, 0, 0);
+    prevTex.needsUpdate = true;
+    return true;
+  };
   const step = () => {
     const now = performance.now(), dt = Math.min(100, now - lastT); lastT = now;
     const cr = o.canvas.getBoundingClientRect(); org.x = cr.left; org.y = cr.top;
@@ -226,6 +254,20 @@ function setup(o: StageOptions, renderer: any): () => void {
     document.querySelectorAll(".glass").forEach((el) => { if (!el.closest(".glass-sheet")) want.add(el); });
     for (const e of Array.from(entries.values())) if (!want.has(e.el)) remove(e);
     for (const el of want) if (!entries.has(el)) add(el);
+
+    // The page push: hold the copy until the new route has rendered, paint it this frame, then run the spring
+    if (navState.phase === "hold") {
+      if (holdExpired(now)) navState.phase = "idle";
+      else if (navState.committed) { navState.phase = "run"; pushT0 = now; lastSig = null; }
+    }
+    if (navState.phase !== "idle") {
+      const p = navState.phase === "run" ? pushProgress(now - pushT0) : 0;
+      const L = pushLayers(navState.direction, p, W);
+      NAV.on.value = 1; NAV.topX.value = L.topX; NAV.underX.value = L.underX; NAV.topIsNew.value = L.topIsNew ? 1 : 0;
+      NAV.dim.value = L.dim; NAV.shadow.value = L.topX > 0 && L.topX < W ? PUSH.shadowAlpha : 0;
+      pageDirty = true;
+      if (p >= 1) navState.phase = "idle";
+    } else if (NAV.on.value !== 0) { NAV.on.value = 0; pageDirty = true; }
 
     // The page is drawn to the texture (and re-blurred) only when its signature moves: scroll, DOM, appearance. Between
     // those frames only the glass is composited, which is what keeps a 3x phone at frame rate.
@@ -351,13 +393,14 @@ function setup(o: StageOptions, renderer: any): () => void {
 
   return () => {
     stopped = true; cancelAnimationFrame(frame);
+    navState.snapshot = null; navState.phase = "idle";
     // the units' classes first: removing the last entry of a unit drops the unit
     for (const f of units.values()) f.key.classList.remove("ctx-dark", "ctx-light");
     html.classList.remove("tabs-gpu");
     for (const e of Array.from(entries.values())) remove(e);
     [...frosts, edgeFrost].forEach((f) => f.dispose());
     tabs.dispose();
-    [pageMat, bgMat, avgMat, pageGeo, bgGeo, rawTex, pageRT, avgRT].forEach((x) => x.dispose());
+    [pageMat, bgMat, avgMat, pageGeo, bgGeo, rawTex, prevTex, pageRT, avgRT].forEach((x) => x.dispose());
     renderer.dispose();
   };
 }

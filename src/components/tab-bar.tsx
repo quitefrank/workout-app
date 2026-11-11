@@ -155,6 +155,8 @@ function Tabs({ pathname }: { pathname: string }) {
   return (
     <div
       ref={barRef}
+      // switching tabs is not a push on iOS (src/components/page-transitions.tsx)
+      data-nav="none"
       className="glass pointer-events-auto relative flex h-[62px] min-w-0 flex-1 touch-none items-center px-1.5 py-1"
       onPointerDown={(e) => {
         if (e.button > 0) return;

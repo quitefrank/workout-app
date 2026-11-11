@@ -853,6 +853,25 @@ The focus screen is painted with the page (the glass stage repaints on DOM chang
 fields are live. A full-screen box must not carry `data-live`, since `html.gpu [data-live]` forces `position:
 relative`. Illustrations are 1024px WebP (`images:import`) and kept out of the PWA's install cache.
 
+## Motion: accordions and the page push
+
+Every accordion expands and collapses (Frank's call, 2026-11-10): `Collapse` and `Disclosure` in
+`src/components/collapse.tsx` animate the body's height from 0fr to 1fr on the sheet's curve, and a disclosure's chevron
+points down and turns up. A right chevron means another page. Never use a bare `<details>`: it snaps open, and the
+painter draws it even when it is closed.
+
+Going to a page pushes it as UINavigationController does (Frank's call, 2026-11-10). Forward, the new page slides in
+from the right over the old one, which drifts 30% left and dims. Back reverses it. Tab switches and query-only changes
+(a calendar day) don't push. The timing and layer arithmetic is pure and tested in `src/lib/page-push.ts` (a smooth
+spring with a 0.5s response, hand-tuned until a recording exists). `PageTransitions` (in the root layout) starts a push
+on a link tap, on a `data-nav="back"` link (a `GlassCircleLink` whose label starts with "Back") or `BackButton`, and on
+history back. A `data-nav="none"` area (the tab bar) never pushes. The push runs in the glass stage's page pass
+(`src/glass/nav-state.ts`, the NAV uniforms in `stage.ts`): the tap copies the painted page, the stage holds it until
+the new route has rendered (2s at most), and then it slides the copy against the live page, so the bars stay put.
+On the CSS path (before WebGPU is ready) nothing pushes. A control outside the painted page (`[data-unpainted]`, such as
+the workout page's Start Workout) slides itself with `.push-in` / `.push-in-back` when it mounts during a push.
+Programmatic navigation (`router.push`, a server action's redirect) does not push yet.
+
 ## Glass context rule
 
 Applies to every glass control in the lab (`docs/lab/glass-lab-v3.html`)

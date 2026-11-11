@@ -7,6 +7,7 @@ import { GlassContext } from "@/components/glass-context";
 import { TabBar } from "@/components/tab-bar";
 import { GlassDebug } from "@/glass/debug";
 import { GlassStage } from "@/glass/glass-stage";
+import { PageTransitions } from "@/components/page-transitions";
 import { SetupNeeded } from "@/components/setup-needed";
 import { THEME_COOKIE, themeFrom } from "@/lib/appearance";
 import { getInProgress, listTemplates } from "@/lib/data/queries";
@@ -108,6 +109,7 @@ export default async function RootLayout({
         />
         <GlassContext />
         <GlassStage />
+        <PageTransitions />
         <GlassDebug />
         <AppUpdate />
         <Toaster position="top-center" theme={theme} toastOptions={{ className: "!rounded-[20px]" }} />

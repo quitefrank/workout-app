@@ -28,10 +28,15 @@ export function Glass({
 
 type CircleProps = { label: string; children: ReactNode; className?: string };
 
-/** 44pt circle, the top toolbar's button. */
+/** 44pt circle, the top toolbar's button. A Back link pushes the page back (src/components/page-transitions.tsx). */
 export function GlassCircleLink({ href, label, children, className }: CircleProps & { href: string }) {
   return (
-    <Link href={href} aria-label={label} className={cn("glass grid size-11 shrink-0 place-items-center", className)}>
+    <Link
+      href={href}
+      aria-label={label}
+      data-nav={/^back\b/i.test(label) ? "back" : undefined}
+      className={cn("glass grid size-11 shrink-0 place-items-center", className)}
+    >
       {children}
     </Link>
   );
