@@ -28,8 +28,8 @@ const TABS: { href: string; label: string; Icon: IconType; match: (p: string) =>
   { href: "/analytics", label: "Progress", Icon: ProgressIcon, match: (p: string) => p.startsWith("/analytics") },
 ];
 
-/** The active workout screen has its own bottom bar. */
-const ACTIVE_WORKOUT = /^\/workouts\/[^/]+$/;
+/** The active workout screen and a workout before it starts (a template) have their own bottom bar. */
+const ACTIVE_WORKOUT = /^\/(workouts|templates)\/[^/]+$/;
 
 /** The capsule is the tab plus 2pt each side, and the tab's 54pt height */
 const CAPSULE_PAD = 2, CAPSULE_H = 54;
