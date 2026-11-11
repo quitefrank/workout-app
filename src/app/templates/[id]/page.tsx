@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GlassCircleLink } from "@/components/glass";
 import { TopBar } from "@/components/top-bar";
-import { ChevronLeft } from "@/components/icons";
-import { hasExerciseImage } from "@/components/exercise-art";
+import { ChevronLeft, FigureIcon } from "@/components/icons";
+import { MuscleArt } from "@/components/muscle-art/muscle-art";
+import { ExerciseArt, hasExerciseImage } from "@/components/exercise-art";
 import { hueStyle, Screen, SectionHeader, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
 import { getTemplate, getTemplateContext } from "@/lib/data/queries";
@@ -17,7 +18,7 @@ import { StartTemplate } from "./start-template";
 /**
  * A workout before it starts. The hero shows the main lift on the screen's colour in place of the colour gradient,
  * with the program, or the category, in blue over the name, set as the active workout's header sets it. Each exercise
- * row leads with the active workout's rep target ("8–10x Standing Arnold Press") with its warm-ups and sets under it,
+ * row shows its illustration where its number was, then leads with the active workout's rep target ("8–10x Standing Arnold Press") with its warm-ups and sets under it,
  * and Start Workout is the filled blue button pinned at the bottom (Frank's calls, 2026-11-10). There is no Tutorial
  * button: every exercise has its own demonstration (Frank's call, 2026-11-10).
  */
@@ -138,7 +139,7 @@ export default async function TemplatePage({
         )}
         <SectionHeader title={`${template.rows.length} Exercises`} />
         <div className="grouped mx-4">
-          {template.rows.map((r, i) => {
+          {template.rows.map((r) => {
             // The active workout header's rep target ("8–10x"), or a timed set's length ("30s")
             const target = repTarget(r, { kind: "work", reps: null, seconds: null });
             // Under it, the warm-ups and the set count; reps are in the target and rest is left out
@@ -150,7 +151,22 @@ export default async function TemplatePage({
               <Link key={r.id} href={`/exercises/${r.exercises.id}`} className="block active:bg-fill">
                 {/* Row's layout with the lines flipped: the sets over the name, as the active workout's header has them */}
                 <div className="flex min-h-11 items-center gap-3 px-4 py-2.5">
-                  <span className="tabular w-5 shrink-0 text-center text-[15px] text-ink-2">{i + 1}</span>
+                  {/* the exercise's illustration, as the library's rows show it, in place of its number */}
+                  <div className="size-12 shrink-0 overflow-hidden rounded-[10px] bg-[var(--muscle-tile)]">
+                    <ExerciseArt
+                      slug={r.exercises.slug}
+                      pad="p-1"
+                      art={
+                        r.exercises.muscle_groups?.name ? (
+                          <MuscleArt group={r.exercises.muscle_groups.name} />
+                        ) : (
+                          <div className="grid size-full place-items-center text-ink-3">
+                            <FigureIcon size={20} />
+                          </div>
+                        )
+                      }
+                    />
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[15px] leading-5 text-ink-2">
                       {dose || (template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type])}
@@ -165,7 +181,7 @@ export default async function TemplatePage({
                     <path d="M1.5 1.5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </div>
-                {r.notes && <p className="-mt-1.5 px-4 pb-2.5 pl-12 text-[13px] text-ink-2">{r.notes}</p>}
+                {r.notes && <p className="-mt-1.5 px-4 pb-2.5 pl-[76px] text-[13px] text-ink-2">{r.notes}</p>}
               </Link>
             );
           })}
