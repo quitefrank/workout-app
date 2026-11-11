@@ -11,7 +11,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SOURCES = ["nippard-ppl-1.0.pdf", "nippard-powerbuilding-4x.pdf", "nippard-arm-hypertrophy.pdf"];
+const SOURCES = ["nippard-ppl-1.0.pdf", "nippard-powerbuilding-4x.pdf", "nippard-arm-hypertrophy.pdf", "nippard-powerbuilding-3-5x.pdf"];
 
 const dir = process.argv[2] ?? fileURLToPath(new URL("./data/programs/sources/", import.meta.url));
 const outDir = fileURLToPath(new URL("./data/programs/raw/", import.meta.url));

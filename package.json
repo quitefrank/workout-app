@@ -17,6 +17,7 @@
     "convert:ppl1": "bun run scripts/convert-ppl1.ts",
     "convert:powerbuilding": "bun run scripts/convert-powerbuilding.ts",
     "convert:arm": "bun run scripts/convert-arm.ts",
+    "convert:powerbuilding3": "bun run scripts/convert-powerbuilding3.ts",
     "icons:generate": "bun run scripts/generate-icons.ts",
     "art:muscles": "bun run scripts/trace-muscle-art.ts",
     "db:push": "supabase db push",

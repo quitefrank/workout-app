@@ -118,6 +118,7 @@ describe("supabase migrations on PGlite", () => {
       "0026_swapped_from_without_foreign_key.sql",
       "0027_exercise_measures.sql",
       "0028_program_names_without_author.sql",
+      "0029_powerbuilding_3_exercises.sql",
     ]);
   });
 

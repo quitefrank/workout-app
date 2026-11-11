@@ -121,6 +121,19 @@ export const LIBRARY_ALIASES: Record<string, string> = {
   "supinated-ez-bar-curl": "ez-bar-bicep-curls",
   "tricep-pressdown": "triceps-pressdown",
   "walking-lunge": "walking-db-lunge",
+  // Powerbuilding Phase 3.0 (5x)
+  "45-back-extension": "45-hyperextension",
+  "barbell-box-squat": "high-bar-box-squat",
+  "barbell-overhead-press": "overhead-press",
+  "chest-supported-row": "incline-chest-supported-db-row",
+  "deadlift": "deadlifts",
+  "dumbbell-lateral-raise": "db-lateral-raise",
+  "dumbbell-skull-crusher": "db-skull-crushers",
+  "ez-bar-strict-curl": "ez-bar-bicep-curls",
+  "hammer-curl": "hammer-curls",
+  "reset-deadlift": "deadlifts",
+  "strict-bench-press": "pause-barbell-bench-press",
+  "touch-and-go-deadlift": "deadlifts",
 };
 
 export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
@@ -128,6 +141,9 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "3-block-pull": { muscleGroup: "Glutes", equipmentType: "barbell" },
   "5-block-pull": { muscleGroup: "Glutes", equipmentType: "barbell" },
   "ab-wheel-rollout": { muscleGroup: "Abs", equipmentType: "bodyweight" },
+  "anderson-squat": { muscleGroup: "Quadriceps", equipmentType: "barbell" },
+  "barbell-pin-bench-press": { muscleGroup: "Chest", equipmentType: "barbell" },
+  "pin-good-morning": { muscleGroup: "Hamstrings", equipmentType: "barbell" },
   "seated-face-pull": { muscleGroup: "Shoulders", equipmentType: "cable" },
   "t-bar-row": { muscleGroup: "Back", equipmentType: "barbell" },
   "seated-arnold-press": { muscleGroup: "Shoulders", equipmentType: "dumbbell", name: "Seated Arnold Press" },
@@ -228,6 +244,9 @@ export const ALIAS_VARIANTS: Record<string, string> = {
   "eccentric-accentuated-pull-up": "Eccentric-Accentuated",
   "enhanced-eccentric-leg-extension": "Enhanced-Eccentric",
   "enhanced-eccentric-lying-leg-curl": "Enhanced-Eccentric",
+  "ez-bar-strict-curl": "Strict",
+  "reset-deadlift": "Reset",
+  "touch-and-go-deadlift": "Touch-and-Go",
 };
 
 /**

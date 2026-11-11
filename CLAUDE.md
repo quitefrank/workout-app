@@ -19,6 +19,7 @@ bun run extract:pdfs     # Vault PDFs -> page dumps under scripts/data/programs/
 bun run convert:ppl1     # PPL 1.0 dump -> program JSON (gitignored)
 bun run convert:powerbuilding   # Powerbuilding 4x dump -> program JSON (gitignored)
 bun run convert:arm      # Arm Hypertrophy dump -> program JSON (gitignored)
+bun run convert:powerbuilding3   # Powerbuilding Phase 3.0 5x dump -> program JSON (gitignored)
 bun run seed:programs    # Every program JSON -> programs, phases, templates
 bun run icons:generate   # Re-render placeholder PWA icons
 bun run art:muscles      # Notion muscle diagrams -> src/components/muscle-art/paths.ts
@@ -175,8 +176,12 @@ Eleven pure modules with full unit-test coverage:
 - `scripts/lib/arm-pdf.ts` Parse the Arm Hypertrophy dump: one page per
   week, three tables per page, tempo into the notes, decimal rest, and
   the four 0/0 rows dosed as an open-ended set.
+- `scripts/lib/powerbuilding3-pdf.ts` Parse the Powerbuilding Phase 3.0
+  (5x) dump: week from the page banner, a banner row above a table's
+  header dropped, option B for week 10, "(OR ...)" names split by
+  `NAME_CHOICES`, a "~" RPE kept as the RPE with an "Approximate RPE" note.
 
-Run `bun run test` to exercise them. 546 tests across 50 files.
+Run `bun run test` to exercise them. 568 tests across 53 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -303,15 +308,16 @@ for row counts, exercises inserted versus matched (with the fuzzy
 matches listed), exercises removed, `handFix`, alternates in place,
 already matching, kept and removed, orphans and stale rows removed.
 
-Three Nippard PDFs in `scripts/data/programs/sources/` go through a
+Four Nippard PDFs in `scripts/data/programs/sources/` go through a
 second pipeline into the same contract. `bun run extract:pdfs` runs
 `scripts/extract-pdf-tables.py` (pdfplumber) over each PDF and writes
 one page dump per file, text lines plus tables with cells as written,
 to `scripts/data/programs/raw/` (gitignored). One tested parser per
 program walks its dump (`scripts/lib/ppl1-pdf.ts`,
-`powerbuilding-pdf.ts`, `arm-pdf.ts`, on the shared helpers in
-`pdf-program.ts`) and one thin CLI per program (`convert:ppl1`,
-`convert:powerbuilding`, `convert:arm`) writes the gitignored JSON,
+`powerbuilding-pdf.ts`, `arm-pdf.ts`, `powerbuilding3-pdf.ts`, on the
+shared helpers in `pdf-program.ts`) and one thin CLI per program
+(`convert:ppl1`, `convert:powerbuilding`, `convert:arm`,
+`convert:powerbuilding3`) writes the gitignored JSON,
 exiting 1 on any row it could not dose. Names are title-cased from the
 PDF's capitals, notes sentence-cased, a superset prefix ("A1:") becomes
 a "Superset A" note, a percentage of 1RM becomes a "Load: 70% 1RM" note
@@ -330,10 +336,27 @@ lost. What each became:
   A, Supplemental B), 144 rows. The four rows written as 0 sets and 0
   reps are an open-ended set to failure and are dosed `1 x AMRAP` with
   a note saying so.
+- Powerbuilding Phase 3.0 (5x): 5 blocks (Loading weeks 1 to 4,
+  Semi-Deload week 5, Loading weeks 6 to 8, Taper week 9, Max Testing
+  week 10), 46 days, 227 rows. Weeks 1 to 8 are five full body days,
+  the taper three, max testing three (Squat, Bench and Deadlift Test).
+  Week 10 is option B, the AMRAP at 90% the PDF recommends for general
+  strength goals; option A, heavy singles for competitive powerlifters,
+  is reported as omitted. That is the same rule as the 4x, where the
+  AMRAP option was A. Pause, strict and touch-and-go spellings follow
+  the library rules (Frank's calls via Claude, 2026-11-10): Strict Bench
+  Press is the Pause Bench Press row; Touch-and-Go and Reset Deadlift and
+  Strict EZ-Bar Curl are the standard row with the set instruction in
+  `ALIAS_VARIANTS`; EZ bar is the curl and barbell its substitution, as in
+  the 4x. Anderson Squat, Barbell Pin Bench Press and Pin Good Morning are
+  new seed rows placed in their families by migration 0029, which runs
+  after the seed on a fresh database (it touches nothing before).
+  Nippard's substitution list (pages 101 to 104) is not loaded; only the
+  "(OR ...)" choices in the tables become substitutions.
 
 `nippard-get-ready-manual.pdf` holds no program (gear checklist, 1RM
 testing, nutrition) and stays a reference. `nippard-ultimate-ppl-4x.xlsx`
-still goes through `convert:ppl`. The same seed loads all four JSONs
+still goes through `convert:ppl`. The same seed loads all five JSONs
 without changes.
 
 ## One exercise per movement, floor per row

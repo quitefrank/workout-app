@@ -28,7 +28,7 @@ const ALIASES: Record<string, VariantSplit> = {
 };
 
 /** Parenthetical set types, matched whole and case-insensitively; the variant keeps the source spelling. */
-const SET_TYPE_RE = /^(top set|back ?off(?: amrap)?|feeder sets?|failure set|heavy|light|drop ?set|rest[- ]?pause|myo[- ]?reps?|amrap|cluster|(?:reverse )?21'?s|descending rom|metabolic|optional)$/i;
+const SET_TYPE_RE = /^(top set|top single|back ?off(?: amrap)?|feeder sets?|failure set|heavy|light|drop ?set|rest[- ]?pause|myo[- ]?reps?|amrap|cluster|(?:reverse )?21'?s|descending rom|metabolic|optional)$/i;
 const REP_HINT_RE = /^\d+(?:\s*-\s*\d+)?\s*reps?$/i;
 const SECONDS_RE = /^\d+\s*s(?:ec)?$/i;
 const TEMPO_RE = /^\d+\s*up,?\s*\d+\s*down$/i;
