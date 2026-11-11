@@ -22,6 +22,7 @@ bun run convert:arm      # Arm Hypertrophy dump -> program JSON (gitignored)
 bun run convert:powerbuilding3   # Powerbuilding Phase 3.0 5x dump -> program JSON (gitignored)
 bun run seed:programs    # Every program JSON -> programs, phases, templates
 bun run icons:generate   # Re-render placeholder PWA icons
+bun run icons:sf         # SF Symbols (macOS renderer, via JXA) -> src/components/sf-symbol-data.ts
 bun run art:muscles      # Notion muscle diagrams -> src/components/muscle-art/paths.ts
 supabase db push         # Apply migrations to linked cloud project
 ```

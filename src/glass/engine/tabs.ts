@@ -140,7 +140,7 @@ export function makeTabsLayer(THREE: any, T: any, o: Opts) {
     place(bar: HTMLElement, rect: Rect, P: Material, inkOn: boolean) {
       const swell = lensState.swell, bw = bar.offsetWidth, bh = bar.offsetHeight;
       const labels = Array.from(bar.querySelectorAll("a[data-tab-ink]"), (a) => a.textContent).join("|");
-      // the selected tab's symbol is drawn bolder
+      // redrawn when the selection changes, so the mask follows the selected tab
       const key = `${bw}|${bh}|${labels}|${loads}|${bar.querySelector("[aria-current]")?.getAttribute("href")}`;
       if (key !== inkKey || pending) { inkKey = key; drawInk(bar, rect, swell, bw, bh); }
       const now = performance.now(), f = lastT ? Math.min(1, ((now - lastT) / 250) * 3) : 1; lastT = now;

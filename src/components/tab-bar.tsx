@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState, type ComponentType, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/lib/cn";
 import { formatClock } from "@/lib/workout/format";
 import { LENS, lensGoal, lensSettled, lensShape, nearestIndex, restingLens, stepLens, type LensInput } from "@/lib/tab-lens";
 import { lensState } from "@/glass/lens-state";
 import type { TemplateSummary } from "@/lib/data/queries";
 import type { NextTemplate } from "@/lib/programs/up-next";
-import { ChevronRight, HomeIcon, ProgressIcon, TemplatesIcon } from "./icons";
+import { ChevronRight } from "./icons";
+import { SfSymbol } from "./sf-symbol";
+import type { SfSymbolName } from "./sf-symbol-data";
 import { StartWorkout } from "./start-workout";
 
 /**
@@ -20,12 +22,12 @@ import { StartWorkout } from "./start-workout";
  * in the same row. A workout in progress rides above both as its own glass pill.
  */
 
-type IconType = ComponentType<{ size?: number; strokeWidth?: number }>;
 
-const TABS: { href: string; label: string; Icon: IconType; match: (p: string) => boolean }[] = [
-  { href: "/", label: "Home", Icon: HomeIcon, match: (p: string) => p === "/" || p.startsWith("/workouts") || p.startsWith("/exercises") },
-  { href: "/templates", label: "Templates", Icon: TemplatesIcon, match: (p: string) => p.startsWith("/templates") || p.startsWith("/programs") },
-  { href: "/analytics", label: "Progress", Icon: ProgressIcon, match: (p: string) => p.startsWith("/analytics") },
+// SF Symbols, as iOS tab bars use (Frank's call, 2026-11-11): filled where the symbol has a fill
+const TABS: { href: string; label: string; symbol: SfSymbolName; match: (p: string) => boolean }[] = [
+  { href: "/", label: "Home", symbol: "house.fill", match: (p: string) => p === "/" || p.startsWith("/workouts") || p.startsWith("/exercises") },
+  { href: "/templates", label: "Templates", symbol: "square.stack.fill", match: (p: string) => p.startsWith("/templates") || p.startsWith("/programs") },
+  { href: "/analytics", label: "Progress", symbol: "chart.line.uptrend.xyaxis", match: (p: string) => p.startsWith("/analytics") },
 ];
 
 /** The active workout screen and a workout before it starts (a template) have their own bottom bar. */
@@ -60,11 +62,11 @@ export function TabBar({ inProgress, templates, next }: { inProgress: InProgress
 
 /** One tab's symbol and label. The bar draws every tab twice: once in the bar's ink, and once in the tint, clipped to
  *  the lens, so a lens half over a tab tints half of it, as the phone does. */
-function TabFace({ label, Icon, bold }: { label: string; Icon: IconType; bold: boolean }) {
+function TabFace({ label, symbol }: { label: string; symbol: SfSymbolName }) {
   return (
     <>
       <span className="relative flex h-7 items-center" data-tab-icon>
-        <Icon size={24} strokeWidth={bold ? 2.2 : 1.9} />
+        <SfSymbol name={symbol} />
       </span>
       <span className="relative" data-tab-label>{label}</span>
     </>
@@ -182,7 +184,7 @@ function Tabs({ pathname }: { pathname: string }) {
       }}
     >
       <span ref={lensRef} aria-hidden data-tab-lens />
-      {TABS.map(({ href, label, Icon }, i) => (
+      {TABS.map(({ href, label, symbol }, i) => (
         <Link
           key={href}
           ref={(el) => { tabRefs.current[i] = el; }}
@@ -193,14 +195,14 @@ function Tabs({ pathname }: { pathname: string }) {
           className={cn(TAB_CLASS, "text-[var(--glass-ink)] [-webkit-touch-callout:none]", i > 0 && "-ml-2")}
           data-tab-ink
         >
-          <TabFace label={label} Icon={Icon} bold={i === selected} />
+          <TabFace label={label} symbol={symbol} />
         </Link>
       ))}
       {/* the tint, laid out as the tabs are and clipped to the lens */}
       <div ref={tintRef} aria-hidden data-tab-ink className="pointer-events-none absolute inset-0 flex items-center px-1.5 py-1 text-[var(--glass-ink-on)]">
-        {TABS.map(({ href, label, Icon }, i) => (
+        {TABS.map(({ href, label, symbol }, i) => (
           <span key={href} className={cn(TAB_CLASS, i > 0 && "-ml-2")}>
-            <TabFace label={label} Icon={Icon} bold={i === selected} />
+            <TabFace label={label} symbol={symbol} />
           </span>
         ))}
       </div>

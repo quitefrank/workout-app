@@ -23,7 +23,8 @@
     "db:push": "supabase db push",
     "db:reset": "supabase db reset",
     "user:create": "bun run scripts/create-seed-user.ts",
-    "db:types": "supabase gen types typescript --linked > src/lib/supabase/database.types.ts"
+    "db:types": "supabase gen types typescript --linked > src/lib/supabase/database.types.ts",
+    "icons:sf": "osascript -l JavaScript scripts/sf-symbols.js"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
