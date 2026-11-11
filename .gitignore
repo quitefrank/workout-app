@@ -82,3 +82,6 @@ case-study-raw.md
 
 # Notion muscle diagrams, downloaded by art:muscles; the traced paths are committed
 /scripts/data/muscles/
+
+# Third-party research text (video transcripts, summaries) stays out of the public repo; distilled notes live in docs/research/.
+/docs/research/sources/
