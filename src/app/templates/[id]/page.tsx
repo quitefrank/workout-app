@@ -75,10 +75,12 @@ export default async function TemplatePage({
         ) : (
           <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.3),transparent_25%,transparent_45%,rgba(0,0,0,0.6))]" />
         )}
-        <div className="relative mx-auto max-w-[640px] px-5 pb-5" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)" }}>
+        <div className="relative mx-auto max-w-[640px] px-5 pb-5" style={{ paddingTop: "var(--bar-top)" }}>
           <div aria-hidden className="h-11" />
-          {/* As the active workout's header: the blue line, 3pt to the title, 6pt to the line under it */}
-          <div className={cn("text-[15px] font-semibold leading-[25px] text-blue", "mt-16")}>
+          {/* As the active workout's header, at the same place so starting is seamless (Frank's call, 2026-11-10): the
+              blue line 78pt under --bar-top (its 44pt timer row, 24pt progress bar and 10pt to the set text), 3pt to
+              the title, 6pt to the line under it */}
+          <div className="mt-[34px] text-[15px] font-semibold leading-[25px] text-blue">
             {label ?? " "}
           </div>
           <h1 className="mt-[3px] text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">{template.name}</h1>
