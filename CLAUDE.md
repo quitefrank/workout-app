@@ -610,8 +610,11 @@ the content gets a minimum height so the shrink can always finish; a fitted shee
 never scrolls, so it stays large. Without a thumbnail a sheet has the kit's
 toolbar (close, centred title, confirm).
 The scrim is the kit's Overlays/Default (`--scrim-alpha`: 20% black, 48% in dark)
-and covers the bars too. On the WebGPU path it is painted into the page, so the
-bars' glass takes a `dim` uniform and its HTML symbols a brightness filter. Sheets,
+and covers the bars too. It fades in and out over 300ms on both paths (Frank's call,
+2026-11-10). On the WebGPU path it is painted into the page, faded by the scrim
+element's own opacity read at paint time (`fade` on the display-list item), so the
+bars' glass takes a `dim` uniform and its HTML symbols a brightness filter, both
+scaled by the same fade (`--scrim-t` and `.scrim-dim` on `<html>`, set by the stage). Sheets,
 menus and controls on them (the sheet's close button) are CSS on both paths, by
 Frank's call (2026-11-04): the shader reads the page, so glass on a sheet showed
 what was behind the sheet, and the sheet's frost looked blotchy. The release projection is hand-tuned, not measured, until a recording

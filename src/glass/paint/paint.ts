@@ -41,8 +41,10 @@ export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scroll
     const [ix, iy] = shiftOf(it.clip);
     const dx = (it.fixed ? 0 : -scrollX) + ix - origin.x, dy = (it.fixed ? 0 : -scrollY) + iy - origin.y;
     if (!onScreen(it, dx, dy, W, H)) continue;
+    const fade = it.fade ? parseFloat(getComputedStyle(it.fade).opacity) || 0 : 1;
+    if (fade <= 0.001) continue;
     c.save();
-    c.globalAlpha = it.alpha;
+    c.globalAlpha = it.alpha * fade;
     if (it.clip) applyClip(c, it.clip, scrollX, scrollY, shiftOf, origin);
     draw(c, it, dx, dy, s);
     c.restore();

@@ -212,6 +212,7 @@ function setup(o: StageOptions, renderer: any): () => void {
   // laid out at all (no display: none on it or above it); a fixed element has no offsetParent, so that cannot be the test
   const shown = (el: Element) => el.getClientRects().length > 0;
   const html = document.documentElement;
+  let lastScrimT = -1;
   // Where the canvas is, measured every frame rather than assumed at 0,0: with the keyboard up iOS slides the viewport
   // and reports rects against what is on screen, so the canvas can sit off its own origin. Every rect the glass reads
   // is taken relative to it, and the page is painted at the same origin.
@@ -281,9 +282,17 @@ function setup(o: StageOptions, renderer: any): () => void {
     if (avgWanted && !avgInFlight) readAverages();
 
     const sheetOpen = html.classList.contains("sheet-open");
-    // the scrim is painted into the page, under the glass, so the glass takes the same dimming itself
-    const scrimOn = !!document.querySelector('[data-scrim="on"]');
-    const dimBy = scrimOn ? 1 - (parseFloat(getComputedStyle(html).getPropertyValue("--scrim-alpha")) || 0.2) : 1;
+    // the scrim is painted into the page, under the glass, so the glass takes the same dimming itself, following the
+    // scrim's fade (its opacity); the bars' HTML symbols follow it through --scrim-t (globals.css)
+    let scrimT = 0;
+    for (const s of document.querySelectorAll<HTMLElement>("[data-scrim]")) scrimT = Math.max(scrimT, parseFloat(getComputedStyle(s).opacity) || 0);
+    if (scrimT <= 0.001) scrimT = 0;
+    if (scrimT !== lastScrimT) {
+      lastScrimT = scrimT;
+      html.style.setProperty("--scrim-t", scrimT.toFixed(3));
+      html.classList.toggle("scrim-dim", scrimT > 0);
+    }
+    const dimBy = 1 - scrimT * (parseFloat(getComputedStyle(html).getPropertyValue("--scrim-alpha")) || 0.2);
     let allReady = true;
     for (const e of entries.values()) {
       const laidOut = shown(e.el);

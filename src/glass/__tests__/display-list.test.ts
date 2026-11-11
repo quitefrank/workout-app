@@ -54,11 +54,13 @@ describe("buildDisplayList (jsdom, stubbed geometry)", () => {
     expect([b.y, b.fixed]).toEqual([10, true]);
   });
 
-  it("paints a scrim that is on over the viewport and nothing for one that is off", () => {
+  it("lists every scrim over the viewport, faded by its own opacity at paint time, and nothing inside it", () => {
     root.innerHTML = `<div data-scrim="on"><p>hidden</p></div><div data-scrim="off"></div>`;
     const items = buildDisplayList(root, () => {}).items;
-    expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ k: "box", x: 0, y: 0, w: window.innerWidth, h: window.innerHeight, color: "rgba(0, 0, 0, 0.2)", fixed: true });
+    const [on, off] = root.querySelectorAll("[data-scrim]");
+    expect(items).toHaveLength(2);
+    expect(items[0]).toMatchObject({ k: "box", x: 0, y: 0, w: window.innerWidth, h: window.innerHeight, color: "rgba(0, 0, 0, 0.2)", fixed: true, fade: on });
+    expect(items[1]).toMatchObject({ fade: off });
   });
 
   it("chains overflow clips inside the padding box, with radii less the border", () => {

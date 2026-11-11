@@ -14,7 +14,9 @@ import { inputTextItems, textItems, type Metrics } from "./text";
 export type Clip = { x: number; y: number; w: number; h: number; radii: number[]; fixed: boolean; parent: Clip | null; scroller: Element | null; sx0: number; sy0: number };
 /** A transformed image: drawn at its untransformed size about the centre of its bounding rect. */
 export type ImageTransform = { cx: number; cy: number; w: number; h: number; m: Linear };
-type Base = { fixed: boolean; clip: Clip | null; alpha: number };
+/** `fade`: an element whose computed opacity multiplies the alpha at paint time, read every frame (the sheet's scrim, so
+ *  its fade runs at the frame rate rather than on the list's rebuilds). */
+type Base = { fixed: boolean; clip: Clip | null; alpha: number; fade?: HTMLElement };
 export type Item =
   | (Base & { k: "box"; x: number; y: number; w: number; h: number; radii: number[]; color: string | null; gradients: Gradient[]; shadows: Shadow[]; border: { w: number; color: string } | null })
   | (Base & { k: "line"; x: number; y: number; w: number; h: number; color: string })
@@ -67,8 +69,9 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     const cs = getComputedStyle(el);
     if (cs.display === "none") return false;
     const scrim = (el as HTMLElement).dataset?.scrim;
+    // Every scrim is listed, on or off: its opacity, read when painting, fades it in and out with its CSS transition
     if (scrim !== undefined) {
-      if (scrim === "on") items.push({ k: "box", x: 0, y: 0, w: window.innerWidth, h: window.innerHeight, radii: [0, 0, 0, 0], color: scrimColor(), gradients: [], shadows: [], border: null, fixed: true, clip: null, alpha: 1 });
+      items.push({ k: "box", x: 0, y: 0, w: window.innerWidth, h: window.innerHeight, radii: [0, 0, 0, 0], color: scrimColor(), gradients: [], shadows: [], border: null, fixed: true, clip: null, alpha: 1, fade: el as HTMLElement });
       return false;
     }
     const op = parseFloat(cs.opacity);

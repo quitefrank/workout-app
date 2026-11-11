@@ -1227,10 +1227,11 @@ html.standalone .sheet-panel {
   bottom: auto;
 }
 
-/* The blanket covers the bars too. The canvas dims their glass (the stage's dim uniform); this dims their HTML symbols.
+/* The blanket covers the bars too. The canvas dims their glass (the stage's dim uniform); this dims their HTML symbols,
+   by the scrim's fade as the stage reads it (--scrim-t, 0 to 1, with .scrim-dim while above 0, so no filter at rest).
    Controls on the sheet sit above the blanket. */
-html.gpu:has([data-scrim="on"]) .glass:not(.glass-sheet .glass) {
-  filter: brightness(calc(1 - var(--scrim-alpha)));
+html.gpu.scrim-dim .glass:not(.glass-sheet .glass) {
+  filter: brightness(calc(1 - var(--scrim-alpha) * var(--scrim-t, 1)));
 }
 
 html.keyboard .sheet-body {
