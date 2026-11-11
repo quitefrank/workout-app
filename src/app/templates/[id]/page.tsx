@@ -9,12 +9,13 @@ import { exerciseTitle } from "@/lib/workout/movements";
 import { weeksLabel } from "@/lib/programs/label";
 import { CATEGORY_LABELS, EQUIPMENT_LABELS, prescriptionFacts } from "@/lib/workout/format";
 import { mainLift, workingSlugs } from "@/lib/workout/workout-art";
+import { repTarget } from "@/lib/workout/active";
 import { StartTemplate } from "./start-template";
 
 /**
  * A workout before it starts, laid out as the active workout is (Ladder's, Frank's call, 2026-11-10, Figma
  * ZD41TUAEBtLJI7t0qChNup 61:5): the back arrow where the timer sits, the name, every exercise under it as Ladder lists a
- * block ("3x Barbell Bench Press", its dose under it), the main lift's illustration behind, and Start Workout in blue
+ * block, with the active workout header's rep target ("8–10x Standing Arnold Press", warm-ups and sets under it), the main lift's illustration behind, and Start Workout in blue
  * where the pill sits. No timer, no progress bar. The list scrolls over the illustration, which stays put.
  */
 export default async function TemplatePage({
@@ -83,17 +84,18 @@ export default async function TemplatePage({
 
         <ol className="mt-4">
           {template.rows.map((r) => {
-            const facts = prescriptionFacts(r);
-            const sets = facts.find((f) => f.kind === "sets");
-            const dose = facts
-              .filter((f) => f.kind !== "sets")
+            // The prefix is the active workout header's: a working set's reps ("8–10x"), or a timed set's length ("30s")
+            const target = repTarget(r, { kind: "work", reps: null, seconds: null });
+            // Under it, the set count with the warm-ups; reps live in the prefix and rest is left out
+            const dose = prescriptionFacts(r)
+              .filter((f) => f.kind === "warm" || f.kind === "sets")
               .map((f) => f.label)
               .join(" · ");
             return (
               <li key={r.id}>
                 <Link href={`/exercises/${r.exercises.id}`} className="block px-5 py-2.5 active:bg-fill">
                   <div className="text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
-                    {sets && <span className="text-blue">{sets.text}x </span>}
+                    {target && <span className="text-blue">{target} </span>}
                     {exerciseTitle(r.exercises)}
                     {r.variant && <span className="text-ink-2"> · {r.variant}</span>}
                   </div>
