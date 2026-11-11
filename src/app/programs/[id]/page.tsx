@@ -37,7 +37,10 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
     clearances: program.clearances,
     chosenPosition: program.chosenPhasePosition,
   });
-  const inForce = program.phases.find((p) => p.id === now.inForce.phase?.id) ?? null;
+  // A training program shows progress (Today, Up Next, "You are here") only once started.
+  // The recovery program has no Start: it runs from the injury date.
+  const started = program.kind === "recovery" || program.following;
+  const inForce = started ? (program.phases.find((p) => p.id === now.inForce.phase?.id) ?? null) : null;
   const lastDone = new Map<string, string>();
   for (const c of program.completions) {
     const day = localDate(new Date(c.completedAt), timeZone());
@@ -63,47 +66,51 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
         {program.following && <span className="text-[15px] text-ink-2">Its next workout shows in Up Next on Home.</span>}
       </div>
 
-      <SectionHeader title="Today" />
-      <div className="grouped mx-4">
-        {now.kind === "recovery" && (
-          <div className="px-4 py-3">
-            {now.day !== null && (
-              <div className="tabular text-[15px] font-medium text-ink-2">
-                Day {now.day} · Week {now.week}
+      {started && (
+        <>
+          <SectionHeader title="Today" />
+          <div className="grouped mx-4">
+            {now.kind === "recovery" && (
+              <div className="px-4 py-3">
+                {now.day !== null && (
+                  <div className="tabular text-[15px] font-medium text-ink-2">
+                    Day {now.day} · Week {now.week}
+                  </div>
+                )}
+                <div className="text-[20px] font-semibold leading-tight">
+                  {inForce ? `${inForce.label}` : "No phase"}
+                </div>
+                {inForce && (
+                  <div className="text-[15px] text-ink-2">
+                    Phase {inForce.position} · {weeksLabel(inForce.week_from, inForce.week_to)}
+                    {inForce.load_pct !== null && ` · ${inForce.load_pct}% load`}
+                    {inForce.gate && ` · Gate: ${inForce.gate}`}
+                  </div>
+                )}
+                <p className="mt-2 text-[13px] leading-[18px] text-ink-2">
+                  {reasonText(now.inForce.reason, now.logStale, phaseAt(now.inForce.loggedPosition), phaseAt(now.inForce.calendarPosition))}
+                  {now.weekBehindPosition !== null &&
+                    ` Counted a week behind the straight count, you would be in phase ${now.weekBehindPosition}, ${phaseAt(now.weekBehindPosition)?.label}. If that fits, set it below.`}
+                </p>
               </div>
             )}
-            <div className="text-[20px] font-semibold leading-tight">
-              {inForce ? `${inForce.label}` : "No phase"}
-            </div>
-            {inForce && (
-              <div className="text-[15px] text-ink-2">
-                Phase {inForce.position} · {weeksLabel(inForce.week_from, inForce.week_to)}
-                {inForce.load_pct !== null && ` · ${inForce.load_pct}% load`}
-                {inForce.gate && ` · Gate: ${inForce.gate}`}
+            {now.kind === "training" && (
+              <div className="px-4 py-3">
+                <div className="text-[20px] font-semibold leading-tight">
+                  {now.finished ? "Program finished" : inForce ? phaseTitle(inForce) : "Not started"}
+                </div>
+                <p className="mt-1 text-[13px] leading-[18px] text-ink-2">
+                  {now.inForce.reason === "chosen"
+                    ? "Week set by hand."
+                    : now.last
+                      ? `Next after the last day you completed, on ${dayLabel(localDate(new Date(now.last.completedAt), timeZone()))}.`
+                      : "Starts at the first day of the first week."}
+                </p>
               </div>
             )}
-            <p className="mt-2 text-[13px] leading-[18px] text-ink-2">
-              {reasonText(now.inForce.reason, now.logStale, phaseAt(now.inForce.loggedPosition), phaseAt(now.inForce.calendarPosition))}
-              {now.weekBehindPosition !== null &&
-                ` Counted a week behind the straight count, you would be in phase ${now.weekBehindPosition}, ${phaseAt(now.weekBehindPosition)?.label}. If that fits, set it below.`}
-            </p>
           </div>
-        )}
-        {now.kind === "training" && (
-          <div className="px-4 py-3">
-            <div className="text-[20px] font-semibold leading-tight">
-              {now.finished ? "Program finished" : inForce ? phaseTitle(inForce) : "Not started"}
-            </div>
-            <p className="mt-1 text-[13px] leading-[18px] text-ink-2">
-              {now.inForce.reason === "chosen"
-                ? "Week set by hand."
-                : now.last
-                  ? `Next after the last day you completed, on ${dayLabel(localDate(new Date(now.last.completedAt), timeZone()))}.`
-                  : "Starts at the first day of the first week."}
-            </p>
-          </div>
-        )}
-      </div>
+        </>
+      )}
 
       {now.kind === "recovery" && now.rehab.length > 0 && (
         <>
@@ -115,7 +122,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
         </>
       )}
 
-      {now.next && (
+      {started && now.next && (
         <>
           <SectionHeader title="Up Next" />
           <TemplateList templates={[now.next]} lastDone={lastDone} start />
