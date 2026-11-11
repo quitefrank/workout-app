@@ -10,7 +10,7 @@ export function GroupExercises({ items, art }: { items: LibraryItem[]; art: Reac
   const [last, setLast] = useState<LibraryItem | null>(null);
   return (
     <>
-      <ul className="px-4">
+      <ul className="grouped mx-4">
         {items.map((i) => (
           <li key={i.id}>
             <ExerciseRow

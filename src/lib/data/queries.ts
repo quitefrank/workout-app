@@ -443,6 +443,17 @@ export async function listMuscleGroups(): Promise<{ id: string; name: string }[]
   return rows(await db().from("muscle_groups").select("id, name, display_order").order("display_order", { nullsFirst: false }).order("name"));
 }
 
+/** Library entries per muscle group, counted as its page lists them: one per movement, plus each row with none. */
+export async function countGroupEntries(): Promise<Map<string, number>> {
+  const found = await selectAll((a, b) => db().from("exercises").select("id, muscle_group_id, movement").range(a, b));
+  const keys = new Map<string, Set<string>>();
+  for (const e of found) {
+    if (!e.muscle_group_id) continue;
+    (keys.get(e.muscle_group_id) ?? keys.set(e.muscle_group_id, new Set()).get(e.muscle_group_id)!).add(e.movement ?? `id:${e.id}`);
+  }
+  return new Map([...keys].map(([id, set]) => [id, set.size]));
+}
+
 export async function listExercises(): Promise<LibraryExercise[]> {
   return (await selectAll((a, b) =>
     db().from("exercises").select(EXERCISE_FIELDS).order("name").range(a, b),
