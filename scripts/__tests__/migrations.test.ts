@@ -78,7 +78,7 @@ describe("supabase migrations on PGlite", () => {
     // Migrations applied as postgres. Everything from here runs as a
     // Supabase role, never the superuser.
     await asService(pg);
-  });
+  }, 60_000); // PGlite replays every migration; under the full suite's load that passes 10 s.
 
   afterEach(async () => {
     await asService(pg);
@@ -117,6 +117,7 @@ describe("supabase migrations on PGlite", () => {
       "0025_workout_exercise_swapped_from.sql",
       "0026_swapped_from_without_foreign_key.sql",
       "0027_exercise_measures.sql",
+      "0028_program_names_without_author.sql",
     ]);
   });
 

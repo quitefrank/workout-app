@@ -20,7 +20,7 @@ const input = process.argv[2] ?? fileURLToPath(new URL("./data/programs/raw/nipp
 const out = fileURLToPath(new URL("./data/programs/nippard-powerbuilding-4x.json", import.meta.url));
 
 const { program: parsed, skipped, omitted } = parsePowerbuilding(loadPdfTables(input), {
-  name: "Jeff Nippard, Powerbuilding System (4x per week)",
+  name: "Powerbuilding System",
   description: "Eleven weeks, four days a week: odd weeks are full body strength days, even weeks are upper and lower hypertrophy days. Week 10 is max testing (option A; option B, for competitive powerlifters, is not loaded) and week 11 is a deload. The optional arm and pump day is the fifth day of the odd weeks. Loads given as a percentage of 1RM are in the row notes. Personal copy; not redistributed.",
   citation: "Nippard J. Powerbuilding System, 4x version. 2020.",
   sourceUrl: null,

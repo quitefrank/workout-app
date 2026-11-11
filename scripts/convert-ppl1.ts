@@ -18,7 +18,7 @@ const input = process.argv[2] ?? fileURLToPath(new URL("./data/programs/raw/nipp
 const out = fileURLToPath(new URL("./data/programs/nippard-ppl-1.0.json", import.meta.url));
 
 const { program: parsed, skipped } = parsePpl1(loadPdfTables(input), {
-  name: "Jeff Nippard, Legs/Push/Pull Hypertrophy Program (PPL 1.0)",
+  name: "Legs/Push/Pull Hypertrophy Program",
   description: "Sixteen weeks in two eight-week blocks, six days a week: Legs, Push, Pull, Legs, Push, Pull. Block 1 is the technique phase. Loads given as a percentage of 1RM are in the row notes. Personal copy; not redistributed.",
   citation: "Nippard J. Legs/Push/Pull Hypertrophy Program.",
   sourceUrl: null,

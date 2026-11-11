@@ -19,7 +19,7 @@ const input = process.argv[2] ?? fileURLToPath(new URL("./data/programs/sources/
 const out = fileURLToPath(new URL("./data/programs/nippard-ultimate-ppl-4x.json", import.meta.url));
 
 const { program: parsed, skipped } = parsePplWorkbook(XLSX.readFile(input), {
-  name: "Jeff Nippard, The Ultimate Push Pull Legs System (4x per week)",
+  name: "Ultimate Push Pull Legs System",
   description: "Thirteen weeks in three blocks: base hypertrophy, maximum effort, supercompensation. Four days a week: Legs, Push, Pull, Full Body. Personal copy; not redistributed.",
   citation: "Nippard J. The Ultimate Push Pull Legs System, 4x version. 2023.",
   sourceUrl: null,

@@ -18,7 +18,7 @@ const input = process.argv[2] ?? fileURLToPath(new URL("./data/programs/raw/nipp
 const out = fileURLToPath(new URL("./data/programs/nippard-arm-hypertrophy.json", import.meta.url));
 
 const { program: parsed, skipped } = parseArm(loadPdfTables(input), {
-  name: "Jeff Nippard, Arm Hypertrophy Program",
+  name: "Arm Hypertrophy Program",
   description: "Eight weeks in two blocks of four, three add-on days a week (Arm Day, Supplemental A, Supplemental B) run alongside another split. Tempo is in the row notes. Personal copy; not redistributed.",
   citation: "Nippard J. Arm Hypertrophy Program.",
   sourceUrl: null,

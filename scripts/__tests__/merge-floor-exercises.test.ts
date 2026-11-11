@@ -71,7 +71,7 @@ describe("migration 0009 merges floor variants", () => {
     templateRow = (await pg.query<{ id: string }>("insert into template_exercises (template_id, exercise_id, position) values ($1, $2, 1) returning id", [template, ids["cable-crunch"]])).rows[0].id;
 
     await pg.exec(merge());
-  });
+  }, 60_000); // PGlite replays every migration; under the full suite's load that passes 10 s.
 
   afterAll(async () => {
     await pg.close();
