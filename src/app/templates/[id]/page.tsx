@@ -4,7 +4,7 @@ import { GlassCircleLink } from "@/components/glass";
 import { TopBar } from "@/components/top-bar";
 import { ChevronLeft } from "@/components/icons";
 import { hasExerciseImage } from "@/components/exercise-art";
-import { hueStyle, Row, Screen, SectionHeader, tileGradient } from "@/components/page";
+import { hueStyle, Screen, SectionHeader, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
 import { getTemplate, getTemplateContext } from "@/lib/data/queries";
 import { exerciseTitle } from "@/lib/workout/movements";
@@ -60,14 +60,15 @@ export default async function TemplatePage({
               src={`/exercises/${lift}.webp`}
               alt=""
               draggable={false}
-              className="absolute left-1/2 top-0 aspect-square w-full max-w-[480px] -translate-x-1/2"
+              // the hero is the original height, shorter than the square, so the figure is centred in it
+              className="absolute left-1/2 top-1/2 aspect-square w-full max-w-[480px] -translate-x-1/2 -translate-y-1/2"
             />
             {/* The illustration fades into the screen's colour under the text, as the active workout's header fade does */}
             <div
               className="absolute inset-0"
               style={{
                 background:
-                  "linear-gradient(rgb(var(--bg-rgb) / 0) 40%, rgb(var(--bg-rgb) / 0.75) 62%, rgb(var(--bg-rgb) / 0.95) 85%, rgb(var(--bg-rgb)) 100%)",
+                  "linear-gradient(rgb(var(--bg-rgb) / 0) 12%, rgb(var(--bg-rgb) / 0.8) 40%, rgb(var(--bg-rgb) / 0.92) 70%, rgb(var(--bg-rgb)) 100%)",
               }}
             />
           </>
@@ -77,7 +78,7 @@ export default async function TemplatePage({
         <div className="relative mx-auto max-w-[640px] px-5 pb-5" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)" }}>
           <div aria-hidden className="h-11" />
           {/* As the active workout's header: the blue line, 3pt to the title, 6pt to the line under it */}
-          <div className={cn("text-[15px] font-semibold leading-[25px] text-blue", lift ? "mt-[180px]" : "mt-16")}>
+          <div className={cn("text-[15px] font-semibold leading-[25px] text-blue", "mt-16")}>
             {label ?? " "}
           </div>
           <h1 className="mt-[3px] text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">{template.name}</h1>
@@ -152,18 +153,23 @@ export default async function TemplatePage({
               .join(" · ");
             return (
               <Link key={r.id} href={`/exercises/${r.exercises.id}`} className="block active:bg-fill">
-                <Row
-                  leading={<span className="tabular w-5 shrink-0 text-center text-[15px] text-ink-2">{i + 1}</span>}
-                  title={
-                    <>
+                {/* Row's layout with the lines flipped: the sets over the name, as the active workout's header has them */}
+                <div className="flex min-h-11 items-center gap-3 px-4 py-2.5">
+                  <span className="tabular w-5 shrink-0 text-center text-[15px] text-ink-2">{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[15px] leading-5 text-ink-2">
+                      {dose || (template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type])}
+                    </div>
+                    <div className="truncate text-[17px] leading-[22px]">
                       {target && <span className="text-blue">{target} </span>}
                       {exerciseTitle(r.exercises)}
                       {r.variant && <span className="text-ink-2"> · {r.variant}</span>}
-                    </>
-                  }
-                  subtitle={dose || (template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type])}
-                  chevron
-                />
+                    </div>
+                  </div>
+                  <svg width="8" height="13" viewBox="0 0 8 13" aria-hidden className="shrink-0 text-ink-3">
+                    <path d="M1.5 1.5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
                 {r.notes && <p className="-mt-1.5 px-4 pb-2.5 pl-12 text-[13px] text-ink-2">{r.notes}</p>}
               </Link>
             );
