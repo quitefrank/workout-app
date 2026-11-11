@@ -16,7 +16,7 @@ import { buttonLook } from "@/components/button";
 import { StartTemplate } from "./start-template";
 
 /**
- * A workout before it starts. The hero shows the main lift in place of the colour gradient (as the Templates cards do),
+ * A workout before it starts. The hero shows the main lift on the screen's colour in place of the colour gradient,
  * with the program, or the category, in blue over the name, set as the active workout's header sets it. Each exercise
  * row leads with the active workout's rep target ("8–10x Standing Arnold Press") with its warm-ups and sets under it,
  * and Start Workout is the filled blue button pinned at the bottom (Frank's calls, 2026-11-10).
@@ -39,7 +39,7 @@ export default async function TemplatePage({
   return (
     <Screen className="max-w-none">
       <TopBar
-        edge="dim"
+        edge={lift ? "soft" : "dim"}
         spacer={false}
         leading={
           <GlassCircleLink href={context.program ? `/programs/${context.program.id}` : "/templates"} label="Back">
@@ -49,25 +49,31 @@ export default async function TemplatePage({
       />
       <div
         style={hueStyle(template.category)}
-        className={cn("relative overflow-hidden text-white", lift ? "bg-[var(--exercise-tile)]" : tileGradient)}
+        // With the main lift the hero is the screen's colour, light or dark, and its text the app's ink, as on the active
+        // workout (Frank's call, 2026-11-10); with nothing drawn it keeps the colour tile and white text
+        className={cn("relative overflow-hidden", lift ? "bg-bg text-ink" : cn("text-white", tileGradient))}
       >
-        {lift && (
-          // eslint-disable-next-line @next/next/no-img-element -- sized WebP, and the glass painter reads the element
-          <img
-            src={`/exercises/${lift}.webp`}
-            alt=""
-            draggable={false}
-            className="absolute left-1/2 top-0 aspect-square w-full max-w-[480px] -translate-x-1/2"
-          />
+        {lift ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element -- sized WebP, and the glass painter reads the element */}
+            <img
+              src={`/exercises/${lift}.webp`}
+              alt=""
+              draggable={false}
+              className="absolute left-1/2 top-0 aspect-square w-full max-w-[480px] -translate-x-1/2"
+            />
+            {/* The illustration fades into the screen's colour under the text, as the active workout's header fade does */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(rgb(var(--bg-rgb) / 0) 40%, rgb(var(--bg-rgb) / 0.75) 62%, rgb(var(--bg-rgb) / 0.95) 85%, rgb(var(--bg-rgb)) 100%)",
+              }}
+            />
+          </>
+        ) : (
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.3),transparent_25%,transparent_45%,rgba(0,0,0,0.6))]" />
         )}
-        <div
-          className={cn(
-            "absolute inset-0",
-            lift
-              ? "bg-[linear-gradient(to_bottom,rgba(0,0,0,0.5),transparent_25%,transparent_35%,rgba(0,0,0,0.6)_55%,rgba(0,0,0,0.88))]"
-              : "bg-[linear-gradient(to_bottom,rgba(0,0,0,0.3),transparent_25%,transparent_45%,rgba(0,0,0,0.6))]",
-          )}
-        />
         <div className="relative mx-auto max-w-[640px] px-5 pb-5" style={{ paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)" }}>
           <div aria-hidden className="h-11" />
           {/* As the active workout's header: the blue line, 3pt to the title, 6pt to the line under it */}
@@ -76,7 +82,7 @@ export default async function TemplatePage({
           </div>
           <h1 className="mt-[3px] text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">{template.name}</h1>
           {(template.rows.length > 0 || template.estimated_minutes) && (
-            <div className="mt-1.5 text-[15px] leading-[18px] text-white/70">
+            <div className={cn("mt-1.5 text-[15px] leading-[18px]", lift ? "text-ink-2" : "text-white/70")}>
               {[`${template.rows.length} exercises`, template.estimated_minutes && `${template.estimated_minutes} min`]
                 .filter(Boolean)
                 .join(" · ")}
@@ -84,7 +90,7 @@ export default async function TemplatePage({
           )}
           {template.tutorial_url && (
             <div className="mt-5 flex">
-              <a href={template.tutorial_url} target="_blank" rel="noreferrer" {...buttonLook("veil")}>
+              <a href={template.tutorial_url} target="_blank" rel="noreferrer" {...buttonLook(lift ? "gray" : "veil")}>
                 Tutorial
               </a>
             </div>

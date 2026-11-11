@@ -25,6 +25,9 @@ export function StartTemplate({ templateId }: { templateId: string }) {
 
   return (
     <div
+      // Kept out of the painted page, as glass is: the painter offsets a fixed element inside the scroller by the
+      // scroll, so its painted copy slid up the list under the real button
+      data-unpainted
       // a column, like every dock: a home screen app bottom-aligns its children down a column (html.standalone)
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col"
       style={{ paddingBottom: "var(--dock-bottom)" }}
