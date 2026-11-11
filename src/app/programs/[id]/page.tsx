@@ -4,6 +4,7 @@ import { GlassCircleLink } from "@/components/glass";
 import { ChevronLeft } from "@/components/icons";
 import { LargeTitle, Row, Screen, SectionHeader } from "@/components/page";
 import { WorkoutThumb } from "@/components/workout-thumb";
+import { Disclosure } from "@/components/collapse";
 import { getProgram, type ProgramPhaseRow, type ProgramTemplateRow } from "@/lib/data/queries";
 import type { ProgramPhase } from "@/lib/programs/next";
 import { weeksLabel } from "@/lib/programs/label";
@@ -150,9 +151,12 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
         {program.phases.map((p) => {
           const current = p.id === inForce?.id;
           return (
-            <details key={p.id} open={current} className="grouped group">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center gap-3 px-4 py-2.5 [&::-webkit-details-marker]:hidden">
-                <div className="min-w-0 flex-1">
+            <Disclosure
+              key={p.id}
+              defaultOpen={current}
+              className="grouped"
+              header={
+                <>
                   <div className="truncate text-[17px] leading-[22px]">
                     {program.kind === "recovery" ? `${p.position}. ${p.label}` : phaseTitle(p)}
                   </div>
@@ -161,13 +165,9 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
                       .filter(Boolean)
                       .join(" · ")}
                   </div>
-                </div>
-                {/* An accordion opens in place, so its chevron points down and turns up when open; a right chevron
-                    means another page (Frank's call, 2026-11-10) */}
-                <svg width="13" height="8" viewBox="0 0 13 8" aria-hidden className="shrink-0 text-ink-3 transition-transform group-open:rotate-180">
-                  <path d="M1.5 1.5l5 5 5-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </summary>
+                </>
+              }
+            >
               <div>
                 {p.templates.map((t) => (
                   <TemplateRow key={t.id} t={t} last={lastDone.get(t.id)} />
@@ -181,7 +181,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
                   />
                 </div>
               </div>
-            </details>
+            </Disclosure>
           );
         })}
       </div>

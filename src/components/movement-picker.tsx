@@ -5,6 +5,7 @@ import { axisChoices, exerciseTitle, optionFor, techniqueLabel, unavailableReaso
 import { cn } from "@/lib/cn";
 import { revealAboveDock } from "@/lib/scroller";
 import { PopUpMenu } from "./pop-up-menu";
+import { Collapse } from "./collapse";
 
 const AXES: { axis: MovementAxis; label: string }[] = [
   { axis: "equipment", label: "Equipment" },
@@ -21,11 +22,11 @@ const AXES: { axis: MovementAxis; label: string }[] = [
 export function MovementPicker({ options, currentId, disabled, onSelect }: { options: MovementOption[]; currentId: string; disabled?: boolean; onSelect: (id: string) => void }) {
   const [showAll, setShowAll] = useState(false);
   const versions = useRef<HTMLDivElement>(null);
-  // the opened list scrolls clear of the floating bar
+  // the opened list scrolls clear of the floating bar once it has grown to its height (Collapse's 300ms)
   useEffect(() => {
     if (!showAll) return;
-    const frame = requestAnimationFrame(() => revealAboveDock(versions.current));
-    return () => cancelAnimationFrame(frame);
+    const timer = setTimeout(() => revealAboveDock(versions.current), 320);
+    return () => clearTimeout(timer);
   }, [showAll]);
   const current = options.find((o) => o.id === currentId);
   if (!current || options.length < 2) return null;
@@ -58,7 +59,7 @@ export function MovementPicker({ options, currentId, disabled, onSelect }: { opt
         <button type="button" aria-expanded={showAll} onClick={() => setShowAll(!showAll)} className="flex h-8 items-center font-medium text-blue">
           {showAll ? "Hide versions" : `All ${options.length} versions`}
         </button>
-        {showAll && (
+        <Collapse open={showAll}>
           <ul className="grid pb-1">
             {options.map((o) => (
               <li key={o.id}>
@@ -73,7 +74,7 @@ export function MovementPicker({ options, currentId, disabled, onSelect }: { opt
               </li>
             ))}
           </ul>
-        )}
+        </Collapse>
       </div>
     </div>
   );
