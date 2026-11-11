@@ -7,7 +7,7 @@ import { ExerciseRow } from "@/components/exercise-row";
 import { ExerciseSheet } from "@/components/exercise-sheet";
 import { GlassCircleButton } from "@/components/glass";
 import { FigureIcon, SearchIcon, XIcon } from "@/components/icons";
-import { Empty, Row, SectionHeader } from "@/components/page";
+import { Empty, SectionHeader } from "@/components/page";
 import { TopBar } from "@/components/top-bar";
 import { cn } from "@/lib/cn";
 import type { LibraryItem } from "@/lib/exercise-items";
@@ -32,10 +32,10 @@ function writeRecents(list: string[]) {
 }
 
 /**
- * Home's Library section: a search field over the muscle group rows. A row opens that group's page; a search result
+ * Home's Library section: a search field over the muscle group cards. A card opens that group's page; a search result
  * opens the exercise's sheet. Search is a screen of its own, so it hides the rest of Home (`children`) while it is up.
  */
-export function LibrarySection({ groups, children }: { groups: { id: string; name: string; count: number; art: ReactNode }[]; children: ReactNode }) {
+export function LibrarySection({ groups, children }: { groups: { id: string; name: string; art: ReactNode }[]; children: ReactNode }) {
   const [items, setItems] = useState<LibraryItem[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [sheet, setSheet] = useState<LibraryItem | null>(null);
@@ -118,16 +118,15 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
             Search
           </button>
         </div>
-        {/* the Programs list's rows: the group's drawing, its name and how many exercises its page lists */}
-        <div className="grouped mx-4">
+        {/* Notion's Muscle Groups gallery */}
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5 px-4">
           {groups.map((g) => (
-            <Link key={g.id} href={`/exercises/group/${g.id}`} className="block active:bg-fill">
-              <Row
-                leading={<div className="size-12 shrink-0 overflow-hidden rounded-[10px] bg-[var(--muscle-tile)] p-1">{g.art}</div>}
-                title={g.name}
-                subtitle={`${g.count} ${g.count === 1 ? "exercise" : "exercises"}`}
-                chevron
-              />
+            <Link key={g.id} href={`/exercises/group/${g.id}`} className="overflow-hidden rounded-[18px] bg-card ring-1 ring-[var(--sep)] active:opacity-80">
+              <div className="aspect-square bg-[var(--muscle-tile)] p-2">{g.art}</div>
+              <div className="flex items-center gap-1 px-2 py-2 text-[13px] font-semibold leading-[18px]">
+                <FigureIcon size={13} className="shrink-0 opacity-60" />
+                <span className="truncate">{g.name}</span>
+              </div>
             </Link>
           ))}
         </div>
