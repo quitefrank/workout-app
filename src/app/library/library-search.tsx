@@ -7,7 +7,8 @@ import { ExerciseRow } from "@/components/exercise-row";
 import { ExerciseSheet } from "@/components/exercise-sheet";
 import { GlassCircleButton } from "@/components/glass";
 import { FigureIcon, SearchIcon, XIcon } from "@/components/icons";
-import { Empty, SectionHeader } from "@/components/page";
+import { Empty, Row, SectionHeader } from "@/components/page";
+import { WorkoutThumb } from "@/components/workout-thumb";
 import { TopBar } from "@/components/top-bar";
 import { cn } from "@/lib/cn";
 import type { LibraryItem } from "@/lib/exercise-items";
@@ -31,11 +32,28 @@ function writeRecents(list: string[]) {
   } catch {}
 }
 
+export type SearchWorkout = { id: string; name: string; category: string | null; slugs: string[]; exerciseCount: number };
+export type SearchProgram = { id: string; name: string; slugs: string[]; weeks: number };
+
 /**
- * Home's Library section: a search field over the muscle group cards. A card opens that group's page; a search result
- * opens the exercise's sheet. Search is a screen of its own, so it hides the rest of Home (`children`) while it is up.
+ * The Library tab's search: one field over the whole Library (Frank's call, 2026-11-11), under the large title (`header`)
+ * and above the sections (`children`). Results come in the Library's order: exercises (with muscle group pills, each
+ * opening the exercise's sheet), then workouts, then programs. Search is a screen of its own, so it hides the rest of
+ * the tab while it is up.
  */
-export function LibrarySection({ groups, children }: { groups: { id: string; name: string; art: ReactNode }[]; children: ReactNode }) {
+export function LibrarySearch({
+  groups,
+  workouts,
+  programs,
+  header,
+  children,
+}: {
+  groups: { id: string; name: string; art: ReactNode }[];
+  workouts: SearchWorkout[];
+  programs: SearchProgram[];
+  header: ReactNode;
+  children: ReactNode;
+}) {
   const [items, setItems] = useState<LibraryItem[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [sheet, setSheet] = useState<LibraryItem | null>(null);
@@ -76,6 +94,9 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
   const picked = pick && pills.some((g) => g.id === pick) ? pick : null;
   const results = byEntryName(oneEntryPerMovement(picked ? matches.filter((i) => i.groupId === picked) : matches));
   const artOf = useMemo(() => new Map(groups.map((g) => [g.id, g.art])), [groups]);
+  // workouts and programs match by name; the muscle group pills filter exercises only
+  const workoutHits = q && !picked ? workouts.filter((w) => w.name.toLowerCase().includes(q)) : [];
+  const programHits = q && !picked ? programs.filter((p) => p.name.toLowerCase().includes(q)) : [];
 
   // the field is rendered and focused inside the tap itself, so iOS raises the keyboard
   const openSearch = () => {
@@ -105,10 +126,9 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
   return (
     <>
       <div className={searching ? "hidden" : undefined}>
-        {children}
-        <SectionHeader title="Library" />
+        {header}
         {/* at rest the field is plain content, painted and scrolled with the page; the glass one is search mode's */}
-        <div className="px-4 pb-3">
+        <div className="px-4 pt-3">
           <button
             type="button"
             onClick={openSearch}
@@ -118,18 +138,7 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
             Search
           </button>
         </div>
-        {/* Notion's Muscle Groups gallery */}
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5 px-4">
-          {groups.map((g) => (
-            <Link key={g.id} href={`/exercises/group/${g.id}`} className="overflow-hidden rounded-[18px] bg-card ring-1 ring-[var(--sep)] active:opacity-80">
-              <div className="aspect-square bg-[var(--muscle-tile)] p-2">{g.art}</div>
-              <div className="flex items-center gap-1 px-2 py-2 text-[13px] font-semibold leading-[18px]">
-                <FigureIcon size={13} className="shrink-0 opacity-60" />
-                <span className="truncate">{g.name}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {children}
       </div>
 
       {searching && (
@@ -150,7 +159,7 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
                   }
                 }}
                 placeholder="Search"
-                aria-label="Search exercises"
+                aria-label="Search the Library"
                 className="min-w-0 flex-1 bg-transparent font-medium outline-none placeholder:text-[var(--glass-ink)] placeholder:opacity-50 [&::-webkit-search-cancel-button]:hidden"
               />
               {query && (
@@ -235,11 +244,13 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
               })}
             </div>
           )}
-          <SectionHeader title={`Exercises (${results.length === 1 ? "1 result" : `${results.length} results`})`} className="pt-4" />
+          {(results.length > 0 || workoutHits.length + programHits.length === 0) && (
+            <SectionHeader title={`Exercises (${results.length === 1 ? "1 result" : `${results.length} results`})`} className="pt-4" />
+          )}
           {!items ? (
             <p className="py-10 text-center text-[15px] text-ink-2">{failed ? "Could not load the exercises." : "Loading…"}</p>
           ) : results.length === 0 ? (
-            <Empty title="No matches">Try another name or muscle group.</Empty>
+            workoutHits.length + programHits.length === 0 && <Empty title="No matches">Try another name or muscle group.</Empty>
           ) : (
             <ul className="grouped mx-4">
               {results.map((i) => (
@@ -258,6 +269,35 @@ export function LibrarySection({ groups, children }: { groups: { id: string; nam
                 </li>
               ))}
             </ul>
+          )}
+          {workoutHits.length > 0 && (
+            <>
+              <SectionHeader title={`Workouts (${workoutHits.length})`} />
+              <div className="grouped mx-4">
+                {workoutHits.map((w) => (
+                  <Link key={w.id} href={`/templates/${w.id}`} onClick={remember} className="block active:bg-fill">
+                    <Row
+                      leading={<WorkoutThumb category={w.category} label={w.name.slice(0, 1)} slugs={w.slugs} />}
+                      title={w.name}
+                      subtitle={`${w.exerciseCount} ${w.exerciseCount === 1 ? "exercise" : "exercises"}`}
+                      chevron
+                    />
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+          {programHits.length > 0 && (
+            <>
+              <SectionHeader title={`Programs (${programHits.length})`} />
+              <div className="grouped mx-4">
+                {programHits.map((p) => (
+                  <Link key={p.id} href={`/programs/${p.id}`} onClick={remember} className="block active:bg-fill">
+                    <Row leading={<WorkoutThumb category="full_body" label="P" slugs={p.slugs} />} title={p.name} subtitle={`${p.weeks} weeks`} chevron />
+                  </Link>
+                ))}
+              </div>
+            </>
           )}
         </>
       ) : null}

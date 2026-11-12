@@ -25,8 +25,14 @@ import { StartWorkout } from "./start-workout";
 
 // SF Symbols, as iOS tab bars use (Frank's call, 2026-11-11): filled where the symbol has a fill
 const TABS: { href: string; label: string; symbol: SfSymbolName; match: (p: string) => boolean }[] = [
-  { href: "/", label: "Home", symbol: "house.fill", match: (p: string) => p === "/" || p.startsWith("/workouts") || p.startsWith("/exercises") },
-  { href: "/templates", label: "Templates", symbol: "square.stack.fill", match: (p: string) => p.startsWith("/templates") || p.startsWith("/programs") },
+  { href: "/", label: "Home", symbol: "house.fill", match: (p: string) => p === "/" || p.startsWith("/workouts") || p.startsWith("/settings") },
+  // Library: exercises, workouts and programs (Frank's call, 2026-11-11); square.stack.fill is Apple Music's Library symbol
+  {
+    href: "/library",
+    label: "Library",
+    symbol: "square.stack.fill",
+    match: (p: string) => p.startsWith("/library") || p.startsWith("/templates") || p.startsWith("/programs") || p.startsWith("/exercises"),
+  },
   { href: "/analytics", label: "Progress", symbol: "chart.line.uptrend.xyaxis", match: (p: string) => p.startsWith("/analytics") },
 ];
 

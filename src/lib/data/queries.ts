@@ -9,6 +9,7 @@ import type { MovementOption } from "@/lib/workout/movements";
 import type { TopSet } from "@/lib/workout/progress";
 import { best, type Best } from "@/lib/workout/active";
 import type { Measure } from "@/lib/workout/measure";
+import { addDays, type HeatWindow, type HeatWorkout, type RecommendCandidate } from "@/lib/workout/heat";
 
 /** Server-side reads for the screens. Every per-user query filters by the app's one user. */
 
@@ -27,17 +28,18 @@ const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, 
 export type Settings = {
   weight_unit: WeightUnit;
   default_rest_seconds: number;
+  heat_window: HeatWindow;
 };
 
 export async function getSettings(): Promise<Settings> {
   const row = check(
     await db()
       .from("user_settings")
-      .select("weight_unit, default_rest_seconds")
+      .select("weight_unit, default_rest_seconds, heat_window")
       .eq("user_id", userId())
       .maybeSingle(),
   );
-  return row ?? { weight_unit: "lbs", default_rest_seconds: 180 };
+  return row ? { ...row, heat_window: row.heat_window === "week" ? "week" : "rolling" } : { weight_unit: "lbs", default_rest_seconds: 180, heat_window: "rolling" };
 }
 
 // ------------------------------------------------------------
@@ -835,4 +837,78 @@ export async function getTemplateContext(id: string): Promise<TemplateContext> {
       .filter((x): x is TemplateContext["phases"][number] => x !== null)
       .sort((a, b) => a.position - b.position),
   };
+}
+
+// ------------------------------------------------------------
+// Home: Last 7 Days and Recommended
+// ------------------------------------------------------------
+
+/** How far back Recommended looks for when each group was last trained. */
+const HEAT_LOOKBACK_DAYS = 60;
+
+/**
+ * Completed workouts from `HEAT_LOOKBACK_DAYS` before `today` to `today`, each exercise with its working sets (warm-ups
+ * left out, as the analytics views count them), main group and secondary groups by name.
+ */
+export async function getHeatWorkouts(today: string): Promise<HeatWorkout[]> {
+  const tz = timeZone();
+  const from = addDays(today, -HEAT_LOOKBACK_DAYS);
+  const [groups, found] = await Promise.all([
+    listMuscleGroups(),
+    selectAll((a, b) =>
+      db()
+        .from("workouts")
+        .select(
+          "scheduled_for, started_at, completed_at, workout_exercises(exercise_id, exercises(name, title, secondary_muscle_group_ids, muscle_groups(name)), sets(is_warm_up))",
+        )
+        .eq("user_id", userId())
+        .not("completed_at", "is", null)
+        .gte("completed_at", new Date(Date.parse(from) - 86400000).toISOString())
+        .order("completed_at")
+        .range(a, b),
+    ),
+  ]);
+  const nameOf = new Map(groups.map((g) => [g.id, g.name]));
+  return (
+    found as unknown as {
+      scheduled_for: string | null;
+      started_at: string | null;
+      completed_at: string | null;
+      workout_exercises: {
+        exercise_id: string;
+        exercises: { name: string; title: string | null; secondary_muscle_group_ids: string[] | null; muscle_groups: { name: string } | null } | null;
+        sets: { is_warm_up: boolean }[];
+      }[];
+    }[]
+  )
+    .map((w) => ({
+      day: workoutDay(w, tz) ?? "",
+      exercises: w.workout_exercises.map((we) => ({
+        exerciseId: we.exercise_id,
+        title: we.exercises?.title ?? we.exercises?.name ?? "Exercise",
+        group: we.exercises?.muscle_groups?.name ?? null,
+        secondaries: (we.exercises?.secondary_muscle_group_ids ?? []).map((id) => nameOf.get(id)).filter((n): n is string => !!n),
+        sets: we.sets.filter((s) => !s.is_warm_up).length,
+      })),
+    }))
+    .filter((w) => w.day >= from && w.day <= today);
+}
+
+/** The day templates (not program weeks) with the muscle groups they train, for Recommended. */
+export type RecommendTemplate = RecommendCandidate & { slugs: string[]; exerciseCount: number };
+export async function listRecommendTemplates(): Promise<RecommendTemplate[]> {
+  const found = check(
+    await db()
+      .from("templates")
+      .select("id, name, category, template_exercises(position, exercises(slug, muscle_groups(name)))")
+      .is("program_id", null),
+  ) as unknown as { id: string; name: string; category: string | null; template_exercises: EmbeddedExercise[] }[];
+  return found.map((t) => ({
+    id: t.id,
+    name: t.name,
+    category: t.category,
+    groups: [...new Set(t.template_exercises.map((e) => e.exercises?.muscle_groups?.name).filter((n): n is string => !!n))],
+    slugs: orderedSlugs(t.template_exercises),
+    exerciseCount: t.template_exercises.length,
+  }));
 }

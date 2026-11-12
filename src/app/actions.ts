@@ -183,6 +183,7 @@ async function keepSwapsInTemplate(workoutId: string): Promise<void> {
     fail(upError);
   }
   revalidatePath("/templates", "layout");
+  revalidatePath("/library", "layout");
 }
 
 /** The workout that finishes a program takes the app back to following none. It never blocks finishing the workout. */
@@ -559,6 +560,7 @@ export async function quickLog(
 export async function saveSettings(input: {
   weightUnit: "lbs" | "kg";
   defaultRestSeconds: number;
+  heatWindow: "rolling" | "week";
 }): Promise<void> {
   const rest = Math.round(input.defaultRestSeconds);
   if (!Number.isFinite(rest) || rest < 0 || rest > 1800) throw new Error("Rest must be between 0 and 30 minutes.");
@@ -568,6 +570,7 @@ export async function saveSettings(input: {
       user_id: userId(),
       weight_unit: input.weightUnit === "kg" ? "kg" : "lbs",
       default_rest_seconds: rest,
+      heat_window: input.heatWindow === "week" ? "week" : "rolling",
     });
   fail(error);
   revalidatePath("/", "layout");

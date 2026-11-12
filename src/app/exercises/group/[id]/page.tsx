@@ -15,7 +15,7 @@ export default async function MuscleGroupPage({ params }: { params: Promise<{ id
   const items = byEntryName(oneEntryPerMovement(all.filter((i) => i.groupId === id)));
   return (
     <Screen>
-      <LargeTitle title={group.name} subtitle={`${items.length} ${items.length === 1 ? "exercise" : "exercises"}`} leading={<BackButton label="Back to Home" />} />
+      <LargeTitle title={group.name} subtitle={`${items.length} ${items.length === 1 ? "exercise" : "exercises"}`} leading={<BackButton label="Back to Library" />} />
       <div className="pt-3">
         {items.length ? <GroupExercises items={items} art={<MuscleArt group={group.name} />} /> : <Empty title="No exercises yet" />}
       </div>

@@ -85,14 +85,14 @@ export function FinishSheet({
       {swaps.length > 0 && (
         <section className="mb-3 flex items-center justify-between gap-3 rounded-[16px] bg-card px-4 py-3">
           <span className="min-w-0">
-            <span className="block text-[15px] font-semibold">Keep swaps in template</span>
+            <span className="block text-[15px] font-semibold">Keep swaps in this workout</span>
             <span className="block text-[13px] text-ink-2">{swaps.map((we) => exerciseTitle(we.exercises)).join(", ")} next time too</span>
           </span>
           <button
             type="button"
             role="switch"
             aria-checked={keep}
-            aria-label="Keep swaps in template"
+            aria-label="Keep swaps in this workout"
             onClick={() => setKeep(!keep)}
             className={cn("relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors", keep ? "bg-green" : "bg-fill-2")}
           >

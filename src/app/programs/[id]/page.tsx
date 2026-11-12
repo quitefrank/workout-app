@@ -57,7 +57,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
         title={title}
         subtitle={program.recovery ? program.name : program.kind === "recovery" ? "Recovery program" : `${program.phases.length} weeks`}
         leading={
-          <GlassCircleLink href="/templates" label="Back to templates">
+          <GlassCircleLink href="/library/programs" label="Back to Programs">
             <ChevronLeft size={20} />
           </GlassCircleLink>
         }
@@ -178,7 +178,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
                     {program.kind === "recovery" ? `${p.position}. ${p.label}` : phaseTitle(p)}
                   </div>
                   <div className="truncate text-[15px] leading-5 text-ink-2">
-                    {[program.kind === "recovery" && weeksLabel(p.week_from, p.week_to), `${p.templates.length} templates`, current && "You are here"]
+                    {[program.kind === "recovery" && weeksLabel(p.week_from, p.week_to), `${p.templates.length} workouts`, current && "You are here"]
                       .filter(Boolean)
                       .join(" · ")}
                   </div>

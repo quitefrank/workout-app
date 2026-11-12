@@ -3,7 +3,18 @@ import { GlassCircleLink } from "@/components/glass";
 import { CheckIcon, ChevronRight, GearIcon, ListIcon } from "@/components/icons";
 import { Row, SectionHeader } from "@/components/page";
 import { WorkoutThumb } from "@/components/workout-thumb";
-import { getActiveProgramId, getMonthWorkouts, getProgram, listPrograms, type WorkoutListItem } from "@/lib/data/queries";
+import { BodyMap } from "@/components/body-map/body-map";
+import {
+  getActiveProgramId,
+  getHeatWorkouts,
+  getMonthWorkouts,
+  getProgram,
+  getSettings,
+  listPrograms,
+  listRecommendTemplates,
+  type WorkoutListItem,
+} from "@/lib/data/queries";
+import { addDays, heatOf, lastTrained, recommend, recommendReason } from "@/lib/workout/heat";
 import { weeksLabel } from "@/lib/programs/label";
 import { programHasEnded } from "@/lib/programs/today";
 import { programTodayOf } from "@/lib/programs/up-next";
@@ -12,6 +23,7 @@ import { dotsByDay } from "@/lib/workout/calendar";
 import { durationMinutes, gridBounds, localDate, monthOf } from "@/lib/workout/dates";
 import { CATEGORY_LABELS } from "@/lib/workout/format";
 import { WeekCalendar } from "../week-calendar";
+import { HeatCard } from "./heat-card";
 import { ProgramEmptyState } from "./program-empty-state";
 
 export default async function HomePage({ searchParams }: { searchParams: Promise<{ d?: string }> }) {
@@ -21,12 +33,17 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // the month is the selected day's, which seeds the strip and the panel; other weeks load as they come near
   const ym = monthOf(selected);
 
-  const [workouts, activeId] = await Promise.all([getMonthWorkouts(ym), getActiveProgramId()]);
+  const [workouts, activeId, heatWorkouts, settings] = await Promise.all([
+    getMonthWorkouts(ym),
+    getActiveProgramId(),
+    getHeatWorkouts(today),
+    getSettings(),
+  ]);
   const program = activeId ? await getProgram(activeId) : null;
   const followed = program ? programTodayOf(program, today) : null;
   // A program that has ended reads the same as following none
   const upNext = followed && !programHasEnded(followed) ? followed : null;
-  const programs = upNext ? [] : await listPrograms();
+  const [programs, candidates] = upNext ? [[], []] : await Promise.all([listPrograms(), listRecommendTemplates()]);
   const upPhase = program?.phases.find((p) => p.id === upNext?.inForce.phase?.id) ?? null;
   // The program's own rows carry the variant and the sign-off note the pure model does not need.
   const rowOf = new Map(program?.phases.flatMap((p) => p.templates.map((t) => [t.id, t] as const)) ?? []);
@@ -39,6 +56,18 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const selectedWorkouts = byDay.get(selected) ?? [];
   const { from, to } = gridBounds(ym);
   const days = dotsByDay(workouts, from, to);
+
+  // Last 7 Days counts the window up to today, whatever day is selected
+  const heat = heatOf(heatWorkouts, today, settings.heat_window);
+  const short = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  const heatRange = settings.heat_window === "rolling" ? `${short(heat.from)} to ${short(today)}` : heat.from === today ? "Since today" : "Since Monday";
+  // Recommended leaves out what was done today or yesterday
+  const recent = new Set(
+    workouts.filter((w) => w.completedAt && w.templateId && (w.day === today || w.day === addDays(today, -1))).map((w) => w.templateId!),
+  );
+  const recommended = recommend(candidates, lastTrained(heatWorkouts, today), today, recent)
+    .slice(0, 3)
+    .map((r) => ({ id: r.template.id, name: r.template.name, category: r.template.category, slugs: r.template.slugs, reason: recommendReason(r.group, r.days) }));
 
   return (
     <>
@@ -70,7 +99,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </>
       )}
 
-      {!upNext && programs.length > 0 && <ProgramEmptyState programs={programs} />}
+      {!upNext && (programs.length > 0 || recommended.length > 0) && <ProgramEmptyState programs={programs} recommended={recommended} />}
 
       {program && upNext && (
         <>
@@ -107,6 +136,13 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </div>
         </>
       )}
+
+      <HeatCard
+        title={settings.heat_window === "rolling" ? "Last 7 Days" : "This Week"}
+        range={heatRange}
+        heat={heat}
+        body={<BodyMap sets={heat.sets} />}
+      />
     </>
   );
 }

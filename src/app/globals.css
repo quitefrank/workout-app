@@ -49,6 +49,9 @@
   --muscle-body: #b1b1b1;
   --muscle-hit: #ff383c; /* the exercise illustrations' red */
   --muscle-tile: #ffffff;
+  /* Home's Last 7 Days body map: the untrained body and its outline; heat mixes --red into --heat-body */
+  --heat-body: #d8d8dd;
+  --heat-line: #b9b9c0;
   /* Behind an exercise illustration: one gray in both appearances (Frank's call, 2026-11-05) */
   --exercise-tile: #dedee1;
   /* Glass Steppers' painted glass (.glass-card), measured off the shader's card at 2x on 2026-11-10: light is a
@@ -172,6 +175,8 @@
     --muscle-body: #48484a;
     --muscle-hit: #ff383c; /* the exercise illustrations' red */
     --muscle-tile: #1c1c1e;
+    --heat-body: #3a3a3e;
+    --heat-line: #55555c;
     --seg-on: #636366;
     --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
 
@@ -217,6 +222,8 @@
   --muscle-body: #48484a;
   --muscle-hit: #ff383c; /* the exercise illustrations' red */
   --muscle-tile: #1c1c1e;
+  --heat-body: #3a3a3e;
+  --heat-line: #55555c;
   --seg-on: #636366;
   --seg-shadow: 0 2px 20px rgba(0, 0, 0, 0.06);
 
@@ -1371,4 +1378,22 @@ html.standalone .jcard-stage {
   100% {
     transform: scale(1);
   }
+}
+
+/* Home's Last 7 Days body map (src/components/body-map): fills from custom properties on the <svg>, as rules and never
+   inline styles, because the glass painter's detached copy keeps a style attribute but cannot resolve var() in it */
+@layer components {
+  .body-map path { fill: var(--heat-body); stroke-width: 6; transition: fill 0.25s; }
+  .body-map path[data-outline] { fill: none; stroke: var(--heat-line); stroke-width: 3; }
+  .body-map path[data-g="Chest"] { fill: var(--heat-Chest); stroke: var(--sel-Chest, none); }
+  .body-map path[data-g="Back"] { fill: var(--heat-Back); stroke: var(--sel-Back, none); }
+  .body-map path[data-g="Shoulders"] { fill: var(--heat-Shoulders); stroke: var(--sel-Shoulders, none); }
+  .body-map path[data-g="Biceps"] { fill: var(--heat-Biceps); stroke: var(--sel-Biceps, none); }
+  .body-map path[data-g="Triceps"] { fill: var(--heat-Triceps); stroke: var(--sel-Triceps, none); }
+  .body-map path[data-g="Forearms"] { fill: var(--heat-Forearms); stroke: var(--sel-Forearms, none); }
+  .body-map path[data-g="Abs"] { fill: var(--heat-Abs); stroke: var(--sel-Abs, none); }
+  .body-map path[data-g="Quadriceps"] { fill: var(--heat-Quadriceps); stroke: var(--sel-Quadriceps, none); }
+  .body-map path[data-g="Hamstrings"] { fill: var(--heat-Hamstrings); stroke: var(--sel-Hamstrings, none); }
+  .body-map path[data-g="Glutes"] { fill: var(--heat-Glutes); stroke: var(--sel-Glutes, none); }
+  .body-map path[data-g="Calves"] { fill: var(--heat-Calves); stroke: var(--sel-Calves, none); }
 }

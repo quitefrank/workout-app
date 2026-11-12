@@ -39,6 +39,7 @@ export function SettingsForm({
         await saveSettings({
           weightUnit: next.weight_unit,
           defaultRestSeconds: next.default_rest_seconds,
+          heatWindow: next.heat_window,
         });
       } catch (e) {
         setS(prev);
@@ -77,6 +78,20 @@ export function SettingsForm({
             ["kg", "Kilograms"],
           ]}
           onChange={(v) => update({ ...s, weight_unit: v })}
+        />
+      </Group>
+
+      <Group
+        title="Last 7 days"
+        footer="Home's body map counts working sets from today and the six days before, or from Monday. A set drops out when its day leaves the window."
+      >
+        <Segmented
+          value={s.heat_window}
+          options={[
+            ["rolling", "Rolling 7 days"],
+            ["week", "Monday to Sunday"],
+          ]}
+          onChange={(v) => update({ ...s, heat_window: v })}
         />
       </Group>
 

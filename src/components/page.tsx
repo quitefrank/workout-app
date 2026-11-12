@@ -42,10 +42,24 @@ export function LargeTitle({
   );
 }
 
-export function SectionHeader({ title, trailing, className }: { title: string; trailing?: ReactNode; className?: string }) {
+/**
+ * A section's 22pt title. With `href` the title is a link with a chevron beside it, as iOS 26 Photos and Music mark a
+ * section that opens its own page (Frank's call, 2026-11-11), in place of a trailing See All.
+ */
+export function SectionHeader({ title, trailing, className, href }: { title: string; trailing?: ReactNode; className?: string; href?: string }) {
+  const h2 = <h2 className="text-[22px] font-bold tracking-[-0.01em]">{title}</h2>;
   return (
     <div className={cn("flex items-baseline justify-between px-4 pb-2 pt-6", className)}>
-      <h2 className="text-[22px] font-bold tracking-[-0.01em]">{title}</h2>
+      {href ? (
+        <Link href={href} className="flex items-center gap-1.5 active:opacity-60">
+          {h2}
+          <svg width="9" height="15" viewBox="0 0 9 15" aria-hidden className="mt-0.5 shrink-0 text-ink-2">
+            <path d="M1.5 1.5 7.5 7.5 1.5 13.5" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </Link>
+      ) : (
+        h2
+      )}
       {trailing && <div className="text-[15px] text-blue">{trailing}</div>}
     </div>
   );

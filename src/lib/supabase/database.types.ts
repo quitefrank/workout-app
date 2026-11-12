@@ -281,6 +281,7 @@ export type Database = {
           option_position: string | null
           option_rank: number | null
           option_technique: string | null
+          secondary_muscle_group_ids: string[]
           slug: string | null
           support_required: Database["public"]["Enums"]["support_type"] | null
           title: string | null
@@ -313,6 +314,7 @@ export type Database = {
           option_position?: string | null
           option_rank?: number | null
           option_technique?: string | null
+          secondary_muscle_group_ids?: string[]
           slug?: string | null
           support_required?: Database["public"]["Enums"]["support_type"] | null
           title?: string | null
@@ -345,6 +347,7 @@ export type Database = {
           option_position?: string | null
           option_rank?: number | null
           option_technique?: string | null
+          secondary_muscle_group_ids?: string[]
           slug?: string | null
           support_required?: Database["public"]["Enums"]["support_type"] | null
           title?: string | null
@@ -907,6 +910,7 @@ export type Database = {
           equipment_available:
             | Database["public"]["Enums"]["equipment_item"][]
             | null
+          heat_window: string
           program_phase_position: number | null
           updated_at: string
           user_id: string
@@ -922,6 +926,7 @@ export type Database = {
           equipment_available?:
             | Database["public"]["Enums"]["equipment_item"][]
             | null
+          heat_window?: string
           program_phase_position?: number | null
           updated_at?: string
           user_id: string
@@ -937,6 +942,7 @@ export type Database = {
           equipment_available?:
             | Database["public"]["Enums"]["equipment_item"][]
             | null
+          heat_window?: string
           program_phase_position?: number | null
           updated_at?: string
           user_id?: string

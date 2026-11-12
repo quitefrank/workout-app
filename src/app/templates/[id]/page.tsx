@@ -43,7 +43,7 @@ export default async function TemplatePage({
         edge={lift ? "soft" : "dim"}
         spacer={false}
         leading={
-          <GlassCircleLink href={context.program ? `/programs/${context.program.id}` : "/templates"} label="Back">
+          <GlassCircleLink href={context.program ? `/programs/${context.program.id}` : "/library/workouts"} label="Back">
             <ChevronLeft size={20} />
           </GlassCircleLink>
         }

@@ -39,7 +39,7 @@ export function StartWorkout({ templates, next }: { templates: TemplateSummary[]
           <path d="M9 1v16M1 9h16" />
         </svg>
       </button>
-      <Sheet open={open} onClose={() => setOpen(false)} title="Choose a Template">
+      <Sheet open={open} onClose={() => setOpen(false)} title="Choose a Workout">
         {next && (
           <section className="mb-4">
             <h3 className={SECTION_TITLE}>Up Next</h3>

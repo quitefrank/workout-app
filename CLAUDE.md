@@ -182,7 +182,7 @@ Eleven pure modules with full unit-test coverage:
   header dropped, option B for week 10, "(OR ...)" names split by
   `NAME_CHOICES`, a "~" RPE kept as the RPE with an "Approximate RPE" note.
 
-Run `bun run test` to exercise them. 568 tests across 53 files.
+Run `bun run test` to exercise them. 577 tests across 54 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -490,11 +490,37 @@ were reviewed and rejected: they are blue duotone or dark grayscale in the sourc
 
 ## Following a program is optional
 
-With no program followed, Home's Up Next is an empty state with Choose Program, which opens a sheet of
-the training programs (`src/app/(home)/program-empty-state.tsx`). The app never requires one. The workout
+With no program followed, Home shows Recommended in Up Next's place (Frank's call, 2026-11-11): the day workout whose
+muscle groups have rested longest, with the reason ("Glutes last trained 9 days ago"), a Start button, two runners-up
+and Choose Program, which opens a sheet of the training programs (`src/app/(home)/program-empty-state.tsx`; ranking in
+`recommend` in `src/lib/workout/heat.ts`, tested: cardio and anything done today or yesterday left out, days rested
+capped at 14). With nothing to suggest it is the No Program card. The app never requires a program. The workout
 that completes a program's last day stops following it (`stopFollowingIfEnded` in `actions.ts`), and Home
 treats an ended program as none. Past completions are not scoped to a follow date, so following a program
 you already finished ends it again; rerunning one needs a start date first.
+
+## Home: Last 7 Days
+
+A body map modelled on Fitbod's recovery map (Frank's calls, 2026-11-11): front and back side by side
+(`src/components/body-map/`, paths from react-muscle-highlighter 1.2.0, MIT, licence in `paths.ts`), each muscle
+coloured by its group's working sets in the window against the evidence baseline (ACSM 2026: at least 10 a week,
+diminishing returns past about 20). A ramp mixes `--red` into `--heat-body`: 16% for a first set to 66% just short of
+10, 70% at 10 to 100% at 20. Stepped: a set counts in full until its day leaves the window, with no decay. Under the
+body: the legend, the window's workouts and working sets (time left out), then a bar per group with the 10 to 20 band.
+Tapping a muscle or its bar shows its count, how far from 10, and the exercises it came from. The model is pure and
+tested in `src/lib/workout/heat.ts`; `getHeatWorkouts` reads 60 days for it and Recommended.
+
+The window is a setting, `user_settings.heat_window` (migration 0033): `rolling` (today and the six days before, the
+default, titled Last 7 Days) or `week` (from Monday, titled This Week), in Settings under Last 7 Days.
+
+Secondary muscles count half a set (Pelland 2025, ref 187 of the ACSM paper): `exercises.secondary_muscle_group_ids`
+(migration 0033, Frank's review of the draft, 2026-11-11), set by family and main group so every version of a lift
+shares its helpers (Bench Press: Triceps, Shoulders; Row: Biceps, Shoulders; Deadlift under Glutes: Hamstrings, Back,
+Quadriceps; under Hamstrings: Glutes, Back). No seed touches it; a new family needs its row by hand.
+
+The fills are custom properties on the `<svg>` applied by `.body-map` rules in `globals.css`, never inline styles on the
+paths: the glass painter's detached copy of an svg keeps a style attribute but cannot resolve a `var()` in it, so an
+inline `var()` fill paints black on the WebGPU path.
 
 ## Recovery workouts removed
 
@@ -550,10 +576,10 @@ by `APP_USER_ID`. Because that client bypasses RLS, every query filters
 by the user and every action checks the row belongs to them first. The
 deployed URL is open: anyone who has it can read and log workouts.
 
-Screens follow `docs/planning.md`, with three tabs: Home, Templates, Progress.
-Home (`src/app/(home)/`, with History at `/workouts`) is the calendar, then
-Workouts only when the selected day has something logged, then Up Next, then the
-Library section. Starting a workout is the dock's + button, on every tab but the
+Screens follow `docs/planning.md`, with three tabs: Home, Library, Progress (Frank's calls, 2026-11-11, from the Tab
+Bar and Home Lab, https://claude.ai/artifact/CTuL1AAXJZ52gaByMyMRTk). Home (`src/app/(home)/`, with History at
+`/workouts`) is the calendar, then Workouts only when the selected day has something logged, then Up Next (or
+Recommended), then Last 7 Days (see "Home: Last 7 Days" below). Starting a workout is the dock's + button, on every tab but the
 active workout (`src/components/start-workout.tsx`): Apple's Glass Prominent (iOS 27
 kit, `prominentMaterial` in `src/glass/presets.ts`), 62pt and 8pt from the bar. It
 keeps its blue, outside the context rule (`data-glass-skip`). It opens the template
@@ -568,22 +594,26 @@ rendered. A swipe selects the same weekday once settled. Dots outside the
 selected month load from `/api/calendar`. The selected day is in `?d=` and its
 workouts are cards that open the workout.
 
-The Library section lives in the `(home)` layout, not the page, because a day
-tap re-renders the page only and the muscle art is about 150 KB of paths. It is
-a search field over the muscle group cards. A card opens
-`/exercises/group/[id]`, a list with a back arrow. An exercise row, there or in
+The Library tab (`/library`, `src/app/library/`) is one scroll of Exercises (the muscle group cards), Workouts (the
+tall cards, those with exercises first) and Programs, in that order since exercises are looked up most, under one
+search field over all three (`library-search.tsx`; results in the same order, the muscle group pills filter exercises
+only). Each section title carries a chevron to its own page (`SectionHeader`'s `href`, as Photos marks a section, in
+place of See All): `/library/exercises` (the groups, then every exercise A to Z), `/library/workouts` (by category)
+and `/library/programs` (Following first). `/templates` and `/exercises` redirect into it; `/templates/[id]` is still
+a workout's page. A New button (creating workouts and programs) is decided in concept and not built. A group card
+opens `/exercises/group/[id]`, a list with a back arrow. An exercise row, there or in
 search, opens the exercise's bottom sheet (`src/components/exercise-sheet.tsx`,
 fetching `/api/exercises/[id]`): Summary, History, How to
 (`exercise-detail.tsx`). Search loads its rows from `/api/exercises` when it
-opens, so Home never fetches all 342. `/exercises` redirects to Home;
+opens, so the Library never fetches all 342 up front.
 `/exercises/[id]` stays for links from templates, workouts and Progress, and
 shows the same tabs. Exercise illustrations are `public/exercises/<slug>.webp` (red
 highlight, Frank's call, 2026-11-05), added with `bun run images:import <folder>`,
 which rewrites `src/lib/exercise-image-slugs.ts`. `src/components/exercise-art.tsx`
 shows one on `--exercise-tile`, the same gray in light and dark (Frank's call,
 2026-11-05), or the muscle group's art on the themed tile until it exists. Going back restores the screen's
-scroll position (`src/components/app-scroller.tsx`). Templates has the 18 Notion
-day templates (`program_id` null). Progress is `/analytics`. The active
+scroll position (`src/components/app-scroller.tsx`). The UI calls templates "workouts" (Frank's call, 2026-11-11);
+the code and tables keep `templates`. The 18 Notion day templates have `program_id` null. Progress is `/analytics`. The active
 workout (`/workouts/[id]`) is described under "Active workout" below. Delete has one place on a
 finished workout: the trash button in the summary's top bar, opening a confirming sheet; the active
 workout discards from its More menu. A finished workout's summary deletes (`deleteWorkout` in `actions.ts`, which refuses one in
@@ -743,7 +773,7 @@ Muscle art: Frank's Notion Muscle Groups covers, traced by
 drawing of their own and are derived from his by flood fill
 (`scripts/lib/muscle-tones.ts`). `<MuscleArt>` fills the paths from the
 `--muscle-*` tokens and renders on the server, so the path data never
-ships as JS. Home's Library shows the groups as a card grid. The icons beside prescriptions (warm-up, sets, reps, rest), on
+ships as JS. The Library shows the groups as a card grid. The icons beside prescriptions (warm-up, sets, reps, rest), on
 workout thumbs by category (`src/lib/workout/icons.ts`) and before
 muscle group names are Notion's own icons (its `fire`, `repeat`,
 `hashtag`, `clock`, `accessibility`, `gym`, `hand`, `pants`, `shoe`,
