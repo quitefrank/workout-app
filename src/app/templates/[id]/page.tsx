@@ -4,7 +4,7 @@ import { GlassCircleLink } from "@/components/glass";
 import { TopBar } from "@/components/top-bar";
 import { ChevronLeft, FigureIcon } from "@/components/icons";
 import { MuscleArt } from "@/components/muscle-art/muscle-art";
-import { ExerciseArt, hasExerciseImage } from "@/components/exercise-art";
+import { ExerciseArt, exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { hueStyle, Screen, SectionHeader, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
 import { getTemplate, getTemplateContext } from "@/lib/data/queries";
@@ -58,7 +58,7 @@ export default async function TemplatePage({
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- sized WebP, and the glass painter reads the element */}
             <img
-              src={`/exercises/${lift}.webp`}
+              src={exerciseImageSrc(lift)}
               alt=""
               draggable={false}
               // the hero is the original height, shorter than the square, so the figure is centred in it

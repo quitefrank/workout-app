@@ -1,4 +1,4 @@
-import { hasExerciseImage } from "@/components/exercise-art";
+import { exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { Thumb } from "@/components/page";
 import { mainLift } from "@/lib/workout/workout-art";
 
@@ -20,7 +20,7 @@ export function WorkoutThumb({
   return (
     <div className="size-12 shrink-0 overflow-hidden rounded-[10px] bg-[var(--exercise-tile)]">
       {/* eslint-disable-next-line @next/next/no-img-element -- served as sized WebP, and the glass painter reads the element */}
-      <img src={`/exercises/${lift}.webp`} alt="" className="size-12" />
+      <img src={exerciseImageSrc(lift)} alt="" className="size-12" />
     </div>
   );
 }

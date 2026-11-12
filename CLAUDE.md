@@ -609,7 +609,10 @@ opens, so the Library never fetches all 342 up front.
 `/exercises/[id]` stays for links from templates, workouts and Progress, and
 shows the same tabs. Exercise illustrations are `public/exercises/<slug>.webp` (red
 highlight, Frank's call, 2026-11-05), added with `bun run images:import <folder>`,
-which rewrites `src/lib/exercise-image-slugs.ts`. `src/components/exercise-art.tsx`
+which rewrites `src/lib/exercise-image-slugs.ts`. An exercise without its own image borrows the closest one
+through `src/lib/exercise-image-standins.ts` (Frank's call, 2026-11-12: no empty tiles); its own image always wins,
+and a test fails until the stand-in line is deleted. Build every image URL with `exerciseImageSrc`, never
+`/exercises/${slug}.webp`. `src/components/exercise-art.tsx`
 shows one on `--exercise-tile`, the same gray in light and dark (Frank's call,
 2026-11-05), or the muscle group's art on the themed tile until it exists. Going back restores the screen's
 scroll position (`src/components/app-scroller.tsx`). The UI calls templates "workouts" (Frank's call, 2026-11-11);

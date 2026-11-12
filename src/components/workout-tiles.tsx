@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { hasExerciseImage } from "@/components/exercise-art";
+import { exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { hueStyle, tileGradient } from "@/components/page";
 import { WorkoutIcon } from "@/components/workout-icon";
 import { cn } from "@/lib/cn";
@@ -32,7 +32,7 @@ export function WorkoutTiles({ items, weeks, wrap }: { items: (TemplateSummary &
               <>
                 {/* square, as tall as the card and centred, since the glass painter ignores object-fit */}
                 {/* eslint-disable-next-line @next/next/no-img-element -- served as sized WebP, and the glass painter reads the element */}
-                <img src={`/exercises/${lift}.webp`} alt="" className="absolute left-[-33px] top-0 h-[198px] w-[198px] max-w-none" />
+                <img src={exerciseImageSrc(lift)} alt="" className="absolute left-[-33px] top-0 h-[198px] w-[198px] max-w-none" />
                 <span className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(0,0,0,0.5),transparent_34%)]" />
               </>
             )}

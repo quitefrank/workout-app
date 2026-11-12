@@ -21,7 +21,7 @@ import {
   updateSet,
 } from "@/app/actions";
 import { Button } from "@/components/button";
-import { hasExerciseImage } from "@/components/exercise-art";
+import { exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
@@ -1069,7 +1069,7 @@ function Art({ slug }: { slug: string | null | undefined }) {
       {hasExerciseImage(slug) && size > 0 && (
         // eslint-disable-next-line @next/next/no-img-element -- sized WebP, positioned by measurement
         <img
-          src={`/exercises/${slug}.webp`}
+          src={exerciseImageSrc(slug)}
           alt=""
           draggable={false}
           className="pointer-events-none absolute left-1/2 top-1/2 max-w-none -translate-x-1/2 -translate-y-1/2 object-contain drop-shadow-[0_24px_30px_var(--art-shadow)]"
