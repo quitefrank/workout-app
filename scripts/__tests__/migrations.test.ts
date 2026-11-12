@@ -120,6 +120,7 @@ describe("supabase migrations on PGlite", () => {
       "0028_program_names_without_author.sql",
       "0029_powerbuilding_3_exercises.sql",
       "0030_merge_elbows_out_row.sql",
+      "0031_more_exercise_families.sql",
     ]);
   });
 
