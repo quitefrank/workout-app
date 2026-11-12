@@ -38,6 +38,7 @@ export type MuscleGroupName = (typeof MUSCLE_GROUP_NAMES)[number];
 export type LibraryAttributes = { muscleGroup: MuscleGroupName; equipmentType: EquipmentType; name?: string };
 
 export const LIBRARY_ALIASES: Record<string, string> = {
+  "cable-seated-elbows-out-row": "wide-grip-cable-row",
   "cable-shrug-in": "cable-shrugs",
   "close-grip-barbell-incline-press": "close-grip-incline-press",
   "cross-body-cable-y-raise-side-delt": "cable-y-raise",
@@ -158,7 +159,6 @@ export const LIBRARY_ATTRIBUTES: Record<string, LibraryAttributes> = {
   "cable-crunch": { muscleGroup: "Abs", equipmentType: "cable" },
   "cable-lateral-raise": { muscleGroup: "Shoulders", equipmentType: "cable" },
   "cable-pull-through": { muscleGroup: "Glutes", equipmentType: "cable" },
-  "cable-seated-elbows-out-row": { muscleGroup: "Back", equipmentType: "cable" },
   "chest-supported-t-bar-row": { muscleGroup: "Back", equipmentType: "machine" },
   "chest-supported-t-bar-row-w-band": { muscleGroup: "Back", equipmentType: "machine" },
   "close-grip-bench-press": { muscleGroup: "Triceps", equipmentType: "barbell" },

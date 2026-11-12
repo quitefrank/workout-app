@@ -119,6 +119,7 @@ describe("supabase migrations on PGlite", () => {
       "0027_exercise_measures.sql",
       "0028_program_names_without_author.sql",
       "0029_powerbuilding_3_exercises.sql",
+      "0030_merge_elbows_out_row.sql",
     ]);
   });
 
