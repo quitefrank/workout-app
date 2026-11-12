@@ -121,6 +121,7 @@ describe("supabase migrations on PGlite", () => {
       "0029_powerbuilding_3_exercises.sql",
       "0030_merge_elbows_out_row.sql",
       "0031_more_exercise_families.sql",
+      "0032_bodyweight_reps_and_captains_chair.sql",
     ]);
   });
 
