@@ -12,7 +12,7 @@ export default async function ProgramsLibraryPage() {
   const rest = programs.filter((p) => p.id !== activeId);
   return (
     <Screen>
-      <LargeTitle title="Programs" subtitle={`${programs.length} programs`} leading={<BackButton label="Back to Library" />} />
+      <LargeTitle title="Programs" subtitle={`${programs.length} programs`} leading={<BackButton label="Back to Library" fallback="/library" />} />
       {following.length > 0 && (
         <>
           <SectionHeader title="Following" />

@@ -15,7 +15,7 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
   const group = view.exercise.muscle_groups?.name;
   return (
     <Screen>
-      <LargeTitle title={view.exercise.title ?? view.exercise.name} leading={<BackButton />} />
+      <LargeTitle title={view.exercise.title ?? view.exercise.name} leading={<BackButton fallback="/library/exercises" />} />
       <div className="px-4 pt-3">
         <ExerciseDetailTabs
           view={view}

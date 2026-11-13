@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { getActiveProgramId, getProgram } from "@/lib/data/queries";
 import { programHasEnded } from "@/lib/programs/today";
 import { programTodayOf } from "@/lib/programs/up-next";
@@ -152,7 +152,8 @@ export async function completeWorkout(workoutId: string, input: { keepSwaps: boo
   fail(error);
   await stopFollowingIfEnded();
   refreshWorkout(workoutId);
-  redirect(`/workouts/${workoutId}/summary`);
+  // replace, so the finished workout is not one step back: it redirects to its summary, so Back there did nothing
+  redirect(`/workouts/${workoutId}/summary`, RedirectType.replace);
 }
 
 async function keepSwapsInTemplate(workoutId: string): Promise<void> {
@@ -203,7 +204,8 @@ export async function discardWorkout(workoutId: string): Promise<void> {
   const { error } = await db().from("workouts").delete().eq("id", workoutId);
   fail(error);
   revalidatePath("/", "layout");
-  redirect("/");
+  // replace, so history going back never opens the discarded workout
+  redirect("/", RedirectType.replace);
 }
 
 /** Delete a finished workout, with its exercises and sets. One still in progress goes through discardWorkout. */

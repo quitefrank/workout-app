@@ -12,7 +12,7 @@ export default async function WorkoutsLibraryPage() {
   const templates = await listTemplates();
   return (
     <Screen>
-      <LargeTitle title="Workouts" subtitle={`${templates.length} workouts`} leading={<BackButton label="Back to Library" />} />
+      <LargeTitle title="Workouts" subtitle={`${templates.length} workouts`} leading={<BackButton label="Back to Library" fallback="/library" />} />
       {groupByCategory(templates).map(([category, items]) => (
         <section key={category}>
           <SectionHeader title={CATEGORY_LABELS[category] ?? "Other"} />

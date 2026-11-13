@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GlassCircleLink } from "@/components/glass";
+import { BackButton } from "@/components/back-button";
 import { TopBar } from "@/components/top-bar";
-import { ChevronLeft, TrophyIcon } from "@/components/icons";
+import { TrophyIcon } from "@/components/icons";
 import { hueStyle, Screen, tileGradient } from "@/components/page";
 import { cn } from "@/lib/cn";
 import { getSettings, getTopSets, getWorkout } from "@/lib/data/queries";
@@ -37,9 +37,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
         edge="dim"
         spacer={false}
         leading={
-          <GlassCircleLink href="/workouts" label="Back to history">
-            <ChevronLeft size={20} />
-          </GlassCircleLink>
+          <BackButton label="Back to history" fallback="/workouts" />
         }
         trailing={workout.completed_at ? <DeleteWorkout workoutId={id} setCount={workout.exercises.reduce((n, we) => n + we.sets.length, 0)} /> : undefined}
       />

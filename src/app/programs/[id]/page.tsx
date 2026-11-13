@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { GlassCircleLink } from "@/components/glass";
-import { ChevronLeft } from "@/components/icons";
+import { BackButton } from "@/components/back-button";
 import { LargeTitle, Row, Screen, SectionHeader } from "@/components/page";
 import { WorkoutThumb } from "@/components/workout-thumb";
 import { Disclosure } from "@/components/collapse";
@@ -57,9 +56,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
         title={title}
         subtitle={program.recovery ? program.name : program.kind === "recovery" ? "Recovery program" : `${program.phases.length} weeks`}
         leading={
-          <GlassCircleLink href="/library/programs" label="Back to Programs">
-            <ChevronLeft size={20} />
-          </GlassCircleLink>
+          <BackButton label="Back to Programs" fallback="/library/programs" />
         }
       />
       <div className="mt-3 flex gap-3 px-4">

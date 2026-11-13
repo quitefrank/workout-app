@@ -3,7 +3,11 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { beginPush, pushCommitted } from "@/glass/nav-state";
+import { installNavIndex } from "@/lib/nav-index";
 import { pushesFor } from "@/lib/page-push";
+
+// number every history entry from the first navigation on, so the toolbar's Back knows if a page of ours is behind it
+if (typeof window !== "undefined") installNavIndex(window.history);
 
 /**
  * Starts the page push (src/lib/page-push.ts) before the new page renders, so the glass stage can copy the page on

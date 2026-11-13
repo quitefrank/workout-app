@@ -1012,6 +1012,13 @@ On the CSS path (before WebGPU is ready) nothing pushes. A control outside the p
 the workout page's Start Workout) slides itself with `.push-in` / `.push-in-back` when it mounts during a push.
 Programmatic navigation (`router.push`, a server action's redirect) does not push yet.
 
+Every toolbar back control is `BackButton` with a `fallback`, never a link (2026-11-13, after the workout page's
+Back, a link to Library > Workouts, looped with that page's history Back). `src/lib/nav-index.ts` (tested) numbers
+each history entry by wrapping `pushState` and `replaceState` (installed in `PageTransitions`): Back goes through
+history when a page of ours is behind, else replaces the page with its parent, never pushes (a push loops). History's
+Back to Home stays a link. `completeWorkout` and `discardWorkout` redirect with `RedirectType.replace`, so Back never
+lands on a finished or discarded workout.
+
 ## Glass context rule
 
 Applies to every glass control in the lab (`docs/lab/glass-lab-v3.html`)

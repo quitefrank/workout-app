@@ -16,7 +16,7 @@ export default async function ExercisesPage() {
   const cards = groups.map((g) => ({ id: g.id, name: g.name, art: <MuscleArt group={g.name} /> }));
   return (
     <Screen>
-      <LargeTitle title="Exercises" subtitle={`${items.length} exercises`} leading={<BackButton label="Back to Library" />} />
+      <LargeTitle title="Exercises" subtitle={`${items.length} exercises`} leading={<BackButton label="Back to Library" fallback="/library" />} />
       <SectionHeader title="Muscle Groups" />
       <MuscleGroupGrid groups={cards} />
       <SectionHeader title="A to Z" />
