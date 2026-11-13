@@ -289,7 +289,8 @@ export function SwipeRow({
         onPointerUp={end}
         onPointerCancel={end}
         onClickCapture={(e) => {
-          // a tap on an open row's content closes it and does nothing else
+          // a tap on an open row's content closes it and does nothing else; Delete, which rides in the content, still deletes
+          if (action.current?.contains(e.target as Node)) return;
           if (s.current.x > 0 && !s.current.deleting) {
             e.preventDefault();
             e.stopPropagation();
