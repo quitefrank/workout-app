@@ -52,7 +52,7 @@ type Edge = "top" | "bottom";
 /**
  * Start Workout's edge (Frank's spec, 2026-11-13; src/lib/soft-edge-tune.ts): over the whole box, from the screen's
  * bottom up, the blur growing from nothing at the top to `--se-blur` at the bottom, and one gradient of the screen's
- * colour from `--se-grad` (50%) at the bottom to 0% at the top. No kit tint or darkening layer.
+ * colour from `--se-grad` (25%) at the bottom to 0% at the top. No kit tint or darkening layer.
  */
 function TunedLayers() {
   return (
@@ -64,13 +64,13 @@ function TunedLayers() {
           <div
             key={f}
             className="soft-edge-blur absolute inset-0"
-            style={{ "--soft-blur": `blur(calc(var(--se-blur, 20px) * ${f}))`, maskImage: mask, WebkitMaskImage: mask } as CSSProperties}
+            style={{ "--soft-blur": `blur(calc(var(--se-blur, 10px) * ${f}))`, maskImage: mask, WebkitMaskImage: mask } as CSSProperties}
           />
         );
       })}
       <div
         className="absolute inset-0"
-        style={{ background: "linear-gradient(to bottom, rgb(var(--bg-rgb) / 0), rgb(var(--bg-rgb) / var(--se-grad, 0.5)))" }}
+        style={{ background: "linear-gradient(to bottom, rgb(var(--bg-rgb) / 0), rgb(var(--bg-rgb) / var(--se-grad, 0.25)))" }}
       />
     </>
   );
