@@ -5,7 +5,7 @@ describe("heroPose", () => {
   it("opens on the large image with the large title showing", () => {
     const p = heroPose(0, 402, true);
     expect(p.t).toBe(0);
-    expect(p.image).toEqual({ x: 16, y: 20, w: 370, h: 232, r: 22 });
+    expect(p.image).toEqual({ x: 16, y: 70, w: 370, h: 232, r: 22 });
     expect(p.largeOpacity).toBe(1);
     expect(p.smallOpacity).toBe(0);
     expect(p.backdrop).toBe(HERO_EXPANDED_H);
@@ -34,6 +34,12 @@ describe("heroPose", () => {
     const p = heroPose(120, 390, false);
     expect(p.t).toBe(0);
     expect(p.image.r).toBe(18);
+  });
+
+  it("opens with the image below the close button, where other sheets' content starts", () => {
+    const close = heroLayout(402).close;
+    expect(heroPose(0, 402, true).image.y).toBeGreaterThanOrEqual(close.y + 44);
+    expect(heroPose(0, 390, false).image.y).toBe(70);
   });
 
   it("keeps the close button in one place", () => {
