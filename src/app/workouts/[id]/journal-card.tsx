@@ -253,7 +253,7 @@ export function JournalCard({
 
 /**
  * The circle that logs (Ladder's): empty until the set is logged, a blue fill for a moment when it is, Skip while
- * resting. A 2pt #0082f0 ring (Figma ZD41TUAEBtLJI7t0qChNup, 28:945) and a 17pt check, the kit's symbol size. 38pt in the
+ * resting. A 2pt ring in the kit blue of the appearance (Figma ZD41TUAEBtLJI7t0qChNup, 28:945, drew dark #0082f0) and a 17pt check, the kit's symbol size. 38pt in the
  * pill, 16pt from its every edge, as the kit's notification holds its icon; 44pt in the open card's header, the kit's
  * toolbar button (`--pill-check`, set by `.jcard-head`). Frank's calls, 2026-11-12, from the Journal Pill Lab.
  */
@@ -297,7 +297,7 @@ export function PillCheck({
       className={cn(
         "relative grid shrink-0 place-items-center rounded-full",
         done ? "bg-blue text-white" : "disabled:opacity-50",
-        flash ? "pill-check-fill bg-blue text-white" : !done && "shadow-[inset_0_0_0_2px_#0082f0]",
+        flash ? "pill-check-fill bg-blue text-white" : !done && "shadow-[inset_0_0_0_2px_var(--blue)]",
       )}
       style={{ width: "var(--pill-check, 38px)", height: "var(--pill-check, 38px)" }}
     >

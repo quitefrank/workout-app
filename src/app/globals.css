@@ -34,7 +34,7 @@
   --art-shadow: rgba(0, 0, 0, 0.18);
   --gold: #b38f00;
   --fill: rgba(118, 118, 128, 0.12);
-  --fill-2: rgba(118, 118, 128, 0.2);
+  --fill-2: rgba(120, 120, 120, 0.2); /* kit Fills/Primary */
   --blue: #0088ff; /* kit Accents/Blue (iOS 27, Figma wH8YZbekJXNew109clIJz1 Colors) */
   /* Glass Prominent: the kit's Accents/Blue, its edge glow and its drop shadow (prominentMaterial in src/glass/presets.ts) */
   --glass-prominent: #0088ff;
@@ -192,7 +192,7 @@ html:has([data-bottom-bar="button"]) {
     --art-shadow: rgba(0, 0, 0, 0.45);
     --gold: #ffd600;
     --fill: rgba(118, 118, 128, 0.24);
-    --fill-2: rgba(118, 118, 128, 0.36);
+    --fill-2: rgba(120, 120, 128, 0.36);
     --blue: #0091ff;
     --glass-prominent: #0082f0;
     --glass-prominent-glow: rgba(255, 255, 255, 0.102);
@@ -240,7 +240,7 @@ html:has([data-bottom-bar="button"]) {
   --art-shadow: rgba(0, 0, 0, 0.45);
   --gold: #ffd600;
   --fill: rgba(118, 118, 128, 0.24);
-  --fill-2: rgba(118, 118, 128, 0.36);
+  --fill-2: rgba(120, 120, 128, 0.36);
   --blue: #0091ff;
   --glass-prominent: #0082f0;
   --glass-prominent-glow: rgba(255, 255, 255, 0.102);

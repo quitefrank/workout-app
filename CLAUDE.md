@@ -897,8 +897,14 @@ Every colour comes from the kit (Frank's call, 2026-11-13: "We should be using t
 accents are the kit's Accents (Colors page 0:1746), light / dark: blue `#0088ff` / `#0091ff` (also the tab bar's
 selected ink), red `#ff383c` / `#ff4245`, orange `#ff8d28` / `#ff9230`, green `#34c759` / `#30d158`. Fills: `--fill` is
 Fills/Tertiary (12% / 24%), which the kit's Bordered button and the stepper halves sit on, so a gray button is `bg-fill`;
-`--fill-2` is Fills/Primary (20% / 36%) for tracks. A toggle's off track is Labels/Tertiary (`bg-ink-3`). A colour the
-kit has must not be typed as another value; one it lacks (gold light, the illustration and heat-map tones) is named here.
+`--fill-2` is Fills/Primary (`rgba(120,120,120,0.2)` / `rgba(120,120,128,0.36)`) for tracks. A toggle's off track is
+Labels/Tertiary (`bg-ink-3`). A colour the kit has must not be typed as another value; one it lacks (gold light, the
+illustration and heat-map tones) is named here.
+
+Every colour switches with the appearance (Frank's call, 2026-11-13): each token has its light value in `:root` and its
+dark value in both dark blocks (the phone's `prefers-color-scheme` and `[data-theme="dark"]`), and a component uses the
+token, never a hex, so nothing stays on one mode's value. The full kit table, light and dark, every variable, lives in the
+vault at `Templates/liquid-glass/ios-27-colors.md`; check a new colour there first.
 
 ## Active workout
 
@@ -971,7 +977,7 @@ lifts over the canvas while typing.
   (`data-glass-hidden`) behind the same CSS layer. Shader: the pill itself follows the card's geometry (`.pill-grow`,
   `--jp` mirrored, offsets as `--jc-*`), keeps its side while growing (`data-glass-hold`) and hides once settled open;
   the card over it stays clear until its fill comes in from 0.6 to 1, with no scrim. The steppers sit 20pt above it. Its empty circle logs the set (`PillCheck`:
-  38pt, 16pt from every edge of the pill, a 2pt `#0082f0` ring from Figma node 28:945 and a 17pt check, the kit's symbol
+  38pt, 16pt from every edge of the pill, a 2pt ring in `--blue` (Figma node 28:945 drew it at dark `#0082f0`; it follows the appearance) and a 17pt check, the kit's symbol
   size; a blue fill for a moment when logged, Skip while resting, and solid blue with a white check at full strength once
   every set of the shown exercise is logged, Frank's call, 2026-11-10; the "logged, swipe" line then sits 12pt above the
   pill, the gap between Last time and the steppers), its middle opens the Journal, 10pt after the circle, with set
