@@ -127,17 +127,30 @@ function setup(o: StageOptions, renderer: any): () => void {
     return blendSides(o.bars.sideValues("light"), o.bars.sideValues("dark"), f.s);
   };
 
+  const join = (el: Element, U: Uniforms) => {
+    if (el.closest("[data-glass-skip]")) return;
+    const key = unit(el);
+    let f = units.get(key);
+    if (!f) { f = { key, s: null, onDark: null, els: [], Us: [] }; units.set(key, f); }
+    f.els.push(el); f.Us.push(U);
+    const unitRef = f;
+    U.override = () => sideBlend(unitRef);
+    const v = sideBlend(f); if (v) U.apply(v);
+  };
+  const leave = (el: Element) => {
+    for (const [key, f] of units) {
+      const i = f.els.indexOf(el);
+      if (i >= 0) { f.els.splice(i, 1); f.Us.splice(i, 1); }
+      if (!f.els.length) units.delete(key);
+    }
+  };
+  // CSS glass (`.glass-css`: the Journal pill in its CSS mode) gets no mesh, but still joins its unit, so the context rule
+  // keeps setting the unit's side (ctx-dark / ctx-light), which its CSS material reads
+  const cssOnly = new Map<Element, Uniforms>();
+
   const add = (el: Element) => {
     const U = makeUniforms(THREE, T, o.bars);
-    if (!el.closest("[data-glass-skip]")) {
-      const key = unit(el);
-      let f = units.get(key);
-      if (!f) { f = { key, s: null, onDark: null, els: [], Us: [] }; units.set(key, f); }
-      f.els.push(el); f.Us.push(U);
-      const unitRef = f;
-      U.override = () => sideBlend(unitRef);
-      const v = sideBlend(f); if (v) U.apply(v);
-    }
+    join(el, U);
     // Glass Prominent has its own stack, on the page's side, and follows the appearance through the family's listener
     if (el.classList.contains("glass-prominent")) {
       U.override = () => prominentMaterial(o.appearance());
@@ -162,11 +175,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     scene.remove(e.mesh); scene.remove(e.cast);
     e.mesh.material.dispose(); e.cast.material.dispose(); e.mesh.geometry.dispose(); e.cast.geometry.dispose();
     entries.delete(e.el);
-    for (const [key, f] of units) {
-      const i = f.els.indexOf(e.el);
-      if (i >= 0) { f.els.splice(i, 1); f.Us.splice(i, 1); }
-      if (!f.els.length) units.delete(key);
-    }
+    leave(e.el);
   };
 
   const tabs = makeTabsLayer(THREE, T, { W, H, dpr, pageTex, barsFrost: barsFrost.tex });
@@ -249,12 +258,18 @@ function setup(o: StageOptions, renderer: any): () => void {
     const cr = o.canvas.getBoundingClientRect(); org.x = cr.left; org.y = cr.top;
 
     // the glass on screen now
-    // Sheets, menus, the Journal card (.jcard) and any control on them are CSS (globals.css): the shader reads the page, so a control
-    // on a sheet would show what is behind the sheet, not the sheet.
-    const want = new Set<Element>();
-    document.querySelectorAll(".glass").forEach((el) => { if (!el.closest(".glass-sheet, .jcard")) want.add(el); });
+    // Sheets, menus, the Journal card (.jcard-stage, its glass layer included) and any control on them are CSS
+    // (globals.css): the shader reads the page, so a control on a sheet would show what is behind the sheet, not the
+    // sheet. `.glass-css` keeps the CSS material anywhere and only joins its unit for the context rule.
+    const want = new Set<Element>(), wantCss = new Set<Element>();
+    document.querySelectorAll(".glass").forEach((el) => {
+      if (el.closest(".glass-sheet, .jcard-stage")) return;
+      (el.classList.contains("glass-css") ? wantCss : want).add(el);
+    });
     for (const e of Array.from(entries.values())) if (!want.has(e.el)) remove(e);
     for (const el of want) if (!entries.has(el)) add(el);
+    for (const [el, U] of Array.from(cssOnly)) if (!wantCss.has(el)) { U.dispose(); cssOnly.delete(el); leave(el); }
+    for (const el of wantCss) if (!cssOnly.has(el)) { const U = makeUniforms(THREE, T, o.bars); cssOnly.set(el, U); join(el, U); }
 
     // The page push: hold the copy until the new route has rendered, paint it this frame, then run the spring
     if (navState.phase === "hold") {
@@ -299,9 +314,11 @@ function setup(o: StageOptions, renderer: any): () => void {
       if (laidOut && !e.ready) allReady = false;
       // the dock steps aside while a sheet is up (visibility hidden keeps its layout, so check the class)
       const inDock = !!e.el.closest("[data-glass-unit='dock']");
-      // glass in the content hides with its HTML (the active workout's stepper cards under the rest arc)
+      // glass in the content hides with its HTML (the active workout's stepper cards under the rest arc); any glass hides
+      // while it carries data-glass-hidden (the Journal pill while its card is up, in the card's match and shader modes)
       const vis =
-        e.ready && laidOut && !(sheetOpen && inDock) && (inDock || getComputedStyle(e.el).visibility !== "hidden");
+        e.ready && laidOut && !(sheetOpen && inDock) && !(e.el as HTMLElement).hasAttribute("data-glass-hidden") &&
+        (inDock || getComputedStyle(e.el).visibility !== "hidden");
       e.mesh.visible = e.cast.visible = vis;
       if (!vis) continue;
       const r = rectOf(e.el);
@@ -322,6 +339,8 @@ function setup(o: StageOptions, renderer: any): () => void {
     for (const f of units.values()) {
       // the dock steps aside under a sheet, so it reads nothing until it is back
       if (!f.els.some(shown) || (sheetOpen && (f.key as HTMLElement).dataset?.glassUnit === "dock")) continue;
+      // a unit holding a glass that is growing over the screen (the Journal pill in the card's shader mode) keeps its side
+      if (f.els.some((el) => (el as HTMLElement).hasAttribute("data-glass-hold"))) continue;
       const band = bandOf(f);
       if (!band) continue;
       const media = (f.key as HTMLElement).dataset?.edge === "dim";
@@ -407,6 +426,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     for (const f of units.values()) f.key.classList.remove("ctx-dark", "ctx-light");
     html.classList.remove("tabs-gpu");
     for (const e of Array.from(entries.values())) remove(e);
+    for (const [el, U] of Array.from(cssOnly)) { U.dispose(); cssOnly.delete(el); leave(el); }
     [...frosts, edgeFrost].forEach((f) => f.dispose());
     tabs.dispose();
     [pageMat, bgMat, avgMat, pageGeo, bgGeo, rawTex, prevTex, pageRT, avgRT].forEach((x) => x.dispose());

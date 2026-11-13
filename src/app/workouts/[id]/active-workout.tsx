@@ -25,9 +25,20 @@ import { exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
-import { PILL_BOTTOMS, setGlassSteppers, setPillBottom, setWorkoutVersion, VERSIONS, type PillBottom, type WorkoutVersion } from "@/lib/workout-layout";
+import {
+  PILL_BOTTOMS,
+  setGlassSteppers,
+  setJournalGlass,
+  setPillBottom,
+  setWorkoutVersion,
+  VERSIONS,
+  type JournalGlass,
+  type PillBottom,
+  type WorkoutVersion,
+} from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
+import { ZoneSoftEdge } from "@/components/soft-edge";
 import { TopBar } from "@/components/top-bar";
 import { useElapsed } from "@/components/tab-bar";
 import { cn } from "@/lib/cn";
@@ -98,12 +109,14 @@ export function ActiveWorkout({
   version: initialVersion,
   glassSteppers: initialGlass,
   pillBottom: initialPillBottom,
+  journalGlass: initialJournalGlass,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
   version: WorkoutVersion;
   glassSteppers: boolean;
   pillBottom: PillBottom;
+  journalGlass: JournalGlass;
 }) {
   // Version 1 is the pill, Version 2 the toolbar under the steppers (src/lib/workout-layout.ts), switched in More
   const [version, setVersion] = useState(initialVersion);
@@ -112,6 +125,10 @@ export function ActiveWorkout({
   // The pill's distance off the bottom, a Settings choice saved on this device (21, 27 or 32pt). It is the dock's
   // --dock-bottom while this screen is up, so the pill, the steppers above it, the Journal card and the drag all follow.
   const [pillBottom, setBottom] = useState(initialPillBottom);
+  // How the Journal pill and its card's glass are drawn, a test setting saved on this device (css, match or shader;
+  // src/lib/workout-layout.ts, journal-card.tsx)
+  const [journalGlass, setJGlass] = useState(initialJournalGlass);
+  const pillRef = useRef<HTMLDivElement>(null);
   const toolbar = version === 2;
   useLayoutEffect(() => {
     if (toolbar || pillBottom === 21) return;
@@ -543,87 +560,46 @@ export function ActiveWorkout({
         data-focus-screen
         className="fixed inset-0 touch-none select-none overflow-hidden bg-bg text-ink"
       >
+        {/* A grid, not a flex column with `order`: a flex item's `order` also reorders painting on the CSS path, while
+            grid rows place without it. Painting follows the DOM: the shown exercise (illustration, soft edges, header,
+            controls), then the timer row and progress bar, so the top soft edge blurs the illustration and not them. */}
         <main
-          className="relative flex h-full flex-col"
+          className="relative grid h-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)]"
           style={{
             paddingTop: "var(--bar-top)",
             paddingBottom: toolbar ? "calc(var(--dock-bottom) + 72px + 20px)" : `calc(var(--dock-bottom) + ${PILL.height}px + 20px)`,
           }}
         >
-          {/* The More button's row holds the timer, centred on the button; under it the exercises as Apple's progress bar
-              (blue for every logged set on the kit's Fills/Primary track, nothing else) runs the full width, under the
-              button too, as Ladder lays them out (Frank's call, 2026-11-10, Figma ZD41TUAEBtLJI7t0qChNup 11:705: the bar
-              about 14pt under the button). Tap a segment to look at that exercise. */}
-          <div className="relative z-[1] flex h-11 items-center pl-5 pr-[72px]">
-            <span className="tabular text-[17px] font-semibold leading-[22px]">
-              {elapsed == null ? "0:00" : formatClock(elapsed)}
-            </span>
-          </div>
-          <div className="relative z-[1] px-5 pt-1">
-            <div className="flex min-w-0 gap-1" role="tablist" aria-label="Exercises">
-              {entries.map((e) => {
-                const done = e.rows.filter((r) => r.set).length;
-                return (
-                  <button
-                    key={e.we.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={shown?.we.id === e.we.id}
-                    aria-label={exerciseTitle(e.we.exercises)}
-                    onClick={() => {
-                      setViewId(e.we.id === queue?.we.id ? null : e.we.id);
-                      setAnim(entries.indexOf(e) > shownIndex ? "l" : "r");
-                    }}
-                    className="min-w-0 py-2"
-                    style={{ flex: e.rows.length }}
-                  >
-                    <span className="relative block h-1 overflow-hidden rounded-full bg-fill-2">
-                      <span
-                        className="absolute inset-y-0 left-0 rounded-full bg-blue"
-                        style={{ width: `${(100 * done) / e.rows.length}%` }}
-                      />
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {shown ? (
             <div
               key={shown.we.id}
               className={cn(
                 // no z-index: it would make a stacking context and sink Glass Steppers under the WebGPU canvas
-                "relative flex min-h-0 flex-1 flex-col",
+                "relative row-start-3 grid min-h-0 grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]",
                 anim === "l" && "focus-slide-l",
                 anim === "r" && "focus-slide-r",
               )}
               onAnimationEnd={() => setAnim(null)}
             >
-              {/* First in the DOM so the header and "Last time" paint over it (the glass painter follows DOM order);
-                  `order` puts it back between them. */}
+              {/* First in the DOM so the soft edges blur it and the header and controls paint over it (the glass
+                  painter follows DOM order); its grid row puts it between them. */}
               <Art slug={ex?.slug} />
+
+              {/* Apple's soft scroll edge, edge to edge (Frank's call, 2026-11-12): from the top of the screen to 16pt
+                  under the header's text, and from the bottom to 16pt above the controls. After the illustration and
+                  before everything that stays sharp; they do not slide with the exercise (globals.css). */}
+              <ZoneSoftEdge edge="top" margin={16} zone="[data-soft-zone='top']" />
+              <ZoneSoftEdge edge="bottom" margin={16} zone="[data-soft-zone='bottom']" />
 
               {/* The same in work and rest. Its minimum height is its height with a two-line title, so a shorter title
                   leaves room under Up next and the illustration stays put. */}
               <header
-                className="relative order-first px-5"
+                className="relative row-start-1 px-5"
                 style={{ minHeight: HEADER_ROOM + 35 }}
                 aria-label={row ? rowLabel(shown.rows, rowIndex) : undefined}
               >
-                {/* The text's box, so the fade's bottom edge sits under Up next whatever the title's height */}
-                <div className="relative">
-                {/* One fade from the header's top that clears just under Up next, so it never ends in a band across the
-                    figure and stays the same whether Up next shows. First in the DOM so the text paints over it; it
-                    stops at the header because the timer row above is earlier in the DOM and would be dimmed. */}
-                <div
-                  aria-hidden
-                  className="pointer-events-none absolute -inset-x-5 top-0 -bottom-6"
-                  style={{
-                    background:
-                      "linear-gradient(rgb(var(--bg-rgb) / 0.65) 0%, rgb(var(--bg-rgb) / 0.65) calc(100% - 40px), rgb(var(--bg-rgb) / 0) 100%)",
-                  }}
-                />
+                {/* The text's box, so the top soft edge ends 16pt under Up next whatever the title's height */}
+                <div className="relative" data-soft-zone="top">
                 <SetText rows={shown.rows} current={rowIndex} className="relative mt-2.5" />
                 {/* Figma ZD41TUAEBtLJI7t0qChNup 4:48 (Frank's call, 2026-11-10): 3pt from the set to the title, 6pt to Up next */}
                 <h1 className="relative mt-[3px] text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
@@ -652,8 +628,9 @@ export function ActiveWorkout({
               </header>
 
               {/* The controls: last time and the steppers, or the rest arc, stacked in one cell so the zone is always the
-                  taller of the two; the one not in use is hidden, not removed. */}
-              <div className="relative grid items-end px-5">
+                  taller of the two; the one not in use is hidden, not removed. Positioned, so on the CSS path it stacks
+                  over the soft edge before it. */}
+              <div className="relative row-start-3 grid items-end px-5" data-soft-zone="bottom">
                 <div className={cn("[grid-area:1/1]", (resting || holding) && "invisible")}>
                   {row && value ? (
                     // One stepper per field the exercise measures: side by side, a lone one at the same half width
@@ -661,12 +638,9 @@ export function ActiveWorkout({
                     // calls, 2026-11-09)
                     measureFields.length > 0 && (
                       <>
-                        <div className="relative mb-3">
-                          <TextFade />
-                          <p className="relative text-center text-[15px] leading-[18px] text-ink-2">
-                            {row.last ? `Last time · ${summarize(measure, row.last, unit)}` : "No history yet"}
-                          </p>
-                        </div>
+                        <p className="mb-3 text-center text-[15px] leading-[18px] text-ink-2">
+                          {row.last ? `Last time · ${summarize(measure, row.last, unit)}` : "No history yet"}
+                        </p>
                         <div
                           className={cn("grid justify-center", zoneColumns > 2 ? "gap-2" : "gap-3")}
                           style={{
@@ -743,7 +717,7 @@ export function ActiveWorkout({
               </div>
             </div>
           ) : (
-            <div className="relative z-[1] flex flex-1 flex-col justify-end gap-4 px-5 pb-2">
+            <div className="relative z-[1] row-start-3 flex flex-col justify-end gap-4 px-5 pb-2">
               <div>
                 <div className="text-[15px] font-bold text-blue">
                   Every set logged
@@ -757,6 +731,46 @@ export function ActiveWorkout({
               </Button>
             </div>
           )}
+
+          {/* The More button's row holds the timer, centred on the button; under it the exercises as Apple's progress bar
+              (blue for every logged set on the kit's Fills/Primary track, nothing else) runs the full width, under the
+              button too, as Ladder lays them out (Frank's call, 2026-11-10, Figma ZD41TUAEBtLJI7t0qChNup 11:705: the bar
+              about 14pt under the button). Tap a segment to look at that exercise. After the shown exercise in the DOM,
+              so they paint over its top soft edge; their grid rows keep them at the top. */}
+          <div className="relative row-start-1 flex h-11 items-center pl-5 pr-[72px]">
+            <span className="tabular text-[17px] font-semibold leading-[22px]">
+              {elapsed == null ? "0:00" : formatClock(elapsed)}
+            </span>
+          </div>
+          <div className="relative row-start-2 px-5 pt-1">
+            <div className="flex min-w-0 gap-1" role="tablist" aria-label="Exercises">
+              {entries.map((e) => {
+                const done = e.rows.filter((r) => r.set).length;
+                return (
+                  <button
+                    key={e.we.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={shown?.we.id === e.we.id}
+                    aria-label={exerciseTitle(e.we.exercises)}
+                    onClick={() => {
+                      setViewId(e.we.id === queue?.we.id ? null : e.we.id);
+                      setAnim(entries.indexOf(e) > shownIndex ? "l" : "r");
+                    }}
+                    className="min-w-0 py-2"
+                    style={{ flex: e.rows.length }}
+                  >
+                    <span className="relative block h-1 overflow-hidden rounded-full bg-fill-2">
+                      <span
+                        className="absolute inset-y-0 left-0 rounded-full bg-blue"
+                        style={{ width: `${(100 * done) / e.rows.length}%` }}
+                      />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </main>
       </div>
 
@@ -824,12 +838,17 @@ export function ActiveWorkout({
           </div>
         ) : (
           <div
-            // While the Journal card is up only the pill's content hides: its glass stays, under the card, which has no
-            // material of its own until it fades in, so nothing swaps as the card mounts or unmounts (Frank's call,
-            // 2026-11-12). On the WebGPU path the dock's glass is drawn whatever its visibility, so this also matches it.
+            ref={pillRef}
+            // While the Journal card is up the card's header draws the pill's content in the same place, so the pill's
+            // own content hides. How its glass hands over follows the Journal glass setting (journal-card.tsx): css, the
+            // pill is CSS glass and hides whole, the card starting as the same CSS glass; match, the pill stays shader
+            // glass and the stage stops drawing it (data-glass-hidden, set by the card); shader, the pill itself grows
+            // with the card (.pill-grow).
             className={cn(
               "glass pointer-events-auto relative mx-4 flex h-[70px] touch-none select-none items-center px-4 [--r:24px]",
-              cardOpen && "*:invisible",
+              journalGlass === "css" && "glass-css",
+              cardOpen && (journalGlass === "css" ? "invisible" : "*:invisible"),
+              cardOpen && journalGlass === "shader" && "pill-grow",
             )}
             onPointerDown={onPillDown}
           >
@@ -923,6 +942,29 @@ export function ActiveWorkout({
               />
             </Group>
           )}
+          {!toolbar && (
+            <Group
+              title="Journal glass"
+              footer="For testing: how the pill and the Journal it grows into are drawn. CSS is the same CSS glass on both, Matched swaps the pill's shader glass for CSS as the Journal opens, Shader grows the pill's shader glass the whole way. Saved on this device only."
+            >
+              <Segmented
+                label="Journal glass"
+                value={journalGlass}
+                options={[
+                  ["css", "CSS"],
+                  ["match", "Matched"],
+                  ["shader", "Shader"],
+                ]}
+                onChange={(v) => {
+                  const next: JournalGlass = v === "match" || v === "shader" ? v : "css";
+                  // the card reads the mode when it mounts, so a change closes it
+                  setCardOpen(null);
+                  setJGlass(next);
+                  setJournalGlass(next);
+                }}
+              />
+            </Group>
+          )}
           <Group title="Steppers" footer="Liquid Glass behind the steppers. Saved on this device only.">
             <SwitchRow
               label="Glass Steppers"
@@ -941,6 +983,8 @@ export function ActiveWorkout({
         key={`card-${journalKey}`}
         controlRef={card}
         startRef={cardP}
+        glass={journalGlass}
+        pillRef={pillRef}
         openOnMount={cardOpen === "tap"}
         onClosed={() => setCardOpen(null)}
         check={logCheck}
@@ -1049,8 +1093,8 @@ const HEADER_ROOM = 87;
 /**
  * The illustration: the screen's width, square, centred in the space between the header and the controls and never
  * resized (Frank's call, 2026-11-08, from the Fixed Stage prototype). Both zones hold their tallest size, so this space
- * is the same on every set; the image overlaps each zone by the same amount. Above it, one fade runs from the header's top to
- * just under Up next; below it, `TextFade` sits behind Last time and hides with it.
+ * is the same on every set; the image overlaps each zone by the same amount. Where it does, the soft scroll edges after
+ * it in the DOM blur and tint it (`ZoneSoftEdge`, src/components/soft-edge.tsx). The middle row of the exercise's grid.
  */
 function Art({ slug }: { slug: string | null | undefined }) {
   const box = useRef<HTMLDivElement>(null);
@@ -1065,7 +1109,7 @@ function Art({ slug }: { slug: string | null | undefined }) {
     return () => ro.disconnect();
   }, []);
   return (
-    <div ref={box} className="relative min-h-0 flex-1">
+    <div ref={box} className="relative row-start-2 min-h-0">
       {hasExerciseImage(slug) && size > 0 && (
         // eslint-disable-next-line @next/next/no-img-element -- sized WebP, positioned by measurement
         <img
@@ -1077,23 +1121,6 @@ function Art({ slug }: { slug: string | null | undefined }) {
         />
       )}
     </div>
-  );
-}
-
-/**
- * A soft band in the screen's colour behind one line of text over the illustration: clear at both edges, so it never
- * ends in a hard line across the figure, and full width. It lives inside the text's own box, so it hides with it.
- */
-function TextFade() {
-  return (
-    <div
-      aria-hidden
-      className="pointer-events-none absolute -inset-x-10 -inset-y-4"
-      style={{
-        background:
-          "linear-gradient(rgb(var(--bg-rgb) / 0) 0%, rgb(var(--bg-rgb) / 0.65) 35%, rgb(var(--bg-rgb) / 0.65) 65%, rgb(var(--bg-rgb) / 0) 100%)",
-      }}
-    />
   );
 }
 

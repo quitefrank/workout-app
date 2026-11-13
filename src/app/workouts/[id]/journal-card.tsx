@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, type MutableRefObject, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type MutableRefObject, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, PlayIcon, SfXmarkIcon, SkipIcon, StopIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
+import type { JournalGlass } from "@/lib/workout-layout";
 import { closesOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
 
 /**
@@ -19,6 +20,15 @@ import { closesOnRelease, progressFor, travel } from "@/lib/workout/journal-card
  *
  * The parent drives it: `controlRef` sets the progress while a finger drags the pill and settles it open or closed. The card
  * is CSS on both glass paths (`data-unpainted`), as sheets are, and above the canvas.
+ *
+ * How the glass is drawn is a test setting (`glass`, src/lib/workout-layout.ts):
+ * - `css`: the pill is CSS glass (`glass-css`) and hidden whole while the card is up; the card's first layer is the same
+ *   CSS glass, crossfading to the opaque fill over the first fifth of the travel.
+ * - `match`: the pill stays shader glass, hidden by the stage (`data-glass-hidden`) while the card is up; the card starts
+ *   with the same CSS glass layer.
+ * - `shader`: the pill element itself follows the card's geometry (`.pill-grow`, the same calc() on a mirrored `--jp`), so
+ *   the stage draws one growing shader shape; the card over it has no glass and its fill comes in late. The shader glass
+ *   is hidden once the card has settled open, and the unit keeps its side while it grows (`data-glass-hold`).
  */
 
 export type CardControl = { setP: (p: number) => void; settle: (to: 0 | 1) => void };
@@ -31,6 +41,8 @@ export function JournalCard({
   startRef,
   openOnMount,
   onClosed,
+  glass,
+  pillRef,
   check,
   title,
   dots,
@@ -38,6 +50,10 @@ export function JournalCard({
   children,
 }: {
   controlRef: MutableRefObject<CardControl | null>;
+  /** how the pill and the card's glass are drawn (the Journal glass setting) */
+  glass: JournalGlass;
+  /** the pill in the dock: its unit's side is copied onto the card's glass layer, and in `shader` mode it grows */
+  pillRef: RefObject<HTMLDivElement | null>;
   /** where the card starts: the finger's progress if a drag opened it, else 0 */
   startRef: MutableRefObject<number>;
   /** a tap or a swipe opened it: grow to open on mount */
@@ -52,26 +68,79 @@ export function JournalCard({
   children: ReactNode;
 }) {
   const stage = useRef<HTMLDivElement>(null);
+  const glassLayer = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
   const closedRef = useRef(onClosed);
   useEffect(() => {
     closedRef.current = onClosed;
   }, [onClosed]);
 
+  // The card's glass layer takes the pill's side (its unit's ctx-dark / ctx-light and, on the CSS path, its haze), so it
+  // is the pill's material exactly, and follows the unit if it flips while the card is up
+  useLayoutEffect(() => {
+    const layer = glassLayer.current;
+    const pill = pillRef.current;
+    if (!layer || !pill) return;
+    const unit = pill.closest<HTMLElement>("[data-glass-unit]") ?? pill;
+    const copy = () => {
+      layer.classList.toggle("ctx-dark", unit.classList.contains("ctx-dark"));
+      layer.classList.toggle("ctx-light", unit.classList.contains("ctx-light"));
+      const haze = unit.style.getPropertyValue("--haze-grey");
+      if (haze) layer.style.setProperty("--haze-grey", haze);
+      else layer.style.removeProperty("--haze-grey");
+    };
+    copy();
+    const observer = new MutationObserver(copy);
+    observer.observe(unit, { attributes: true, attributeFilter: ["class", "style"] });
+    return () => observer.disconnect();
+  }, [pillRef]);
+
   useLayoutEffect(() => {
     const el = stage.current;
     if (!el) return;
+    const pill = pillRef.current;
+    // shader mode: the pill grows with the card (its .pill-grow class is set by the parent while the card is mounted)
+    const grow = glass === "shader" ? pill : null;
+    // where the pill's containing block (the dock) sits against the card's stage, so .pill-grow can run .jcard's calc()
+    const place = () => {
+      const dock = grow?.parentElement;
+      if (!grow || !dock) return;
+      const s = el.getBoundingClientRect(), d = dock.getBoundingClientRect();
+      grow.style.setProperty("--jc-dt", `${s.top - d.top}px`);
+      grow.style.setProperty("--jc-dl", `${s.left - d.left}px`);
+      grow.style.setProperty("--jc-dr", `${d.right - s.right}px`);
+      grow.style.setProperty("--jc-db", `${d.bottom - s.bottom}px`);
+      grow.style.setProperty("--jc-sh", `${s.height}px`);
+    };
+    place();
+    if (grow) grow.setAttribute("data-glass-hold", "");
+    // match mode: the stage stops drawing the pill's shader glass while the card's CSS glass stands in for it
+    if (glass === "match" && pill) pill.setAttribute("data-glass-hidden", "");
+    window.addEventListener("resize", place);
     let timer = 0;
     const setP = (p: number) => {
       el.classList.remove("settling");
       el.style.setProperty("--jp", String(p));
+      if (grow) {
+        grow.removeAttribute("data-settling");
+        grow.removeAttribute("data-glass-hidden");
+        grow.style.setProperty("--jp", String(p));
+      }
     };
     const settle = (to: 0 | 1) => {
       el.classList.add("settling");
       el.style.setProperty("--jp", String(to));
+      if (grow) {
+        grow.setAttribute("data-settling", "");
+        grow.removeAttribute("data-glass-hidden");
+        grow.style.setProperty("--jp", String(to));
+      }
       window.clearTimeout(timer);
       timer = window.setTimeout(() => {
         el.classList.remove("settling");
+        grow?.removeAttribute("data-settling");
+        // open and opaque: the growing shader glass is covered, so stop drawing it
+        if (to === 1) grow?.setAttribute("data-glass-hidden", "");
         if (to === 0) closedRef.current();
       }, SETTLE_MS);
     };
@@ -87,7 +156,14 @@ export function JournalCard({
     }
     return () => {
       window.clearTimeout(timer);
+      window.removeEventListener("resize", place);
       controlRef.current = null;
+      pill?.removeAttribute("data-glass-hidden");
+      if (grow) {
+        grow.removeAttribute("data-glass-hold");
+        grow.removeAttribute("data-settling");
+        for (const v of ["--jp", "--jc-dt", "--jc-dl", "--jc-dr", "--jc-db", "--jc-sh"]) grow.style.removeProperty(v);
+      }
     };
     // mount only: the parent keys the card per opening
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -129,8 +205,20 @@ export function JournalCard({
   };
 
   return createPortal(
-    <div ref={stage} data-unpainted className="jcard-stage" role="dialog" aria-modal="true" aria-label="Journal">
+    <div
+      ref={stage}
+      data-unpainted
+      data-glass-mode={glass}
+      className="jcard-stage"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Journal"
+    >
       <div className="jcard-scrim" onClick={() => controlRef.current?.settle(0)} />
+      {/* the pill's CSS glass, exactly, as the card's first layer; it hands over to the opaque fill early in the travel.
+          None in shader mode, where the pill itself grows under the card. */}
+      {/* data-glass-skip: never its own unit for the CSS path's context sampler; it takes the pill's side (above) */}
+      {glass !== "shader" && <div ref={glassLayer} aria-hidden data-glass-skip className="glass glass-css jcard-glass" />}
       <div className="jcard">
         <div
           className="jcard-head touch-none select-none"

@@ -1145,16 +1145,18 @@ html.gpu .glass {
   z-index: 6;
 }
 
-/* The shader draws the glass in the bars. Sheets, menus and any control on them stay on the CSS material. */
-html.gpu .glass:not(:is(.glass-sheet, .jcard) .glass) {
+/* The shader draws the glass in the bars. Sheets, menus and any control on them stay on the CSS material, and so does
+   `.glass-css` (the Journal pill and the card's glass layer in the Journal glass setting's CSS modes), which the stage
+   skips. */
+html.gpu .glass:not(.glass-css, :is(.glass-sheet, .jcard) .glass) {
   background: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow: none;
 }
 
-html.gpu .glass:not(:is(.glass-sheet, .jcard) .glass)::before,
-html.gpu .glass:not(:is(.glass-sheet, .jcard) .glass)::after {
+html.gpu .glass:not(.glass-css, :is(.glass-sheet, .jcard) .glass)::before,
+html.gpu .glass:not(.glass-css, :is(.glass-sheet, .jcard) .glass)::after {
   display: none;
 }
 
@@ -1309,24 +1311,44 @@ html.keyboard .sheet-body {
     inset: 0;
     background: rgb(0 0 0 / calc(var(--scrim-alpha) * var(--jp)));
   }
-  .jcard {
+  /* The card and its glass layer share one geometry (and .pill-grow below repeats it for the pill in shader mode) */
+  .jcard,
+  .jcard-stage > .jcard-glass {
     position: absolute;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
     top: calc((100% - var(--dock-bottom) - 70px) * (1 - var(--jp)) + 62px * var(--jp));
     left: calc(16px * (1 - var(--jp)));
     right: calc(16px * (1 - var(--jp)));
     bottom: calc(var(--dock-bottom) * (1 - var(--jp)));
     border-radius: calc(24px + 14px * var(--jp)) calc(24px + 14px * var(--jp)) calc(24px * (1 - var(--jp))) calc(24px * (1 - var(--jp)));
-    /* No material of its own (Frank's call, 2026-11-12): the pill's real glass stays on screen under the card, its content
-       hidden, so at --jp 0 the card is only the pill's content over the pill and nothing swaps when it mounts or unmounts.
-       The card fades in as a plain opaque sheet over the first quarter of the travel; it always contains the pill's box,
-       so by then the pill is covered. Open, it is a sheet with no glass. */
-    background: rgb(var(--bg-rgb) / min(1, calc(var(--jp) * 4)));
+  }
+  /* The Journal glass setting (src/lib/workout-layout.ts), on the stage as data-glass-mode. css and match: the card's
+     first layer is the pill's CSS glass, exactly (its side copied from the pill's unit), going 1 to 0 while the opaque
+     fill goes 0 to 1, both over the first fifth of the travel, so nothing reads through for long. shader: no glass layer;
+     the pill itself grows under the card, which stays clear until its fill comes in from 0.6 to 1, and the scrim is off,
+     since it would sit over the canvas's glass. */
+  .jcard-stage > .jcard-glass {
+    pointer-events: none;
+    opacity: clamp(0, calc(1 - var(--jp) / 0.2), 1);
+  }
+  .jcard {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    --jfill: clamp(0, calc((var(--jp) - var(--jfill-at, 0)) / var(--jfill-span, 0.2)), 1);
+    background: rgb(var(--bg-rgb) / var(--jfill));
     box-shadow: 0 -10px 40px rgb(0 0 0 / calc(0.45 * var(--jp)));
     /* the app's colours, in light and dark (the elevated set in dark, above) */
     color: var(--ink);
+  }
+  .jcard-stage[data-glass-mode="shader"] {
+    --jfill-at: 0.6;
+    --jfill-span: 0.4;
+  }
+  .jcard-stage[data-glass-mode="shader"] > .jcard {
+    box-shadow: 0 -10px 40px rgb(0 0 0 / calc(0.45 * var(--jfill)));
+  }
+  .jcard-stage[data-glass-mode="shader"] > .jcard-scrim {
+    display: none;
   }
   /* 70pt both ways: the pill's 16pt around a 38pt circle becomes the sheet toolbar's 16pt grabber band, a 44pt check and
      10pt under it. The check keeps its 16pt edge inside the card and grows in place; the text sits 10pt after it in the
@@ -1400,6 +1422,40 @@ html.standalone .jcard-stage {
   height: var(--screen-h);
 }
 
+/* Unlayered, so it beats html.gpu .glass's lift: the card's glass layer stays under the card's content */
+.jcard-stage > .glass.jcard-glass {
+  z-index: 0;
+}
+
+/* Shader mode: the pill itself takes the card's geometry, so the stage draws one growing glass shape. Its containing
+   block is the dock, so journal-card.tsx measures where the card's stage sits against the dock (--jc-*) and the calc()
+   is .jcard's with those offsets. --jp and its settle are mirrored onto the pill. Unlayered, to beat the pill's Tailwind
+   utilities (relative, mx-4, h-[70px]). */
+.glass.pill-grow {
+  position: absolute;
+  margin: 0;
+  height: auto;
+  top: calc(var(--jc-dt, 0px) + (var(--jc-sh, 100vh) - var(--dock-bottom) - 70px) * (1 - var(--jp)) + 62px * var(--jp));
+  left: calc(var(--jc-dl, 0px) + 16px * (1 - var(--jp)));
+  right: calc(var(--jc-dr, 0px) + 16px * (1 - var(--jp)));
+  bottom: calc(var(--jc-db, 0px) + var(--dock-bottom) * (1 - var(--jp)));
+  border-radius: calc(24px + 14px * var(--jp)) calc(24px + 14px * var(--jp)) calc(24px * (1 - var(--jp))) calc(24px * (1 - var(--jp)));
+}
+.glass.pill-grow[data-settling] {
+  transition: --jp 0.44s cubic-bezier(0.2, 0.9, 0.25, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .glass.pill-grow[data-settling] {
+    transition-duration: 0.01s;
+  }
+}
+
+/* data-glass-hidden hides the shader's copy on the WebGPU path (stage.ts); on the CSS path the element's own material
+   hides (the pill's content is already invisible while the card is up) */
+html:not(.gpu) .glass[data-glass-hidden] {
+  visibility: hidden;
+}
+
 @keyframes pill-check-fill {
   0% {
     transform: scale(0.6);
@@ -1428,4 +1484,23 @@ html.standalone .jcard-stage {
   .body-map path[data-g="Hamstrings"] { fill: var(--heat-Hamstrings); stroke: var(--sel-Hamstrings, none); }
   .body-map path[data-g="Glutes"] { fill: var(--heat-Glutes); stroke: var(--sel-Glutes, none); }
   .body-map path[data-g="Calves"] { fill: var(--heat-Calves); stroke: var(--sel-Calves, none); }
+}
+
+/* Soft scroll edge (src/components/soft-edge.tsx): each band's blur comes from --soft-blur. Under html.gpu an edge in
+   the painted page is drawn by the painter (src/glass/paint/paint.ts) and its CSS layers sit unseen under the canvas, so
+   their blur is turned off; a live edge (over the canvas, as the Start Workout button's) keeps it. The active workout's
+   edges stay put while the exercise slides in. */
+@layer components {
+  .soft-edge-blur {
+    backdrop-filter: var(--soft-blur);
+    -webkit-backdrop-filter: var(--soft-blur);
+  }
+  html.gpu .soft-edge:not(.soft-edge-live) > .soft-edge-blur {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .focus-slide-l > .soft-edge,
+  .focus-slide-r > .soft-edge {
+    animation: none;
+  }
 }

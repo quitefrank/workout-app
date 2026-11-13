@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { glassSteppersFrom, pillBottomFrom, workoutVersionFrom } from "../workout-layout";
+import { glassSteppersFrom, journalGlassFrom, pillBottomFrom, workoutVersionFrom } from "../workout-layout";
+
+describe("journalGlassFrom", () => {
+  it("is css, match or shader, and css for anything else", () => {
+    expect(journalGlassFrom(() => undefined)).toBe("css");
+    expect(journalGlassFrom((n) => (n === "workout_journal_glass" ? "match" : undefined))).toBe("match");
+    expect(journalGlassFrom((n) => (n === "workout_journal_glass" ? "shader" : undefined))).toBe("shader");
+    expect(journalGlassFrom((n) => (n === "workout_journal_glass" ? "css" : undefined))).toBe("css");
+    expect(journalGlassFrom((n) => (n === "workout_journal_glass" ? "gpu" : undefined))).toBe("css");
+  });
+});
 
 describe("glassSteppersFrom", () => {
   it("is on only when its cookie says 1", () => {

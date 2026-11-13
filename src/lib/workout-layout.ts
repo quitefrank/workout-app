@@ -60,3 +60,28 @@ export function pillBottomFrom(get: (name: string) => string | undefined): PillB
 export function setPillBottom(pt: PillBottom) {
   document.cookie = `${PILL_BOTTOM_COOKIE}=${pt}; path=/; max-age=31536000; samesite=lax`;
 }
+
+/**
+ * How the Journal pill and the card it grows into are drawn (2026-11-12, a test setting for comparing on the phone). A
+ * Settings choice in the pill version, saved per device; `css` unless set.
+ *
+ * - `css`: the pill is CSS glass on every path, and the card starts as the same CSS glass, crossfading to an opaque
+ *   sheet over the first fifth of its travel. Nothing swaps at mount or unmount.
+ * - `match`: the pill stays shader glass; the stage hides it while the card is up and the card starts as the CSS glass,
+ *   so a small shader to CSS swap shows as it mounts.
+ * - `shader`: the pill itself grows with the card, so one shader glass shape is drawn the whole way; the card over it
+ *   is transparent until an opaque fill comes in late.
+ */
+export const JOURNAL_GLASSES = ["css", "match", "shader"] as const;
+export type JournalGlass = (typeof JOURNAL_GLASSES)[number];
+
+export const JOURNAL_GLASS_COOKIE = "workout_journal_glass";
+
+export function journalGlassFrom(get: (name: string) => string | undefined): JournalGlass {
+  const v = get(JOURNAL_GLASS_COOKIE);
+  return (JOURNAL_GLASSES as readonly string[]).includes(v ?? "") ? (v as JournalGlass) : "css";
+}
+
+export function setJournalGlass(glass: JournalGlass) {
+  document.cookie = `${JOURNAL_GLASS_COOKIE}=${glass}; path=/; max-age=31536000; samesite=lax`;
+}

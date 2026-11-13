@@ -6,6 +6,7 @@
  * decoding (`pending`) do.
  */
 import { parseBoxShadows, parseColor, parseLinearGradients, parseLinearTransform, type Gradient, type Linear, type Shadow } from "./css";
+import { SOFT_EDGE } from "@/components/soft-edge";
 import { svgImage } from "./svg";
 import { inputTextItems, textItems, type Metrics } from "./text";
 
@@ -21,7 +22,10 @@ export type Item =
   | (Base & { k: "box"; x: number; y: number; w: number; h: number; radii: number[]; color: string | null; gradients: Gradient[]; shadows: Shadow[]; border: { w: number; color: string } | null })
   | (Base & { k: "line"; x: number; y: number; w: number; h: number; color: string })
   | (Base & { k: "text"; x: number; y: number; text: string; font: string; color: string; letterSpacing: string; maxWidth: number | null; shadow: Shadow | null })
-  | (Base & { k: "image"; x: number; y: number; w: number; h: number; img: CanvasImageSource; tf: ImageTransform | null });
+  | (Base & { k: "image"; x: number; y: number; w: number; h: number; img: CanvasImageSource; tf: ImageTransform | null })
+  /** Apple's soft scroll edge (src/components/soft-edge.tsx): blur what is painted so far in the box, growing toward
+   *  `edge`, then the screen's colour fading in toward it */
+  | (Base & { k: "soft"; x: number; y: number; w: number; h: number; edge: "top" | "bottom"; blur: number; tint: string });
 
 /** `sticky`: the list holds a sticky element, whose place depends on the scroll, so the stage rebuilds on scroll. */
 export type DisplayList = { items: Item[]; bg: string; pending: boolean; sticky: boolean };
@@ -83,6 +87,14 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     const x = r.left + ox, y = r.top + oy, w = r.width, h = r.height;
     const visible = cs.visibility !== "hidden";
     const base = { fixed: isFixed, clip, alpha: a };
+    // a soft edge is one item; its CSS layers are the fallback's and are not walked
+    const edge = (el as HTMLElement).dataset?.softEdge;
+    if (edge === "top" || edge === "bottom") {
+      const rgb = cs.getPropertyValue("--bg-rgb").trim().split(/[\s,]+/).map(Number);
+      const tint = rgb.length >= 3 && rgb.every(Number.isFinite) ? `${rgb[0]}, ${rgb[1]}, ${rgb[2]}` : "0, 0, 0";
+      if (visible && w > 0 && h > 0) items.push({ k: "soft", x, y, w, h, edge, blur: SOFT_EDGE.blur, tint, ...base });
+      return false;
+    }
     const radii = cornerRadii([cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius], w, h);
     const bw = [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth].map((v) => parseFloat(v) || 0);
 
