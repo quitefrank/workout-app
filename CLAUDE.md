@@ -874,7 +874,8 @@ lifts over the canvas while typing.
   CSS glass (`glass-css`, which the stage leaves to CSS but keeps in its unit for the light/dark rule) and hides while the
   card is up; the card's first layer (`.jcard-glass`) is the same glass with the pill's side copied onto it, staying whole
   under the card while the opaque fill comes in over the first fifth of the travel; its blur goes from the pill's own to a
-  30pt frost within the first 6%, so nothing reads through unblurred (Frank's call, 2026-11-12, after Ladder's frosted
+  20pt frost within the first 6% (30pt lagged on the phone; the pill's saturation and luminosity layer ease out over
+  the same 6%, each a costly pass on a blur redrawn every frame), so nothing reads through unblurred (Frank's call, 2026-11-12, after Ladder's frosted
   Journal, keeping our faster ramp because our card's content is opaque), and it switches off past a quarter. Matched: the pill stays shader glass and the stage hides it
   (`data-glass-hidden`) behind the same CSS layer. Shader: the pill itself follows the card's geometry (`.pill-grow`,
   `--jp` mirrored, offsets as `--jc-*`), keeps its side while growing (`data-glass-hold`) and hides once settled open;

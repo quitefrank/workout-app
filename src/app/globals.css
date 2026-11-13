@@ -1334,9 +1334,18 @@ html.keyboard .sheet-body {
   .jcard-stage > .jcard-glass {
     pointer-events: none;
     opacity: clamp(0, calc((0.25 - var(--jp)) * 1000), 1);
-    --jglass-frost: calc(var(--glass-blur) + (30px - var(--glass-blur)) * clamp(0, calc(var(--jp) / 0.06), 1));
-    -webkit-backdrop-filter: blur(var(--jglass-frost)) saturate(var(--glass-sat));
-    backdrop-filter: blur(var(--jglass-frost)) saturate(var(--glass-sat));
+    /* 0 at the pill, 1 by 6% of the travel. The frost is 20pt (30 read the same under the fill but lagged on the phone,
+       2026-11-12), and the pill's saturation and luminosity layer ease out over the same 6%, each a costly pass on a
+       blur that is redrawn every frame as the card grows. */
+    --jglass-t: clamp(0, calc(var(--jp) / 0.06), 1);
+    --jglass-frost: calc(var(--glass-blur) + (20px - var(--glass-blur)) * var(--jglass-t));
+    /* --glass-sat is 140%; a percentage cannot mix with a number in calc(), so its value is written as 1.4 here */
+    --jglass-sat: calc(1.4 - 0.4 * var(--jglass-t));
+    -webkit-backdrop-filter: blur(var(--jglass-frost)) saturate(var(--jglass-sat));
+    backdrop-filter: blur(var(--jglass-frost)) saturate(var(--jglass-sat));
+  }
+  .jcard-stage > .jcard-glass::before {
+    opacity: calc(var(--glass-lum) * (1 - var(--jglass-t)));
   }
   .jcard {
     display: flex;
