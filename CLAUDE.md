@@ -899,8 +899,8 @@ chevron over an invisible native select), both in `src/components/settings-rows.
 (`src/components/segmented.tsx`) switches a view and never sets a value. The toggle is the kit's `Toggle - Switch`
 (Figma `wH8YZbekJXNew109clIJz1` 29:56814): a 64 × 28 track, green on and Labels/Tertiary off, a 38 × 24 white knob 2pt
 in, swelling while pressed into a 58 × 38 clear glass capsule over the track (`src/components/toggle.tsx`, values tested
-in `src/lib/toggle.ts`). Every switch in the app is this one, the finish sheet's Keep swaps included. The active
-workout's Settings sheet still sets Journal glass with a segmented control.
+in `src/lib/toggle.ts`). Every switch in the app is this one, the finish sheet's Keep swaps included, and the active
+workout's Settings sheet sets Journal glass with a `SelectRow`.
 
 ## Colours: Apple's iOS 27 system colours
 

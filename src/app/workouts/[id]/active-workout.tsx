@@ -23,7 +23,8 @@ import { Button } from "@/components/button";
 import { exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
-import { Group, Segmented } from "@/components/segmented";
+import { Group } from "@/components/segmented";
+import { SelectRow } from "@/components/settings-rows";
 import { setJournalGlass, type JournalGlass, type WorkoutVersion } from "@/lib/workout-layout";
 import { ActionMenu, ActionSheet } from "@/components/pop-up-menu";
 import { exitAsk } from "@/lib/workout/confirm";
@@ -990,7 +991,7 @@ export function ActiveWorkout({
               title="Journal glass"
               footer="For testing: how the pill and the Journal it grows into are drawn. CSS is the same CSS glass on both, Matched swaps the pill's shader glass for CSS as the Journal opens, Shader grows the pill's shader glass the whole way. Saved on this device only."
             >
-              <Segmented
+              <SelectRow
                 label="Journal glass"
                 value={journalGlass}
                 options={[
