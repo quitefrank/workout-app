@@ -140,6 +140,14 @@
      (node 5660:57681) and Photos measure (21.0pt on the device, 2026-10-25) */
   --dock-bottom: 21px;
   --dock-h: calc(62px + var(--dock-bottom));
+  /* The bar pinned at the bottom (the tab bar, or Start Workout where the tab bar hides): a screen's last section ends
+     as far above it as it sits above the screen's bottom (Frank's call, 2026-11-13) */
+  --bottom-bar-h: 62px;
+}
+
+/* Start Workout's 50pt button stands in for the tab bar on a workout's page */
+html:has([data-bottom-bar="button"]) {
+  --bottom-bar-h: 50px;
 }
 
 /* The phone's dark appearance, unless Settings picked light on this device */

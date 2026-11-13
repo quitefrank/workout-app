@@ -43,6 +43,8 @@ export function StartTemplate({ templateId }: { templateId: string }) {
       // pinned as the docks are: a home screen app's window can be 50pt short, so there this column is placed from the
       // top at the screen's height and bottom-aligns its child (data-screen-bottom, html.standalone in globals.css)
       data-screen-bottom
+      // the page's last section ends 21pt above the button, as above the tab bar elsewhere (--bottom-bar-h)
+      data-bottom-bar="button"
       className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col", pushIn)}
       style={{ paddingBottom: "var(--dock-bottom)" }}
     >
