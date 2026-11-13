@@ -94,7 +94,7 @@ export function FinishSheet({
             aria-checked={keep}
             aria-label="Keep swaps in this workout"
             onClick={() => setKeep(!keep)}
-            className={cn("relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors", keep ? "bg-green" : "bg-fill-2")}
+            className={cn("relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors", keep ? "bg-green" : "bg-ink-3")}
           >
             <span className={cn("absolute left-0.5 top-0.5 size-[27px] rounded-full bg-white shadow transition-transform", keep && "translate-x-5")} />
           </button>

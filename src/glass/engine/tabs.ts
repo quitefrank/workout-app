@@ -145,7 +145,7 @@ export function makeTabsLayer(THREE: any, T: any, o: Opts) {
       if (key !== inkKey || pending) { inkKey = key; drawInk(bar, rect, swell, bw, bh); }
       const now = performance.now(), f = lastT ? Math.min(1, ((now - lastT) / 250) * 3) : 1; lastT = now;
       const cs = getComputedStyle(bar);
-      const inkGoal = rgbOf(cs.getPropertyValue("--glass-ink").trim(), [1, 1, 1]), accGoal = rgbOf(cs.getPropertyValue("--glass-ink-on").trim(), [0.04, 0.52, 1]);
+      const inkGoal = rgbOf(cs.getPropertyValue("--glass-ink").trim(), [1, 1, 1]), accGoal = rgbOf(cs.getPropertyValue("--glass-ink-on").trim(), [0, 0.569, 1]);
       ink = ink ? ink.map((v, i) => v + (inkGoal[i] - v) * f) : inkGoal;
       acc = acc ? acc.map((v, i) => v + (accGoal[i] - v) * f) : accGoal;
       const cx = rect.left + rect.width / 2 - W / 2, cy = H / 2 - (rect.top + rect.height / 2);

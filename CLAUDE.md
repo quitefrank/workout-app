@@ -881,9 +881,16 @@ The active workout, sheets and the Journal follow the appearance like every othe
 A sheet redefines the same tokens to the dark column on the right (Apple's elevated set), so a card on a sheet steps up
 by itself; light has no elevated set. Fades over the active workout's illustration use the screen token. Text people need
 to read uses secondary; tertiary is for placeholders, chevrons, disabled items and icons in empty art. Text over images
-or a coloured tile stays fixed white. The gold record icon gets a token (`#b38f00` light, `#ffd60a` dark). In `globals.css`
-the dark elevated set is a rule on `.glass-sheet` and `.jcard`. The status bar colour and the manifest use `#000000` in
-dark. Blue is still the older `#007aff` / `#0a84ff` (the kit's iOS 27 blues, `#0088ff` / `#0091ff`, are not adopted).
+or a coloured tile stays fixed white. The gold record icon gets a token (`#b38f00` light, kept dark
+for legibility on white, and the kit's yellow `#ffd600` dark). In `globals.css` the dark elevated set is a rule on
+`.glass-sheet` and `.jcard`. The status bar colour and the manifest use `#000000` in dark.
+
+Every colour comes from the kit (Frank's call, 2026-11-13: "We should be using the kit's blue across the board"). The
+accents are the kit's Accents (Colors page 0:1746), light / dark: blue `#0088ff` / `#0091ff` (also the tab bar's
+selected ink), red `#ff383c` / `#ff4245`, orange `#ff8d28` / `#ff9230`, green `#34c759` / `#30d158`. Fills: `--fill` is
+Fills/Tertiary (12% / 24%), which the kit's Bordered button and the stepper halves sit on, so a gray button is `bg-fill`;
+`--fill-2` is Fills/Primary (20% / 36%) for tracks. A toggle's off track is Labels/Tertiary (`bg-ink-3`). A colour the
+kit has must not be typed as another value; one it lacks (gold light, the illustration and heat-map tones) is named here.
 
 ## Active workout
 

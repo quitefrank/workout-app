@@ -36,7 +36,8 @@ function styleOf(style: ButtonStyle, tone: ButtonTone) {
     case "tinted":
       return { className: "", css: { background: `color-mix(in srgb, ${t} 15%, transparent)`, color: t } };
     case "gray":
-      return { className: "bg-fill-2", css: { color: t } };
+      // the kit's Bordered button: Fills/Tertiary under an accent label (Figma 40:59288, Frank's call, 2026-11-13)
+      return { className: "bg-fill", css: { color: t } };
     case "white":
       return { className: "bg-white text-black", css: {} };
     case "veil":

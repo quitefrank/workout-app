@@ -35,14 +35,14 @@
   --gold: #b38f00;
   --fill: rgba(118, 118, 128, 0.12);
   --fill-2: rgba(118, 118, 128, 0.2);
-  --blue: #007aff;
+  --blue: #0088ff; /* kit Accents/Blue (iOS 27, Figma wH8YZbekJXNew109clIJz1 Colors) */
   /* Glass Prominent: the kit's Accents/Blue, its edge glow and its drop shadow (prominentMaterial in src/glass/presets.ts) */
   --glass-prominent: #0088ff;
   --glass-prominent-glow: rgba(255, 255, 255, 0.157);
   --glass-prominent-cast: rgba(0, 0, 0, 0.02);
-  --red: #ff3b30;
+  --red: #ff383c;
   --green: #34c759;
-  --orange: #ff9500;
+  --orange: #ff8d28;
 
   /* Muscle diagrams, Notion's tones: outline, body, the worked muscle, and the tile behind them */
   --muscle-line: #454545;
@@ -91,7 +91,7 @@
     0 0 0 0.5px rgba(0, 0, 0, 0.08), -1px 0 0 0 rgba(0, 0, 0, 0.1), 1px 0 0 0 rgba(0, 0, 0, 0.1),
     0 8px 15px rgba(0, 0, 0, 0.03);
   --gl-ink: #1a1a1a;
-  --gl-ink-on: #007aff;
+  --gl-ink-on: #0088ff;
   --gl-pill: rgba(0, 0, 0, 0.07);
 
   /* Dark side: Haze 50% toward 0.2 + 0.7 x what is behind, black lift 1, Light 35%,
@@ -111,7 +111,7 @@
     0 0 0 0.5px rgba(0, 0, 0, 0.35), -0.5px 0 0 0 rgba(0, 0, 0, 0.35), 0.5px 0 0 0 rgba(0, 0, 0, 0.35),
     0 8px 15px rgba(0, 0, 0, 0.04);
   --gd-ink: #f5f5f5;
-  --gd-ink-on: #0a84ff;
+  --gd-ink-on: #0091ff;
   --gd-pill: rgba(0, 0, 0, 0.4);
 
   /* Sheet (device measured, light): frost 30, Haze 85% toward 0.92, floor 70% lighten */
@@ -189,16 +189,16 @@ html:has([data-bottom-bar="button"]) {
     --ink-3: rgba(235, 235, 245, 0.3);
     --sep: rgba(255, 255, 255, 0.17);
     --art-shadow: rgba(0, 0, 0, 0.45);
-    --gold: #ffd60a;
+    --gold: #ffd600;
     --fill: rgba(118, 118, 128, 0.24);
     --fill-2: rgba(118, 118, 128, 0.36);
-    --blue: #0a84ff;
+    --blue: #0091ff;
     --glass-prominent: #0082f0;
     --glass-prominent-glow: rgba(255, 255, 255, 0.102);
     --glass-prominent-cast: rgba(0, 0, 0, 0.04);
-    --red: #ff453a;
+    --red: #ff4245;
     --green: #30d158;
-    --orange: #ff9f0a;
+    --orange: #ff9230;
     --muscle-line: #d1d1d6;
     --muscle-body: #48484a;
     --muscle-hit: #ff383c; /* the exercise illustrations' red */
@@ -237,16 +237,16 @@ html:has([data-bottom-bar="button"]) {
   --ink-3: rgba(235, 235, 245, 0.3);
   --sep: rgba(255, 255, 255, 0.17);
   --art-shadow: rgba(0, 0, 0, 0.45);
-  --gold: #ffd60a;
+  --gold: #ffd600;
   --fill: rgba(118, 118, 128, 0.24);
   --fill-2: rgba(118, 118, 128, 0.36);
-  --blue: #0a84ff;
+  --blue: #0091ff;
   --glass-prominent: #0082f0;
   --glass-prominent-glow: rgba(255, 255, 255, 0.102);
   --glass-prominent-cast: rgba(0, 0, 0, 0.04);
-  --red: #ff453a;
+  --red: #ff4245;
   --green: #30d158;
-  --orange: #ff9f0a;
+  --orange: #ff9230;
   --muscle-line: #d1d1d6;
   --muscle-body: #48484a;
   --muscle-hit: #ff383c; /* the exercise illustrations' red */

@@ -1143,7 +1143,7 @@ function Art({ slug }: { slug: string | null | undefined }) {
 /**
  * Rest on the focus screen: an arc of ticks that drains, the time left, and − and + either side for 15 seconds less or
  * more. The buttons sit 32pt from the screen's edges, in line with the pill's circle below, centred on the digits, as the iOS 27 kit's Large Bordered icon-only button
- * (Figma wH8YZbekJXNew109clIJz1 40:59288): a 50pt circle, the app's gray fill, SF Symbols minus and plus at Body (17pt
+ * (Figma wH8YZbekJXNew109clIJz1 40:59288): a 50pt circle, Fills/Tertiary, SF Symbols minus and plus at Body (17pt
  * Regular) in blue (Frank's call, 2026-11-13: not a stepper, so no "15").
  */
 function RestArc({
@@ -1173,7 +1173,7 @@ function RestArc({
         type="button"
         onClick={() => onAdd(-15)}
         aria-label="15 seconds less"
-        className="mb-[17px] grid size-[50px] shrink-0 place-items-center rounded-full bg-fill-2 text-blue"
+        className="mb-[17px] grid size-[50px] shrink-0 place-items-center rounded-full bg-fill text-blue"
       >
         <SfSymbol name="minus" scale={17 / 19} />
       </button>
@@ -1212,7 +1212,7 @@ function RestArc({
         type="button"
         onClick={() => onAdd(15)}
         aria-label="15 seconds more"
-        className="mb-[17px] grid size-[50px] shrink-0 place-items-center rounded-full bg-fill-2 text-blue"
+        className="mb-[17px] grid size-[50px] shrink-0 place-items-center rounded-full bg-fill text-blue"
       >
         <SfSymbol name="plus" scale={17 / 19} />
       </button>
