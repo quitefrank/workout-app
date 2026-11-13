@@ -190,7 +190,9 @@ export function ActiveWorkout({
   const shown = viewing ? viewed : queue;
   const shownIndex = shown ? entries.indexOf(shown) : -1;
   const rowIndex = shown ? nextRow(shown.rows) : -1;
-  const resting = timer.endsAt != null && !viewing;
+  // Rest holds the controls' place on every exercise while it runs, so the countdown stays as you swipe (Frank's call,
+  // 2026-11-13; it replaced a Rest capsule over the next exercise's steppers)
+  const resting = timer.endsAt != null;
 
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const valueOf = (weId: string, i: number, row: SetRowView): Draft =>
@@ -773,15 +775,6 @@ export function ActiveWorkout({
                       : `Run ${formatClock(setTimer.view?.elapsed ?? 0)}`}
                   </button>
                 )}
-                {timer.endsAt != null && viewing && (
-                  <button
-                    type="button"
-                    onClick={() => setViewId(null)}
-                    className="tabular absolute -top-10 right-5 h-[30px] rounded-full bg-blue px-3 text-[13px] font-semibold text-white"
-                  >
-                    Rest {formatClock(timer.remaining)}
-                  </button>
-                )}
               </div>
             </div>
           ) : (
@@ -1146,7 +1139,11 @@ function Art({ slug }: { slug: string | null | undefined }) {
   );
 }
 
-/** Rest on the focus screen: an arc of ticks that drains, the time left, and 15 seconds less or more either side. */
+/**
+ * Rest on the focus screen: an arc of ticks that drains, the time left, and − and + either side for 15 seconds less or
+ * more. The buttons sit on the 20pt gutters, centred on the digits, 49pt circles with bare − and + (Frank's call,
+ * 2026-11-13: not a stepper, so no "15" and not the stepper's glyph size).
+ */
 function RestArc({
   remaining,
   total,
@@ -1171,9 +1168,10 @@ function RestArc({
       <button
         type="button"
         onClick={() => onAdd(-15)}
-        className="tabular mb-1.5 grid size-[49px] place-items-center rounded-full bg-fill-2 text-[15px] font-bold"
+        aria-label="15 seconds less"
+        className="mb-[18px] grid size-[49px] place-items-center rounded-full bg-fill-2 text-[26px] font-medium leading-none"
       >
-        −15
+        −
       </button>
       <div className="relative h-[140px] w-[220px]">
         <svg
@@ -1209,9 +1207,10 @@ function RestArc({
       <button
         type="button"
         onClick={() => onAdd(15)}
-        className="tabular mb-1.5 grid size-[49px] place-items-center rounded-full bg-fill-2 text-[15px] font-bold"
+        aria-label="15 seconds more"
+        className="mb-[18px] grid size-[49px] place-items-center rounded-full bg-fill-2 text-[26px] font-medium leading-none"
       >
-        +15
+        +
       </button>
     </div>
   );

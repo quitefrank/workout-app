@@ -904,8 +904,9 @@ the DOM (CSS `order` puts it back) because the painter draws in DOM order, so th
 each on a short 70pt fade at 65% of the screen colour (`--bg-rgb`) that covers only the image's bleed. Weight and reps
 are `Stepper` cards (`bg-card`, the iOS stepper under a number that shrinks to fit, 5 lb or 2.5 kg and 1 rep a tap,
 typeable). Swipe sideways to look through the exercises, swipe up for the Journal. Logging a working set starts the
-prescription's rest, which takes the steppers' place as an arc, and the log button becomes Skip; looking at another
-exercise during rest shows a Rest capsule over the controls that goes back. The screen carries no floor, "Preview" or
+prescription's rest, which takes the steppers' place as an arc, and the log button becomes Skip; the arc stays on every
+exercise swiped to until rest ends or is skipped (Frank's call, 2026-11-13, replacing a Rest capsule), and its 49pt
+buttons either side read − and +, 15 seconds a tap. The screen carries no floor, "Preview" or
 "Swapped from" labels (Frank's call).
 
 Version 2 and Glass Steppers left Settings on 2026-11-12 (Frank's call): the page always passes Version 1 and no glass
