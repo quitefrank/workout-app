@@ -944,7 +944,8 @@ Safari has no canvas `filter`, so `mipBlur` halves the copy step by step and dou
 drew blocks), so an edge must come after what it blurs in the DOM and before what
 stays sharp. The active workout's focus screen therefore uses grid rows, never `order` (which reorders CSS painting):
 Art, the two `ZoneSoftEdge`s, header, controls, then the timer row and progress bar. Its edges run edge to edge, from the
-screen's top to 16pt under Up next and from its bottom to 16pt above the controls; they replaced the 65% fades. Start
+screen's top to 32pt under Up next and from its bottom to 32pt above the controls (doubled from 16pt, Frank's
+call, 2026-11-12, so the image fades further); they replaced the 65% fades. Start
 Workout's edge is `live` (outside the painted page), from the bottom to 16pt above the button, keeping its CSS blur
 over the canvas.
 
