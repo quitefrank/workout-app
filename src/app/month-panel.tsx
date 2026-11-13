@@ -129,7 +129,7 @@ export function MonthPanel({
   if (!mounted) return null;
   return createPortal(
     <>
-      {open && <div onClick={onClose} aria-hidden className="fixed inset-0 z-50" />}
+      {open && <div onClick={onClose} aria-hidden data-screen-fill className="fixed inset-0 z-50" />}
       <div
         ref={panel}
         role="dialog"

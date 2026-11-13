@@ -8,6 +8,7 @@
 import { parseBoxShadows, parseColor, parseLinearGradients, parseLinearTransform, type Gradient, type Linear, type Shadow } from "./css";
 import { softEdgeValues, solidDarken } from "@/components/soft-edge";
 import { svgImage } from "./svg";
+import { screenHeight } from "@/lib/scroller";
 import { inputTextItems, textItems, type Metrics } from "./text";
 
 /** A clip rectangle with per-corner radii; `parent` chains the clips of outer overflow containers. `scroller` is the
@@ -75,7 +76,8 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     const scrim = (el as HTMLElement).dataset?.scrim;
     // Every scrim is listed, on or off: its opacity, read when painting, fades it in and out with its CSS transition
     if (scrim !== undefined) {
-      items.push({ k: "box", x: 0, y: 0, w: window.innerWidth, h: window.innerHeight, radii: [0, 0, 0, 0], color: scrimColor(), gradients: [], shadows: [], border: null, fixed: true, clip: null, alpha: 1, fade: el as HTMLElement });
+      // the screen's height, not the window's: a home screen app's window can be 50pt short, leaving a band undimmed
+      items.push({ k: "box", x: 0, y: 0, w: window.innerWidth, h: screenHeight(), radii: [0, 0, 0, 0], color: scrimColor(), gradients: [], shadows: [], border: null, fixed: true, clip: null, alpha: 1, fade: el as HTMLElement });
       return false;
     }
     const op = parseFloat(cs.opacity);

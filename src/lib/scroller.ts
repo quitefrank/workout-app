@@ -105,13 +105,29 @@ export function redrawCaret(el: HTMLInputElement): void {
  * viewport; a drag that starts outside any scroller is held still. iOS's own slide to reveal the focused field is left
  * alone: undoing it fights iOS on every frame and shakes the screen.
  */
+/** A home screen app (iOS 26), whose window flips between the full screen and 50pt short of it */
+export function isStandalone(): boolean {
+  return (
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  );
+}
+
+/**
+ * The height anything full-screen or pinned to the bottom is sized from: the screen's in a home screen app, which never
+ * changes, since its window can be 50pt short at any moment; else the window's. Never read `innerHeight` for that.
+ */
+export function screenHeight(): number {
+  return isStandalone() ? Math.max(window.screen.height, window.innerHeight) : window.innerHeight;
+}
+
 export function followVisualViewport(): () => void {
   const vv = window.visualViewport;
   if (!vv) return () => {};
   const html = document.documentElement;
   // A home screen app (iOS 26) flips its window between the full screen and 50pt short of it with nothing touched, so
   // the pinned layer is placed from the top with the screen's height, which never changes (the app is portrait only).
-  const standalone = window.matchMedia?.("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  const standalone = isStandalone();
   if (standalone) {
     html.classList.add("standalone");
     html.style.setProperty("--screen-h", `${window.screen.height}px`);

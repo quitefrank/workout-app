@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { averageUnder, blendSides, decideDark, stepSide, unpadRows } from "../context";
 import { CTXV, prominentMaterial, type Family, type Material } from "../presets";
-import { scrollTop } from "@/lib/scroller";
+import { screenHeight, scrollTop } from "@/lib/scroller";
 import { debugState } from "../debug-state";
 import { makeFrost } from "./frost";
 import { CAST_MARGIN, GLASS_MARGIN, makeCastMaterial, makeGlassMaterial, makeUniforms, type Uniforms } from "./materials";
@@ -238,8 +238,9 @@ function setup(o: StageOptions, renderer: any): () => void {
     }
     const rs = f.els.filter(shown).map(rectOf);
     if (!rs.length) return null;
-    // the stage can be taller than the viewport (Safari's large viewport); the dock reads down to the visible bottom
-    if (kind === "dock") return { x0: 0, x1: W, y0: Math.min(...rs.map((q) => q.top)) - CTXV.dockAbove, y1: Math.min(H, window.innerHeight - org.y) };
+    // the stage can be taller than the viewport (Safari's large viewport); the dock reads down to the visible bottom,
+    // the screen's in a home screen app, whose window can be 50pt short of it
+    if (kind === "dock") return { x0: 0, x1: W, y0: Math.min(...rs.map((q) => q.top)) - CTXV.dockAbove, y1: Math.min(H, screenHeight() - org.y) };
     return { x0: Math.min(...rs.map((q) => q.left)), x1: Math.max(...rs.map((q) => q.right)), y0: Math.min(...rs.map((q) => q.top)), y1: Math.max(...rs.map((q) => q.bottom)) };
   };
 

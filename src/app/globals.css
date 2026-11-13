@@ -369,11 +369,18 @@ body {
    pinned to the window's bottom jumps. There the screen's own height (--screen-h, src/lib/scroller.ts), which never
    changes, places the docks from the top (bottom edge 21pt above the screen's, as Photos) and sizes the scroller, so
    the content runs under the dock to the screen edge. Unlayered, so it beats the bottom-0 utilities. */
-html.standalone [data-glass-unit="dock"] {
+html.standalone :is([data-glass-unit="dock"], [data-screen-bottom]) {
   top: 0;
   bottom: auto;
   height: var(--screen-h);
   justify-content: flex-end;
+}
+
+/* the same for anything that covers the screen (scrims, a tap-to-close blanket): sized from the top to the screen's
+   height, so no band at the bottom is left uncovered when the window is short */
+html.standalone :is([data-scrim], [data-screen-fill]) {
+  bottom: auto;
+  height: var(--screen-h);
 }
 
 html.standalone .app-scroller {

@@ -745,6 +745,13 @@ which does so on iOS only): one would sink every glass label and live
 input inside it under the canvas. Read scroll position with `scrollTop()`, never
 `window.scrollY`.
 
+A home screen app's window flips between the full screen and 50pt short of it (iOS 26), so nothing is sized or pinned
+from the window's bottom there (2026-11-12, after the painted page and Start Workout were cut off 50pt up). Size from
+`screenHeight()` in `src/lib/scroller.ts`, never `innerHeight`. A fixed bar at the bottom carries `data-screen-bottom`
+(or is a `data-glass-unit="dock"`) and is a flex column; a full-screen cover carries `data-scrim` or `data-screen-fill`.
+`html.standalone` places them from the top at `--screen-h`. The painter never clips to `body`, whose overflow only
+stops the window scrolling.
+
 The caret rule (2026-11-10): iOS draws a field's caret when it gets focus and does not redraw it when the field
 moves without an edit, so nothing may move a focused field afterwards. Two things did, each leaving the caret 50pt
 off: the keyboard rule fitting the scroller to the visible area, which moved the focus screen (absolute under

@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { appearance as currentAppearance, onAppearanceChange } from "@/lib/appearance";
-import { SCROLLER, scrollTop } from "@/lib/scroller";
+import { SCROLLER, screenHeight, scrollTop } from "@/lib/scroller";
 import { debugState } from "./debug-state";
 import { buildDisplayList, UNPAINTED, type DisplayList } from "./paint/display-list";
 import { paintList } from "./paint/paint";
@@ -46,7 +46,8 @@ function largeViewportHeight() {
     lvh = probe.getBoundingClientRect().height;
     probe.remove();
   }
-  return Math.ceil(Math.max(window.innerHeight, lvh || Math.max(window.innerHeight, window.screen?.height || 0)));
+  // a home screen app's window can be 50pt short when the stage starts; the screen's height covers it either way
+  return Math.ceil(Math.max(screenHeight(), lvh || Math.max(window.innerHeight, window.screen?.height || 0)));
 }
 const stageDpr = () => Math.min(window.devicePixelRatio || 1, 3);
 

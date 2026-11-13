@@ -36,16 +36,28 @@ export function StartTemplate({ templateId }: { templateId: string }) {
       // Kept out of the painted page, as glass is: the painter offsets a fixed element inside the scroller by the
       // scroll, so its painted copy slid up the list under the real button
       data-unpainted
-      // a column, like every dock: a home screen app bottom-aligns its children down a column (html.standalone)
+      // pinned as the docks are: a home screen app's window can be 50pt short, so there this column is placed from the
+      // top at the screen's height and bottom-aligns its child (data-screen-bottom, html.standalone in globals.css)
+      data-screen-bottom
       className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col", pushIn)}
       style={{ paddingBottom: "var(--dock-bottom)" }}
     >
-      {/* Apple's soft scroll edge behind the button, the screen's width, from the bottom to 16pt above the button. Live
-          over the canvas with the button, so it keeps its CSS blur on both paths; first, so the button stacks over it. */}
-      <SoftEdge edge="bottom" live strong className="-top-4 bottom-0 left-[calc(50%-50vw)] w-screen" />
-      <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto relative mx-5">
-        {pending ? "Starting…" : "Start Workout"}
-      </Button>
+      {/* the button's own box, so the edge measures from it and not from the column, which is the screen's height in a
+          home screen app */}
+      <div className="relative flex flex-col">
+        {/* Apple's soft scroll edge behind the button, the screen's width, from the screen's bottom to 16pt above the
+            button. Live over the canvas with the button, so it keeps its CSS blur on both paths; first, so the button
+            stacks over it. */}
+        <SoftEdge
+          edge="bottom"
+          live
+          strong
+          className="-top-4 bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
+        />
+        <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto relative mx-5">
+          {pending ? "Starting…" : "Start Workout"}
+        </Button>
+      </div>
     </div>
   );
 }
