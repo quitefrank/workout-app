@@ -13,7 +13,7 @@ import { mainLift } from "@/lib/workout/workout-art";
  */
 export function WorkoutTiles({ items, weeks, wrap }: { items: (TemplateSummary & Partial<ProgramTemplateTile>)[]; weeks?: boolean; wrap?: boolean }) {
   return (
-    <div className={wrap ? "grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-2.5 px-4" : "no-scrollbar flex snap-x gap-2.5 overflow-x-auto px-4 pb-1.5"}>
+    <div className={wrap ? "grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] gap-2.5 px-4" : "no-scrollbar flex snap-x scroll-px-4 gap-2.5 overflow-x-auto px-4 pb-1.5"}>
       {items.map((t) => {
         // The main lift fills the card in place of the colour gradient (Frank's call, 2026-11-08); empty templates keep it
         const lift = mainLift(t.slugs ?? [], hasExerciseImage);
