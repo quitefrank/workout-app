@@ -10,6 +10,8 @@ import { mainLift } from "@/lib/workout/workout-art";
 /**
  * The tall workout cards (2:3, 132pt wide) in a sideways carousel, or wrapped into a grid with `wrap`. The main lift
  * fills the card in place of the colour gradient (Frank's call, 2026-11-08); an empty workout keeps the gradient.
+ * The carousel snaps to the 16pt gutter (`scroll-px-4`), so a swiped card lines up with the section titles, cards and
+ * rows above and below it, never the screen's edge (Frank's call, 2026-11-12).
  */
 export function WorkoutTiles({ items, weeks, wrap }: { items: (TemplateSummary & Partial<ProgramTemplateTile>)[]; weeks?: boolean; wrap?: boolean }) {
   return (
