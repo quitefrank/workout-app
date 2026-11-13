@@ -872,8 +872,10 @@ lifts over the canvas while typing.
   up, so the steppers, the Journal card and the drag follow; the app's other docks keep 21pt. Settings' Journal glass (a test setting, 2026-11-12,
   `workout_journal_glass`, `css` by default) picks how the pill and the card it grows into are drawn. CSS: the pill is
   CSS glass (`glass-css`, which the stage leaves to CSS but keeps in its unit for the light/dark rule) and hides while the
-  card is up; the card's first layer (`.jcard-glass`) is the same glass with the pill's side copied onto it, crossfading
-  to the opaque fill over the first fifth of the travel. Matched: the pill stays shader glass and the stage hides it
+  card is up; the card's first layer (`.jcard-glass`) is the same glass with the pill's side copied onto it, staying whole
+  under the card while the opaque fill comes in over the first fifth of the travel; its blur goes from the pill's own to a
+  30pt frost within the first 6%, so nothing reads through unblurred (Frank's call, 2026-11-12, after Ladder's frosted
+  Journal, keeping our faster ramp because our card's content is opaque), and it switches off past a quarter. Matched: the pill stays shader glass and the stage hides it
   (`data-glass-hidden`) behind the same CSS layer. Shader: the pill itself follows the card's geometry (`.pill-grow`,
   `--jp` mirrored, offsets as `--jc-*`), keeps its side while growing (`data-glass-hold`) and hides once settled open;
   the card over it stays clear until its fill comes in from 0.6 to 1, with no scrim. The steppers sit 20pt above it. Its empty circle logs the set (`PillCheck`:

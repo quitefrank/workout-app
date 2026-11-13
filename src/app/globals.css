@@ -1326,9 +1326,17 @@ html.keyboard .sheet-body {
      fill goes 0 to 1, both over the first fifth of the travel, so nothing reads through for long. shader: no glass layer;
      the pill itself grows under the card, which stays clear until its fill comes in from 0.6 to 1, and the scrim is off,
      since it would sit over the canvas's glass. */
+  /* CSS mode, retuned (Frank's call, 2026-11-12, after Ladder's frosted Journal; our fast fill ramp kept, since our card's
+     content is opaque, unlike Ladder's): the glass layer stays whole under the card while the fill comes in over its
+     top, so the page never shows through unblurred; its blur goes from the pill's own (--glass-blur, so the first frame
+     is the pill exactly) to a heavy frost within the first 6% of the travel, and it switches off once the fill is
+     opaque, so the open sheet runs no full-screen blur under it. */
   .jcard-stage > .jcard-glass {
     pointer-events: none;
-    opacity: clamp(0, calc(1 - var(--jp) / 0.2), 1);
+    opacity: clamp(0, calc((0.25 - var(--jp)) * 1000), 1);
+    --jglass-frost: calc(var(--glass-blur) + (30px - var(--glass-blur)) * clamp(0, calc(var(--jp) / 0.06), 1));
+    -webkit-backdrop-filter: blur(var(--jglass-frost)) saturate(var(--glass-sat));
+    backdrop-filter: blur(var(--jglass-frost)) saturate(var(--glass-sat));
   }
   .jcard {
     display: flex;
