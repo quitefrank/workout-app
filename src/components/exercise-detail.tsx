@@ -7,7 +7,7 @@ import { TrendChart } from "@/components/charts";
 import type { ExerciseView } from "@/lib/exercise-view";
 import { cn } from "@/lib/cn";
 import { dayLabel, localDate } from "@/lib/workout/dates";
-import { latestFloor, metricBest, metricSeries, sessionsOnFloor, type ExerciseMetric, type ExerciseSession, type MetricPoint } from "@/lib/workout/exercise-metrics";
+import { latestFloor, metricBest, metricSeries, sessionsOnFloor, type ExerciseSession, type MetricPoint } from "@/lib/workout/exercise-metrics";
 import { displayWeight, EQUIPMENT_LABELS, formatNumber } from "@/lib/workout/format";
 import { FIRST_FLOOR, type MachineLocation } from "@/lib/workout/machine-location";
 import { FloorPicker } from "./floor-picker";
@@ -18,11 +18,6 @@ import { Row } from "./page";
 const TABS = ["Summary", "History", "How to"] as const;
 export type ExerciseTab = (typeof TABS)[number];
 type Tab = ExerciseTab;
-
-const METRICS: { key: ExerciseMetric; label: string }[] = [
-  { key: "heaviest", label: "Heaviest Weight" },
-  { key: "e1rm", label: "One Rep Max" },
-];
 
 /** The exercise's muscle group and equipment, for a subtitle. */
 export function exerciseFacts(exercise: ExerciseView["exercise"]): string {
@@ -125,16 +120,16 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNo
   const { exercise, sessions, unit } = view;
   // the same movement on other equipment is a choice above, so only other movements are alternates
   const others = exercise.alternates.filter((a) => !view.options.some((o) => o.id === a.exercise.id));
-  const [metric, setMetric] = useState<ExerciseMetric>("heaviest");
   const weight = (n: number) => displayWeight(n, exercise.equipment_type, unit) || "BW";
+  // one chart, Heaviest Weight (Frank's call, 2026-11-13: he never tests a one rep max)
   const points = useMemo(
     () =>
-      metricSeries(sessions, metric).map((p) => ({
+      metricSeries(sessions, "heaviest").map((p) => ({
         label: dayLabel(localDate(p.at)).replace(/^\w+, /, ""),
         value: Math.round(p.value * 10) / 10,
         detail: `${formatNumber(p.value)} (${formatNumber(p.weight)} × ${p.reps})`,
       })),
-    [sessions, metric],
+    [sessions],
   );
   return (
     <>
@@ -147,23 +142,13 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNo
 
       {points.length > 0 ? (
         <>
-          <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {METRICS.map((m) => (
-              <button
-                key={m.key}
-                type="button"
-                aria-pressed={metric === m.key}
-                onClick={() => setMetric(m.key)}
-                className={cn("h-[34px] shrink-0 rounded-full px-4 text-[15px] font-medium", metric === m.key ? "bg-blue text-white" : "bg-fill text-ink")}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
           {points.length > 1 && (
-            <div className="mt-3 rounded-[20px] bg-card px-2 pb-2 pt-4">
-              <TrendChart points={points} />
-            </div>
+            <>
+              <h3 className="mb-2 mt-5 text-[17px] font-semibold">Heaviest Weight</h3>
+              <div className="rounded-[20px] bg-card px-2 pb-2 pt-4">
+                <TrendChart points={points} />
+              </div>
+            </>
           )}
           <h3 className="mb-2 mt-5 flex items-center gap-1.5 text-[17px] font-semibold">
             <TrophyIcon size={18} className="text-orange" /> Personal Records
