@@ -6,10 +6,17 @@
 import { SHEET_STATUS_BAR } from "@/lib/sheet-detent";
 
 /**
- * Ladder's pill, measured from Frank's screenshot at 3x: 67pt tall, about 26pt corners. 20pt from each side, flush with
- * the steppers, and its circle 8pt from every edge, as the iOS dock holds its icons (Frank's call, 2026-11-10).
+ * The pill, after the iOS 27 kit's collapsed notification (Figma wH8YZbekJXNew109clIJz1 754:64315), tuned in the Journal
+ * Pill Lab (Frank's call, 2026-11-12, https://claude.ai/artifact/LoiDBexQCNYGfaauP8uTQ2): a 38pt circle 16pt from every
+ * edge, so 70pt tall, 16pt from each side of the screen, 24pt corners, 21pt off the bottom as the kit's tab bar.
  */
-export const PILL = { height: 67, inset: 20, padding: 8, radius: 26 } as const;
+export const PILL = { height: 70, inset: 16, padding: 16, radius: 24, circle: 38 } as const;
+
+/**
+ * The open card's header, the kit's large sheet toolbar (10525:1638): a 16pt grabber band, 44pt buttons 16pt in from each
+ * edge, 10pt under them, so 70pt as the pill is. The check grows from the pill's 38pt to 44pt in place.
+ */
+export const OPEN_HEADER = { height: 70, button: 44, inset: 16 } as const;
 
 /** A drag past this many px up opens the card on release */
 export const OPEN_DISTANCE = 90;

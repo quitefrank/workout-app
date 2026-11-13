@@ -182,7 +182,7 @@ Eleven pure modules with full unit-test coverage:
   header dropped, option B for week 10, "(OR ...)" names split by
   `NAME_CHOICES`, a "~" RPE kept as the RPE with an "Approximate RPE" note.
 
-Run `bun run test` to exercise them. 577 tests across 54 files.
+Run `bun run test` to exercise them. 579 tests across 54 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -863,32 +863,37 @@ lifts over the canvas while typing.
   target in blue before the exercise's name ("8x Bench Press", "8–10x"; `repTarget` in `active.ts`: the prescription
   for a working set, else the row's prefilled reps, else none). Up next shows only on the exercise's last set, sliding
   in 10pt from the left as it fades (`.upnext-in`); it is hidden, not removed, so nothing moves.
-- The pill is Ladder's, in the dock (67pt, 20pt from each side so it lines up with the steppers, 26pt corners, Liquid
-  Glass; Frank's call, 2026-11-10): its empty circle logs the set (`PillCheck`: 51pt, 8pt from every edge of the pill as
-  the iOS dock holds its icons, a 2pt `#0082f0` ring and a 21.25pt check, from Figma node 28:945, Frank's
-  call, 2026-11-10; a blue fill for a moment when logged, Skip while resting, and solid blue with a white check at full strength once
+- The pill is in the dock, sized after the iOS 27 kit's collapsed notification (Figma `wH8YZbekJXNew109clIJz1`
+  754:64315) and tuned in the Journal Pill Lab (Frank's calls, 2026-11-12, https://claude.ai/artifact/LoiDBexQCNYGfaauP8uTQ2):
+  70pt tall, 16pt from each side, 21pt off the bottom as the kit's tab bar, 24pt corners, Liquid Glass (`PILL` in
+  `src/lib/workout/journal-card.ts`, tested). The steppers sit 20pt above it. Its empty circle logs the set (`PillCheck`:
+  38pt, 16pt from every edge of the pill, a 2pt `#0082f0` ring from Figma node 28:945 and a 17pt check, the kit's symbol
+  size; a blue fill for a moment when logged, Skip while resting, and solid blue with a white check at full strength once
   every set of the shown exercise is logged, Frank's call, 2026-11-10; the "logged, swipe" line then sits 12pt above the
-  pill, the gap between Last time and the steppers), its middle opens the Journal, with set
+  pill, the gap between Last time and the steppers), its middle opens the Journal, 10pt after the circle, with set
   dots above the name (Frank's call, 2026-11-10; `PillDots`: 8pt, 4pt apart; logged solid blue, current ringed in blue, upcoming Fills/Primary;
-  logging fills the dot as a transition). Swap is a 44pt button with the 22pt swap icon at the pill's trailing end
-  (Figma 3:164), behind Settings' Swap in Pill switch, on by default and saved per device in the `workout_pill_swap`
-  cookie (Frank's call, 2026-11-10); while it is on, Swap Exercise leaves the More menu, and off, it is back there. The open Journal's header keeps the same
-  button at the same place.
+  logging fills the dot as a transition). Swap is not in the pill or the Journal's header (Frank's call, 2026-11-12; the
+  Swap in Pill setting and its `workout_pill_swap` cookie are gone): Swap Exercise is in More and on each exercise card.
 
 The prototype's other options (set circles under Last time, steppers as an inset list) are not built; `StepperList` and
 `StepperRow` stay in `stepper.tsx` unused.
 
 The Journal is `journal-card.tsx`, one card that grows from the pill under the finger, driven by `--jp` (0 the pill, 1
   open under the 62pt status bar; `.jcard` in globals.css). Its content is in it the whole way with the current exercise
-  pinned under the header, as Ladder does. The header is the pill's own content, the circle and the set dots over the
-  title (and Swap, when it is in the pill), with no set label or count; the body has no summary line, and the circle stays 28pt from the screen's edge, lined up with the exercise cards'
-  content (Frank's call, 2026-11-10). Each exercise is Ladder's card (`ExerciseCard` in `journal.tsx`, measured off
+  pinned under the header, as Ladder does. The header is the pill's own content grown into the kit's large sheet toolbar
+  (10525:1638; `OPEN_HEADER`, Frank's calls, 2026-11-12, from the Journal Pill Lab): 70pt like the pill, the circle growing
+  from 38pt to 44pt on its 16pt edge, the set dots over the title still leading, 8pt after it, at 17pt in both states, the
+  kit's 58 by 4pt grabber 5pt from the top, and a 44pt close button 16pt from the trailing edge with SF Symbols `xmark` at
+  17pt Medium (`SfXmarkIcon`, a mask in `public/icons/sf-xmark.png`), both coming in as it opens. No set label, count,
+  summary line or divider. Glass on the card is CSS, as on a sheet (`:is(.glass-sheet, .jcard) .glass` in globals.css,
+  and the stage skips `.jcard`). Each exercise is Ladder's card (`ExerciseCard` in `journal.tsx`, measured off
   Ladder, Figma `ZD41TUAEBtLJI7t0qChNup` 11:706): 8pt from the Journal's edges, 4pt apart, 20pt corners, `bg-card` (the
-  elevated step: `#2c2c2e` on the dark Journal, `#f2f2f7` on the light), 20pt sides, 14pt top, a 58pt thumbnail 20pt
-  from the title, 36pt chips 8pt apart, and a 56pt band on the current set. Tapping a card's header opens or closes it,
+  elevated step: `#2c2c2e` on the dark Journal, `#f2f2f7` on the light), 16pt sides (Frank's call, 2026-11-12), 14pt top,
+  a 58pt thumbnail 20pt from the title, 36pt chips 8pt apart, and a 56pt band on the current set. The cards' content is
+  24pt from the screen's edge, the open check 16pt. Tapping a card's header opens or closes it,
   its body's height animating; the current exercise starts open, any number can be open, and opening one moves the
   focus screen there. A tap or swipe grows it, a drag past
-  90pt or a flick opens it, the header pulls down to close (`src/lib/workout/journal-card.ts`, tested). The card is CSS
+  90pt or a flick opens it, the header pulls down to close and the close button closes it (`src/lib/workout/journal-card.ts`, tested). The card is CSS
   on both glass paths: `[data-unpainted]` keeps it out of the painted page, as sheets are.
 
 The steppers are the kit's Stepper (Figma `wH8YZbekJXNew109clIJz1`, Steppers 5415:17699): 92 × 32pt, 46pt halves in

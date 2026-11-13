@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { glassSteppersFrom, pillSwapFrom, workoutVersionFrom } from "../workout-layout";
+import { glassSteppersFrom, workoutVersionFrom } from "../workout-layout";
 
 describe("glassSteppersFrom", () => {
   it("is on only when its cookie says 1", () => {
@@ -16,13 +16,5 @@ describe("workoutVersionFrom", () => {
     expect(workoutVersionFrom(() => undefined)).toBe(1);
     // the old five-view cookie is ignored
     expect(workoutVersionFrom((n) => (n === "workout_view" ? "3" : undefined))).toBe(1);
-  });
-});
-
-describe("pillSwapFrom", () => {
-  it("is on unless its cookie says 0", () => {
-    expect(pillSwapFrom(() => undefined)).toBe(true);
-    expect(pillSwapFrom((n) => (n === "workout_pill_swap" ? "1" : undefined))).toBe(true);
-    expect(pillSwapFrom((n) => (n === "workout_pill_swap" ? "0" : undefined))).toBe(false);
   });
 });

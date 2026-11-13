@@ -41,17 +41,3 @@ export function glassSteppersFrom(get: (name: string) => string | undefined): bo
 export function setGlassSteppers(on: boolean) {
   document.cookie = `${GLASS_STEPPERS_COOKIE}=${on ? 1 : 0}; path=/; max-age=31536000; samesite=lax`;
 }
-
-/**
- * Swap in the pill (Frank's call, 2026-11-10, Figma ZD41TUAEBtLJI7t0qChNup 3:164): a 44pt button with the 22pt swap
- * icon at the pill's trailing end, on unless switched off in Settings, saved per device. Off, Swap Exercise is in More.
- */
-export const PILL_SWAP_COOKIE = "workout_pill_swap";
-
-export function pillSwapFrom(get: (name: string) => string | undefined): boolean {
-  return get(PILL_SWAP_COOKIE) !== "0";
-}
-
-export function setPillSwap(on: boolean) {
-  document.cookie = `${PILL_SWAP_COOKIE}=${on ? 1 : 0}; path=/; max-age=31536000; samesite=lax`;
-}

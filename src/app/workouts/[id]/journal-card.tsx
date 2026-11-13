@@ -2,7 +2,8 @@
 
 import { useEffect, useLayoutEffect, useRef, type MutableRefObject, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { CheckIcon, PlayIcon, SkipIcon, StopIcon } from "@/components/icons";
+import { GlassCircleButton } from "@/components/glass";
+import { CheckIcon, PlayIcon, SfXmarkIcon, SkipIcon, StopIcon } from "@/components/icons";
 import { cn } from "@/lib/cn";
 import { closesOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
 
@@ -11,7 +12,9 @@ import { closesOnRelease, progressFor, travel } from "@/lib/workout/journal-card
  * back. One card whose shape follows `--jp`, a registered property from 0 (exactly the pill) to 1 (open under the status
  * bar): its sides and bottom move out to the edges, its top follows the finger, and the content is in it the whole time,
  * the current exercise pinned under the header, as Ladder does (Supercut hW8oIanK6sdvLXdtmNSqaH). The header is the pill's
- * content (circle, set dots over the title), and the circle eases from the pill's 28pt to the content's 16pt edge. Geometry in `.jcard` (globals.css), decisions in
+ * content (circle, set dots over the title, leading), grown into the iOS 27 sheet toolbar: the circle goes from 38pt to
+ * 44pt on its 16pt edge, the grabber and a close button come in (Frank's calls, 2026-11-12, from the Journal Pill Lab,
+ * https://claude.ai/artifact/LoiDBexQCNYGfaauP8uTQ2). Geometry in `.jcard` (globals.css), decisions in
  * src/lib/workout/journal-card.ts.
  *
  * The parent drives it: `controlRef` sets the progress while a finger drags the pill and settles it open or closed. The card
@@ -31,7 +34,6 @@ export function JournalCard({
   check,
   title,
   dots,
-  trailing,
   current,
   children,
 }: {
@@ -45,8 +47,6 @@ export function JournalCard({
   title: string;
   /** the set dots, above the title as the pill shows them */
   dots?: ReactNode;
-  /** the pill's trailing control (Swap), kept at the same place in the header */
-  trailing?: ReactNode;
   /** the exercise to pin under the header */
   current: string | null;
   children: ReactNode;
@@ -139,18 +139,16 @@ export function JournalCard({
           onPointerUp={onUp}
           onPointerCancel={onUp}
         >
+          <span aria-hidden className="jcard-grabber" />
           {check}
           {/* the pill's own content, dots over the title, so the header reads as the pill grown (Frank's call, 2026-11-10) */}
-          <span className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+          <span className="jcard-title flex min-w-0 flex-1 flex-col justify-center gap-1">
             {dots}
             <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">{title}</span>
           </span>
-          {trailing && (
-            // a tap on it must not start the header's pull-to-close
-            <span className="contents" onPointerDown={(e) => e.stopPropagation()}>
-              {trailing}
-            </span>
-          )}
+          <GlassCircleButton label="Close Journal" onClick={() => controlRef.current?.settle(0)} className="jcard-close">
+            <SfXmarkIcon size={17} />
+          </GlassCircleButton>
         </div>
         <div ref={body} className="jcard-body">
           {children}
@@ -163,8 +161,9 @@ export function JournalCard({
 
 /**
  * The circle that logs (Ladder's): empty until the set is logged, a blue fill for a moment when it is, Skip while
- * resting. 51pt with a 2pt #0082f0 ring and a 21.25pt check (Figma ZD41TUAEBtLJI7t0qChNup, 28:945); it sits 8pt inside
- * the pill on every side, 28pt from the screen's edge, and on the content's 16pt edge in the open card's header.
+ * resting. A 2pt #0082f0 ring (Figma ZD41TUAEBtLJI7t0qChNup, 28:945) and a 17pt check, the kit's symbol size. 38pt in the
+ * pill, 16pt from its every edge, as the kit's notification holds its icon; 44pt in the open card's header, the kit's
+ * toolbar button (`--pill-check`, set by `.jcard-head`). Frank's calls, 2026-11-12, from the Journal Pill Lab.
  */
 export function PillCheck({
   state,
@@ -204,19 +203,21 @@ export function PillCheck({
         onClick();
       }}
       className={cn(
-        "relative grid size-[51px] shrink-0 place-items-center rounded-full",
+        "relative grid shrink-0 place-items-center rounded-full",
         done ? "bg-blue text-white" : "disabled:opacity-50",
         flash ? "pill-check-fill bg-blue text-white" : !done && "shadow-[inset_0_0_0_2px_#0082f0]",
       )}
+      style={{ width: "var(--pill-check, 38px)", height: "var(--pill-check, 38px)" }}
     >
+      {/* the other states keep their old proportion to the check (21.25pt then, 17pt now) */}
       {skip ? (
-        <SkipIcon size={20} />
+        <SkipIcon size={16} />
       ) : state === "start" && !flash ? (
-        <PlayIcon size={18} className="translate-x-[1.5px]" />
+        <PlayIcon size={14.5} className="translate-x-[1px]" />
       ) : state === "stop" && !flash ? (
-        <StopIcon size={17} />
+        <StopIcon size={13.5} />
       ) : (
-        <CheckIcon size={21.25} strokeWidth={2.6} />
+        <CheckIcon size={17} strokeWidth={2.6} />
       )}
     </button>
   );

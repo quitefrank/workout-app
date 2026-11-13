@@ -151,8 +151,9 @@ function Circles({ rows }: { rows: SetRowView[] }) {
 }
 
 /**
- * One exercise as Ladder's card (measured off Ladder at 375pt: 20pt corners, 20pt sides, 14pt top, a 58pt thumbnail with
- * the title 20pt from it, 36pt chips 8pt apart and 26pt under the thumbnail, a 56pt band on the current set). The card is
+ * One exercise as Ladder's card (measured off Ladder at 375pt: 20pt corners, 14pt top, a 58pt thumbnail with
+ * the title 20pt from it, 36pt chips 8pt apart and 26pt under the thumbnail, a 56pt band on the current set; 16pt sides,
+ * Frank's call, 2026-11-12, from the Journal Pill Lab). The card is
  * the elevated step above the Journal (`bg-card`: #2c2c2e on the dark Journal, #f2f2f7 on the light), its chips and cells
  * a step above that (`bg-fill`). The header (thumbnail and title) opens and closes it; closed, the title has the sets as
  * circles under it, open, the best weight and estimated 1RM, then the chips, the Log It grid and Add Set, whose height
@@ -214,7 +215,7 @@ function ExerciseCard({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="grid w-full grid-cols-[58px_1fr] items-center gap-x-5 px-5 pb-[14px] pt-[14px] text-left"
+        className="grid w-full grid-cols-[58px_1fr] items-center gap-x-5 px-4 pb-[14px] pt-[14px] text-left"
       >
         <Thumb we={we} />
         <span className="min-w-0">
@@ -234,7 +235,7 @@ function ExerciseCard({
       {/* the body's height animates open and closed (grid rows from 0fr to 1fr); closed, it is inert */}
       <div className={cn("grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
       <div className="min-h-0 overflow-hidden" inert={!open}>
-      <div className="grid grid-cols-[58px_1fr] gap-x-5 px-5 pb-[14px]">
+      <div className="grid grid-cols-[58px_1fr] gap-x-5 px-4 pb-[14px]">
       <div className="col-span-2 mt-3 flex gap-2 overflow-x-auto [scrollbar-width:none]">
         {ex.has_floors && (
           <label className={cn("relative inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-fill px-4 text-[15px] font-medium", floorPending && "opacity-50")}>

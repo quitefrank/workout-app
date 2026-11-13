@@ -25,7 +25,7 @@ import { exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
-import { setGlassSteppers, setPillSwap, setWorkoutVersion, VERSIONS, type WorkoutVersion } from "@/lib/workout-layout";
+import { setGlassSteppers, setWorkoutVersion, VERSIONS, type WorkoutVersion } from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { TopBar } from "@/components/top-bar";
@@ -58,7 +58,7 @@ import {
 } from "@/lib/workout/measure";
 import { formatClock } from "@/lib/workout/format";
 import { floorKey } from "@/lib/workout/machine-location";
-import { opensOnRelease, progressFor, travel } from "@/lib/workout/journal-card";
+import { opensOnRelease, PILL, progressFor, travel } from "@/lib/workout/journal-card";
 import { exerciseTitle } from "@/lib/workout/movements";
 import { FinishSheet } from "./finish-sheet";
 import { Journal, JournalBody, type JournalProps } from "./journal";
@@ -97,19 +97,16 @@ export function ActiveWorkout({
   settings,
   version: initialVersion,
   glassSteppers: initialGlass,
-  pillSwap: initialPillSwap,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
   version: WorkoutVersion;
   glassSteppers: boolean;
-  pillSwap: boolean;
 }) {
   // Version 1 is the pill, Version 2 the toolbar under the steppers (src/lib/workout-layout.ts), switched in More
   const [version, setVersion] = useState(initialVersion);
   // Glass stepper cards, a Settings switch saved on this device (src/lib/workout-layout.ts)
   const [glassSteppers, setGlass] = useState(initialGlass);
-  const [pillSwap, setSwapInPill] = useState(initialPillSwap);
   const toolbar = version === 2;
   const [journalSheet, setJournalSheet] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -381,7 +378,7 @@ export function ActiveWorkout({
   const pillDrag = useRef<{ x: number; y: number; t: number; last: number; v: number; up: number; d: number; on: boolean } | null>(null);
   const pillSwallow = useRef(0);
   const onPillDown = (e: ReactPointerEvent) => {
-    if (cardOpen || (e.target as HTMLElement).closest("[data-pill-check], [data-pill-swap]")) return;
+    if (cardOpen || (e.target as HTMLElement).closest("[data-pill-check]")) return;
     const dockBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-bottom")) || 21;
     const height = document.querySelector<HTMLElement>("[data-focus-screen]")?.clientHeight ?? window.innerHeight;
     pillDrag.current = { x: e.clientX, y: e.clientY, t: e.timeStamp, last: 0, v: 0, up: 0, d: travel(height, dockBottom), on: false };
@@ -495,20 +492,8 @@ export function ActiveWorkout({
   const onLogTap = () =>
     resting ? timer.stop() : !shown ? setFinishing(true) : log(shown, rowIndex);
 
-  // The pill layout's circle, in the pill and in the card's header
-  // Swap in the pill and, while it is open, in the Journal's header, at the same place (Frank's calls, 2026-11-10)
-  const pillSwapButton = (
-    <button
-      type="button"
-      data-pill-swap
-      aria-label="Swap exercise"
-      disabled={!shown}
-      onClick={() => shown && setSwapFor(shown.we)}
-      className="grid size-11 shrink-0 place-items-center disabled:opacity-40"
-    >
-      <SwapIcon size={22} />
-    </button>
-  );
+  // The pill layout's circle, in the pill and in the card's header. Swap is not in the pill or the Journal's header
+  // (Frank's call, 2026-11-12): it is in More and on each exercise card.
   const logCheck = (
     <PillCheck
       state={logState}
@@ -551,7 +536,7 @@ export function ActiveWorkout({
           className="relative flex h-full flex-col"
           style={{
             paddingTop: "var(--bar-top)",
-            paddingBottom: toolbar ? "calc(var(--dock-bottom) + 72px + 20px)" : "calc(var(--dock-bottom) + 67px + 20px)",
+            paddingBottom: toolbar ? "calc(var(--dock-bottom) + 72px + 20px)" : `calc(var(--dock-bottom) + ${PILL.height}px + 20px)`,
           }}
         >
           {/* The More button's row holds the timer, centred on the button; under it the exercises as Apple's progress bar
@@ -828,7 +813,7 @@ export function ActiveWorkout({
           </div>
         ) : (
           <div
-            className="glass pointer-events-auto relative mx-5 flex h-[67px] touch-none select-none items-center px-[8px] [--r:26px]"
+            className="glass pointer-events-auto relative mx-4 flex h-[70px] touch-none select-none items-center px-4 [--r:24px]"
             style={cardOpen ? { visibility: "hidden" } : undefined}
             onPointerDown={onPillDown}
           >
@@ -842,15 +827,13 @@ export function ActiveWorkout({
                 if (e.timeStamp - pillSwallow.current < 300) return;
                 openJournal();
               }}
-              className="flex h-full min-w-0 flex-1 flex-col justify-center gap-1 pl-[17px] text-left"
+              className="flex h-full min-w-0 flex-1 flex-col justify-center gap-1 pl-2.5 text-left"
             >
               {shown && <PillDots rows={shown.rows} current={rowIndex} />}
               <span className="w-full truncate text-[17px] font-semibold leading-[22px] tracking-[-0.43px]">
                 {shown ? exerciseTitle(shown.we.exercises) : "Every set logged"}
               </span>
             </button>
-            {/* Swap at the trailing end (Figma 3:164: 44pt, the 22pt icon), behind Settings' Swap in Pill switch */}
-            {pillSwap && pillSwapButton}
           </div>
         )}
       </div>
@@ -860,7 +843,7 @@ export function ActiveWorkout({
           rect={menu}
           items={[
             ...(shown ? [{ value: "Do Later" }] : []),
-            ...(shown && !toolbar && !pillSwap ? [{ value: "Swap Exercise" }] : []),
+            ...(shown && !toolbar ? [{ value: "Swap Exercise" }] : []),
             { value: "Journal" },
             { value: "Settings" },
             { value: "Back to Home" },
@@ -920,18 +903,6 @@ export function ActiveWorkout({
               }}
             />
           </Group>
-          {!toolbar && (
-            <Group title="Pill" footer="A Swap button at the end of the pill. Off, Swap Exercise is in More. Saved on this device only.">
-              <SwitchRow
-                label="Swap in Pill"
-                on={pillSwap}
-                onChange={(on) => {
-                  setSwapInPill(on);
-                  setPillSwap(on);
-                }}
-              />
-            </Group>
-          )}
         </div>
       </Sheet>
 
@@ -945,7 +916,6 @@ export function ActiveWorkout({
         check={logCheck}
         title={shown ? exerciseTitle(shown.we.exercises) : (workout.templates?.name ?? "Workout")}
         dots={shown ? <PillDots rows={shown.rows} current={rowIndex} /> : undefined}
-        trailing={pillSwap ? pillSwapButton : undefined}
         current={shown?.we.id ?? null}
       >
         <JournalBody {...journalProps} />

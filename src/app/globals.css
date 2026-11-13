@@ -701,14 +701,15 @@ body {
       transform 450ms cubic-bezier(0.32, 0.72, 0, 1);
   }
 
-  /* A control on a sheet is the bars' glass without its blur, since it sits on the sheet */
-  .glass-sheet .glass {
+  /* A control on a sheet, or on the Journal card (a sheet in all but name), is the bars' glass without its blur, since
+     it sits on the sheet */
+  :is(.glass-sheet, .jcard) .glass {
     background: var(--sheet-control-fill);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
 
-  .glass-sheet .glass::before {
+  :is(.glass-sheet, .jcard) .glass::before {
     display: none;
   }
 
@@ -1145,15 +1146,15 @@ html.gpu .glass {
 }
 
 /* The shader draws the glass in the bars. Sheets, menus and any control on them stay on the CSS material. */
-html.gpu .glass:not(.glass-sheet .glass) {
+html.gpu .glass:not(:is(.glass-sheet, .jcard) .glass) {
   background: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   box-shadow: none;
 }
 
-html.gpu .glass:not(.glass-sheet .glass)::before,
-html.gpu .glass:not(.glass-sheet .glass)::after {
+html.gpu .glass:not(:is(.glass-sheet, .jcard) .glass)::before,
+html.gpu .glass:not(:is(.glass-sheet, .jcard) .glass)::after {
   display: none;
 }
 
@@ -1237,7 +1238,7 @@ html.standalone .sheet-panel {
 /* The blanket covers the bars too. The canvas dims their glass (the stage's dim uniform); this dims their HTML symbols,
    by the scrim's fade as the stage reads it (--scrim-t, 0 to 1, with .scrim-dim while above 0, so no filter at rest).
    Controls on the sheet sit above the blanket. */
-html.gpu.scrim-dim .glass:not(.glass-sheet .glass) {
+html.gpu.scrim-dim .glass:not(:is(.glass-sheet, .jcard) .glass) {
   filter: brightness(calc(1 - var(--scrim-alpha) * var(--scrim-t, 1)));
 }
 
@@ -1282,9 +1283,11 @@ html.keyboard .sheet-body {
   from { transform: translateX(-25vw); }
 }
 
-/* The pill layout's Journal card (src/app/workouts/[id]/journal-card.tsx): one shape from Ladder's pill (--jp 0: 67pt
-   tall, 20pt from each side as the steppers above, 26pt corners, resting on the dock's bottom) to the open sheet (--jp 1: edge to edge under
-   the 62pt status bar, 38pt top corners, as the iOS 27 kit's large sheet). The content stays in it the whole way. */
+/* The pill layout's Journal card (src/app/workouts/[id]/journal-card.tsx): one shape from the pill (--jp 0: the iOS 27
+   kit's collapsed notification, 70pt tall, 16pt from each side, 24pt corners, resting on the dock's bottom) to the open
+   sheet (--jp 1: edge to edge under the 62pt status bar, 38pt top corners, the kit's large sheet toolbar). Values from the
+   Journal Pill Lab (Frank's call, 2026-11-12, PILL and OPEN_HEADER in src/lib/workout/journal-card.ts). The content stays
+   in it the whole way. */
 @property --jp {
   syntax: "<number>";
   inherits: true;
@@ -1311,11 +1314,11 @@ html.keyboard .sheet-body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    top: calc((100% - var(--dock-bottom) - 67px) * (1 - var(--jp)) + 62px * var(--jp));
-    left: calc(20px * (1 - var(--jp)));
-    right: calc(20px * (1 - var(--jp)));
+    top: calc((100% - var(--dock-bottom) - 70px) * (1 - var(--jp)) + 62px * var(--jp));
+    left: calc(16px * (1 - var(--jp)));
+    right: calc(16px * (1 - var(--jp)));
     bottom: calc(var(--dock-bottom) * (1 - var(--jp)));
-    border-radius: calc(26px + 12px * var(--jp)) calc(26px + 12px * var(--jp)) calc(26px * (1 - var(--jp))) calc(26px * (1 - var(--jp)));
+    border-radius: calc(24px + 14px * var(--jp)) calc(24px + 14px * var(--jp)) calc(24px * (1 - var(--jp))) calc(24px * (1 - var(--jp)));
     background: rgb(var(--bg-rgb) / calc(0.6 + 0.37 * var(--jp)));
     -webkit-backdrop-filter: blur(22px) saturate(1.6);
     backdrop-filter: blur(22px) saturate(1.6);
@@ -1326,16 +1329,43 @@ html.keyboard .sheet-body {
     /* the app's colours, in light and dark (the elevated set in dark, above) */
     color: var(--ink);
   }
+  /* 70pt both ways: the pill's 16pt around a 38pt circle becomes the sheet toolbar's 16pt grabber band, a 44pt check and
+     10pt under it. The check keeps its 16pt edge inside the card and grows in place; the text sits 10pt after it in the
+     pill and 8pt in the sheet, leading in both, at 17pt. No divider, as the kit's toolbar has none. */
   .jcard-head {
-    flex: 0 0 calc(67px + 16px * var(--jp));
+    position: relative;
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 17px;
-    /* the circle stays 28pt from the screen's edge, where it is in the pill, lined up with the exercise cards' content
-       (8pt card inset plus 20pt padding): the padding gives back the card's inset */
-    padding-left: calc(8px + 20px * var(--jp));
-    padding-right: calc(8px + 20px * var(--jp));
-    border-bottom: 0.5px solid rgb(128 128 128 / calc(0.25 * var(--jp)));
+    gap: calc(10px - 2px * var(--jp));
+    padding: 16px 16px calc(16px - 6px * var(--jp));
+    --pill-check: calc(38px + 6px * var(--jp));
+  }
+  /* the kit's 58 by 4pt grabber, 5pt from the sheet's top, as the app's sheets draw it; it comes in as the card opens */
+  .jcard-grabber {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    width: 58px;
+    height: 4px;
+    margin-left: -29px;
+    border-radius: 2px;
+    background: var(--ink-3);
+    opacity: var(--jp);
+    pointer-events: none;
+  }
+  /* the close button where the kit's toolbar has its trailing button: 44pt, 16pt from the edge, in from about a third
+     open (opacity clamps below 0) */
+  .jcard-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    opacity: calc((var(--jp) - 0.35) / 0.65);
+    scale: calc(0.6 + 0.4 * var(--jp));
+  }
+  /* the title keeps clear of the close button as it comes in */
+  .jcard-title {
+    padding-right: calc(52px * var(--jp));
   }
   .jcard-body {
     flex: 1;
@@ -1345,7 +1375,8 @@ html.keyboard .sheet-body {
     overflow-x: hidden;
     overscroll-behavior: contain;
     scrollbar-width: none;
-    /* the exercise cards sit 8pt from the card's edges, as Ladder's do */
+    /* the exercise cards sit 8pt from the card's edges, as Ladder's do, so their content is 24pt from the screen's edge
+       (8pt plus their 16pt padding) under the check's 16pt */
     padding: 0 8px calc(var(--dock-bottom) + 24px);
   }
   .jcard-body::-webkit-scrollbar {

@@ -249,10 +249,10 @@ function setup(o: StageOptions, renderer: any): () => void {
     const cr = o.canvas.getBoundingClientRect(); org.x = cr.left; org.y = cr.top;
 
     // the glass on screen now
-    // Sheets, menus and any control on them are CSS (.glass-sheet in globals.css): the shader reads the page, so a control
+    // Sheets, menus, the Journal card (.jcard) and any control on them are CSS (globals.css): the shader reads the page, so a control
     // on a sheet would show what is behind the sheet, not the sheet.
     const want = new Set<Element>();
-    document.querySelectorAll(".glass").forEach((el) => { if (!el.closest(".glass-sheet")) want.add(el); });
+    document.querySelectorAll(".glass").forEach((el) => { if (!el.closest(".glass-sheet, .jcard")) want.add(el); });
     for (const e of Array.from(entries.values())) if (!want.has(e.el)) remove(e);
     for (const el of want) if (!entries.has(el)) add(el);
 

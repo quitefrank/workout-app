@@ -261,6 +261,27 @@ export const ShirtIcon = (p: IconProps) => (
  * Warm-up Mark prototype, https://claude.ai/artifact/2Lb4eebsema49FRzfhnSSk). Apple's glyph, rendered by macOS and kept
  * as a mask in public/icons, so it takes the text colour like the Notion icons above.
  */
+/**
+ * SF Symbols `xmark` at Medium, the iOS 27 kit's toolbar symbol (17pt in a 44pt button, Figma 10525:1638), as a mask in
+ * the label colour. Rendered by macOS at 6px a point into public/icons/sf-xmark.png: the glyph's box is 17.67 by 16.67pt
+ * at 17pt, so `size` is the symbol's point size, not the box. Apple licenses SF Symbols for its platforms; Frank accepted
+ * that for this PWA (2026-11-09).
+ */
+export const SfXmarkIcon = ({ size = 17, className }: { size?: number; className?: string }) => (
+  <span
+    aria-hidden="true"
+    className={className}
+    style={{
+      display: "block",
+      width: (17.67 / 17) * size,
+      height: (16.67 / 17) * size,
+      background: "currentColor",
+      WebkitMask: "url(/icons/sf-xmark.png) center / contain no-repeat",
+      mask: "url(/icons/sf-xmark.png) center / contain no-repeat",
+    }}
+  />
+);
+
 export const SfFlameFillIcon = ({ size = 15, className }: { size?: number; className?: string }) => (
   <span
     aria-hidden="true"
