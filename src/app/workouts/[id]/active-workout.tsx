@@ -597,7 +597,7 @@ export function ActiveWorkout({
                 <div className="relative" data-soft-zone="top">
                 <SetText rows={shown.rows} current={rowIndex} className="relative mt-2.5" />
                 {/* Figma ZD41TUAEBtLJI7t0qChNup 4:48 (Frank's call, 2026-11-10): 3pt from the set to the title, 6pt to Up next */}
-                <h1 className="relative mt-[3px] text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
+                <h1 data-soft-solid="top" className="relative mt-[3px] text-[28px] font-extrabold leading-[30px] tracking-[-0.02em]">
                   {repTarget(shown.we, row) && (
                     <span className="text-blue">{repTarget(shown.we, row)} </span>
                   )}
@@ -610,8 +610,6 @@ export function ActiveWorkout({
                   return (
                     <div
                       key={show ? `up-${shown.we.id}` : "up"}
-                      // the top soft edge's darkening is solid from here up, whether Up next shows or not
-                      data-soft-solid="top"
                       className={cn("relative mt-1.5", show ? "upnext-in" : "invisible")}
                       aria-hidden={!show}
                     >
