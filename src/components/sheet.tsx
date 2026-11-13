@@ -3,7 +3,20 @@
 import { useCallback, useEffect, useId, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { releaseDismisses, sheetFit, sheetSlide, type SheetFit } from "@/lib/sheet-detent";
-import { HERO_COLLAPSED_H, HERO_EXPANDED_H, HERO_SETTLE_DELAY, heroLayout, heroPose, heroSettleTarget, springSettled, springStep } from "@/lib/sheet-hero";
+import {
+  HERO_COLLAPSED_H,
+  HERO_MODE_DEFAULT,
+  HERO_SETTLE_DELAY,
+  heroLayout,
+  heroMetrics,
+  heroPose,
+  heroSettleTarget,
+  parseHeroMode,
+  readHeroModeRaw,
+  springSettled,
+  springStep,
+  subscribeHeroMode,
+} from "@/lib/sheet-hero";
 import { GlassCircleButton } from "./glass";
 import { CheckIcon, XIcon } from "./icons";
 
@@ -45,6 +58,9 @@ export function Sheet({
   const hero = !!thumbnail;
   /** The hero header's moving parts, written straight to the DOM on every scroll frame */
   const heroEls = useRef<{ backdrop?: HTMLDivElement | null; edge?: HTMLDivElement | null; image?: HTMLDivElement | null; title?: HTMLElement | null; sub?: HTMLDivElement | null; smallTitle?: HTMLDivElement | null; smallSub?: HTMLDivElement | null; close?: HTMLDivElement | null }>({});
+  /** Fade or push, a test setting saved on this device (src/lib/sheet-hero.ts) */
+  const mode = parseHeroMode(useSyncExternalStore(subscribeHeroMode, readHeroModeRaw, () => HERO_MODE_DEFAULT));
+  const metrics = heroMetrics(mode);
   /** Whether the sheet is at the large detent, from the last fit */
   const full = useRef(false);
   /** The tallest the content has been since this sheet opened, and whether a text field needs the room */
@@ -66,17 +82,19 @@ export function Sheet({
     const e = heroEls.current;
     if (!hero || !el || !e.image) return;
     const width = el.clientWidth;
-    const p = heroPose(body.current?.scrollTop ?? 0, width, full.current);
+    const natural = (n?: HTMLElement | null) => (n?.firstElementChild as HTMLElement | null)?.offsetWidth ?? 0;
+    const text = { title: natural(e.smallTitle), sub: natural(e.smallSub) };
+    const p = heroPose(body.current?.scrollTop ?? 0, width, full.current, mode, text);
     const l = heroLayout(width);
     Object.assign(e.image.style, { left: `${p.image.x}px`, top: `${p.image.y}px`, width: `${p.image.w}px`, height: `${p.image.h}px`, borderRadius: `${p.image.r}px` });
     if (e.backdrop) e.backdrop.style.height = `${p.backdrop}px`;
     if (e.edge) Object.assign(e.edge.style, { top: `${p.backdrop}px`, opacity: String(p.t) });
     if (e.title) Object.assign(e.title.style, { top: `${p.largeTitleY}px`, width: `${l.large.w}px`, opacity: String(p.largeOpacity) });
     if (e.sub) Object.assign(e.sub.style, { top: `${p.largeSubY}px`, width: `${l.large.w}px`, opacity: String(p.largeOpacity) });
-    if (e.smallTitle) Object.assign(e.smallTitle.style, { width: `${l.small.w}px`, opacity: String(p.smallOpacity) });
-    if (e.smallSub) Object.assign(e.smallSub.style, { width: `${l.small.w}px`, opacity: String(p.smallOpacity) });
+    if (e.smallTitle) Object.assign(e.smallTitle.style, { left: `${p.titleX}px`, width: `${p.titleW}px`, opacity: String(p.smallOpacity) });
+    if (e.smallSub) Object.assign(e.smallSub.style, { left: `${p.subX}px`, width: `${p.subW}px`, opacity: String(p.smallOpacity) });
     if (e.close) e.close.style.left = `${l.close.x}px`;
-  }, [hero]);
+  }, [hero, mode]);
 
   const measure = useCallback((): SheetFit | null => {
     const el = panel.current;
@@ -84,7 +102,7 @@ export function Sheet({
     const padding = parseFloat(getComputedStyle(body.current).paddingBottom) || 0;
     // the hero's floor on the content is read without itself, then set again for the new fit
     if (hero) content.current.style.minHeight = "";
-    const top = hero ? HERO_EXPANDED_H : header.current.offsetHeight;
+    const top = hero ? metrics.expandedH : header.current.offsetHeight;
     fit.current.tallest = Math.max(fit.current.tallest, top + content.current.offsetHeight + padding);
     const f = writeFit(el, fit.current.raised ? Infinity : Math.ceil(fit.current.tallest));
     full.current = f.full;
@@ -92,7 +110,7 @@ export function Sheet({
     if (hero && f.full) content.current.style.minHeight = `${f.height - HERO_COLLAPSED_H}px`;
     paintHero();
     return f;
-  }, [hero, paintHero]);
+  }, [hero, paintHero, metrics.expandedH]);
 
   useEffect(() => {
     if (!open) return;
@@ -155,7 +173,7 @@ export function Sheet({
     const settle = () => {
       if (touching || settling || !full.current) return;
       const from = scroller.scrollTop;
-      const to = heroSettleTarget(from);
+      const to = heroSettleTarget(from, mode);
       if (to === null) return;
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         scroller.scrollTop = to;
@@ -207,7 +225,7 @@ export function Sheet({
       scroller.removeEventListener("touchcancel", onTouchEnd);
       scroller.removeEventListener("wheel", stop);
     };
-  }, [hero, open, paintHero]);
+  }, [hero, open, paintHero, mode]);
 
   // The stage hides the dock and its capsule while a sheet is up, and keeps them hidden until the sheet has slid away
   useEffect(() => {
@@ -330,7 +348,7 @@ export function Sheet({
         <div aria-hidden className="sheet-solid" />
         {hero ? (
           <>
-            <div ref={body} className="sheet-body absolute inset-0 overflow-y-auto overscroll-contain rounded-[inherit] px-4" style={{ paddingTop: HERO_EXPANDED_H }}>
+            <div ref={body} className="sheet-body absolute inset-0 overflow-y-auto overscroll-contain rounded-[inherit] px-4" style={{ paddingTop: metrics.expandedH }}>
               <div ref={content} className="flow-root">
                 {open && children}
               </div>
@@ -338,8 +356,9 @@ export function Sheet({
             {/* Over the content and letting touches through to it, so the image scrolls like the page; the grabber row
                 and the close button take touches */}
             <div ref={header} className="pointer-events-none absolute inset-x-0 top-0 select-none rounded-[inherit]">
-              <div ref={(n) => void (heroEls.current.backdrop = n)} className="absolute inset-x-0 top-0 rounded-[inherit] bg-[var(--sheet-solid)]" style={{ height: HERO_EXPANDED_H, opacity: "var(--sheet-full)" }} />
-              <div ref={(n) => void (heroEls.current.edge = n)} className="absolute inset-x-0 h-[22px] bg-gradient-to-b from-[var(--sheet-solid)] to-transparent opacity-0" style={{ top: HERO_EXPANDED_H }} />
+              <div ref={(n) => void (heroEls.current.backdrop = n)} className="absolute inset-x-0 top-0 rounded-[inherit] bg-[var(--sheet-solid)]" style={{ height: metrics.expandedH, opacity: "var(--sheet-full)" }} />
+              <div ref={(n) => void (heroEls.current.edge = n)} className="absolute inset-x-0 h-[22px] bg-gradient-to-b from-[var(--sheet-solid)] to-transparent opacity-0" style={{ top: metrics.expandedH }} />
+              {/* fade's large title under the image; push and center keep it at zero opacity, still the sheet's heading */}
               <h2 id={titleId} ref={(n) => void (heroEls.current.title = n)} className="absolute left-4 truncate text-[22px] font-bold leading-7 tracking-[-0.26px]">
                 {title}
               </h2>
@@ -348,12 +367,13 @@ export function Sheet({
                   {subtitle}
                 </div>
               )}
+              {/* The small titles in the header row; the inner span gives center its natural width to centre on */}
               <div aria-hidden ref={(n) => void (heroEls.current.smallTitle = n)} className="absolute left-[100px] top-8 truncate text-[15px] font-medium leading-5 tracking-[-0.23px] opacity-0">
-                {title}
+                <span>{title}</span>
               </div>
               {subtitle && (
                 <div aria-hidden ref={(n) => void (heroEls.current.smallSub = n)} className="absolute left-[100px] top-[52px] truncate text-[13px] leading-[18px] tracking-[-0.08px] text-ink-2 opacity-0">
-                  {subtitle}
+                  <span>{subtitle}</span>
                 </div>
               )}
               <div ref={(n) => void (heroEls.current.image = n)} className="absolute overflow-hidden bg-[var(--muscle-tile)] ring-[0.5px] ring-[var(--sep)]">

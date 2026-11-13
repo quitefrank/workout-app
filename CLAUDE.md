@@ -649,13 +649,17 @@ only closes it. Below large: 6pt inset, 34pt top and 58pt bottom corners, a CSS 
 transparency.
 Large: edge to edge under the 62pt status bar, 38pt top corners, opaque. A focused
 text field takes it to large. The confirming action is `SheetConfirm`.
-A `thumbnail` makes the sheet open on it large (232pt, 78pt from the top, under the
-header row), and scrolling the content shrinks it into the kit's Activity View
-header (thumbnail, title and subtitle in one row, close at the trailing edge), as
-the exercise sheet uses. The shrink follows the finger. The title and subtitle sit
-in the header row from the start at their final size and height, and the thumbnail
-pushes them right as it lands (Frank's call, 2026-11-13, replacing a large title
-under the image that faded). The close button never moves, and a header stopped
+A `thumbnail` makes the sheet open on it large (232pt, below the close button), and
+scrolling the content shrinks it into the kit's Activity View header (thumbnail,
+title and subtitle in one row, close at the trailing edge), as the exercise sheet
+uses. The shrink follows the finger. How the title gets there is a test setting
+while Frank compares three motions (2026-11-13; Settings' Exercise sheet, saved per
+device in localStorage `sheet_hero_mode`, Fade by default): Fade (the image at 70pt,
+where other sheets' content starts; a large title under it fades out and the small
+one fades in), Push (the title and subtitle start in the header row on the left and
+slide right) and Center (they start centred and slide left). Push and Center open the
+image at 78pt and run in three beats so text and image never overlap: the image
+shrinks to the thumbnail under the row, the titles slide, the thumbnail rises. The close button never moves, and a header stopped
 halfway settles on SwiftUI's smooth spring (Frank's call, 2026-11-07, from the
 Exercise Sheet Hero prototype, https://claude.ai/artifact/4WWmpj6GS3aqRKhwm7eKur). Values
 and geometry are pure and tested in `src/lib/sheet-hero.ts`. At the large detent
