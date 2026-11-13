@@ -18,9 +18,20 @@ describe("Start Workout edge tuning", () => {
   });
 
   it("turns values into the edge's custom properties and the source's shape", () => {
-    const t = { ...TUNE_DEFAULTS, height: 120, d3: 55 };
-    expect(tuneVars(t)).toMatchObject({ "--se-height": "120px", "--se-blur": "20px", "--se-tint": 0.81, "--se-d3": 0.55 });
-    expect(tuneSource(t)).toContain("darken: [[0, 0], [0.25, 0.35], [0.6, 0.7], [1, 0.55]],");
-    expect(tuneSource(t)).toContain("height: 120,");
+    const t = { ...TUNE_DEFAULTS, blurFrom: 140, gradFrom: 120, gradFull: 40, d3: 55 };
+    expect(tuneVars(t)).toMatchObject({
+      "--se-blur-from": "140px",
+      "--se-grad-from": "120px",
+      "--se-grad-full": "40px",
+      "--se-blur": "20px",
+      "--se-tint": 0.81,
+      "--se-d3": 0.55,
+    });
+    expect(tuneSource(t)).toContain("darken: [[0, 0], [0.25, 0.35], [0.6, 0.7], [1, 0.55]]");
+    expect(tuneSource(t)).toContain("gradFull: 40,");
+  });
+
+  it("never has the gradient full above where it starts", () => {
+    expect(tuneVars({ ...TUNE_DEFAULTS, gradFrom: 60, gradFull: 100 })).toMatchObject({ "--se-grad-full": "60px" });
   });
 });

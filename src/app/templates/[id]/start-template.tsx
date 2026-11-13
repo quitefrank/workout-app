@@ -56,11 +56,11 @@ export function StartTemplate({ templateId }: { templateId: string }) {
           edge="bottom"
           live
           strong
-          // its height (up from the screen's bottom), blur, tint and darkening come from Settings' Start Workout edge
-          // sliders while they are tuned; 87pt is where it started before, 16pt above the button
+          // where its blur and gradient start (up from the screen's bottom), where the gradient is full, and their
+          // strengths come from Settings' Start Workout edge sliders (the defaults until one moves); as tall as the taller
           tuned
           className="bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
-          style={{ ...tune, height: "var(--se-height, 87px)" }}
+          style={{ ...tune, height: "max(var(--se-blur-from), var(--se-grad-from))" }}
         />
         <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto relative mx-5">
           {pending ? "Starting…" : "Start Workout"}

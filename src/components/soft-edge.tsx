@@ -49,17 +49,49 @@ const BANDS = [0.125, 0.25, 0.5, 1] as const;
 
 type Edge = "top" | "bottom";
 
+/**
+ * A bottom edge tuned from Settings (src/lib/soft-edge-tune.ts), heights up from the screen's bottom: the blur in its own
+ * box from `--se-blur-from` down, the tint and darkening in theirs from `--se-grad-from` down, the darkening full at
+ * `--se-grad-full` and held to the bottom. The edge element is as tall as the taller of the two.
+ */
+function TunedLayers() {
+  const box = (h: string): CSSProperties => ({ position: "absolute", left: 0, right: 0, bottom: 0, height: h });
+  // the darkening's stops run from where the gradient starts (0) to where it is full, in pt from the box's top
+  const span = "(var(--se-grad-from) - var(--se-grad-full))";
+  const stop = (alpha: string, f: number) => `rgb(var(--bg-rgb) / ${alpha}) calc(${span} * ${f})`;
+  return (
+    <>
+      <div style={box("var(--se-blur-from)")}>
+        {BANDS.map((f, i) => {
+          const start = (i / BANDS.length) * 100;
+          const mask = `linear-gradient(to bottom, transparent ${start}%, black ${start + 100 / BANDS.length}%)`;
+          return (
+            <div
+              key={f}
+              className="soft-edge-blur absolute inset-0"
+              style={{ "--soft-blur": `blur(calc(var(--se-blur) * ${f}))`, maskImage: mask, WebkitMaskImage: mask } as CSSProperties}
+            />
+          );
+        })}
+      </div>
+      <div style={{ ...box("var(--se-grad-from)"), background: "linear-gradient(to bottom, rgb(var(--bg-rgb) / 0), rgb(var(--bg-rgb) / var(--se-tint)))" }} />
+      <div
+        style={{
+          ...box("var(--se-grad-from)"),
+          background: `linear-gradient(to bottom, ${stop("0", 0)}, ${stop("var(--se-d1)", 0.25)}, ${stop("var(--se-d2)", 0.6)}, ${stop("var(--se-d3)", 1)}, rgb(var(--bg-rgb) / var(--se-d3)) 100%)`,
+        }}
+      />
+    </>
+  );
+}
+
 function Layers({ edge, strong = false, tuned = false }: { edge: Edge; strong?: boolean; tuned?: boolean }) {
+  if (tuned && edge === "bottom") return <TunedLayers />;
   const dir = edge === "top" ? "to top" : "to bottom";
   const v = softEdgeValues(strong);
-  // `tuned` reads the blur, tint and darkening from the --se-* properties Settings sets (src/lib/soft-edge-tune.ts),
-  // falling back to these values; the darkening keeps the strong preset's stop positions
-  const blur = (f: number) => (tuned ? `blur(calc(var(--se-blur, ${v.blur}px) * ${f}))` : `blur(${v.blur * f}px)`);
-  const tint = tuned ? `var(--se-tint, ${SOFT_EDGE.tint})` : `${SOFT_EDGE.tint}`;
-  const stops = v.darken.map(([at, a], i) => {
-    const alpha = tuned && i > 0 ? `var(--se-d${i}, ${a})` : `${a}`;
-    return `rgb(var(--bg-rgb) / ${alpha}) ${at * 100}%`;
-  });
+  const blur = (f: number) => `blur(${v.blur * f}px)`;
+  const tint = `${SOFT_EDGE.tint}`;
+  const stops = v.darken.map(([at, a]) => `rgb(var(--bg-rgb) / ${a}) ${at * 100}%`);
   return (
     <>
       {BANDS.map((f, i) => {
