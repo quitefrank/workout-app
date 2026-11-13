@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { setExerciseFloor } from "@/app/actions";
 import { Button } from "@/components/button";
@@ -38,9 +37,15 @@ export type JournalProps = {
   onDeleteRow: (entry: Entry, i: number) => void;
   onPick: (we: WorkoutExerciseRow) => void;
   onSwap: (we: WorkoutExerciseRow) => void;
+  /** History: the exercise's sheet on its History tab, without leaving the workout */
+  onHistory: (we: WorkoutExerciseRow) => void;
   onMove: (we: WorkoutExerciseRow, to: "up" | "down" | "end") => void;
   onRemove: (we: WorkoutExerciseRow) => void;
   onFinish: () => void;
+  /** the cards open when the Journal comes back after a sheet opened from it was cancelled */
+  initialOpenIds?: ReadonlySet<string>;
+  /** told which cards are open, so a reopened Journal can show the same */
+  onOpenIdsChange?: (ids: ReadonlySet<string>) => void;
 };
 
 /**
@@ -74,13 +79,20 @@ export function JournalBody({
   onDeleteRow,
   onPick,
   onSwap,
+  onHistory,
   onMove,
   onRemove,
   onFinish,
+  initialOpenIds,
+  onOpenIdsChange,
 }: JournalProps) {
-  // Which cards are open: the current exercise to start with (the parent keys the Journal per opening); a tap on a card's
-  // header opens or closes it, and any number can be open at once (Frank's call, 2026-11-10)
-  const [openIds, setOpenIds] = useState<ReadonlySet<string>>(() => new Set(current ? [current] : []));
+  // Which cards are open: the current exercise to start with (the parent keys the Journal per opening), or the cards that
+  // were open when a sheet opened from it was cancelled; a tap on a card's header opens or closes it, and any number can be
+  // open at once (Frank's call, 2026-11-10)
+  const [openIds, setOpenIds] = useState<ReadonlySet<string>>(() => initialOpenIds ?? new Set(current ? [current] : []));
+  useEffect(() => {
+    onOpenIdsChange?.(openIds);
+  }, [openIds, onOpenIdsChange]);
   const toggle = (we: WorkoutExerciseRow) =>
     setOpenIds((prev) => {
       const next = new Set(prev);
@@ -117,6 +129,7 @@ export function JournalBody({
             onAddRow={onAddRow}
             onDeleteRow={onDeleteRow}
             onSwap={onSwap}
+            onHistory={onHistory}
             onMove={onMove}
             onRemove={onRemove}
           />
@@ -185,6 +198,7 @@ function ExerciseCard({
   onAddRow,
   onDeleteRow,
   onSwap,
+  onHistory,
   onMove,
   onRemove,
 }: {
@@ -206,6 +220,7 @@ function ExerciseCard({
   onAddRow: (we: WorkoutExerciseRow) => void;
   onDeleteRow: (entry: Entry, i: number) => void;
   onSwap: (we: WorkoutExerciseRow) => void;
+  onHistory: (we: WorkoutExerciseRow) => void;
   onMove: (we: WorkoutExerciseRow, to: "up" | "down" | "end") => void;
   onRemove: (we: WorkoutExerciseRow) => void;
 }) {
@@ -278,9 +293,7 @@ function ExerciseCard({
         <Chip onClick={() => onSwap(we)}>
           <SwapIcon size={15} /> Swap
         </Chip>
-        <Link href={`/exercises/${ex.id}`} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-fill px-4 text-[15px] font-medium">
-          History
-        </Link>
+        <Chip onClick={() => onHistory(we)}>History</Chip>
         <Chip label="More" onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}>
           <EllipsisIcon size={17} />
         </Chip>

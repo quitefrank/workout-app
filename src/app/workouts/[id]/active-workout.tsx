@@ -27,6 +27,7 @@ import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIc
 import { Group, Segmented } from "@/components/segmented";
 import { setJournalGlass, type JournalGlass, type WorkoutVersion } from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
+import { ExerciseSheet } from "@/components/exercise-sheet";
 import { Sheet } from "@/components/sheet";
 import { ZoneSoftEdge } from "@/components/soft-edge";
 import { TopBar } from "@/components/top-bar";
@@ -70,6 +71,9 @@ import type { SetTimerMode, StoredSetTimer } from "@/lib/workout/set-timer";
 import { stretchPairs } from "@/lib/workout/pairs";
 import { GlassLayers, Stepper, stepperCard } from "./stepper";
 import { SwapSheet } from "./swap-sheet";
+
+/** The Version 2 Journal sheet's slide away, in ms (CLOSE_MS in src/components/sheet.tsx) */
+const JOURNAL_SHEET_CLOSE_MS = 450;
 
 /**
  * The active workout, aligned with Ladder (Frank's calls, 2026-11-08; the Workout App Teardown,
@@ -393,13 +397,49 @@ export function ActiveWorkout({
   const card = useRef<CardControl | null>(null);
   const cardP = useRef(0);
   const [cardOpen, setCardOpen] = useState<null | "tap" | "drag">(null);
-  const openJournal = () => {
+  /** the Journal's open cards and scroll, kept when a sheet opened from it should bring it back on a cancel */
+  const [journalRestore, setJournalRestore] = useState<{ openIds: ReadonlySet<string> | null; scroll: number | null } | null>(null);
+  const journalOpenIds = useRef<ReadonlySet<string> | null>(null);
+  const rememberOpenIds = useCallback((ids: ReadonlySet<string>) => {
+    journalOpenIds.current = ids;
+  }, []);
+  const savedJournal = useRef<{ openIds: ReadonlySet<string> | null; scroll: number | null } | null>(null);
+  const showJournal = (restore: typeof journalRestore) => {
+    setJournalRestore(restore);
     setJournalKey((k) => k + 1);
     if (toolbar) return setJournalSheet(true);
     cardP.current = 0;
     setCardOpen("tap");
   };
+  const openJournal = () => showJournal(null);
   const closeJournal = () => (toolbar ? setJournalSheet(false) : card.current?.settle(0));
+
+  // One sheet at a time (Frank's call, 2026-11-13, https://claude.ai/artifact/NhAD3QmuzrigseuXLTvxXR): a sheet opened from
+  // the Journal opens once the Journal has finished closing, and dismissing it without acting reopens the Journal where it
+  // was, its scroll and open cards kept
+  const afterJournalClose = useRef<(() => void) | null>(null);
+  const fromJournal = (then: () => void) => {
+    savedJournal.current = { openIds: journalOpenIds.current, scroll: card.current?.scrollTop() ?? null };
+    if (toolbar) {
+      setJournalSheet(false);
+      window.setTimeout(then, JOURNAL_SHEET_CLOSE_MS);
+      return;
+    }
+    if (!card.current) return then();
+    afterJournalClose.current = then;
+    card.current.settle(0);
+  };
+  const reopenJournal = () => {
+    const saved = savedJournal.current;
+    savedJournal.current = null;
+    showJournal(saved);
+  };
+  const onJournalCardClosed = () => {
+    setCardOpen(null);
+    const then = afterJournalClose.current;
+    afterJournalClose.current = null;
+    then?.();
+  };
 
   // Drag the pill up: the card follows the finger from the first move, then opens or sinks back on release
   const pillDrag = useRef<{ x: number; y: number; t: number; last: number; v: number; up: number; d: number; on: boolean } | null>(null);
@@ -447,6 +487,21 @@ export function ActiveWorkout({
     if (we) setSwapKey((k) => k + 1);
     setSwapForState(we);
   };
+  /** Swap was opened from the Journal, so a cancel brings the Journal back; from More or the focus screen it does not */
+  const swapFromJournal = useRef(false);
+  const swapDismissed = () => {
+    setSwapFor(null);
+    if (!swapFromJournal.current) return;
+    swapFromJournal.current = false;
+    reopenJournal();
+  };
+  const swapDone = () => {
+    swapFromJournal.current = false;
+    setSwapFor(null);
+  };
+  // The Journal's History: the exercise's sheet on its History tab, over the workout; closing it reopens the Journal
+  const [historyFor, setHistoryFor] = useState<WorkoutExerciseRow | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [menu, setMenu] = useState<DOMRect | null>(null);
@@ -496,7 +551,18 @@ export function ActiveWorkout({
       setViewId(null);
       setPinned(we.id);
     },
-    onSwap: (we) => setSwapFor(we),
+    onSwap: (we) =>
+      fromJournal(() => {
+        swapFromJournal.current = true;
+        setSwapFor(we);
+      }),
+    onHistory: (we) =>
+      fromJournal(() => {
+        setHistoryFor(we);
+        setHistoryOpen(true);
+      }),
+    initialOpenIds: journalRestore?.openIds ?? undefined,
+    onOpenIdsChange: rememberOpenIds,
     onMove: move,
     onRemove: remove,
     onFinish: () => {
@@ -946,11 +1012,12 @@ export function ActiveWorkout({
         glass={journalGlass}
         pillRef={pillRef}
         openOnMount={cardOpen === "tap"}
-        onClosed={() => setCardOpen(null)}
+        onClosed={onJournalCardClosed}
         check={logCheck}
         title={shown ? exerciseTitle(shown.we.exercises) : (workout.templates?.name ?? "Workout")}
         dots={shown ? <PillDots rows={shown.rows} current={rowIndex} /> : undefined}
         current={shown?.we.id ?? null}
+        initialScroll={journalRestore?.scroll}
       >
         <JournalBody {...journalProps} />
       </JournalCard>
@@ -959,7 +1026,21 @@ export function ActiveWorkout({
       <SwapSheet
         key={`swap-${swapKey}`}
         we={swapFor}
-        onClose={() => setSwapFor(null)}
+        onClose={swapDismissed}
+        onSwapped={swapDone}
+      />
+
+      <ExerciseSheet
+        open={historyOpen}
+        exerciseId={historyFor?.exercises.id ?? null}
+        slug={historyFor?.exercises.slug}
+        title={historyFor ? exerciseTitle(historyFor.exercises) : ""}
+        art={<ListIcon size={28} className="m-auto mt-24 text-ink-3" />}
+        initialTab="History"
+        onClose={() => {
+          setHistoryOpen(false);
+          reopenJournal();
+        }}
       />
 
       <FinishSheet

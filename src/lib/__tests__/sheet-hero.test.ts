@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HERO_COLLAPSED_H, HERO_EXPANDED_H, HERO_RANGE, heroLayout, heroPose, heroSettleTarget, springSettled, springStep } from "../sheet-hero";
+import { HERO_BACK, HERO_COLLAPSED_H, HERO_EXPANDED_H, HERO_RANGE, heroLayout, heroPose, heroSettleTarget, springSettled, springStep } from "../sheet-hero";
 
 describe("heroPose", () => {
   it("opens on the large image with the large title showing", () => {
@@ -44,6 +44,37 @@ describe("heroPose", () => {
 
   it("keeps the close button in one place", () => {
     expect(heroLayout(402).close).toEqual({ x: 342, y: 20 });
+    expect(heroLayout(402, true).close).toEqual(heroLayout(402).close);
+  });
+});
+
+describe("heroLayout with Back", () => {
+  it("has no Back button at the exercise the sheet opened on", () => {
+    expect(heroLayout(402).back).toBeNull();
+  });
+
+  it("puts Back at the top left, in the close button's row", () => {
+    const l = heroLayout(402, true);
+    expect(l.back).toEqual({ x: 16, y: l.close.y });
+  });
+
+  it("moves the collapsed thumbnail and small title right by the button and a 12pt gap", () => {
+    const plain = heroLayout(402);
+    const l = heroLayout(402, true);
+    expect(l.collapsed.x).toBe(HERO_BACK.x + HERO_BACK.size + HERO_BACK.gap);
+    expect(l.collapsed.x).toBe(72);
+    expect(l.small.x - l.collapsed.x).toBe(plain.small.x - plain.collapsed.x);
+    expect(l.small.x + l.small.w).toBe(plain.small.x + plain.small.w);
+    expect(l.collapsed.y).toBe(plain.collapsed.y);
+  });
+
+  it("collapses onto the moved thumbnail and leaves the large image where it was", () => {
+    expect(heroPose(HERO_RANGE, 402, true, true).image).toEqual(heroLayout(402, true).collapsed);
+    expect(heroPose(0, 402, true, true).image).toEqual(heroPose(0, 402, true).image);
+  });
+
+  it("keeps the large image clear of Back", () => {
+    expect(heroPose(0, 402, true, true).image.y).toBeGreaterThanOrEqual(HERO_BACK.y + HERO_BACK.size);
   });
 });
 

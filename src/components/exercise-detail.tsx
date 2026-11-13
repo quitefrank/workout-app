@@ -16,7 +16,8 @@ import { ChevronRight, TrophyIcon } from "./icons";
 import { Row } from "./page";
 
 const TABS = ["Summary", "History", "How to"] as const;
-type Tab = (typeof TABS)[number];
+export type ExerciseTab = (typeof TABS)[number];
+type Tab = ExerciseTab;
 
 const METRICS: { key: ExerciseMetric; label: string }[] = [
   { key: "heaviest", label: "Heaviest Weight" },
@@ -32,16 +33,39 @@ export function exerciseFacts(exercise: ExerciseView["exercise"]): string {
  * An exercise's three tabs, in its sheet and on its own page. The tabs are the kit's segmented control. The sheet shows
  * the image and facts in its header, so only the page passes `art`, which puts them at the top of Summary. An exercise
  * with floors has a floor pop-up under the tabs: the chart, PRs and history show one floor, opening on the last one used.
+ *
+ * In the sheet a version (equipment, position, variation) replaces the exercise in place (`onVersion`) and an alternate is
+ * a step inside the sheet with Back (`onAlternate`), by Frank's call, 2026-11-13. On the page a version replaces the URL
+ * and an alternate is a link.
  */
-export function ExerciseDetailTabs({ view: all, art, onAlternate }: { view: ExerciseView; art?: ReactNode; onAlternate?: (id: string) => void }) {
+export function ExerciseDetailTabs({
+  view: all,
+  art,
+  onVersion,
+  onAlternate,
+  initialTab = "Summary",
+  onTabChange,
+}: {
+  view: ExerciseView;
+  art?: ReactNode;
+  onVersion?: (id: string) => void;
+  onAlternate?: (id: string) => void;
+  /** the tab it opens on (the Journal's History opens the sheet on History) */
+  initialTab?: ExerciseTab;
+  onTabChange?: (tab: ExerciseTab) => void;
+}) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("Summary");
+  const [tab, setTabState] = useState<Tab>(initialTab);
+  const setTab = (t: Tab) => {
+    setTabState(t);
+    onTabChange?.(t);
+  };
   const hasFloors = all.exercise.has_floors;
   const [floor, setFloor] = useState<MachineLocation>(() => latestFloor(all.sessions) ?? FIRST_FLOOR);
   const view = hasFloors ? { ...all, sessions: sessionsOnFloor(all.sessions, floor) } : all;
   return (
     <>
-      <MovementPicker options={all.options} currentId={all.exercise.id} onSelect={onAlternate ?? ((id) => router.replace(`/exercises/${id}`))} />
+      <MovementPicker options={all.options} currentId={all.exercise.id} onSelect={onVersion ?? ((id) => router.replace(`/exercises/${id}`))} />
       <div role="tablist" aria-label="Exercise" className="flex gap-1 rounded-full bg-fill p-0.5">
         {TABS.map((t) => (
           <button

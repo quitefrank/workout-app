@@ -677,6 +677,22 @@ and geometry are pure and tested in `src/lib/sheet-hero.ts`. At the large detent
 the content gets a minimum height so the shrink can always finish; a fitted sheet
 never scrolls, so it stays large. Without a thumbnail a sheet has the kit's
 toolbar (close, centred title, confirm).
+Three rules for placing and stacking sheets (Frank's calls, 2026-11-13, from the sheet audit,
+https://claude.ai/artifact/NhAD3QmuzrigseuXLTvxXR, on the HIG's sheet and toolbar pages):
+- The close button takes the slot the header leaves free: leading in the toolbar, trailing beside a thumbnail and in
+  the Journal's header. With Back, Back is leading and close trailing.
+- One sheet at a time. A sheet opened from another (or from the Journal) closes the first, opens once that close has
+  finished, and on a cancel reopens the first where it was. Journal > Swap and Journal > History do this in
+  `active-workout.tsx` (`fromJournal`, `reopenJournal`): a dismissed Swap or a closed History sheet brings the Journal
+  back with its scroll and open cards; a completed swap lands on the focus screen with the Journal closed. Swap from
+  More or a card outside the Journal reopens nothing. Finish still closes the Journal and opens at once.
+- A step inside a sheet gets Back; a version change does not. `Sheet`'s `onBack` puts Back in the leading slot (top left
+  beside a thumbnail, in the close button's row) and close trailing, never with a confirm; Back fades and scales in and
+  out. Swap's See all ("Swap for Any Exercise") is a step back to the carousel. In the exercise sheet an alternate is
+  pushed onto a stack and slides in from the right (a back step from the left, keeping its tab and scroll); Back pops
+  one step and is gone at the exercise the sheet opened on. Choosing a version in the MovementPicker replaces the
+  exercise in place (`onVersion`, apart from `onAlternate` in `ExerciseDetailTabs`). With Back, the collapsed thumbnail
+  moves from x 20 to 72 and the small title with it (`heroLayout(width, back)`, tested).
 The scrim is the kit's Overlays/Default (`--scrim-alpha`: 20% black, 48% in dark)
 and covers the bars too. It fades in and out over 300ms on both paths (Frank's call,
 2026-11-10). On the WebGPU path it is painted into the page, faded by the scrim
@@ -966,9 +982,11 @@ and records, totals and stepper steps live there too. `journal.tsx` is the Journ
 apps) in the label colour, never orange. The current set's Log It circle keeps the default ring (no blue, no outer ring; it got
 lost on the band) and its row a 15% blue band across the card, as Ladder tints its active row (no left-edge bar). It has no sections (supersets get none until there is a way to mark one): every exercise with set
 circles, the shown one open with Max Weight and Est. 1 Rep Max (`bests` in `getWorkout`), a floor chip on two-floor
-exercises, Swap, History and More (Do Later, Move Up, Move Down, Remove), and a Log It grid. `swap-sheet.tsx` is a
+exercises, Swap, History and More (Do Later, Move Up, Move Down, Remove), and a Log It grid. Swap and History close
+the Journal and open their sheet (History is the exercise sheet on its History tab, `initialTab`, so it no longer
+leaves the workout), and a cancel reopens the Journal where it was (see the sheet rules under "App"). `swap-sheet.tsx` is a
 carousel of `getSwapPicks` (the program's subs, versions of the movement done before, the muscle group's most done)
-ending on See all, a search of the library; `swapExercise` replaces the row when nothing is logged, else adds the new
+ending on See all, a search of the library with Back to the carousel; `onClose` is a dismissal and `onSwapped` a swap; `swapExercise` replaces the row when nothing is logged, else adds the new
 exercise after it, and `workout_exercises.swapped_from_exercise_id` (migrations 0025 and 0026, no foreign key: a second
 one made every `exercises(...)` embed ambiguous) remembers what it replaced. `finish-sheet.tsx` shows new records,
 time, working sets and volume, and Keep swaps in template, which `completeWorkout` writes onto the template row that

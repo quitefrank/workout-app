@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { getSwapLibrary, getSwapPicks, swapExercise, type LibraryPick, type SwapPick } from "@/app/actions";
 import { Button } from "@/components/button";
@@ -14,9 +14,20 @@ import { exerciseTitle } from "@/lib/workout/movements";
 /**
  * Swap, when a machine is taken (Frank's pick from the teardown, 2026-11-08): a carousel of the closest exercises, the
  * program's subs first, ending on a card that opens search over the whole library. A swap changes today's workout; the
- * finish sheet asks whether the template keeps it. Undo puts the old exercise back.
+ * finish sheet asks whether the template keeps it. Undo puts the old exercise back. See all is a step inside the sheet:
+ * Back returns to the carousel (Frank's call, 2026-11-13).
  */
-export function SwapSheet({ we, onClose }: { we: WorkoutExerciseRow | null; onClose: () => void }) {
+export function SwapSheet({
+  we,
+  onClose,
+  onSwapped,
+}: {
+  we: WorkoutExerciseRow | null;
+  /** dismissed without a swap: the close button, Not Now, the scrim, Escape or a drag down */
+  onClose: () => void;
+  /** a swap was made; the sheet should close */
+  onSwapped: () => void;
+}) {
   const [picks, setPicks] = useState<SwapPick[] | null>(null);
   const [library, setLibrary] = useState<LibraryPick[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -39,6 +50,20 @@ export function SwapSheet({ we, onClose }: { we: WorkoutExerciseRow | null; onCl
     };
   }, [weId]);
 
+  // Back from See all: the carousel comes back on the card it was left on
+  const returnTo = useRef<number | null>(null);
+  const backToCarousel = () => {
+    returnTo.current = index;
+    setSearching(false);
+  };
+  useLayoutEffect(() => {
+    const el = track.current;
+    if (searching || !el || returnTo.current === null) return;
+    const card = el.firstElementChild as HTMLElement | null;
+    el.scrollLeft = returnTo.current * (card ? card.offsetWidth + 12 : 252);
+    returnTo.current = null;
+  }, [searching]);
+
   const openSearch = () => {
     setSearching(true);
     if (!library) getSwapLibrary().then(setLibrary).catch(() => setLibrary([]));
@@ -50,7 +75,7 @@ export function SwapSheet({ we, onClose }: { we: WorkoutExerciseRow | null; onCl
     start(async () => {
       try {
         const res = await swapExercise(we.id, id);
-        onClose();
+        onSwapped();
         toast(label, {
           description: res.mode === "replaced" ? `For today, in place of ${from}` : `Added after ${from}, which keeps its logged sets`,
           action:
@@ -79,7 +104,7 @@ export function SwapSheet({ we, onClose }: { we: WorkoutExerciseRow | null; onCl
   const onSeeAll = picks != null && index >= picks.length;
 
   return (
-    <Sheet open={!!we} onClose={onClose} title={searching ? "Swap for Any Exercise" : "Swap"}>
+    <Sheet open={!!we} onClose={onClose} onBack={searching ? backToCarousel : undefined} title={searching ? "Swap for Any Exercise" : "Swap"}>
       {!searching ? (
         <>
           <p className="px-4 pb-3 text-center text-[15px] text-ink-2">{name}</p>

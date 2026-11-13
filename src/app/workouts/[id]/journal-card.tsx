@@ -31,7 +31,7 @@ import { closesOnRelease, progressFor, travel } from "@/lib/workout/journal-card
  *   is hidden once the card has settled open, and the unit keeps its side while it grows (`data-glass-hold`).
  */
 
-export type CardControl = { setP: (p: number) => void; settle: (to: 0 | 1) => void };
+export type CardControl = { setP: (p: number) => void; settle: (to: 0 | 1) => void; scrollTop: () => number };
 
 /** How long a settle runs, in ms (the `--jp` transition in globals.css) */
 const SETTLE_MS = 440;
@@ -47,6 +47,7 @@ export function JournalCard({
   title,
   dots,
   current,
+  initialScroll,
   children,
 }: {
   controlRef: MutableRefObject<CardControl | null>;
@@ -65,6 +66,8 @@ export function JournalCard({
   dots?: ReactNode;
   /** the exercise to pin under the header */
   current: string | null;
+  /** where the content was scrolled, when the Journal comes back after a sheet opened from it was cancelled */
+  initialScroll?: number | null;
   children: ReactNode;
 }) {
   const stage = useRef<HTMLDivElement>(null);
@@ -144,12 +147,13 @@ export function JournalCard({
         if (to === 0) closedRef.current();
       }, SETTLE_MS);
     };
-    controlRef.current = { setP, settle };
+    controlRef.current = { setP, settle, scrollTop: () => body.current?.scrollTop ?? 0 };
     setP(startRef.current);
-    // the current exercise sits right under the header from the first frame
+    // the current exercise sits right under the header from the first frame, or the content is back where it was left
     const cur = current ? body.current?.querySelector<HTMLElement>(`[data-we="${current}"]`) : null;
     const b = body.current;
-    if (cur && b) b.scrollTop = Math.max(0, cur.getBoundingClientRect().top - b.getBoundingClientRect().top + b.scrollTop - 4);
+    if (b && initialScroll != null) b.scrollTop = initialScroll;
+    else if (cur && b) b.scrollTop = Math.max(0, cur.getBoundingClientRect().top - b.getBoundingClientRect().top + b.scrollTop - 4);
     if (openOnMount) {
       void el.offsetWidth;
       settle(1);

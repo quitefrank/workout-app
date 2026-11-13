@@ -771,6 +771,30 @@ body {
     transition: none;
   }
 
+  /* Back coming or going in a thumbnail header: the collapsed thumbnail and small title glide aside on the sheet's
+     curve (sheet.tsx sets the attribute for 300ms; scrolling sets the same properties without it) */
+  [data-hero-shift] > * {
+    transition: left 250ms cubic-bezier(0.32, 0.72, 0, 1), width 250ms cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* A step inside a sheet (the exercise sheet's alternates): the new content comes in from the side it was pushed from,
+     close to UIKit's push timing (src/lib/page-push.ts: 90% of the way at 250ms, done by 500ms). `backwards` only, so no
+     transform is left behind to trap the pop-up menus' fixed positioning. */
+  .sheet-step-forward {
+    animation: sheet-step-forward 500ms cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+  }
+
+  .sheet-step-back {
+    animation: sheet-step-back 500ms cubic-bezier(0.2, 0.9, 0.3, 1) backwards;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sheet-step-forward,
+    .sheet-step-back {
+      animation: none;
+    }
+  }
+
   /* Clear of the home indicator; with the keyboard up, clear of the keyboard (html.keyboard below) */
   .sheet-body {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
@@ -1318,6 +1342,13 @@ html.keyboard .sheet-body {
 }
 @keyframes upnext-in {
   from { transform: translateX(-10px); opacity: 0; }
+}
+
+@keyframes sheet-step-forward {
+  from { transform: translateX(30%); opacity: 0; }
+}
+@keyframes sheet-step-back {
+  from { transform: translateX(-25%); opacity: 0; }
 }
 
 @keyframes push-in {

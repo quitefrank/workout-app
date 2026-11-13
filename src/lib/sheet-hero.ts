@@ -36,14 +36,21 @@ export const HERO_SPRING = { duration: 0.5, bounce: 0 };
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const clamp01 = (t: number) => Math.max(0, Math.min(1, t));
 
-/** The fixed parts of the header for a sheet `width` wide: thumbnail, titles and the close button. */
-export function heroLayout(width: number) {
-  const smallW = Math.max(0, width - 100 - 16 - 44 - 12);
+/** A step inside the sheet shows Back at the top left, in the close button's row and at its top (Frank's call,
+ *  2026-11-13). Collapsed, the thumbnail and small title move right by the button and a 12pt gap to make room. */
+export const HERO_BACK = { x: 16, y: TOP, size: 44, gap: 12 };
+
+/** The fixed parts of the header for a sheet `width` wide: thumbnail, titles, the close button and, with `back`, the Back
+ *  button. */
+export function heroLayout(width: number, back = false) {
+  const thumbX = back ? HERO_BACK.x + HERO_BACK.size + HERO_BACK.gap : 20;
+  const smallX = thumbX + 64 + 16;
   return {
-    collapsed: { x: 20, y: TOP, w: 64, h: 64, r: 16 } satisfies HeroBox,
-    small: { x: 100, titleY: 32, subY: 52, w: smallW },
+    collapsed: { x: thumbX, y: TOP, w: 64, h: 64, r: 16 } satisfies HeroBox,
+    small: { x: smallX, titleY: 32, subY: 52, w: Math.max(0, width - smallX - 16 - 44 - 12) },
     large: { x: 16, w: Math.max(0, width - 32) },
     close: { x: width - 16 - 44, y: TOP },
+    back: back ? { x: HERO_BACK.x, y: HERO_BACK.y } : null,
   };
 }
 
@@ -65,11 +72,11 @@ export type HeroPose = {
 };
 
 /** The header after `scroll` points of scrolling. Only the large detent shrinks: a sheet below it fits and never scrolls. */
-export function heroPose(scroll: number, width: number, full: boolean): HeroPose {
+export function heroPose(scroll: number, width: number, full: boolean, back = false): HeroPose {
   const s = full ? Math.max(0, scroll) : 0;
   const t = clamp01(s / HERO_RANGE);
   const a = heroExpanded(width, full);
-  const b = heroLayout(width).collapsed;
+  const b = heroLayout(width, back).collapsed;
   return {
     t,
     image: { x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), w: lerp(a.w, b.w, t), h: lerp(a.h, b.h, t), r: lerp(a.r, b.r, t) },

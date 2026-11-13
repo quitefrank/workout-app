@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useId, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { releaseDismisses, sheetFit, sheetSlide, type SheetFit } from "@/lib/sheet-detent";
-import { HERO_COLLAPSED_H, HERO_EXPANDED_H, HERO_SETTLE_DELAY, heroLayout, heroPose, heroSettleTarget, springSettled, springStep } from "@/lib/sheet-hero";
+import { HERO_BACK, HERO_COLLAPSED_H, HERO_EXPANDED_H, HERO_SETTLE_DELAY, heroLayout, heroPose, heroSettleTarget, springSettled, springStep } from "@/lib/sheet-hero";
 import { GlassCircleButton } from "./glass";
-import { CheckIcon, XIcon } from "./icons";
+import { CheckIcon, ChevronLeft, XIcon } from "./icons";
 
 /**
  * Apple's iOS 27 sheet (Figma kit 27.0.1, Sheet - iPhone), fitted to its content up to the large detent; taller content
@@ -16,6 +16,10 @@ import { CheckIcon, XIcon } from "./icons";
  * under the finger. Drag the grabber or toolbar down to close it, or the content when it is scrolled to its top. A text
  * field takes it to large, clear of the keyboard. The shape runs on --sheet-height, --sheet-full and --sheet-y
  * (.sheet-panel in globals.css). Escape, the close button and a tap on the scrim close it.
+ *
+ * The close button takes the slot the header leaves free: leading in the toolbar, trailing beside a thumbnail. A step
+ * inside the sheet (`onBack`) puts Back in the leading slot and the close button trailing, never with a confirm (Frank's
+ * call, 2026-11-13, https://claude.ai/artifact/NhAD3QmuzrigseuXLTvxXR). Back fades and scales in and out.
  */
 export function Sheet({
   open,
@@ -24,17 +28,21 @@ export function Sheet({
   trailing,
   thumbnail,
   subtitle,
+  onBack,
   children,
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  /** The toolbar's confirming action. Not shown while `onBack` is set: a step shows Back and Close only. */
   trailing?: ReactNode;
   /** With a thumbnail the sheet opens on it large, and scrolling shrinks it into the kit's Activity View header
    *  (754:26934): thumbnail, title and subtitle in one row, the close button at the trailing edge (src/lib/sheet-hero.ts).
    *  Without one the header is the kit's toolbar (754:64541): close, centred title, confirm. */
   thumbnail?: ReactNode;
   subtitle?: ReactNode;
+  /** A step inside the sheet: Back takes the leading slot (the top left beside a thumbnail) and goes one step back */
+  onBack?: () => void;
   children: ReactNode;
 }) {
   const titleId = useId();
@@ -43,8 +51,11 @@ export function Sheet({
   const content = useRef<HTMLDivElement>(null);
   const header = useRef<HTMLDivElement>(null);
   const hero = !!thumbnail;
+  const back = !!onBack;
+  /** Read by the hero's paint on every scroll frame, so a step in or out never re-subscribes the scroll */
+  const backRef = useRef(back);
   /** The hero header's moving parts, written straight to the DOM on every scroll frame */
-  const heroEls = useRef<{ backdrop?: HTMLDivElement | null; edge?: HTMLDivElement | null; image?: HTMLDivElement | null; title?: HTMLElement | null; sub?: HTMLDivElement | null; smallTitle?: HTMLDivElement | null; smallSub?: HTMLDivElement | null; close?: HTMLDivElement | null }>({});
+  const heroEls = useRef<{ backdrop?: HTMLDivElement | null; edge?: HTMLDivElement | null; image?: HTMLDivElement | null; title?: HTMLElement | null; sub?: HTMLDivElement | null; smallTitle?: HTMLDivElement | null; smallSub?: HTMLDivElement | null; close?: HTMLDivElement | null; back?: HTMLDivElement | null }>({});
   /** Whether the sheet is at the large detent, from the last fit */
   const full = useRef(false);
   /** The tallest the content has been since this sheet opened, and whether a text field needs the room */
@@ -66,17 +77,33 @@ export function Sheet({
     const e = heroEls.current;
     if (!hero || !el || !e.image) return;
     const width = el.clientWidth;
-    const p = heroPose(body.current?.scrollTop ?? 0, width, full.current);
-    const l = heroLayout(width);
+    const p = heroPose(body.current?.scrollTop ?? 0, width, full.current, backRef.current);
+    const l = heroLayout(width, backRef.current);
     Object.assign(e.image.style, { left: `${p.image.x}px`, top: `${p.image.y}px`, width: `${p.image.w}px`, height: `${p.image.h}px`, borderRadius: `${p.image.r}px` });
     if (e.backdrop) e.backdrop.style.height = `${p.backdrop}px`;
     if (e.edge) Object.assign(e.edge.style, { top: `${p.backdrop}px`, opacity: String(p.t) });
     if (e.title) Object.assign(e.title.style, { top: `${p.largeTitleY}px`, width: `${l.large.w}px`, opacity: String(p.largeOpacity) });
     if (e.sub) Object.assign(e.sub.style, { top: `${p.largeSubY}px`, width: `${l.large.w}px`, opacity: String(p.largeOpacity) });
-    if (e.smallTitle) Object.assign(e.smallTitle.style, { width: `${l.small.w}px`, opacity: String(p.smallOpacity) });
-    if (e.smallSub) Object.assign(e.smallSub.style, { width: `${l.small.w}px`, opacity: String(p.smallOpacity) });
+    if (e.smallTitle) Object.assign(e.smallTitle.style, { left: `${l.small.x}px`, width: `${l.small.w}px`, opacity: String(p.smallOpacity) });
+    if (e.smallSub) Object.assign(e.smallSub.style, { left: `${l.small.x}px`, width: `${l.small.w}px`, opacity: String(p.smallOpacity) });
     if (e.close) e.close.style.left = `${l.close.x}px`;
+    if (e.back) Object.assign(e.back.style, { left: `${HERO_BACK.x}px`, top: `${HERO_BACK.y}px` });
   }, [hero]);
+
+  // Back coming or going moves the collapsed thumbnail and small title; they glide there rather than jump
+  useEffect(() => {
+    if (backRef.current === back) return;
+    backRef.current = back;
+    const head = header.current;
+    if (!hero || !head) return;
+    head.setAttribute("data-hero-shift", "");
+    paintHero();
+    const timer = window.setTimeout(() => head.removeAttribute("data-hero-shift"), BACK_SHIFT_MS);
+    return () => {
+      window.clearTimeout(timer);
+      head.removeAttribute("data-hero-shift");
+    };
+  }, [back, hero, paintHero]);
 
   const measure = useCallback((): SheetFit | null => {
     const el = panel.current;
@@ -362,6 +389,9 @@ export function Sheet({
               <div data-sheet-header className="pointer-events-auto absolute inset-x-0 top-0 flex h-4 touch-none justify-center pt-[5px]">
                 <span className="h-1 w-[58px] rounded-full bg-ink-3" />
               </div>
+              <div ref={(n) => void (heroEls.current.back = n)} className={`absolute left-4 top-5 ${back ? "pointer-events-auto" : ""}`}>
+                <BackSlot shown={back} onBack={onBack} />
+              </div>
               <div ref={(n) => void (heroEls.current.close = n)} className="pointer-events-auto absolute top-5">
                 <GlassCircleButton label="Close" onClick={onClose}>
                   <XIcon size={18} />
@@ -376,13 +406,28 @@ export function Sheet({
                 <span className="h-1 w-[58px] rounded-full bg-ink-3" />
               </div>
               <div className="flex items-center gap-2 px-4 pb-2.5">
-                <GlassCircleButton label="Close" onClick={onClose}>
-                  <XIcon size={18} />
-                </GlassCircleButton>
+                {/* leading: Close, or Back during a step; trailing: the confirm, or Close during a step */}
+                <div className="relative size-11 shrink-0">
+                  <SlotItem shown={!back}>
+                    <GlassCircleButton label="Close" onClick={onClose}>
+                      <XIcon size={18} />
+                    </GlassCircleButton>
+                  </SlotItem>
+                  <BackSlot shown={back} onBack={onBack} />
+                </div>
                 <h2 id={titleId} className="min-w-0 flex-1 truncate text-center text-[17px] font-semibold tracking-[-0.43px]">
                   {title}
                 </h2>
-                <div className="flex size-11 shrink-0 items-center justify-center">{trailing}</div>
+                <div className="relative size-11 shrink-0">
+                  <SlotItem shown={!back}>
+                    <div className="flex size-11 items-center justify-center">{trailing}</div>
+                  </SlotItem>
+                  <SlotItem shown={back}>
+                    <GlassCircleButton label="Close" onClick={onClose}>
+                      <XIcon size={18} />
+                    </GlassCircleButton>
+                  </SlotItem>
+                </div>
               </div>
             </div>
             <div ref={body} className="sheet-body min-h-0 flex-1 overflow-y-auto overscroll-contain px-4">
@@ -395,6 +440,30 @@ export function Sheet({
       </div>
     </div>,
     document.body,
+  );
+}
+
+/** One of the two controls sharing a header slot; the one not shown fades and shrinks away and takes no taps. */
+function SlotItem({ shown, children }: { shown: boolean; children: ReactNode }) {
+  return (
+    <div
+      inert={!shown}
+      aria-hidden={!shown}
+      className={`absolute inset-0 transition-[opacity,scale] duration-200 ease-out motion-reduce:transition-none ${shown ? "scale-100 opacity-100" : "pointer-events-none scale-75 opacity-0"}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** The Back button of a step inside a sheet: the close button's glass circle with a leading chevron */
+function BackSlot({ shown, onBack }: { shown: boolean; onBack?: () => void }) {
+  return (
+    <SlotItem shown={shown}>
+      <GlassCircleButton label="Back" onClick={() => onBack?.()}>
+        <ChevronLeft size={20} />
+      </GlassCircleButton>
+    </SlotItem>
   );
 }
 
@@ -419,6 +488,8 @@ const noop = () => () => {};
 const SLOP = 4;
 /** The panel's slide, in ms (.sheet-panel in globals.css) */
 const CLOSE_MS = 450;
+/** How long the collapsed thumbnail and small title glide when Back comes or goes (`[data-hero-shift]` in globals.css) */
+const BACK_SHIFT_MS = 300;
 
 /** How far below its place the panel sits right now, read off the transform */
 function currentSlide(el: HTMLElement): number {
