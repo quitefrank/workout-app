@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { ACTION_SHEET, placeActionSheet } from "@/lib/action-sheet";
 import { cn } from "@/lib/cn";
 import { CheckIcon, ChevronUpDown } from "./icons";
 import { SfSymbol } from "./sf-symbol";
@@ -68,6 +69,123 @@ export function ActionMenu({ rect, items, palette, onClose, onPick }: { rect: DO
   return <Menu rect={rect} items={items} palette={palette} value="" onClose={() => onClose()} onPick={onPick} />;
 }
 
+/** A tap outside, a scroll or a resize closes it, as a menu or an anchored action sheet does */
+function useDismiss(panel: React.RefObject<HTMLDivElement | null>, close: (focus: boolean) => void) {
+  useEffect(() => {
+    const outside = (e: PointerEvent) => {
+      if (!panel.current?.contains(e.target as Node)) close(false);
+    };
+    const away = () => close(false);
+    document.addEventListener("pointerdown", outside, true);
+    window.addEventListener("scroll", away, true);
+    window.addEventListener("resize", away);
+    return () => {
+      document.removeEventListener("pointerdown", outside, true);
+      window.removeEventListener("scroll", away, true);
+      window.removeEventListener("resize", away);
+    };
+  }, [panel, close]);
+}
+
+export type SheetAction = { label: string; destructive?: boolean; onPick: () => void };
+
+/**
+ * The kit's Action Sheet (values and sources in src/lib/action-sheet.ts): choices about an action the person just
+ * chose, grown out of the button that asked with the menu's morph and glass. Destructive actions come first. There is
+ * no Cancel: a tap outside, a scroll or Escape cancels, as iOS does with an anchored action sheet. The page is not
+ * dimmed, as behind a menu. A pick closes it, then runs once the glass has landed.
+ */
+export function ActionSheet({ rect, title, message, actions, onClose }: { rect: DOMRect; title: string; message?: string; actions: SheetAction[]; onClose: () => void }) {
+  const panel = useRef<HTMLDivElement>(null);
+  const content = useRef<HTMLDivElement>(null);
+  const [state, setState] = useState<"closed" | "open">("closed");
+  const [pin, setPin] = useState<"top" | "bottom">("top");
+  const closing = useRef(false);
+  const ids = useId();
+
+  const close = useCallback(
+    (_focus: boolean, after?: () => void) => {
+      if (closing.current) return;
+      closing.current = true;
+      setState("closed");
+      window.setTimeout(() => {
+        onClose();
+        after?.();
+      }, 320);
+    },
+    [onClose],
+  );
+
+  useLayoutEffect(() => {
+    const el = panel.current;
+    const inner = content.current;
+    if (!el || !inner) return;
+    const screen = { width: window.innerWidth, height: window.innerHeight };
+    const width = placeActionSheet(rect, 0, screen).width;
+    el.style.setProperty("--W", `${width}px`);
+    const height = Math.min(Math.ceil(inner.getBoundingClientRect().height), screen.height - ACTION_SHEET.margin * 2);
+    const place = placeActionSheet(rect, height, screen);
+    el.style.setProperty("--W0", `${rect.width}px`);
+    el.style.setProperty("--B", `${rect.height}px`);
+    el.style.setProperty("--H", `${height}px`);
+    el.style.setProperty("--mr", `${ACTION_SHEET.radius}px`);
+    el.style.right = `${place.right}px`;
+    el.style.top = place.top !== undefined ? `${place.top}px` : "";
+    el.style.bottom = place.bottom !== undefined ? `${place.bottom}px` : "";
+    setPin(place.pin);
+    el.getBoundingClientRect();
+    const frame = requestAnimationFrame(() => {
+      setState("open");
+      el.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [rect]);
+
+  useDismiss(panel, close);
+
+  return createPortal(
+    <div
+      ref={panel}
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby={`${ids}-title`}
+      aria-describedby={message ? `${ids}-message` : undefined}
+      tabIndex={-1}
+      data-state={state}
+      data-pin={pin}
+      onKeyDown={(e) => {
+        if (e.key !== "Escape") return;
+        e.preventDefault();
+        close(true);
+      }}
+      className="glass-sheet pop-menu fixed z-[60] outline-none"
+    >
+      <div ref={content} className="pop-menu-content grid p-[14px]">
+        <div className="grid gap-2.5 px-2 pb-6 pt-2 text-[17px] leading-[22px] tracking-[-0.43px]">
+          <h2 id={`${ids}-title`} className="font-semibold">{title}</h2>
+          {message && <p id={`${ids}-message`}>{message}</p>}
+        </div>
+        <div className="grid gap-2">
+          {actions.map((a) => (
+            <button
+              key={a.label}
+              type="button"
+              onClick={() => close(false, a.onPick)}
+              className={cn(
+                "h-12 min-w-0 truncate rounded-full bg-fill-secondary px-4 text-[17px] font-semibold tracking-[-0.43px] outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-blue active:opacity-60",
+                a.destructive && "text-red",
+              )}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function Menu({ rect, items, palette, value, onClose, onPick }: { rect: DOMRect; items: PopUpItem[]; palette?: PopUpItem[]; value: string; onClose: (focus: boolean) => void; onPick: (value: string) => void }) {
   const panel = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
@@ -113,21 +231,7 @@ function Menu({ rect, items, palette, value, onClose, onPick }: { rect: DOMRect;
     return () => cancelAnimationFrame(frame);
   }, [rect]);
 
-  // A tap outside, a scroll or a resize closes it, as a menu does
-  useEffect(() => {
-    const outside = (e: PointerEvent) => {
-      if (!panel.current?.contains(e.target as Node)) close(false);
-    };
-    const away = () => close(false);
-    document.addEventListener("pointerdown", outside, true);
-    window.addEventListener("scroll", away, true);
-    window.addEventListener("resize", away);
-    return () => {
-      document.removeEventListener("pointerdown", outside, true);
-      window.removeEventListener("scroll", away, true);
-      window.removeEventListener("resize", away);
-    };
-  }, [close]);
+  useDismiss(panel, close);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     const buttons = [...(content.current?.querySelectorAll<HTMLButtonElement>("button") ?? [])];

@@ -35,6 +35,7 @@
   --gold: #b38f00;
   --fill: rgba(118, 118, 128, 0.12);
   --fill-2: rgba(120, 120, 120, 0.2); /* kit Fills/Primary */
+  --fill-secondary: rgba(120, 120, 128, 0.16); /* kit Fills/Secondary, the action sheet's actions (5446:10275) */
   --blue: #0088ff; /* kit Accents/Blue (iOS 27, Figma wH8YZbekJXNew109clIJz1 Colors) */
   /* Glass Prominent: the kit's Accents/Blue, its edge glow and its drop shadow (prominentMaterial in src/glass/presets.ts) */
   --glass-prominent: #0088ff;
@@ -193,6 +194,7 @@ html:has([data-bottom-bar="button"]) {
     --gold: #ffd600;
     --fill: rgba(118, 118, 128, 0.24);
     --fill-2: rgba(120, 120, 128, 0.36);
+    --fill-secondary: rgba(120, 120, 128, 0.32);
     --blue: #0091ff;
     --glass-prominent: #0082f0;
     --glass-prominent-glow: rgba(255, 255, 255, 0.102);
@@ -241,6 +243,7 @@ html:has([data-bottom-bar="button"]) {
   --gold: #ffd600;
   --fill: rgba(118, 118, 128, 0.24);
   --fill-2: rgba(120, 120, 128, 0.36);
+  --fill-secondary: rgba(120, 120, 128, 0.32);
   --blue: #0091ff;
   --glass-prominent: #0082f0;
   --glass-prominent-glow: rgba(255, 255, 255, 0.102);
@@ -373,6 +376,7 @@ html:has([data-bottom-bar="button"]) {
   --color-sep: var(--sep);
   --color-fill: var(--fill);
   --color-fill-2: var(--fill-2);
+  --color-fill-secondary: var(--fill-secondary);
   --color-blue: var(--blue);
   --color-red: var(--red);
   --color-green: var(--green);
@@ -950,8 +954,15 @@ body {
     width: var(--mw);
     height: var(--mh);
     translate: 0 var(--dy);
-    border-radius: min(26px, calc(var(--mw) / 2), calc(var(--mh) / 2));
+    border-radius: min(var(--mr, 26px), calc(var(--mw) / 2), calc(var(--mh) / 2));
     overflow: hidden;
+  }
+
+  /* The action sheet (ActionSheet in pop-up-menu.tsx) is the same morph at the kit's 34pt corners. With no room below
+     its trigger it pins the trigger's bottom-right corner and grows up, so its content hangs from the bottom. */
+  .pop-menu[data-pin="bottom"] .pop-menu-content {
+    top: auto;
+    bottom: 0;
   }
 
   .pop-menu[data-state="open"] {

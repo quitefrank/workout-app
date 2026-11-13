@@ -15,13 +15,12 @@ import { Button } from "./button";
 import { ExerciseArt, exerciseImageSrc, hasExerciseImage } from "./exercise-art";
 import { FigureIcon, PlayIcon } from "./icons";
 import { Row } from "./page";
+import { ActionSheet } from "./pop-up-menu";
 import { Sheet } from "./sheet";
 import { useElapsed, type InProgress } from "./tab-bar";
 import { WorkoutThumb } from "./workout-thumb";
 
 const SECTION_TITLE = "px-4 pb-1.5 pt-2 text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-2";
-/** The sheet's slide away, in ms (CLOSE_MS in src/components/sheet.tsx): one sheet at a time, so the next opens after */
-const SHEET_CLOSE_MS = 450;
 
 /** What a row, the hero or the preview step needs to show and start a workout */
 type Pick = { id: string; name: string; category: string | null; label: string; slugs: string[]; subtitle: string };
@@ -47,7 +46,7 @@ const pickOf = (t: HeroTemplate, subtitle: string): Pick => ({
  * never a chevron: the gray Start capsule starts, and the row body opens a preview step inside the sheet with Back.
  * Starting calls beginWorkout from here and pushes the workout; the sheet stays up showing Starting… until the workout
  * screen arrives (the tab bar, and this with it, unmounts there), then a toast offers Undo for 5 seconds. With a workout
- * in progress a start asks first, in its own sheet once this one has closed; Cancel reopens this one.
+ * in progress a start asks first, in an action sheet grown from the Start tapped, over this sheet; a tap outside cancels.
  */
 export function StartWorkout({
   templates,
@@ -64,8 +63,8 @@ export function StartWorkout({
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<Pick | null>(null);
   const [previews, setPreviews] = useState<Record<string, TemplatePreview | "error">>({});
-  const [confirm, setConfirm] = useState<Pick | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  /** Starting with a workout in progress: the pick and the Start it came from, which the action sheet grows out of */
+  const [asking, setAsking] = useState<{ pick: Pick; rect: DOMRect } | null>(null);
   /** The template being started; every Start reads Starting… or is disabled meanwhile */
   const [starting, setStarting] = useState<string | null>(null);
   /** The workout in progress as it was when a start began: the refresh after it shows the new one, which is not "in progress" here */
@@ -120,25 +119,15 @@ export function StartWorkout({
     }
   };
 
-  const start = (p: Pick) => {
+  /** `rect` is the tapped Start's box, where the question grows from when a workout is in progress */
+  const start = (p: Pick, rect: DOMRect) => {
     if (starting) return;
     if (!startAsk(busy, p.name)) return void go(p, null);
-    // one sheet at a time: this one closes, then the question opens
-    setConfirm(p);
-    setOpen(false);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setConfirmOpen(true), SHEET_CLOSE_MS);
-  };
-
-  const cancelConfirm = () => {
-    if (starting) return;
-    setConfirmOpen(false);
-    window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setOpen(true), SHEET_CLOSE_MS);
+    setAsking({ pick: p, rect });
   };
 
   const resume = (id: string) => router.push(`/workouts/${id}`);
-  const ask = confirm && startAsk(busy, confirm.name);
+  const ask = asking && startAsk(busy, asking.pick.name);
 
   return (
     <>
@@ -161,7 +150,7 @@ export function StartWorkout({
         onBack={preview ? () => setPreview(null) : undefined}
       >
         {preview ? (
-          <PreviewStep pick={preview} data={previews[preview.id]} starting={starting} onStart={() => start(preview)} />
+          <PreviewStep pick={preview} data={previews[preview.id]} starting={starting} onStart={(rect) => start(preview, rect)} />
         ) : (
           <>
             {busy && (
@@ -183,7 +172,7 @@ export function StartWorkout({
                   </div>
                 </button>
                 <div className="px-4 pb-4">
-                  <Button variant="filled" className="w-full" disabled={!!starting} onClick={() => start(heroPick)}>
+                  <Button variant="filled" className="w-full" disabled={!!starting} onClick={(e) => start(heroPick, e.currentTarget.getBoundingClientRect())}>
                     {starting === heroPick.id ? "Starting…" : "Start Workout"}
                   </Button>
                 </div>
@@ -196,7 +185,7 @@ export function StartWorkout({
                   {items.map((t) => {
                     const p = pickOf({ ...t, slugs: t.slugs ?? [] }, rowSubtitle(t.exerciseCount, t.estimated_minutes));
                     return (
-                      <SplitRow key={t.id} pick={p} starting={starting} onPreview={() => showPreview(p)} onStart={() => start(p)} />
+                      <SplitRow key={t.id} pick={p} starting={starting} onPreview={() => showPreview(p)} onStart={(rect) => start(p, rect)} />
                     );
                   })}
                 </div>
@@ -205,24 +194,18 @@ export function StartWorkout({
           </>
         )}
       </Sheet>
-      <Sheet open={confirmOpen} onClose={cancelConfirm} title="Workout in Progress">
-        {ask && confirm && busy && (
-          <>
-            <p className="px-4 pb-4 text-[15px] text-ink-2">{ask.message}</p>
-            <div className="flex flex-col gap-2.5">
-              <Button variant="filled" tone="red" disabled={!!starting} onClick={() => go(confirm, busy.id)}>
-                {starting ? "Starting…" : ask.discard}
-              </Button>
-              <Button variant="gray" disabled={!!starting} onClick={() => resume(busy.id)}>
-                {ask.resume}
-              </Button>
-              <Button variant="gray" disabled={!!starting} onClick={cancelConfirm}>
-                Cancel
-              </Button>
-            </div>
-          </>
-        )}
-      </Sheet>
+      {asking && ask && busy && (
+        <ActionSheet
+          rect={asking.rect}
+          title={ask.title}
+          message={ask.message}
+          actions={[
+            { label: ask.discard, destructive: true, onPick: () => go(asking.pick, busy.id) },
+            { label: ask.resume, onPick: () => resume(busy.id) },
+          ]}
+          onClose={() => setAsking(null)}
+        />
+      )}
     </>
   );
 }
@@ -241,9 +224,9 @@ function undo(id: string) {
 }
 
 /** The kit's Medium Bordered content button with play.fill: gray, the blue label, 34pt, its touch area 44pt */
-function StartCapsule({ label, pending, disabled, onClick }: { label: string; pending: boolean; disabled: boolean; onClick: () => void }) {
+function StartCapsule({ label, pending, disabled, onClick }: { label: string; pending: boolean; disabled: boolean; onClick: (rect: DOMRect) => void }) {
   return (
-    <Button compact variant="gray" disabled={disabled} onClick={onClick} aria-label={pending ? undefined : label}>
+    <Button compact variant="gray" disabled={disabled} onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())} aria-label={pending ? undefined : label}>
       {pending ? (
         "Starting…"
       ) : (
@@ -257,7 +240,7 @@ function StartCapsule({ label, pending, disabled, onClick }: { label: string; pe
 }
 
 /** A day template: the body opens the preview step, the trailing capsule starts it (kit Row Tall, 68pt) */
-function SplitRow({ pick, starting, onPreview, onStart }: { pick: Pick; starting: string | null; onPreview: () => void; onStart: () => void }) {
+function SplitRow({ pick, starting, onPreview, onStart }: { pick: Pick; starting: string | null; onPreview: () => void; onStart: (rect: DOMRect) => void }) {
   return (
     <div className="relative">
       <button type="button" className="block w-full text-left active:bg-fill" onClick={onPreview}>
@@ -319,7 +302,7 @@ function PreviewStep({
   pick: Pick;
   data: TemplatePreview | "error" | undefined;
   starting: string | null;
-  onStart: () => void;
+  onStart: (rect: DOMRect) => void;
 }) {
   return (
     <div className="pb-2">
@@ -352,7 +335,7 @@ function PreviewStep({
             </div>
           ))}
       </div>
-      <Button variant="filled" className="mt-4 w-full" disabled={!!starting} onClick={onStart}>
+      <Button variant="filled" className="mt-4 w-full" disabled={!!starting} onClick={(e) => onStart(e.currentTarget.getBoundingClientRect())}>
         {starting === pick.id ? "Starting…" : "Start Workout"}
       </Button>
     </div>

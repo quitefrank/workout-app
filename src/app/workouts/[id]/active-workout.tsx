@@ -25,7 +25,8 @@ import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
 import { setJournalGlass, type JournalGlass, type WorkoutVersion } from "@/lib/workout-layout";
-import { ActionMenu } from "@/components/pop-up-menu";
+import { ActionMenu, ActionSheet } from "@/components/pop-up-menu";
+import { exitAsk } from "@/lib/workout/confirm";
 import { ExerciseSheet } from "@/components/exercise-sheet";
 import { Sheet } from "@/components/sheet";
 import { SfSymbol } from "@/components/sf-symbol";
@@ -504,8 +505,13 @@ export function ActiveWorkout({
   const [historyFor, setHistoryFor] = useState<WorkoutExerciseRow | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [finishing, setFinishing] = useState(false);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [menu, setMenu] = useState<DOMRect | null>(null);
+  // Exit Workout Early asks in an action sheet grown from the More button the menu came from (null: not asking)
+  const [exitFrom, setExitFrom] = useState<DOMRect | null>(null);
+  const moreRect = useRef<DOMRect | null>(null);
+  const loggedSets = entries.reduce((n, e) => n + e.we.sets.length, 0);
+  const exit = exitAsk(loggedSets);
+  const discard = () => run(() => discardWorkout(workout.id), "Could not exit the workout");
 
   const move = (we: WorkoutExerciseRow, to: "up" | "down" | "end") => {
     if (pinned === we.id) setPinned(null);
@@ -606,7 +612,10 @@ export function ActiveWorkout({
         trailing={
           <GlassCircleButton
             label="Workout options"
-            onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}
+            onClick={(e) => {
+              moreRect.current = e.currentTarget.getBoundingClientRect();
+              setMenu(moreRect.current);
+            }}
           >
             <EllipsisIcon size={20} />
           </GlassCircleButton>
@@ -955,7 +964,11 @@ export function ActiveWorkout({
             else if (v === "Journal") openJournal();
             else if (v === "Settings") setSettingsOpen(true);
             else if (v === "Complete Workout") setFinishing(true);
-            else if (v === "Exit Workout Early") setConfirmDiscard(true);
+            else if (v === "Exit Workout Early") {
+              // nothing logged, nothing lost: no question (HIG, Alerts)
+              if (!exit) discard();
+              else setExitFrom(moreRect.current);
+            }
           }}
         />
       )}
@@ -1046,30 +1059,18 @@ export function ActiveWorkout({
         unit={unit}
       />
 
-      <Sheet
-        open={confirmDiscard}
-        onClose={() => setConfirmDiscard(false)}
-        title="Exit Workout Early?"
-      >
-        <p className="px-4 pb-4 text-[15px] text-ink-2">
-          Every set logged in this workout is deleted. This cannot be undone.
-        </p>
-        <div className="flex flex-col gap-2.5">
-          <Button
-            variant="filled"
-            tone="red"
-            disabled={pending}
-            onClick={() =>
-              run(() => discardWorkout(workout.id), "Could not exit the workout")
-            }
-          >
-            Exit Workout Early
-          </Button>
-          <Button variant="gray" onClick={() => setConfirmDiscard(false)}>
-            Keep Going
-          </Button>
-        </div>
-      </Sheet>
+      {exitFrom && exit && (
+        <ActionSheet
+          rect={exitFrom}
+          title={exit.title}
+          message={exit.message}
+          actions={[
+            { label: exit.delete, destructive: true, onPick: discard },
+            { label: exit.complete, onPick: () => setFinishing(true) },
+          ]}
+          onClose={() => setExitFrom(null)}
+        />
+      )}
     </>
   );
 }

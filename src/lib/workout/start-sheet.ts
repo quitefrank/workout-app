@@ -61,14 +61,19 @@ export function rowSubtitle(exerciseCount: number, minutes: number | null | unde
   return [exercises(exerciseCount), minutes ? `${minutes} min` : null].filter(Boolean).join(" · ");
 }
 
-export type StartAsk = { message: string; discard: string; resume: string };
+export type StartAsk = { title: string; message: string; discard: string; resume: string };
 
-/** Starting while a workout is in progress asks first; with none it starts straight away (null) */
+/**
+ * Starting while a workout is in progress asks first, in an action sheet from the Start tapped; with none it starts
+ * straight away (null). The message names the new workout, so the destructive action is short enough for the kit's
+ * one-line capsule.
+ */
 export function startAsk(inProgress: { name: string } | null, starting: string): StartAsk | null {
   if (!inProgress) return null;
   return {
+    title: "Workout in Progress",
     message: `${inProgress.name} is still in progress. Exit it early to start ${starting}?`,
-    discard: `Exit Early and Start ${starting}`,
+    discard: "Exit Early and Start",
     resume: `Resume ${inProgress.name}`,
   };
 }

@@ -419,6 +419,22 @@ Running is one family with two versions: Treadmill Run (`library:treadmill-run`,
 redo that repoint if the seed is ever run again. Last time comes from the latest completed session with a working set,
 not `v_workout_exercise_top_set`, which needs weight and reps.
 
+## Confirmations: action sheets
+
+A question about an action the person just chose is the iOS 27 kit's Action Sheet, never a `Sheet` (Frank's call,
+2026-11-13, from the HIG's Alerts, Action sheets and Modality pages: "Use an action sheet, not an alert, to offer
+choices related to an intentional action", and with data at stake, offer a save choice beside the destructive one, as
+Mail's Delete Draft and Save Draft). `ActionSheet` in `src/components/pop-up-menu.tsx`, values and placement in
+`src/lib/action-sheet.ts` (tested; Figma `wH8YZbekJXNew109clIJz1` 5446:10266): a 300pt card on the sheet's glass, 34pt
+corners, 14pt padding, a 17pt semibold title and 17pt message, 48pt capsule actions on Fills/Secondary
+(`bg-fill-secondary`), 8pt apart, destructive first in red. It grows out of the button that asked with the menu's
+measured morph, pinned at the button's top-right corner, or its bottom-right corner growing up when there is no room
+below. No Cancel, as the kit draws it: anchored to its button, iOS leaves the cancel action out, and a tap outside, a
+scroll or Escape cancels. The page is not dimmed, as behind a menu. A question that would lose nothing is not asked.
+The words are in `src/lib/workout/confirm.ts` and `startAsk` (tested). Three today: Exit Workout Early (Delete Workout,
+Complete Workout), a finished workout's Delete, and Start with a workout in progress. An alert stays for something the
+person did not start (none yet).
+
 ## Swipe to delete a set
 
 A set row in the Journal deletes with UITableView's trailing swipe (Frank's call, 2026-11-12), the pair to + Add Set.
@@ -614,8 +630,9 @@ from `/api/templates/[id]` worded as the workout page words them, a filled Start
 `beginWorkout` and pushes the new workout; the sheet stays up showing Starting… until the workout screen replaces the
 tab bar, and then a toast offers Undo for 5 seconds, which is `discardWorkout` (back to Home). One workout in progress
 at a time: `startWorkout` and `beginWorkout` refuse a second one on the server (`startDecision`, tested), and in the
-sheet a Start with one in progress closes the sheet and asks in its own sheet ("<name> is still in progress. Exit it
-early to start <new>?", with Exit Early and Start, Resume and Cancel; Cancel reopens the list). Exit Early and Start
+sheet a Start with one in progress asks in an action sheet grown from that Start, over the list ("<name> is still in
+progress. Exit it early to start <new>?", with Exit Early and Start and Resume <name>; a tap outside cancels; see
+"Confirmations: action sheets"). Exit Early and Start
 deletes the open workout and starts the new one in one action. `/templates/[id]` stays the full preview from the Library. The date header is
 MyFitnessPal's (`src/app/week-calendar.tsx`): the title is the selected day
 and opens the floating month panel (`month-panel.tsx`, Liquid Glass's menu
@@ -663,8 +680,9 @@ page: the card colour on the screen (the workout cards, `#f2f2f7` / `#1c1c1e`) a
 scroll position (`src/components/app-scroller.tsx`). The UI calls templates "workouts" (Frank's call, 2026-11-11);
 the code and tables keep `templates`. The 18 Notion day templates have `program_id` null. Progress is `/analytics`. The active
 workout (`/workouts/[id]`) is described under "Active workout" below. Delete has one place on a
-finished workout: the trash button in the summary's top bar, opening a confirming sheet; the active
-workout deletes itself with Exit Workout Early in its More menu. A finished workout's summary deletes (`deleteWorkout` in `actions.ts`, which refuses one in
+finished workout: the trash button in the summary's top bar, asking in an action sheet grown from it; the active
+workout deletes itself with Exit Workout Early in its More menu, which asks in an action sheet grown from More (Delete
+Workout or Complete Workout) and, with nothing logged, exits without asking. A finished workout's summary deletes (`deleteWorkout` in `actions.ts`, which refuses one in
 progress). Pure helpers for dates, formatting and PRs live in
 `src/lib/workout/` with tests.
 
@@ -998,7 +1016,9 @@ List rows lead with a 17pt SF Symbol in a 26pt column, 11pt to the label, 24pt i
 `separator` on `PopUpItem`). Swap and Do Later show only while an exercise is on screen. Back to Home was removed:
 Complete and Exit are the two ways out. The app's words are Complete (never Finish) and Exit Workout Early (never
 Discard) everywhere on screen, including the finish sheet, the Journal's button and the Start sheet's in-progress
-question (Frank's call, 2026-11-13); code names (`FinishSheet`, `discardWorkout`) keep theirs.
+question (Frank's call, 2026-11-13); code names (`FinishSheet`, `discardWorkout`) keep theirs. Inside Exit Workout
+Early's action sheet the destructive choice says what it does, Delete Workout, beside Complete Workout (Frank's pick of
+option A, 2026-11-13).
 
 The prototype's other options (set circles under Last time, steppers as an inset list) are not built; `StepperList` and
 `StepperRow` stay in `stepper.tsx` unused.
