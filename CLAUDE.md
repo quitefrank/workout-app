@@ -613,7 +613,8 @@ search field over all three (`library-search.tsx`; results in the same order, th
 only). Each section title carries a chevron to its own page (`SectionHeader`'s `href`, as Photos marks a section, in
 place of See All): `/library/exercises` (the groups, then every exercise A to Z), `/library/workouts` (by category)
 and `/library/programs` (Following first). `/templates` and `/exercises` redirect into it; `/templates/[id]` is still
-a workout's page. A New button (creating workouts and programs) is decided in concept and not built. A group card
+a workout's page, pushed with the tab bar hidden and Start Workout pinned; its exercise rows open the exercise sheet
+over it, never another page (`template-exercises.tsx`, Frank's call, 2026-11-13, from the HIG's one-sheet rule and Hevy). A New button (creating workouts and programs) is decided in concept and not built. A group card
 opens `/exercises/group/[id]`, a list with a back arrow. An exercise row, there or in
 search, opens the exercise's bottom sheet (`src/components/exercise-sheet.tsx`,
 fetching `/api/exercises/[id]`): Summary, History, How to

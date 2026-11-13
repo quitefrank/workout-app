@@ -14,6 +14,7 @@ import { CATEGORY_LABELS, EQUIPMENT_LABELS, prescriptionFacts } from "@/lib/work
 import { mainLift, workingSlugs } from "@/lib/workout/workout-art";
 import { repTarget } from "@/lib/workout/active";
 import { StartTemplate } from "./start-template";
+import { TemplateExercises } from "./template-exercises";
 
 /**
  * A workout before it starts. The hero shows the main lift on the screen's colour in place of the colour gradient,
@@ -144,8 +145,9 @@ export default async function TemplatePage({
           </div>
         )}
         <SectionHeader title={`${template.rows.length} Exercises`} />
-        <div className="grouped mx-4">
-          {template.rows.map((r) => {
+        {/* A tap opens the exercise's sheet over this page (template-exercises.tsx) */}
+        <TemplateExercises
+          items={template.rows.map((r) => {
             // The active workout header's rep target ("8–10x"), or a timed set's length ("30s")
             const target = repTarget(r, { kind: "work", reps: null, seconds: null });
             // Under it, the warm-ups and the set count; reps are in the target and rest is left out
@@ -153,45 +155,47 @@ export default async function TemplatePage({
               .filter((f) => f.kind === "warm" || f.kind === "sets")
               .map((f) => f.label)
               .join(" · ");
-            return (
-              <Link key={r.id} href={`/exercises/${r.exercises.id}`} className="block active:bg-fill">
-                {/* Row's layout with the lines flipped: the sets over the name, as the active workout's header has them */}
-                <div className="flex min-h-11 items-center gap-3 px-4 py-2.5">
-                  {/* the exercise's illustration, as the library's rows show it, in place of its number */}
-                  <div className="size-12 shrink-0 overflow-hidden rounded-[10px] bg-[var(--muscle-tile)]">
-                    <ExerciseArt
-                      slug={r.exercises.slug}
-                      pad="p-1"
-                      art={
-                        r.exercises.muscle_groups?.name ? (
-                          <MuscleArt group={r.exercises.muscle_groups.name} />
-                        ) : (
-                          <div className="grid size-full place-items-center text-ink-3">
-                            <FigureIcon size={20} />
-                          </div>
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[15px] leading-5 text-ink-2">
-                      {dose || (template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type])}
-                    </div>
-                    <div className="truncate text-[17px] leading-[22px]">
-                      {target && <span className="text-blue">{target} </span>}
-                      {exerciseTitle(r.exercises)}
-                      {r.variant && <span className="text-ink-2"> · {r.variant}</span>}
-                    </div>
-                  </div>
-                  <svg width="8" height="13" viewBox="0 0 8 13" aria-hidden className="shrink-0 text-ink-3">
-                    <path d="M1.5 1.5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                {r.notes && <p className="-mt-1.5 px-4 pb-2.5 pl-[76px] text-[13px] text-ink-2">{r.notes}</p>}
-              </Link>
+            const art = r.exercises.muscle_groups?.name ? (
+              <MuscleArt group={r.exercises.muscle_groups.name} />
+            ) : (
+              <div className="grid size-full place-items-center text-ink-3">
+                <FigureIcon size={20} />
+              </div>
             );
+            return {
+              key: r.id,
+              exerciseId: r.exercises.id,
+              slug: r.exercises.slug,
+              title: exerciseTitle(r.exercises),
+              art,
+              row: (
+                <>
+                  {/* Row's layout with the lines flipped: the sets over the name, as the active workout's header has them */}
+                  <div className="flex min-h-11 items-center gap-3 px-4 py-2.5">
+                    {/* the exercise's illustration, as the library's rows show it, in place of its number */}
+                    <div className="size-12 shrink-0 overflow-hidden rounded-[10px] bg-[var(--muscle-tile)]">
+                      <ExerciseArt slug={r.exercises.slug} pad="p-1" art={art} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[15px] leading-5 text-ink-2">
+                        {dose || (template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type])}
+                      </div>
+                      <div className="truncate text-[17px] leading-[22px]">
+                        {target && <span className="text-blue">{target} </span>}
+                        {exerciseTitle(r.exercises)}
+                        {r.variant && <span className="text-ink-2"> · {r.variant}</span>}
+                      </div>
+                    </div>
+                    <svg width="8" height="13" viewBox="0 0 8 13" aria-hidden className="shrink-0 text-ink-3">
+                      <path d="M1.5 1.5l5 5-5 5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  {r.notes && <div className="-mt-1.5 px-4 pb-2.5 pl-[76px] text-[13px] text-ink-2">{r.notes}</div>}
+                </>
+              ),
+            };
           })}
-        </div>
+        />
       </div>
 
       <StartTemplate templateId={template.id} />
