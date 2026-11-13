@@ -29,7 +29,7 @@ export function StartEdgeTune() {
   return (
     <Group
       title="Start Workout edge"
-      footer="The fade behind a workout's Start Workout button, from the screen's bottom to 40pt above the button. Both are strongest at the bottom and fade to nothing at the top. Saved on this device only."
+      footer="The fade behind a workout's Start Workout button, from the screen's bottom up to the reach above the button. Both are strongest at the bottom and fade to nothing at the top. Saved on this device only."
     >
       {TUNE_DIALS.map((d) => (
         <div key={d.key} className="pt-2.5">
