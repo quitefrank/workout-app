@@ -695,8 +695,9 @@ large titles behave). The close button never moves, and a header stopped
 halfway settles on SwiftUI's smooth spring (Frank's call, 2026-11-07, from the
 Exercise Sheet Hero prototype, https://claude.ai/artifact/4WWmpj6GS3aqRKhwm7eKur).
 In the exercise sheet the Summary / History / How to tabs stick under the collapsed header (`stickyTop` on
-`ExerciseDetailTabs`, Frank's call, 2026-11-13); stuck, they take the sheet's solid colour and carry the header's 22pt
-fade, and sit above the header layer. Sticky `top` counts from inside the scroller's padding, which is the hero header,
+`ExerciseDetailTabs`, Frank's call, 2026-11-13); the band is always the sheet's solid colour (scaled by `--sheet-full`),
+never switched on by script, since the observer reports after the scroller has already stuck it and the band showed the
+content through for those frames. Stuck, it carries the header's 22pt fade, and it sits above the header layer. Sticky `top` counts from inside the scroller's padding, which is the hero header,
 so the component subtracts it. Values
 and geometry are pure and tested in `src/lib/sheet-hero.ts`. At the large detent
 the content gets a minimum height so the shrink can always finish; a fitted sheet

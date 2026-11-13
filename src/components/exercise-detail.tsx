@@ -66,7 +66,8 @@ export function ExerciseDetailTabs({
   const hasFloors = all.exercise.has_floors;
   const [floor, setFloor] = useState<MachineLocation>(() => latestFloor(all.sessions) ?? FIRST_FLOOR);
   const view = hasFloors ? { ...all, sessions: sessionsOnFloor(all.sessions, floor) } : all;
-  // Stuck once the spot just above the tabs has scrolled past `stickyTop` in the scroller
+  // Stuck once the spot just above the tabs has scrolled past `stickyTop` in the scroller; only the fade under the band
+  // waits on it, since a late fade leaves the content unfaded rather than showing through the tabs
   const sentinel = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
   // sticky `top` counts from inside the scroller's padding, and the sheet's hero header is that padding
@@ -88,8 +89,11 @@ export function ExerciseDetailTabs({
       <MovementPicker options={all.options} currentId={all.exercise.id} onSelect={onVersion ?? ((id) => router.replace(`/exercises/${id}`))} />
       {stickyTop !== undefined && <div ref={sentinel} aria-hidden />}
       <div
-        className={cn(stickyTop !== undefined && "sticky z-10 -mx-4 -my-2 px-4 py-2", stuck && "bg-[var(--sheet-solid)]")}
-        style={stickyTop !== undefined ? { top: stickyTop - padTop } : undefined}
+        className={cn(stickyTop !== undefined && "sticky z-10 -mx-4 -my-2 px-4 py-2")}
+        // Always solid, never switched by `stuck`: the scroller sticks the band on the same frame, while the observer
+        // reports a frame or more later (many on iOS's momentum scroll), which left the band see-through meanwhile. The
+        // sheet's own --sheet-full keeps it clear on a fitted sheet, whose material is translucent and never scrolls.
+        style={stickyTop !== undefined ? { top: stickyTop - padTop, background: "color-mix(in srgb, var(--sheet-solid) calc(var(--sheet-full) * 100%), transparent)" } : undefined}
       >
         <div role="tablist" aria-label="Exercise" className="flex gap-1 rounded-full bg-fill p-0.5">
           {TABS.map((t) => (
