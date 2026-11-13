@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { TrendChart } from "@/components/charts";
 import type { ExerciseView } from "@/lib/exercise-view";
 import { cn } from "@/lib/cn";
@@ -45,6 +45,7 @@ export function ExerciseDetailTabs({
   onAlternate,
   initialTab = "Summary",
   onTabChange,
+  stickyTop,
 }: {
   view: ExerciseView;
   art?: ReactNode;
@@ -53,6 +54,8 @@ export function ExerciseDetailTabs({
   /** the tab it opens on (the Journal's History opens the sheet on History) */
   initialTab?: ExerciseTab;
   onTabChange?: (tab: ExerciseTab) => void;
+  /** In a sheet: the tabs stick this far below the sheet's top (its collapsed header) as the content scrolls */
+  stickyTop?: number;
 }) {
   const router = useRouter();
   const [tab, setTabState] = useState<Tab>(initialTab);
@@ -63,22 +66,47 @@ export function ExerciseDetailTabs({
   const hasFloors = all.exercise.has_floors;
   const [floor, setFloor] = useState<MachineLocation>(() => latestFloor(all.sessions) ?? FIRST_FLOOR);
   const view = hasFloors ? { ...all, sessions: sessionsOnFloor(all.sessions, floor) } : all;
+  // Stuck once the spot just above the tabs has scrolled past `stickyTop` in the scroller
+  const sentinel = useRef<HTMLDivElement>(null);
+  const [stuck, setStuck] = useState(false);
+  // sticky `top` counts from inside the scroller's padding, and the sheet's hero header is that padding
+  const [padTop, setPadTop] = useState(0);
+  useEffect(() => {
+    const el = sentinel.current;
+    const root = el?.closest<HTMLElement>(".sheet-body");
+    if (!el || !root || stickyTop === undefined) return;
+    setPadTop(parseFloat(getComputedStyle(root).paddingTop) || 0);
+    const io = new IntersectionObserver(
+      ([e]) => setStuck(!e.isIntersecting && !!e.rootBounds && e.boundingClientRect.top < e.rootBounds.top + 1),
+      { root, rootMargin: `-${stickyTop + 8}px 0px 0px 0px`, threshold: 0 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [stickyTop]);
   return (
     <>
       <MovementPicker options={all.options} currentId={all.exercise.id} onSelect={onVersion ?? ((id) => router.replace(`/exercises/${id}`))} />
-      <div role="tablist" aria-label="Exercise" className="flex gap-1 rounded-full bg-fill p-0.5">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => setTab(t)}
-            className={cn("h-8 flex-1 rounded-full text-[13px] font-medium transition", tab === t && "bg-[var(--seg-on)] font-semibold shadow-[var(--seg-shadow)]")}
-          >
-            {t}
-          </button>
-        ))}
+      {stickyTop !== undefined && <div ref={sentinel} aria-hidden />}
+      <div
+        className={cn(stickyTop !== undefined && "sticky z-10 -mx-4 -my-2 px-4 py-2", stuck && "bg-[var(--sheet-solid)]")}
+        style={stickyTop !== undefined ? { top: stickyTop - padTop } : undefined}
+      >
+        <div role="tablist" aria-label="Exercise" className="flex gap-1 rounded-full bg-fill p-0.5">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => setTab(t)}
+              className={cn("h-8 flex-1 rounded-full text-[13px] font-medium transition", tab === t && "bg-[var(--seg-on)] font-semibold shadow-[var(--seg-shadow)]")}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+        {/* stuck, the band sits over the header's own edge, so it carries that 22pt fade itself */}
+        {stuck && <div aria-hidden className="pointer-events-none absolute inset-x-0 top-full h-[22px] bg-gradient-to-b from-[var(--sheet-solid)] to-transparent" />}
       </div>
       {/* The floor sets what Summary and History show. How to is the same on either, so it has no picker. */}
       {hasFloors && tab !== "How to" && <FloorPicker value={floor} onChange={setFloor} className="mt-1" />}

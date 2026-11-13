@@ -2,6 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { ExerciseView } from "@/lib/exercise-view";
+import { HERO_COLLAPSED_H } from "@/lib/sheet-hero";
 import { ExerciseArt } from "./exercise-art";
 import { exerciseFacts, ExerciseDetailTabs, type ExerciseTab } from "./exercise-detail";
 import { Sheet } from "./sheet";
@@ -121,6 +122,7 @@ export function ExerciseSheet({
             onTabChange={setTab}
             onVersion={replaceVersion}
             onAlternate={pushAlternate}
+            stickyTop={HERO_COLLAPSED_H}
           />
         ) : (
           <p className="py-10 text-center text-[15px] text-ink-2">{failed ? "Could not load this exercise." : "Loading…"}</p>
