@@ -5,18 +5,25 @@ import { toast } from "sonner";
 import { Button } from "@/components/button";
 import { Group, Segmented } from "@/components/segmented";
 import { TuneSlider } from "@/components/tune-slider";
+import { cn } from "@/lib/cn";
 import {
-  parsePages,
+  parseSwitch,
   parseTune,
   readTuneRaw,
   subscribeTune,
   TUNE_DEFAULTS,
   TUNE_DIALS,
   tuneSource,
-  writePages,
+  writeSwitch,
   writeTune,
+  type EdgeSwitch,
   type Tune,
 } from "@/lib/soft-edge-tune";
+
+const SWITCHES: ReadonlyArray<{ key: EdgeSwitch; label: string }> = [
+  { key: "pages", label: "Under the tab bar" },
+  { key: "workout", label: "On workout pages" },
+];
 
 /**
  * Sliders for Start Workout's soft edge (a test setting, Frank's call, 2026-11-12), saved on this device, and whether the
@@ -28,27 +35,27 @@ export function StartEdgeTune() {
   const t = useMemo(() => parseTune(raw), [raw]);
   const set = (next: Tune) => writeTune(next);
   const changed = TUNE_DIALS.some((d) => t[d.key] !== TUNE_DEFAULTS[d.key]);
-  const pages = parsePages(raw);
-
   return (
     <Group
       title="Bottom edge"
-      footer="The fade behind a workout's Start Workout button, and under the tab bar on the other pages while that is on (the active workout keeps its own). It runs from the screen's bottom up to the reach above the button or bar, strongest at the bottom. Saved on this device only."
+      footer="The fade under the tab bar, and behind the Start Workout button on a workout's page, each while its switch is on (the active workout keeps its own). It runs from the screen's bottom up to the reach above the button or bar, strongest at the bottom. Saved on this device only."
     >
-      <div className="flex items-center justify-between gap-3 pl-4 pr-1">
-        <span className="text-[17px]">Under the tab bar</span>
-        <div className="w-[150px]">
-          <Segmented
-            label="Edge under the tab bar"
-            value={pages ? "on" : "off"}
-            options={[
-              ["off", "Off"],
-              ["on", "On"],
-            ]}
-            onChange={(v) => writePages(v === "on")}
-          />
+      {SWITCHES.map((s, i) => (
+        <div key={s.key} className={cn("flex items-center justify-between gap-3 pl-4 pr-1", i > 0 && "pt-2")}>
+          <span className="text-[17px]">{s.label}</span>
+          <div className="w-[150px]">
+            <Segmented
+              label={`Edge ${s.label.toLowerCase()}`}
+              value={parseSwitch(raw, s.key) ? "on" : "off"}
+              options={[
+                ["off", "Off"],
+                ["on", "On"],
+              ]}
+              onChange={(v) => writeSwitch(s.key, v === "on")}
+            />
+          </div>
         </div>
-      </div>
+      ))}
       {TUNE_DIALS.map((d) => (
         <div key={d.key} className="pt-2.5">
           <div className="flex items-baseline justify-between px-4 text-[17px]">

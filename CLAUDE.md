@@ -984,7 +984,7 @@ screen's colour, both from the screen's bottom up to a reach above the button or
 kit tint or darkening (`tuned` on `SoftEdge`, `TunedLayers`; the painter reads `data-soft-tuned` and the `--se-*`
 properties). Reach 32pt, blur 10pt, gradient 50% at the bottom (tuned on the phone), tunable per device in Settings' Bottom edge
 (`src/lib/soft-edge-tune.ts`, localStorage; its key is renamed when the defaults change). Start Workout's is `live`
-(outside the painted page), keeping its CSS blur over the canvas. The tab bar's (`DockEdge` in `tab-bar.tsx`) is on every
+(outside the painted page), keeping its CSS blur over the canvas, and shows unless On workout pages is switched off. The tab bar's (`DockEdge` in `tab-bar.tsx`) is on every
 page with the bar, which is every page but the active workout and Start Workout, unless Under the tab bar is switched
 off; it is painted into the page so the bar's glass sits on the faded page, and its CSS layers are hidden under
 `html.gpu`.

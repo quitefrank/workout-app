@@ -7,7 +7,7 @@ import { Button } from "@/components/button";
 import { SoftEdge } from "@/components/soft-edge";
 import { navState } from "@/glass/nav-state";
 import { cn } from "@/lib/cn";
-import { parseTune, readTuneRaw, subscribeTune, tuneVars } from "@/lib/soft-edge-tune";
+import { parseTune, parseWorkout, readTuneRaw, subscribeTune, tuneVars } from "@/lib/soft-edge-tune";
 
 /**
  * Start a workout from this template: the app's filled blue button, pinned at the bottom 20pt from each side (Frank's
@@ -52,7 +52,7 @@ export function StartTemplate({ templateId }: { templateId: string }) {
         {/* Apple's soft scroll edge behind the button, the screen's width, from the screen's bottom to a reach above
             the button (32pt). Live over the canvas with the button, so it keeps its CSS blur on both paths; first, so the button
             stacks over it. */}
-        <SoftEdge
+        {parseWorkout(raw) && <SoftEdge
           edge="bottom"
           live
           strong
@@ -61,7 +61,7 @@ export function StartTemplate({ templateId }: { templateId: string }) {
           tuned
           className="bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
           style={{ ...tune, top: "calc(-1 * var(--se-reach, 32px))" }}
-        />
+        />}
         <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto relative mx-5">
           {pending ? "Starting…" : "Start Workout"}
         </Button>

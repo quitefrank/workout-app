@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parsePages, parseTune, TUNE_DEFAULTS, tuneSource, tuneVars } from "../soft-edge-tune";
+import { parsePages, parseTune, parseWorkout, TUNE_DEFAULTS, tuneSource, tuneVars } from "../soft-edge-tune";
 
 describe("Start Workout edge tuning", () => {
   it("defaults to Frank's spec: 32pt above the button, a 10pt blur, and a gradient from 50% at the bottom", () => {
@@ -22,5 +22,12 @@ describe("Start Workout edge tuning", () => {
     expect(parsePages("not json")).toBe(true);
     expect(parsePages(JSON.stringify({ blur: 4 }))).toBe(true);
     expect(parsePages(JSON.stringify({ blur: 4, pages: false }))).toBe(false);
+  });
+
+  it("has the edge behind Start Workout unless that switch is off, apart from the tab bar's", () => {
+    expect(parseWorkout(null)).toBe(true);
+    expect(parseWorkout(JSON.stringify({ pages: false }))).toBe(true);
+    expect(parseWorkout(JSON.stringify({ workout: false }))).toBe(false);
+    expect(parsePages(JSON.stringify({ workout: false }))).toBe(true);
   });
 });

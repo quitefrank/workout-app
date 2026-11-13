@@ -42,13 +42,25 @@ export function parseTune(raw: string | null): Tune {
   return t;
 }
 
-/** Whether the edge is under the tab bar on the other pages: on unless switched off */
-export function parsePages(raw: string | null): boolean {
+/** The two switches: `pages` puts the edge under the tab bar, `workout` behind a workout's Start Workout button */
+export type EdgeSwitch = "pages" | "workout";
+
+/** Whether a switch is on: on unless switched off */
+export function parseSwitch(raw: string | null, key: EdgeSwitch): boolean {
   try {
-    return (raw ? (JSON.parse(raw) as Record<string, unknown>) : {}).pages !== false;
+    return (raw ? (JSON.parse(raw) as Record<string, unknown>) : {})[key] !== false;
   } catch {
     return true;
   }
+}
+
+/** Whether the edge is under the tab bar on the other pages */
+export const parsePages = (raw: string | null) => parseSwitch(raw, "pages");
+/** Whether the edge is behind a workout's Start Workout button (Frank's call, 2026-11-13, on by default) */
+export const parseWorkout = (raw: string | null) => parseSwitch(raw, "workout");
+
+function switches(raw: string | null) {
+  return { pages: parsePages(raw), workout: parseWorkout(raw) };
 }
 
 /** The custom properties the edge reads (`tuned` on SoftEdge) */
@@ -70,14 +82,15 @@ export function readTuneRaw(): string | null {
   }
 }
 
-/** Saves the sliders (null: back to the defaults), keeping the pages switch as it is */
+/** Saves the sliders (null: back to the defaults), keeping the switches as they are */
 export function writeTune(t: Tune | null) {
-  save({ ...(t ?? {}), pages: parsePages(readTuneRaw()) });
+  save({ ...(t ?? {}), ...switches(readTuneRaw()) });
 }
 
-/** Saves the pages switch, keeping the sliders as they are */
-export function writePages(on: boolean) {
-  save({ ...parseTune(readTuneRaw()), pages: on });
+/** Saves one switch, keeping the sliders and the other switch as they are */
+export function writeSwitch(key: EdgeSwitch, on: boolean) {
+  const raw = readTuneRaw();
+  save({ ...parseTune(raw), ...switches(raw), [key]: on });
 }
 
 function save(o: Record<string, unknown>) {
