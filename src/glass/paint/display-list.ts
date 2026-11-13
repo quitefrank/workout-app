@@ -6,7 +6,7 @@
  * decoding (`pending`) do.
  */
 import { parseBoxShadows, parseColor, parseLinearGradients, parseLinearTransform, type Gradient, type Linear, type Shadow } from "./css";
-import { softEdgeValues, solidDarken } from "@/components/soft-edge";
+import { SOFT_EDGE, softEdgeValues, solidDarken } from "@/components/soft-edge";
 import { svgImage } from "./svg";
 import { screenHeight } from "@/lib/scroller";
 import { inputTextItems, textItems, type Metrics } from "./text";
@@ -26,7 +26,7 @@ export type Item =
   | (Base & { k: "image"; x: number; y: number; w: number; h: number; img: CanvasImageSource; tf: ImageTransform | null })
   /** Apple's soft scroll edge (src/components/soft-edge.tsx): blur what is painted so far in the box, growing toward
    *  `edge`, then the screen's colour fading in toward it */
-  | (Base & { k: "soft"; x: number; y: number; w: number; h: number; edge: "top" | "bottom"; blur: number; darken: ReadonlyArray<readonly [number, number]>; tint: string });
+  | (Base & { k: "soft"; x: number; y: number; w: number; h: number; edge: "top" | "bottom"; blur: number; darken: ReadonlyArray<readonly [number, number]>; tint: string; tintAlpha: number });
 
 /** `sticky`: the list holds a sticky element, whose place depends on the scroll, so the stage rebuilds on scroll. */
 export type DisplayList = { items: Item[]; bg: string; pending: boolean; sticky: boolean };
@@ -96,9 +96,16 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
       const tint = rgb.length >= 3 && rgb.every(Number.isFinite) ? `${rgb[0]}, ${rgb[1]}, ${rgb[2]}` : "0, 0, 0";
       if (visible && w > 0 && h > 0) {
         const d = (el as HTMLElement).dataset;
+        if (d.softTuned !== undefined) {
+          // the edge tuned from Settings (src/lib/soft-edge-tune.ts): its blur and one gradient, no kit tint
+          const blur = parseFloat(cs.getPropertyValue("--se-blur")), grad = parseFloat(cs.getPropertyValue("--se-grad"));
+          const a = Number.isFinite(grad) ? grad : 0.25;
+          items.push({ k: "soft", x, y, w, h, edge, blur: Number.isFinite(blur) ? blur : 10, darken: [[0, 0], [1, a]], tint, tintAlpha: 0, ...base });
+          return false;
+        }
         const v = softEdgeValues(d.softStrong !== undefined);
         const at = d.softSolidAt != null ? Number(d.softSolidAt) : NaN;
-        items.push({ k: "soft", x, y, w, h, edge, blur: v.blur, darken: Number.isFinite(at) ? solidDarken(at) : v.darken, tint, ...base });
+        items.push({ k: "soft", x, y, w, h, edge, blur: v.blur, darken: Number.isFinite(at) ? solidDarken(at) : v.darken, tint, tintAlpha: SOFT_EDGE.tint, ...base });
       }
       return false;
     }

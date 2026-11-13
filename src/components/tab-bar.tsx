@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type PointerEvent as ReactPointerEvent } from "react";
 import { cn } from "@/lib/cn";
+import { parsePages, parseTune, readTuneRaw, subscribeTune, tuneVars } from "@/lib/soft-edge-tune";
+import { SoftEdge } from "./soft-edge";
 import { formatClock } from "@/lib/workout/format";
 import { LENS, lensGoal, lensSettled, lensShape, nearestIndex, restingLens, stepLens, type LensInput } from "@/lib/tab-lens";
 import { lensState } from "@/glass/lens-state";
@@ -57,12 +59,36 @@ export function TabBar({ inProgress, templates, next }: { inProgress: InProgress
       // 21pt up from the screen edge (--dock-bottom); a home screen app places it from the top instead (globals.css)
         style={{ paddingBottom: "var(--dock-bottom)" }}
     >
-      {inProgress && <ResumePill workout={inProgress} />}
-      <div className="mx-auto flex w-full max-w-[420px] items-center gap-2">
-        <Tabs pathname={pathname} />
-        <StartWorkout templates={templates} next={next} />
+      {/* the dock's content in its own box, so the edge measures from it and not from the column, which is the screen's
+          height in a home screen app */}
+      <div className="relative flex flex-col items-stretch gap-2.5">
+        <DockEdge />
+        {inProgress && <ResumePill workout={inProgress} />}
+        <div className="mx-auto flex w-full max-w-[420px] items-center gap-2">
+          <Tabs pathname={pathname} />
+          <StartWorkout templates={templates} next={next} />
+        </div>
       </div>
     </nav>
+  );
+}
+
+/**
+ * The Start Workout edge under the tab bar, on every page that has the bar (Frank's call, 2026-11-13, on by default,
+ * switched in Settings): from the screen's bottom to the tuned reach above the dock's top, its blur and gradient from the
+ * same sliders. In the painted page, so the bar's glass sits on the faded page; first, so the bar stacks over it.
+ */
+function DockEdge() {
+  const raw = useSyncExternalStore(subscribeTune, readTuneRaw, () => null);
+  const vars = useMemo(() => tuneVars(parseTune(raw)), [raw]);
+  if (!parsePages(raw)) return null;
+  return (
+    <SoftEdge
+      edge="bottom"
+      tuned
+      className="bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
+      style={{ ...vars, top: "calc(-1 * var(--se-reach, 40px))" }}
+    />
   );
 }
 

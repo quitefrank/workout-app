@@ -130,7 +130,8 @@ export function SoftEdge({
   edge: Edge;
   live?: boolean;
   strong?: boolean;
-  /** reads the --se-* properties set from Settings (a live edge only: the painter draws its own values) */
+  /** the edge tuned from Settings: blur and one gradient from the --se-* properties, read by the CSS layers and, on the
+   *  WebGPU path, by the painter (`data-soft-tuned`) */
   tuned?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -140,6 +141,7 @@ export function SoftEdge({
       aria-hidden
       data-soft-edge={edge}
       data-soft-strong={strong ? "" : undefined}
+      data-soft-tuned={tuned ? "" : undefined}
       className={cn("soft-edge pointer-events-none absolute", live && "soft-edge-live", className)}
       style={style}
     >

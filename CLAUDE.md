@@ -973,9 +973,17 @@ drew blocks), so an edge must come after what it blurs in the DOM and before wha
 stays sharp. The active workout's focus screen therefore uses grid rows, never `order` (which reorders CSS painting):
 Art, the two `ZoneSoftEdge`s, header, controls, then the timer row and progress bar. Its edges run edge to edge, from the
 screen's top to 32pt under Up next and from its bottom to 32pt above the controls (doubled from 16pt, Frank's
-call, 2026-11-12, so the image fades further); they replaced the 65% fades. Start
-Workout's edge is `live` (outside the painted page), from the bottom to 16pt above the button, keeping its CSS blur
-over the canvas.
+call, 2026-11-12, so the image fades further); they replaced the 65% fades.
+
+Start Workout's edge and the tab bar's share one tuned edge (Frank's calls, 2026-11-13): a blur and one gradient of the
+screen's colour, both from the screen's bottom up to a reach above the button or bar, strongest at the bottom, with no
+kit tint or darkening (`tuned` on `SoftEdge`, `TunedLayers`; the painter reads `data-soft-tuned` and the `--se-*`
+properties). Reach 40pt, blur 10pt, gradient 25% at the bottom, tunable per device in Settings' Bottom edge
+(`src/lib/soft-edge-tune.ts`, localStorage; its key is renamed when the defaults change). Start Workout's is `live`
+(outside the painted page), keeping its CSS blur over the canvas. The tab bar's (`DockEdge` in `tab-bar.tsx`) is on every
+page with the bar, which is every page but the active workout and Start Workout, unless Under the tab bar is switched
+off; it is painted into the page so the bar's glass sits on the faded page, and its CSS layers are hidden under
+`html.gpu`.
 
 ## Motion: accordions and the page push
 
@@ -1025,8 +1033,9 @@ Liquid Glass" (219) and "Build a SwiftUI app with the new design"
   behind it: a progressive blur plus, on the light side, a fade toward
   white, and on the dark side, a dimming (0.45 of the page at the
   screen edge, gone about 140pt down). The soft effect appears once
-  content has scrolled under the bar. The bottom dock has no edge
-  effect (Frank's call, 2026-10-11).
+  content has scrolled under the bar. The bottom dock has the tuned
+  bottom edge, on by default and switched in Settings (Frank's call,
+  2026-11-13, replacing 2026-10-11's no edge; see "Soft scroll edge").
 - A media page (a photo grid, as Photos draws its Library) gets a
   dimming edge at all times, and its top bar sits on the dark side.
 - Text that belongs to a bar (a large title over media) is drawn

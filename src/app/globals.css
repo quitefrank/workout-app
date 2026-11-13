@@ -1520,6 +1520,11 @@ html:not(.gpu) .glass[data-glass-hidden] {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+  /* The tab bar's edge sits in the dock, above the canvas: the painter draws it into the page under the bar's glass, so
+     its CSS layers are hidden there or they would darken the glass a second time (the painter reads the edge's own box) */
+  html.gpu [data-glass-unit="dock"] .soft-edge:not(.soft-edge-live) > * {
+    visibility: hidden;
+  }
   .focus-slide-l > .soft-edge,
   .focus-slide-r > .soft-edge {
     animation: none;

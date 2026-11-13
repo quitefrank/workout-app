@@ -1,6 +1,5 @@
 import { gradientLine, parseColor, resolveStops, type Gradient, type Shadow } from "./css";
 import type { Clip, DisplayList, Item } from "./display-list";
-import { SOFT_EDGE } from "@/components/soft-edge";
 
 const ELLIPSIS = "\u2026";
 const SENTINEL = "#010203";
@@ -314,9 +313,12 @@ function drawSoftEdge(c: CanvasRenderingContext2D, it: Extract<Item, { k: "soft"
 
   const g = top ? c.createLinearGradient(0, y + it.h, 0, y) : c.createLinearGradient(0, y, 0, y + it.h);
   g.addColorStop(0, `rgba(${it.tint}, 0)`);
-  g.addColorStop(1, `rgba(${it.tint}, ${SOFT_EDGE.tint})`);
-  c.fillStyle = g;
-  c.fillRect(x, y, it.w, it.h);
+  g.addColorStop(1, `rgba(${it.tint}, ${it.tintAlpha})`);
+  // the kit's tint; a tuned edge has none (tintAlpha 0)
+  if (it.tintAlpha > 0) {
+    c.fillStyle = g;
+    c.fillRect(x, y, it.w, it.h);
+  }
   // the darkening on top, reaching further from the edge (as the CSS layer in soft-edge.tsx)
   const d = top ? c.createLinearGradient(0, y + it.h, 0, y) : c.createLinearGradient(0, y, 0, y + it.h);
   for (const [at, a] of it.darken) d.addColorStop(at, `rgba(${it.tint}, ${a})`);
