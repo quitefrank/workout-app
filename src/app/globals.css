@@ -262,6 +262,19 @@
   --exercise-tile: #2c2c2e;
 }
 
+/* An illustration tile in dark sits one background level above what holds it, as the kit's Backgrounds page steps
+   (Screen, Card, Inside a card): on the screen it is a card (the workout cards, like the muscle group cards), and in
+   a card (list rows, the Journal's exercise cards) it is the inside-a-card colour, stepping up again on a sheet
+   (Frank's call, 2026-11-13). Light keeps its gray. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(.bg-card, .grouped) {
+    --exercise-tile: var(--card-2);
+  }
+}
+:root[data-theme="dark"] :is(.bg-card, .grouped) {
+  --exercise-tile: var(--card-2);
+}
+
 /* The page's side, until a unit has read what is behind it */
 :root {
   --glass-lum-color: var(--gl-lum-color);
