@@ -91,7 +91,7 @@ export function SwapSheet({ we, onClose }: { we: WorkoutExerciseRow | null; onCl
               const stride = card ? card.offsetWidth + 12 : 252;
               setIndex(Math.round(el.scrollLeft / stride));
             }}
-            className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[calc(50%-120px)] pb-2 [scrollbar-width:none]"
+            className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[calc(50%-104px)] pb-2 [scrollbar-width:none]"
           >
             {picks == null && <div className="grid h-[290px] w-[240px] shrink-0 place-items-center text-[15px] text-ink-2">Finding swaps…</div>}
             {picks?.map((p) => (
