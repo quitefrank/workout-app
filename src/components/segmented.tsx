@@ -2,7 +2,10 @@
 
 import { cn } from "@/lib/cn";
 
-/** iOS's segmented control: a few mutually exclusive choices that switch a view or a setting at once. */
+/**
+ * iOS's segmented control: a few mutually exclusive choices that switch a view. Never use it to set a value: an on/off
+ * value is a `Toggle` and a choice among values a pop-up button (`ToggleRow` and `SelectRow` in settings-rows.tsx).
+ */
 export function Segmented<T extends string>({
   value,
   options,

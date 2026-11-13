@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { completeWorkout } from "@/app/actions";
 import { TrophyIcon } from "@/components/icons";
 import { Sheet, SheetConfirm } from "@/components/sheet";
-import { cn } from "@/lib/cn";
+import { Toggle } from "@/components/toggle";
 import type { WorkoutDetail, WorkoutExerciseRow } from "@/lib/data/queries";
 import { newRecord, totals } from "@/lib/workout/active";
 import { formatClock, formatNumber } from "@/lib/workout/format";
@@ -88,16 +88,7 @@ export function FinishSheet({
             <span className="block text-[15px] font-semibold">Keep swaps in this workout</span>
             <span className="block text-[13px] text-ink-2">{swaps.map((we) => exerciseTitle(we.exercises)).join(", ")} next time too</span>
           </span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={keep}
-            aria-label="Keep swaps in this workout"
-            onClick={() => setKeep(!keep)}
-            className={cn("relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors", keep ? "bg-green" : "bg-ink-3")}
-          >
-            <span className={cn("absolute left-0.5 top-0.5 size-[27px] rounded-full bg-white shadow transition-transform", keep && "translate-x-5")} />
-          </button>
+          <Toggle checked={keep} onChange={setKeep} label="Keep swaps in this workout" />
         </section>
       )}
 

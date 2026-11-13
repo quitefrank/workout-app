@@ -893,6 +893,15 @@ token block in `globals.css` exists twice, under the phone's
 `onAppearanceChange()` in `src/lib/appearance.ts`, never the media
 query directly.
 
+Settings controls follow what each setting is (Frank's call, 2026-11-13, the 2026-11-04 control rule applied): an on/off
+value is the iOS 27 toggle (`ToggleRow`), a choice among values is a pop-up button (`SelectRow`, the painted value and
+chevron over an invisible native select), both in `src/components/settings-rows.tsx`. A segmented control
+(`src/components/segmented.tsx`) switches a view and never sets a value. The toggle is the kit's `Toggle - Switch`
+(Figma `wH8YZbekJXNew109clIJz1` 29:56814): a 64 × 28 track, green on and Labels/Tertiary off, a 38 × 24 white knob 2pt
+in, swelling while pressed into a 58 × 38 clear glass capsule over the track (`src/components/toggle.tsx`, values tested
+in `src/lib/toggle.ts`). Every switch in the app is this one, the finish sheet's Keep swaps included. The active
+workout's Settings sheet still sets Journal glass with a segmented control.
+
 ## Colours: Apple's iOS 27 system colours
 
 Decided and built 2026-11-08 (Frank's call, from the Fixed Stage prototype,

@@ -3,9 +3,9 @@
 import { useMemo, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/button";
-import { Group, Segmented } from "@/components/segmented";
+import { Group } from "@/components/segmented";
+import { ToggleRow } from "@/components/settings-rows";
 import { TuneSlider } from "@/components/tune-slider";
-import { cn } from "@/lib/cn";
 import {
   parseSwitch,
   parseTune,
@@ -40,21 +40,8 @@ export function StartEdgeTune() {
       title="Bottom edge"
       footer="The fade under the tab bar, and behind the Start Workout button on a workout's page, each while its switch is on (the active workout keeps its own). It runs from the screen's bottom up to the reach above the button or bar, strongest at the bottom. Saved on this device only."
     >
-      {SWITCHES.map((s, i) => (
-        <div key={s.key} className={cn("flex items-center justify-between gap-3 pl-4 pr-1", i > 0 && "pt-2")}>
-          <span className="text-[17px]">{s.label}</span>
-          <div className="w-[150px]">
-            <Segmented
-              label={`Edge ${s.label.toLowerCase()}`}
-              value={parseSwitch(raw, s.key) ? "on" : "off"}
-              options={[
-                ["off", "Off"],
-                ["on", "On"],
-              ]}
-              onChange={(v) => writeSwitch(s.key, v === "on")}
-            />
-          </div>
-        </div>
+      {SWITCHES.map((s) => (
+        <ToggleRow key={s.key} label={s.label} checked={parseSwitch(raw, s.key)} onChange={(on) => writeSwitch(s.key, on)} />
       ))}
       {TUNE_DIALS.map((d) => (
         <div key={d.key} className="pt-2.5">
