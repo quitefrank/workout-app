@@ -45,9 +45,10 @@ function Layers({ edge, strong = false }: { edge: Edge; strong?: boolean }) {
   return (
     <>
       {BANDS.map((f, i) => {
-        // band i is solid from i/4 of the way to the edge onward, fading in over the eighth before
+        // band i runs from i/4 of the way to the edge onward
         const start = (i / BANDS.length) * 100;
-        const mask = `linear-gradient(${dir}, transparent ${Math.max(0, start - 12.5)}%, black ${start}%)`;
+        // from nothing at its start to full one band later, so the blur starts from 0 at the far end (no hard line)
+        const mask = `linear-gradient(${dir}, transparent ${start}%, black ${start + 100 / BANDS.length}%)`;
         return (
           <div
             key={f}

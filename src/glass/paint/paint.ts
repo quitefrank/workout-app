@@ -290,12 +290,13 @@ function drawSoftEdge(c: CanvasRenderingContext2D, it: Extract<Item, { k: "soft"
         // average, which approaches a Gaussian. One large downscale and upscale drew visible blocks (2026-11-12).
         mipBlur(src.canvas, px1 - px0, py1 - py0, s, b, px0 - x0, py0 - y0);
       }
-      // solid from i / 4 of the way toward the edge, fading in over the eighth before, as the CSS masks
+      // band i runs from i / n of the way toward the edge to the edge, as the CSS masks
       const start = i / SOFT_BANDS.length;
       const g = top ? b.createLinearGradient(0, h, 0, 0) : b.createLinearGradient(0, 0, 0, h);
-      // each band feathers in over a full band's width, so neighbouring blurs blend rather than step
-      g.addColorStop(Math.max(0, start - 1 / SOFT_BANDS.length), "rgba(0,0,0,0)");
-      g.addColorStop(start, "rgba(0,0,0,1)");
+      // each band ramps in from nothing at its start to full one band later, so the blur starts from 0 at the edge's
+      // far end (the first band at full strength there drew a hard line, 2026-11-12) and neighbouring bands blend
+      g.addColorStop(start, "rgba(0,0,0,0)");
+      g.addColorStop(Math.min(1, start + 1 / SOFT_BANDS.length), "rgba(0,0,0,1)");
       g.addColorStop(1, "rgba(0,0,0,1)");
       b.globalCompositeOperation = "destination-in";
       b.fillStyle = g;
