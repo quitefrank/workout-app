@@ -22,13 +22,26 @@ export const SOFT_EDGE = {
   darken: [[0, 0], [0.35, 0.3], [0.7, 0.55], [1, 0.7]] as ReadonlyArray<readonly [number, number]>,
 } as const;
 
+/** Stronger, for the active workout's edges over the illustration (Frank's call, 2026-11-12, after the phone): twice
+ *  the blur and a darkening that reaches nearly the screen's colour at the edge. */
+export const SOFT_EDGE_STRONG = {
+  blur: 20,
+  darken: [[0, 0], [0.25, 0.35], [0.6, 0.7], [1, 0.9]] as ReadonlyArray<readonly [number, number]>,
+} as const;
+
+/** The values an edge uses: the kit's, or the strong ones */
+export function softEdgeValues(strong: boolean) {
+  return strong ? { blur: SOFT_EDGE_STRONG.blur, darken: SOFT_EDGE_STRONG.darken } : { blur: SOFT_EDGE.blur, darken: SOFT_EDGE.darken };
+}
+
 /** The blur bands, weakest first: each covers from its start to the edge, so the strongest is nearest the edge */
 const BANDS = [0.125, 0.25, 0.5, 1] as const;
 
 type Edge = "top" | "bottom";
 
-function Layers({ edge }: { edge: Edge }) {
+function Layers({ edge, strong = false }: { edge: Edge; strong?: boolean }) {
   const dir = edge === "top" ? "to top" : "to bottom";
+  const v = softEdgeValues(strong);
   return (
     <>
       {BANDS.map((f, i) => {
@@ -40,7 +53,7 @@ function Layers({ edge }: { edge: Edge }) {
             key={f}
             // the blur is a custom property applied by `.soft-edge-blur` in globals.css, so html.gpu can turn it off
             className="soft-edge-blur absolute inset-0"
-            style={{ "--soft-blur": `blur(${SOFT_EDGE.blur * f}px)`, maskImage: mask, WebkitMaskImage: mask } as CSSProperties}
+            style={{ "--soft-blur": `blur(${v.blur * f}px)`, maskImage: mask, WebkitMaskImage: mask } as CSSProperties}
           />
         );
       })}
@@ -51,7 +64,7 @@ function Layers({ edge }: { edge: Edge }) {
       <div
         className="absolute inset-0"
         style={{
-          background: `linear-gradient(${dir}, ${SOFT_EDGE.darken.map(([at, a]) => `rgb(var(--bg-rgb) / ${a}) ${at * 100}%`).join(", ")})`,
+          background: `linear-gradient(${dir}, ${v.darken.map(([at, a]) => `rgb(var(--bg-rgb) / ${a}) ${at * 100}%`).join(", ")})`,
         }}
       />
     </>
@@ -94,7 +107,7 @@ function offsetIn(el: HTMLElement, frame: HTMLElement) {
  * may come later in the DOM, since the edge must paint before it), or else the parent itself. It measures itself against
  * the nearest `[data-focus-screen]`, so it follows the zone (a two-line title, the steppers or the rest arc).
  */
-export function ZoneSoftEdge({ edge, margin, zone: selector }: { edge: Edge; margin: number; zone?: string }) {
+export function ZoneSoftEdge({ edge, margin, zone: selector, strong }: { edge: Edge; margin: number; zone?: string; strong?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -123,8 +136,8 @@ export function ZoneSoftEdge({ edge, margin, zone: selector }: { edge: Edge; mar
     return () => ro.disconnect();
   }, [edge, margin, selector]);
   return (
-    <div ref={ref} aria-hidden data-soft-edge={edge} className="soft-edge pointer-events-none absolute">
-      <Layers edge={edge} />
+    <div ref={ref} aria-hidden data-soft-edge={edge} data-soft-strong={strong ? "" : undefined} className="soft-edge pointer-events-none absolute">
+      <Layers edge={edge} strong={strong} />
     </div>
   );
 }

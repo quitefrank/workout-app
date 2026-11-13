@@ -170,7 +170,8 @@ function draw(c: CanvasRenderingContext2D, it: Item, dx: number, dy: number, s: 
 
 /** The soft edge's blur bands as fractions of its full blur, weakest first, each running from its start (i / 4 of the
  *  way toward the edge) to the edge, so the strongest is nearest it; as the CSS layers in src/components/soft-edge.tsx */
-const SOFT_BANDS = [0.125, 0.25, 0.5, 1];
+// six bands for a smoother ramp than four (2026-11-12: four read as steps on the phone)
+const SOFT_BANDS = [1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1];
 
 type Scratch = { canvas: HTMLCanvasElement | OffscreenCanvas; ctx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D };
 let scratch: Scratch[] | null = null;
@@ -292,7 +293,8 @@ function drawSoftEdge(c: CanvasRenderingContext2D, it: Extract<Item, { k: "soft"
       // solid from i / 4 of the way toward the edge, fading in over the eighth before, as the CSS masks
       const start = i / SOFT_BANDS.length;
       const g = top ? b.createLinearGradient(0, h, 0, 0) : b.createLinearGradient(0, 0, 0, h);
-      g.addColorStop(Math.max(0, start - 0.125), "rgba(0,0,0,0)");
+      // each band feathers in over a full band's width, so neighbouring blurs blend rather than step
+      g.addColorStop(Math.max(0, start - 1 / SOFT_BANDS.length), "rgba(0,0,0,0)");
       g.addColorStop(start, "rgba(0,0,0,1)");
       g.addColorStop(1, "rgba(0,0,0,1)");
       b.globalCompositeOperation = "destination-in";
@@ -316,7 +318,7 @@ function drawSoftEdge(c: CanvasRenderingContext2D, it: Extract<Item, { k: "soft"
   c.fillRect(x, y, it.w, it.h);
   // the darkening on top, reaching further from the edge (as the CSS layer in soft-edge.tsx)
   const d = top ? c.createLinearGradient(0, y + it.h, 0, y) : c.createLinearGradient(0, y, 0, y + it.h);
-  for (const [at, a] of SOFT_EDGE.darken) d.addColorStop(at, `rgba(${it.tint}, ${a})`);
+  for (const [at, a] of it.darken) d.addColorStop(at, `rgba(${it.tint}, ${a})`);
   c.fillStyle = d;
   c.fillRect(x, y, it.w, it.h);
 }

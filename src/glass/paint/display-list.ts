@@ -6,7 +6,7 @@
  * decoding (`pending`) do.
  */
 import { parseBoxShadows, parseColor, parseLinearGradients, parseLinearTransform, type Gradient, type Linear, type Shadow } from "./css";
-import { SOFT_EDGE } from "@/components/soft-edge";
+import { softEdgeValues } from "@/components/soft-edge";
 import { svgImage } from "./svg";
 import { inputTextItems, textItems, type Metrics } from "./text";
 
@@ -25,7 +25,7 @@ export type Item =
   | (Base & { k: "image"; x: number; y: number; w: number; h: number; img: CanvasImageSource; tf: ImageTransform | null })
   /** Apple's soft scroll edge (src/components/soft-edge.tsx): blur what is painted so far in the box, growing toward
    *  `edge`, then the screen's colour fading in toward it */
-  | (Base & { k: "soft"; x: number; y: number; w: number; h: number; edge: "top" | "bottom"; blur: number; tint: string });
+  | (Base & { k: "soft"; x: number; y: number; w: number; h: number; edge: "top" | "bottom"; blur: number; darken: ReadonlyArray<readonly [number, number]>; tint: string });
 
 /** `sticky`: the list holds a sticky element, whose place depends on the scroll, so the stage rebuilds on scroll. */
 export type DisplayList = { items: Item[]; bg: string; pending: boolean; sticky: boolean };
@@ -92,7 +92,7 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     if (edge === "top" || edge === "bottom") {
       const rgb = cs.getPropertyValue("--bg-rgb").trim().split(/[\s,]+/).map(Number);
       const tint = rgb.length >= 3 && rgb.every(Number.isFinite) ? `${rgb[0]}, ${rgb[1]}, ${rgb[2]}` : "0, 0, 0";
-      if (visible && w > 0 && h > 0) items.push({ k: "soft", x, y, w, h, edge, blur: SOFT_EDGE.blur, tint, ...base });
+      if (visible && w > 0 && h > 0) items.push({ k: "soft", x, y, w, h, edge, ...softEdgeValues((el as HTMLElement).dataset.softStrong !== undefined), tint, ...base });
       return false;
     }
     const radii = cornerRadii([cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius], w, h);
