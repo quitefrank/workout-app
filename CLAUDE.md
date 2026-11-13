@@ -905,8 +905,9 @@ each on a short 70pt fade at 65% of the screen colour (`--bg-rgb`) that covers o
 are `Stepper` cards (`bg-card`, the iOS stepper under a number that shrinks to fit, 5 lb or 2.5 kg and 1 rep a tap,
 typeable). Swipe sideways to look through the exercises, swipe up for the Journal. Logging a working set starts the
 prescription's rest, which takes the steppers' place as an arc, and the log button becomes Skip; the arc stays on every
-exercise swiped to until rest ends or is skipped (Frank's call, 2026-11-13, replacing a Rest capsule), and its 49pt
-buttons either side read − and +, 15 seconds a tap. The screen carries no floor, "Preview" or
+exercise swiped to until rest ends or is skipped (Frank's call, 2026-11-13, replacing a Rest capsule), and its buttons
+either side are the kit's Large Bordered icon button (50pt, SF Symbols minus and plus at 17pt Regular in blue, Figma
+40:59288), 15 seconds a tap, 32pt from the screen's edges in line with the pill's circle. The screen carries no floor, "Preview" or
 "Swapped from" labels (Frank's call).
 
 Version 2 and Glass Steppers left Settings on 2026-11-12 (Frank's call): the page always passes Version 1 and no glass
