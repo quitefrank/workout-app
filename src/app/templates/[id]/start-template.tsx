@@ -46,7 +46,8 @@ export function StartTemplate({ templateId }: { templateId: string }) {
       // the page's last section ends 21pt above the button, as above the tab bar elsewhere (--bottom-bar-h)
       data-bottom-bar="button"
       className={cn("pointer-events-none fixed inset-x-0 bottom-0 z-40 mx-auto flex max-w-[640px] flex-col", pushIn)}
-      style={{ paddingBottom: "var(--dock-bottom)" }}
+      // 32pt up, as the kit's bottom toolbar buttons sit (Frank's call, 2026-11-13)
+      style={{ paddingBottom: "var(--toolbar-bottom)" }}
     >
       {/* the button's own box, so the edge measures from it and not from the column, which is the screen's height in a
           home screen app */}
@@ -61,7 +62,7 @@ export function StartTemplate({ templateId }: { templateId: string }) {
           // from the screen's bottom to 32pt above the button: a 10pt blur and a gradient from 50% to 0% (Frank's spec,
           // 2026-11-13); the reach and both strengths are tunable from Settings' Start Workout edge sliders
           tuned
-          className="bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
+          className="bottom-[calc(-1*var(--toolbar-bottom))] left-[calc(50%-50vw)] w-screen"
           style={{ ...tune, top: "calc(-1 * var(--se-reach, 32px))" }}
         />}
         <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto relative mx-5">

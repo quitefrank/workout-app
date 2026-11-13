@@ -8,10 +8,11 @@ import { SHEET_STATUS_BAR } from "@/lib/sheet-detent";
 /**
  * The pill, after the iOS 27 kit's collapsed notification (Figma wH8YZbekJXNew109clIJz1 754:64315), tuned in the Journal
  * Pill Lab (Frank's call, 2026-11-12, https://claude.ai/artifact/LoiDBexQCNYGfaauP8uTQ2): a 38pt circle 16pt from every
- * edge, so 70pt tall, 16pt from each side of the screen, 24pt corners, 27pt off the bottom (tried against the kit's
- * tab bar at 21 and its bottom toolbar at 32 on the phone).
+ * edge, so 70pt tall, 16pt from each side of the screen, 24pt corners. 32pt off the bottom, the kit's bottom toolbar
+ * (2517:14526), since the pill holds the screen's actions as a toolbar does (Frank's call, 2026-11-13, replacing 27pt;
+ * globals.css --toolbar-bottom).
  */
-export const PILL = { height: 70, inset: 16, padding: 16, radius: 24, circle: 38, bottom: 27 } as const;
+export const PILL = { height: 70, inset: 16, padding: 16, radius: 24, circle: 38, bottom: 32 } as const;
 
 /**
  * The open card's header, the kit's large sheet toolbar (10525:1638): a 16pt grabber band, 44pt buttons 16pt in from each

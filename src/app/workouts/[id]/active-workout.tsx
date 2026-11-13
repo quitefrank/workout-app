@@ -115,9 +115,9 @@ export function ActiveWorkout({
   const [journalGlass, setJGlass] = useState(initialJournalGlass);
   const pillRef = useRef<HTMLDivElement>(null);
   const toolbar = version === 2;
-  // The pill sits PILL.bottom (27pt) off the screen's bottom (Frank's call, 2026-11-12, after trying 21, 27 and 32 on the
-  // phone). It is the dock's --dock-bottom while this screen is up, so the steppers above it, the Journal card and the
-  // drag all follow; the app's other docks keep 21pt.
+  // The pill sits PILL.bottom (32pt, the kit's bottom toolbar) off the screen's bottom (Frank's call, 2026-11-13). It is
+  // the dock's --dock-bottom while this screen is up, so the steppers above it, the Journal card and the drag all follow;
+  // the tab bar keeps 21pt.
   useLayoutEffect(() => {
     if (toolbar) return;
     const root = document.documentElement;

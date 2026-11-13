@@ -143,11 +143,16 @@
   /* The bar pinned at the bottom (the tab bar, or Start Workout where the tab bar hides): a screen's last section ends
      as far above it as it sits above the screen's bottom (Frank's call, 2026-11-13) */
   --bottom-bar-h: 62px;
+  --bottom-bar-gap: var(--dock-bottom);
+  /* A bottom toolbar's controls (Start Workout, the active workout's pill) sit 32pt up, as the iOS 27 kit's bottom
+     toolbar buttons do (2517:14526); the tab bar is a bar and keeps 21pt (Frank's call, 2026-11-13) */
+  --toolbar-bottom: 32px;
 }
 
-/* Start Workout's 50pt button stands in for the tab bar on a workout's page */
+/* Start Workout's 50pt button stands in for the tab bar on a workout's page, 32pt up as a toolbar's button */
 html:has([data-bottom-bar="button"]) {
   --bottom-bar-h: 50px;
+  --bottom-bar-gap: var(--toolbar-bottom);
 }
 
 /* The phone's dark appearance, unless Settings picked light on this device */
