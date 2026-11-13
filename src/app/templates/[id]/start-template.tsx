@@ -42,7 +42,7 @@ export function StartTemplate({ templateId }: { templateId: string }) {
     >
       {/* Apple's soft scroll edge behind the button, the screen's width, from the bottom to 16pt above the button. Live
           over the canvas with the button, so it keeps its CSS blur on both paths; first, so the button stacks over it. */}
-      <SoftEdge edge="bottom" live className="-top-4 bottom-0 left-[calc(50%-50vw)] w-screen" />
+      <SoftEdge edge="bottom" live strong className="-top-4 bottom-0 left-[calc(50%-50vw)] w-screen" />
       <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto relative mx-5">
         {pending ? "Starting…" : "Start Workout"}
       </Button>

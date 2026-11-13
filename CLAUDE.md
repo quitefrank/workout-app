@@ -936,8 +936,8 @@ Apple's iOS 27 "Scroll Edge Effect - Soft" (Frank's call, 2026-11-12; Figma `RrX
 blur from 0 to 10 toward the edge under the screen's colour from 0 to 81%; the kit draws only dark, so light uses the
 screen's white) is `src/components/soft-edge.tsx`, with a darkening gradient over the kit's tint (`SOFT_EDGE.darken`,
 0 to 70% of the screen's colour, reaching further from the edge; Frank's call after the phone, matched by eye to Claude's
-iOS side menu, whose last row dissolves almost fully). The active workout's two edges use `SOFT_EDGE_STRONG` (`strong` on
-`ZoneSoftEdge`, read by the painter from `data-soft-strong`): a 20pt blur and a darkening to 90% at the edge (Frank's
+iOS side menu, whose last row dissolves almost fully). The active workout's two edges and Start Workout's use `SOFT_EDGE_STRONG` (`strong` on
+`ZoneSoftEdge` and `SoftEdge`, read by the painter from `data-soft-strong`): a 20pt blur and a darkening to 90% at the edge (Frank's
 call, 2026-11-12). The painter blurs in six bands, each feathered over a band's width. The CSS path stacks masked `backdrop-filter` bands. On the WebGPU path
 the page painter blurs what is already painted in the edge's box (`drawSoftEdge` in `src/glass/paint/paint.ts`; iPhone
 Safari has no canvas `filter`, so `mipBlur` halves the copy step by step and doubles it back, since one large downscale

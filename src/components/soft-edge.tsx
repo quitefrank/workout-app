@@ -22,7 +22,7 @@ export const SOFT_EDGE = {
   darken: [[0, 0], [0.35, 0.3], [0.7, 0.55], [1, 0.7]] as ReadonlyArray<readonly [number, number]>,
 } as const;
 
-/** Stronger, for the active workout's edges over the illustration (Frank's call, 2026-11-12, after the phone): twice
+/** Stronger, for the active workout's edges and Start Workout's (Frank's calls, 2026-11-12, after the phone): twice
  *  the blur and a darkening that reaches nearly the screen's colour at the edge. */
 export const SOFT_EDGE_STRONG = {
   blur: 20,
@@ -76,15 +76,16 @@ function Layers({ edge, strong = false }: { edge: Edge; strong?: boolean }) {
  * `[data-unpainted]` layer, as the Start Workout button's is), so it keeps its CSS blur under html.gpu; an edge in the
  * painted page drops it there, where the painter draws it and the CSS layers sit unseen under the canvas.
  */
-export function SoftEdge({ edge, live, className, style }: { edge: Edge; live?: boolean; className?: string; style?: CSSProperties }) {
+export function SoftEdge({ edge, live, strong, className, style }: { edge: Edge; live?: boolean; strong?: boolean; className?: string; style?: CSSProperties }) {
   return (
     <div
       aria-hidden
       data-soft-edge={edge}
+      data-soft-strong={strong ? "" : undefined}
       className={cn("soft-edge pointer-events-none absolute", live && "soft-edge-live", className)}
       style={style}
     >
-      <Layers edge={edge} />
+      <Layers edge={edge} strong={strong} />
     </div>
   );
 }
