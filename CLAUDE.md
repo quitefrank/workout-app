@@ -940,7 +940,8 @@ lifts over the canvas while typing.
   70pt tall, 16pt from each side, 32pt off the bottom as the kit's bottom toolbar buttons (2517:14526; Frank's call,
   2026-11-13, replacing 27pt: the pill and Start Workout are toolbar controls and sit at `--toolbar-bottom`, the tab bar
   keeps 21pt; a screen's last section ends as far above its bottom bar as the bar sits above the screen's bottom, and
-  with no bar at all, as in the Library's search, 32pt above the keyboard or the screen's bottom, `--screen-end` in
+  with no bar at all, as in the Library's search, 32pt above the screen's bottom and 16pt above the keyboard while it
+  is up (Frank's call, 2026-11-13), `--screen-end` in
   globals.css, confirmed on the phone 2026-11-13), 24pt corners, Liquid Glass (`PILL` in
   `src/lib/workout/journal-card.ts`, tested). The workout sets `PILL.bottom` as `--dock-bottom` on `<html>` while it is
   up, so the steppers, the Journal card and the drag follow; the app's other docks keep 21pt. Settings' Journal glass (a test setting, 2026-11-12,
