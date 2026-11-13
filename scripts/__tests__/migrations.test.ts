@@ -123,6 +123,7 @@ describe("supabase migrations on PGlite", () => {
       "0031_more_exercise_families.sql",
       "0032_bodyweight_reps_and_captains_chair.sql",
       "0033_secondary_muscles_and_heat_window.sql",
+      "0034_cardio_secondary_muscles.sql",
     ]);
   });
 

@@ -15,7 +15,7 @@ export default async function ExercisesPage() {
   const [groups, all] = await Promise.all([listMuscleGroups(), listExerciseItems()]);
   const items = byEntryName(oneEntryPerMovement(all));
   const groupArt = groups.map((g) => ({ id: g.id, name: g.name, art: <MuscleArt group={g.name} /> }));
-  const cards = libraryCards(groups).map((c) => ({ id: c.id, name: c.name, art: <MuscleArt group={c.name} /> }));
+  const cards = libraryCards(groups).map((c) => ({ id: c.slug, name: c.name, art: <MuscleArt group={c.art} />, parts: c.parts }));
   return (
     <Screen>
       <LargeTitle title="Exercises" subtitle={`${items.length} exercises`} leading={<BackButton label="Back to Library" fallback="/library" />} />

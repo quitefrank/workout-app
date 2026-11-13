@@ -70,12 +70,19 @@ export function windowStart(today: string, window: HeatWindow): string {
   return addDays(today, -((dow + 6) % 7));
 }
 
-/** One exercise in a completed workout: its working sets (warm-ups left out) and its groups. */
-export type HeatExercise = { exerciseId: string; title: string; group: string | null; secondaries: string[]; sets: number };
+/**
+ * Cardio counts no sets (Frank's call, 2026-11-13): the baseline is resistance sets and the ACSM paper gives no rate
+ * for aerobic work, so a cardio exercise is listed under the muscles it works (its secondaries, migration 0034) with
+ * its minutes, at a share of 0.
+ */
+export const CARDIO_GROUP = "Cardio";
+
+/** One exercise in a completed workout: its working sets (warm-ups left out), its groups and its logged seconds. */
+export type HeatExercise = { exerciseId: string; title: string; group: string | null; secondaries: string[]; sets: number; seconds?: number };
 export type HeatWorkout = { day: string; exercises: HeatExercise[] };
 
-/** Where a group's count came from: an exercise and its share per set (1 direct, 0.5 secondary). */
-export type HeatSource = { exerciseId: string; title: string; sets: number; share: number };
+/** Where a group's count came from: an exercise and its share per set (1 direct, 0.5 secondary, 0 cardio, with its seconds). */
+export type HeatSource = { exerciseId: string; title: string; sets: number; share: number; seconds?: number };
 
 export type Heat = {
   from: string;
@@ -98,16 +105,23 @@ export function heatOf(workouts: HeatWorkout[], today: string, window: HeatWindo
     sets[g] = (sets[g] ?? 0) + e.sets * share;
     const list = (sources[g] ??= []);
     const same = list.find((s) => s.exerciseId === e.exerciseId && s.share === share);
-    if (same) same.sets += e.sets;
-    else list.push({ exerciseId: e.exerciseId, title: e.title, sets: e.sets, share });
+    if (same) {
+      same.sets += e.sets;
+      if (share === 0) same.seconds = (same.seconds ?? 0) + (e.seconds ?? 0);
+    } else list.push({ exerciseId: e.exerciseId, title: e.title, sets: e.sets, share, ...(share === 0 ? { seconds: e.seconds ?? 0 } : {}) });
   };
   for (const w of workouts) {
     if (w.day < from || w.day > today) continue;
-    const worked = w.exercises.filter((e) => e.sets > 0);
+    const cardio = (e: HeatExercise) => e.group === CARDIO_GROUP;
+    const worked = w.exercises.filter((e) => e.sets > 0 || (cardio(e) && (e.seconds ?? 0) > 0));
     if (worked.length === 0) continue;
     count++;
     for (const e of worked) {
       workingSets += e.sets;
+      if (cardio(e)) {
+        for (const s of e.secondaries) if (isHeatGroup(s)) add(s, e, 0);
+        continue;
+      }
       if (isHeatGroup(e.group)) add(e.group, e, 1);
       for (const s of e.secondaries) if (isHeatGroup(s) && s !== e.group) add(s, e, SECONDARY_SHARE);
     }

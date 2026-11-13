@@ -36,6 +36,9 @@ const DERIVED: Record<string, { base: string; hit: "clear" | "all"; seeds?: [num
   // Running, cycling and rowing work the legs, not the whole body: the thigh drawing with every muscle lit
   cardio: { base: "quadriceps", hit: "all" },
   stretches: { base: "chest", hit: "clear" },
+  // The Library's Back split (2026-11-13): the lats alone, and the traps with the shoulder blades' muscles
+  lats: { base: "back", hit: "clear", seeds: [[210, 225], [310, 225]] },
+  "upper-back": { base: "back", hit: "clear", seeds: [[200, 80], [320, 80], [190, 150], [335, 150]] },
 };
 
 async function download(refresh: boolean) {

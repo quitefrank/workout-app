@@ -51,6 +51,31 @@ describe("heatOf", () => {
     expect(h.sources.Chest).toEqual([{ exerciseId: "b", title: "Bench Press", sets: 6, share: 1 }]);
     expect(h.sources.Shoulders).toEqual([{ exerciseId: "b", title: "Bench Press", sets: 6, share: 0.5 }]);
   });
+  it("lists cardio under the muscles it works with its seconds, counting no sets", () => {
+    const run = { exerciseId: "r", title: "Treadmill Run", group: "Cardio", secondaries: ["Quadriceps", "Calves"], sets: 1, seconds: 1200 };
+    const squat = { exerciseId: "s", title: "Squat", group: "Quadriceps", secondaries: ["Glutes"], sets: 4 };
+    const h = heatOf(
+      [
+        { day: "2026-07-20", exercises: [squat, run] },
+        { day: "2026-07-21", exercises: [{ ...run, seconds: 600 }] },
+      ],
+      "2026-07-21",
+      "rolling",
+    );
+    expect(h.sets.Quadriceps).toBe(4);
+    expect(h.sets.Calves).toBe(0);
+    expect(h.sources.Quadriceps).toEqual([
+      { exerciseId: "s", title: "Squat", sets: 4, share: 1 },
+      { exerciseId: "r", title: "Treadmill Run", sets: 2, share: 0, seconds: 1800 },
+    ]);
+    expect(h.workouts).toBe(2);
+  });
+  it("keeps a cardio session with time but no working set", () => {
+    const bike = { exerciseId: "k", title: "Indoor Bike", group: "Cardio", secondaries: ["Quadriceps"], sets: 0, seconds: 900 };
+    const h = heatOf([{ day: "2026-07-21", exercises: [bike] }], "2026-07-21", "rolling");
+    expect(h.sources.Quadriceps).toEqual([{ exerciseId: "k", title: "Indoor Bike", sets: 0, share: 0, seconds: 900 }]);
+    expect(h.sets.Quadriceps ?? 0).toBe(0);
+  });
 });
 
 describe("heatPercent", () => {

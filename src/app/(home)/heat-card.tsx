@@ -63,7 +63,9 @@ export function HeatCard({ title, range, heat, body }: { title: string; range: s
             <ul className="mt-1.5 flex flex-col gap-0.5 text-[13px] leading-[18px] text-ink-2">
               {(heat.sources[sel] ?? []).map((src) => (
                 <li key={`${src.exerciseId}-${src.share}`}>
-                  {src.title}: {src.sets} {src.share === 1 ? (src.sets === 1 ? "set" : "sets") : "× ½, secondary"}
+                  {src.share === 0
+                    ? `${src.title}: ${Math.round((src.seconds ?? 0) / 60)} min, not counted`
+                    : `${src.title}: ${src.sets} ${src.share === 1 ? (src.sets === 1 ? "set" : "sets") : "× ½, secondary"}`}
                 </li>
               ))}
               {!heat.sources[sel]?.length && <li>No working sets in this window.</li>}

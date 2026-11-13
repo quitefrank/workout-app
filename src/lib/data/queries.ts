@@ -23,7 +23,7 @@ function rows<T>(res: { data: T[] | null; error: { message: string } | null }): 
   return check(res) ?? [];
 }
 
-const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name), movement, option_equipment, option_position, option_technique, option_rank, title, measure";
+const EXERCISE_FIELDS = "id, name, slug, equipment_type, has_floors, video_url, notes, muscle_group_id, muscle_groups(name), movement, option_equipment, option_position, option_technique, option_rank, title, measure, secondary_muscle_group_ids";
 
 export type Settings = {
   weight_unit: WeightUnit;
@@ -218,6 +218,8 @@ export type LibraryExercise = {
   option_rank: number | null;
   title: string | null;
   measure: Measure;
+  /** Groups the exercise also trains (migration 0033), by id */
+  secondary_muscle_group_ids: string[] | null;
 };
 
 export type PrescribedRow = {
@@ -859,7 +861,7 @@ export async function getHeatWorkouts(today: string): Promise<HeatWorkout[]> {
       db()
         .from("workouts")
         .select(
-          "scheduled_for, started_at, completed_at, workout_exercises(exercise_id, exercises(name, title, secondary_muscle_group_ids, muscle_groups(name)), sets(is_warm_up))",
+          "scheduled_for, started_at, completed_at, workout_exercises(exercise_id, exercises(name, title, secondary_muscle_group_ids, muscle_groups(name)), sets(is_warm_up, seconds))",
         )
         .eq("user_id", userId())
         .not("completed_at", "is", null)
@@ -877,7 +879,7 @@ export async function getHeatWorkouts(today: string): Promise<HeatWorkout[]> {
       workout_exercises: {
         exercise_id: string;
         exercises: { name: string; title: string | null; secondary_muscle_group_ids: string[] | null; muscle_groups: { name: string } | null } | null;
-        sets: { is_warm_up: boolean }[];
+        sets: { is_warm_up: boolean; seconds: number | null }[];
       }[];
     }[]
   )
@@ -889,6 +891,8 @@ export async function getHeatWorkouts(today: string): Promise<HeatWorkout[]> {
         group: we.exercises?.muscle_groups?.name ?? null,
         secondaries: (we.exercises?.secondary_muscle_group_ids ?? []).map((id) => nameOf.get(id)).filter((n): n is string => !!n),
         sets: we.sets.filter((s) => !s.is_warm_up).length,
+        // every set's time, warm-up or not: a cardio session is listed by its minutes (heat.ts)
+        seconds: we.sets.reduce((n, s) => n + (s.seconds ?? 0), 0),
       })),
     }))
     .filter((w) => w.day >= from && w.day <= today);

@@ -15,13 +15,14 @@ export const metadata = { title: "Library" };
  */
 export default async function LibraryPage() {
   const [groups, templates, programs, activeId] = await Promise.all([listMuscleGroups(), listTemplates(), listPrograms(), getActiveProgramId()]);
-  // search keeps all fourteen groups for its pills and row art; the grid shows the twelve cards
+  // the grid and search's pills show the twelve cards; result rows keep their own group's drawing
   const groupArt = groups.map((g) => ({ id: g.id, name: g.name, art: <MuscleArt group={g.name} /> }));
-  const cards = libraryCards(groups).map((c) => ({ id: c.id, name: c.name, art: <MuscleArt group={c.name} /> }));
+  const cards = libraryCards(groups).map((c) => ({ id: c.slug, name: c.name, art: <MuscleArt group={c.art} />, parts: c.parts }));
   return (
     <Screen>
       <LibrarySearch
         groups={groupArt}
+        cards={cards}
         workouts={templates.map((t) => ({ id: t.id, name: t.name, category: t.category, slugs: t.slugs ?? [], exerciseCount: t.exerciseCount }))}
         programs={programs.map((p) => ({ id: p.id, name: p.name, slugs: p.slugs, weeks: p.phaseCount }))}
         header={<LargeTitle title="Library" />}

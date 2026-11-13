@@ -11,6 +11,7 @@ import { Empty, Row, SectionHeader } from "@/components/page";
 import { WorkoutThumb } from "@/components/workout-thumb";
 import { TopBar } from "@/components/top-bar";
 import { cn } from "@/lib/cn";
+import { primaryPart, type CardPart } from "@/lib/workout/library-cards";
 import type { LibraryItem } from "@/lib/exercise-items";
 import { appScroller } from "@/lib/scroller";
 import { byEntryName, oneEntryPerMovement } from "@/lib/workout/movements";
@@ -43,12 +44,16 @@ export type SearchProgram = { id: string; name: string; slugs: string[]; weeks: 
  */
 export function LibrarySearch({
   groups,
+  cards,
   workouts,
   programs,
   header,
   children,
 }: {
+  /** Every muscle group's drawing by id, for the result rows */
   groups: { id: string; name: string; art: ReactNode }[];
+  /** The Library's cards, which the pills follow (`libraryCards`) */
+  cards: { id: string; name: string; parts: CardPart[] }[];
   workouts: SearchWorkout[];
   programs: SearchProgram[];
   header: ReactNode;
@@ -89,10 +94,11 @@ export function LibrarySearch({
     () => (items ?? []).filter((i) => !q || i.name.toLowerCase().includes(q) || i.title?.toLowerCase().includes(q) || i.movement?.toLowerCase().includes(q) || i.group?.toLowerCase().includes(q)),
     [items, q],
   );
-  // only the groups the typed text finds, so a pill never leads to nothing
-  const pills = useMemo(() => groups.filter((g) => matches.some((i) => i.groupId === g.id)), [groups, matches]);
-  const picked = pick && pills.some((g) => g.id === pick) ? pick : null;
-  const results = byEntryName(oneEntryPerMovement(picked ? matches.filter((i) => i.groupId === picked) : matches));
+  // the Library's cards the typed text finds, so a pill never leads to nothing; a pill holds its card's primary rows
+  const pills = useMemo(() => cards.filter((c) => matches.some((i) => primaryPart(c, i))), [cards, matches]);
+  const pickedCard = pills.find((c) => c.id === pick);
+  const picked = pickedCard ? pickedCard.id : null;
+  const results = byEntryName(oneEntryPerMovement(pickedCard ? matches.filter((i) => primaryPart(pickedCard, i)) : matches));
   const artOf = useMemo(() => new Map(groups.map((g) => [g.id, g.art])), [groups]);
   // workouts and programs match by name; the muscle group pills filter exercises only
   const workoutHits = q && !picked ? workouts.filter((w) => w.name.toLowerCase().includes(q)) : [];
