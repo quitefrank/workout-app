@@ -8,6 +8,7 @@ import { ExerciseArt } from "@/components/exercise-art";
 import { CheckIcon, ChevronUpDown, EllipsisIcon, ListIcon, SfFlameFillIcon, SwapIcon } from "@/components/icons";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
+import { SwipeRow } from "@/components/swipe-row";
 import { cn } from "@/lib/cn";
 import type { SetRow, WorkoutExerciseRow } from "@/lib/data/queries";
 import { valuesOf, type Best, type SetRowView } from "@/lib/workout/active";
@@ -32,6 +33,8 @@ export type JournalProps = {
   onUnlog: (entry: Entry, set: SetRow) => void;
   onEditLogged: (set: SetRow, d: Draft) => void;
   onAddRow: (we: WorkoutExerciseRow) => void;
+  /** Swipe to delete a set row (src/lib/workout/row-delete.ts) */
+  onDeleteRow: (entry: Entry, i: number) => void;
   onPick: (we: WorkoutExerciseRow) => void;
   onSwap: (we: WorkoutExerciseRow) => void;
   onMove: (we: WorkoutExerciseRow, to: "up" | "down" | "end") => void;
@@ -67,6 +70,7 @@ export function JournalBody({
   onUnlog,
   onEditLogged,
   onAddRow,
+  onDeleteRow,
   onPick,
   onSwap,
   onMove,
@@ -110,6 +114,7 @@ export function JournalBody({
             onUnlog={onUnlog}
             onEditLogged={onEditLogged}
             onAddRow={onAddRow}
+            onDeleteRow={onDeleteRow}
             onSwap={onSwap}
             onMove={onMove}
             onRemove={onRemove}
@@ -176,6 +181,7 @@ function ExerciseCard({
   onUnlog,
   onEditLogged,
   onAddRow,
+  onDeleteRow,
   onSwap,
   onMove,
   onRemove,
@@ -196,6 +202,7 @@ function ExerciseCard({
   onUnlog: (entry: Entry, set: SetRow) => void;
   onEditLogged: (set: SetRow, d: Draft) => void;
   onAddRow: (we: WorkoutExerciseRow) => void;
+  onDeleteRow: (entry: Entry, i: number) => void;
   onSwap: (we: WorkoutExerciseRow) => void;
   onMove: (we: WorkoutExerciseRow, to: "up" | "down" | "end") => void;
   onRemove: (we: WorkoutExerciseRow) => void;
@@ -208,6 +215,9 @@ function ExerciseCard({
   const cellWidth = fields.length > 2 ? 58 : 66;
   const [menu, setMenu] = useState<DOMRect | null>(null);
   const [floorPending, startFloor] = useTransition();
+  const columns = `38px ${fields.map(() => `${cellWidth}px`).join(" ")} 1fr`;
+  // bumped on every delete so the rows remount: the collapsed row never comes back as the row after it
+  const [deletes, setDeletes] = useState(0);
 
   return (
     <div data-we={id} className="overflow-hidden rounded-[20px] bg-card">
@@ -274,35 +284,50 @@ function ExerciseCard({
         </Chip>
       </div>
 
-      <div
-        className="col-span-2 mt-6 isolate grid items-center gap-x-[13px] gap-y-[15px]"
-        style={{ gridTemplateColumns: `38px ${fields.map(() => `${cellWidth}px`).join(" ")} 1fr` }}
-      >
-        <span role="columnheader" aria-label="Log it" className="flex justify-center text-ink-2">
-          <CheckIcon size={15} strokeWidth={2.4} />
-        </span>
-        {fields.map((f) => (
-          <span key={f} className="text-center text-[15px] text-ink-2">
-            {fieldLabel(f, measure, unit)}
+      {/* The Log It grid: the header, then each set as its own row with swipe to delete, full width so the row and its
+          Delete run edge to edge of the card. Each row is 56pt (the 41pt cells and half the old 15pt gap each side), so the
+          spacing is unchanged. */}
+      <div className="col-span-2 mt-6">
+        <div className="grid items-center gap-x-[13px]" style={{ gridTemplateColumns: columns }}>
+          <span role="columnheader" aria-label="Log it" className="flex justify-center text-ink-2">
+            <CheckIcon size={15} strokeWidth={2.4} />
           </span>
-        ))}
-        <span className="text-center text-[15px] text-ink-2">Last</span>
-        {rows.map((row, i) => (
-          <SetLine
-            key={`${row.set?.id ?? "new"}-${i}`}
-            row={row}
-            fields={fields}
-            width={cellWidth}
-            last={row.last ? summarizeShort(measure, row.last) : "--"}
-            value={row.set ? valuesOf(row.set) : valueOf(we.id, i, row)}
-            current={i === currentRow}
-            disabled={pending}
-            onToggle={() => (row.set ? onUnlog(entry, row.set) : onLog(entry, i))}
-            onChange={(d) => (row.set ? onEditLogged(row.set, d) : setDraft(we.id, i, d))}
-          />
-        ))}
+          {fields.map((f) => (
+            <span key={f} className="text-center text-[15px] text-ink-2">
+              {fieldLabel(f, measure, unit)}
+            </span>
+          ))}
+          <span className="text-center text-[15px] text-ink-2">Last</span>
+        </div>
+        <div className="-mx-4 mt-[7.5px]">
+          {rows.map((row, i) => (
+            <SwipeRow
+              key={`${row.set?.id ?? "new"}-${i}-${deletes}`}
+              disabled={pending || rows.length <= 1 || !!row.set?.id.startsWith("pending-")}
+              label="Delete"
+              contentClassName="bg-card"
+              onDelete={() => {
+                onDeleteRow(entry, i);
+                setDeletes((n) => n + 1);
+              }}
+            >
+              <SetLine
+                row={row}
+                fields={fields}
+                columns={columns}
+                width={cellWidth}
+                last={row.last ? summarizeShort(measure, row.last) : "--"}
+                value={row.set ? valuesOf(row.set) : valueOf(we.id, i, row)}
+                current={i === currentRow}
+                disabled={pending}
+                onToggle={() => (row.set ? onUnlog(entry, row.set) : onLog(entry, i))}
+                onChange={(d) => (row.set ? onEditLogged(row.set, d) : setDraft(we.id, i, d))}
+              />
+            </SwipeRow>
+          ))}
+        </div>
       </div>
-      <button type="button" onClick={() => onAddRow(we)} className="col-span-2 mt-4 justify-self-start text-[15px] font-semibold text-blue">
+      <button type="button" onClick={() => onAddRow(we)} className="col-span-2 mt-[8.5px] justify-self-start text-[15px] font-semibold text-blue">
         + Add Set
       </button>
       </div>
@@ -343,6 +368,7 @@ function Chip({ label, onClick, children }: { label?: string; onClick: (e: React
 function SetLine({
   row,
   fields,
+  columns,
   width,
   last,
   value,
@@ -353,6 +379,7 @@ function SetLine({
 }: {
   row: SetRowView;
   fields: readonly Field[];
+  columns: string;
   width: number;
   last: string;
   value: Draft;
@@ -366,7 +393,10 @@ function SetLine({
     row.set && "text-blue",
   );
   return (
-    <>
+    <div className="relative grid h-[56px] items-center gap-x-[13px] px-4" style={{ gridTemplateColumns: columns }}>
+      {/* The current set's row is tinted blue across the card, as Ladder highlights it in its accent (Frank's call,
+          2026-11-09): 15% blue over the row's own card colour, 56pt tall as Ladder's, sliding with the row. */}
+      {current && <span aria-hidden className="pointer-events-none absolute inset-0 bg-blue/15" />}
       <button
         type="button"
         disabled={disabled}
@@ -378,19 +408,13 @@ function SetLine({
           row.set && "border-blue bg-blue text-white",
         )}
       >
-        {/* The current set's row is tinted blue across the card, as Ladder highlights it in its accent (Frank's call,
-            2026-11-09): 15% blue, from the card's left edge to its right, 56pt tall as Ladder's (the 41pt row and half the 15pt
-            gap each side). Behind the cells (the grid isolates), clipped by the card. */}
-        {current && (
-          <span aria-hidden className="pointer-events-none absolute -bottom-[14.5px] -left-[24.5px] -top-[14.5px] -z-10 w-screen bg-blue/15" />
-        )}
         {row.set ? "✓" : row.kind === "warm" ? <SfFlameFillIcon size={15} /> : row.label}
       </button>
       {fields.map((f) => (
-        <FieldCell key={f} field={f} value={value[f]} width={width} className={cell} onCommit={(v) => onChange({ ...value, [f]: v })} />
+        <FieldCell key={f} field={f} value={value[f]} width={width} className={cn(cell, "relative")} onCommit={(v) => onChange({ ...value, [f]: v })} />
       ))}
-      <span className="tabular truncate whitespace-nowrap text-center text-[14px] text-ink-2">{last}</span>
-    </>
+      <span className="tabular relative truncate whitespace-nowrap text-center text-[14px] text-ink-2">{last}</span>
+    </div>
   );
 }
 

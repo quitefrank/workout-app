@@ -419,6 +419,19 @@ Running is one family with two versions: Treadmill Run (`library:treadmill-run`,
 redo that repoint if the seed is ever run again. Last time comes from the latest completed session with a working set,
 not `v_workout_exercise_top_set`, which needs weight and reps.
 
+## Swipe to delete a set
+
+A set row in the Journal deletes with UITableView's trailing swipe (Frank's call, 2026-11-12), the pair to + Add Set.
+`src/components/swipe-row.tsx` is the gesture; its values are pure and tested in `src/lib/swipe-row.ts`, taken from
+SwipeCellKit's `.destructive` style (built to match Mail; Apple publishes no numbers, sources in the file's header): a
+74pt Delete, 1:1 travel to 30pt short of the row's width and 20% past it, a full swipe armed past that or with the
+finger past 80% of the row, the title pinned to the trailing edge until armed and then springing to the row's edge,
+release on UIKit's mass 1 / stiffness 100 / damping 18 spring, and a delete that slides off and collapses the row in
+0.3s. One row is open at a time; a tap elsewhere or a scroll closes it. iOS Safari has no haptics, so the arming tick
+is missing on the phone. The last row of an exercise can't be deleted. What a delete means is
+`src/lib/workout/row-delete.ts` (tested): a logged row deletes its set; prescribed rows are dropped off the end of
+their block as a count, kept on the screen like + Add Set's, and the rows after keep their values.
+
 ## Drop sets
 
 A drop set is a value on a logged set, `sets.is_drop_set`, for any exercise (Frank's call,

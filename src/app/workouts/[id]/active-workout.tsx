@@ -39,7 +39,6 @@ import type {
   WorkoutExerciseRow,
 } from "@/lib/data/queries";
 import {
-  buildRows,
   isDone,
   nextRow,
   repTarget,
@@ -58,6 +57,7 @@ import {
   type SetValues,
 } from "@/lib/workout/measure";
 import { formatClock } from "@/lib/workout/format";
+import { deletePlan, NO_DROP, rowsFor, shiftDrafts, type Drop } from "@/lib/workout/row-delete";
 import { floorKey } from "@/lib/workout/machine-location";
 import { opensOnRelease, PILL, progressFor, travel } from "@/lib/workout/journal-card";
 import { exerciseTitle } from "@/lib/workout/movements";
@@ -149,30 +149,23 @@ export function ActiveWorkout({
             },
       ),
   );
-  // rows added with + Add Set in the Journal, until they are logged
+  // rows added with + Add Set in the Journal, until they are logged, and rows swiped away (src/lib/workout/row-delete.ts)
   const [extra, setExtra] = useState<Record<string, number>>({});
+  const [dropped, setDropped] = useState<Record<string, Drop>>({});
+  const lastTimeOf = (we: WorkoutExerciseRow) =>
+    workout.lastTime[floorKey(we.exercises.id, we.machine_location)] ?? null;
   const entries: Entry[] = useMemo(
     () =>
-      exercises.map((we) => {
-        const rows = buildRows(
+      exercises.map((we) => ({
+        we,
+        rows: rowsFor(
           we,
-          workout.lastTime[floorKey(we.exercises.id, we.machine_location)] ??
-            null,
-        );
-        const more = extra[we.id] ?? 0;
-        const lastWork = [...rows].reverse().find((r) => r.kind !== "warm");
-        let n = rows.filter((r) => r.kind === "work").length;
-        for (let i = 0; i < more; i++)
-          rows.push({
-            ...(lastWork ? valuesOf(lastWork) : valuesOf({ weight: null, reps: null })),
-            kind: "work",
-            label: String(++n),
-            set: null,
-            last: null,
-          });
-        return { we, rows };
-      }),
-    [exercises, workout.lastTime, extra],
+          workout.lastTime[floorKey(we.exercises.id, we.machine_location)] ?? null,
+          extra[we.id] ?? 0,
+          dropped[we.id] ?? NO_DROP,
+        ),
+      })),
+    [exercises, workout.lastTime, extra, dropped],
   );
 
   // Each lift with a stretch between its sets, and back (Nippard's "Superset A" pairs)
@@ -334,6 +327,24 @@ export function ActiveWorkout({
       await deleteSet(set.id);
     }, "Could not undo the set");
 
+  // Swipe to delete in the Journal: the row goes, its set too when logged, and the rows after it keep their values
+  const deleteRow = (entry: Entry, i: number) => {
+    const weId = entry.we.id;
+    const plan = deletePlan(entry.we, lastTimeOf(entry.we), extra[weId] ?? 0, dropped[weId] ?? NO_DROP, i);
+    if (!plan) return;
+    const shown = entry.rows.map((r, j) => (r.set ? valuesOf(r.set) : valueOf(weId, j, r)));
+    setDrafts((cur) => shiftDrafts(cur, weId, entry.rows, shown, i));
+    setExtra((cur) => ({ ...cur, [weId]: plan.extra }));
+    setDropped((cur) => ({ ...cur, [weId]: plan.drop }));
+    if (setTimer.state?.weId === weId && setTimer.state.row >= i) setTimer.stop();
+    const setId = plan.setId;
+    if (setId)
+      run(async () => {
+        apply({ weId, remove: setId });
+        await deleteSet(setId);
+      }, "Could not delete the set");
+  };
+
   const editLogged = (set: SetRow, d: Draft) =>
     run(
       () =>
@@ -480,6 +491,7 @@ export function ActiveWorkout({
     onUnlog: unlog,
     onEditLogged: editLogged,
     onAddRow: (we) => setExtra((cur) => ({ ...cur, [we.id]: (cur[we.id] ?? 0) + 1 })),
+    onDeleteRow: deleteRow,
     onPick: (we) => {
       setViewId(null);
       setPinned(we.id);
