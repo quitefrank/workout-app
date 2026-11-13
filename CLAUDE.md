@@ -939,9 +939,10 @@ screen's white) is `src/components/soft-edge.tsx`, with a darkening gradient ove
 iOS side menu, whose last row dissolves almost fully). The active workout's two edges and Start Workout's use `SOFT_EDGE_STRONG` (`strong` on
 `ZoneSoftEdge` and `SoftEdge`, read by the painter from `data-soft-strong`): a 20pt blur and a darkening to 90% at the edge (Frank's
 call, 2026-11-12). The painter blurs in six bands, each feathered over a band's width. The bottom edge's darkening goes solid at the top of the
-stepper cards (`solid="[data-soft-solid]"` on `ZoneSoftEdge`, `solidDarken` in soft-edge.tsx, read by the painter from
-`data-soft-solid-at`) and holds to the screen's edge, so the image under Last time reaches 100% black there (Frank's call,
-2026-11-12); the blur still runs to the screen's edge. The CSS path stacks masked `backdrop-filter` bands. On the WebGPU path
+stepper cards and the top edge's at the bottom of the Up next line (`solid="[data-soft-solid='bottom']"` and
+`'top'` on `ZoneSoftEdge`, `solidDarken` in soft-edge.tsx, read by the painter from
+`data-soft-solid-at`) and holds to the screen's edge, so the image reaches 100% black there (Frank's calls, 2026-11-12); the blur still
+runs to the screen's edge. The CSS path stacks masked `backdrop-filter` bands. On the WebGPU path
 the page painter blurs what is already painted in the edge's box (`drawSoftEdge` in `src/glass/paint/paint.ts`; iPhone
 Safari has no canvas `filter`, so `mipBlur` halves the copy step by step and doubles it back, since one large downscale
 drew blocks), so an edge must come after what it blurs in the DOM and before what
