@@ -125,6 +125,7 @@ export function ZoneSoftEdge({
   margin,
   zone: selector,
   solid: solidSelector,
+  solidSide,
   strong,
 }: {
   edge: Edge;
@@ -132,6 +133,9 @@ export function ZoneSoftEdge({
   zone?: string;
   /** an element (a selector inside the edge's parent) where the darkening reaches 100% and holds to the screen's edge */
   solid?: string;
+  /** which side of the solid element the darkening is solid from: by default its side nearer the zone's middle (the
+   *  bottom for a top edge, the top for a bottom edge) */
+  solidSide?: "top" | "bottom";
   strong?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -157,7 +161,9 @@ export function ZoneSoftEdge({
       const height = bottom - top;
       if (solid && solid.offsetHeight > 0 && height > 0) {
         const s = offsetIn(solid, frame);
-        const at = edge === "top" ? (bottom - (s.y + solid.offsetHeight)) / height : (s.y - top) / height;
+        const side = solidSide ?? (edge === "top" ? "bottom" : "top");
+        const y = side === "top" ? s.y : s.y + solid.offsetHeight;
+        const at = edge === "top" ? (bottom - y) / height : (y - top) / height;
         const stops = solidDarken(at);
         const dir = edge === "top" ? "to top" : "to bottom";
         el.dataset.softSolidAt = String(Math.round(at * 1000) / 1000);
@@ -174,7 +180,7 @@ export function ZoneSoftEdge({
     // the zone moves without resizing when the space around it changes (the pill's distance off the bottom)
     ro.observe(parent);
     return () => ro.disconnect();
-  }, [edge, margin, selector, solidSelector]);
+  }, [edge, margin, selector, solidSelector, solidSide]);
   return (
     <div ref={ref} aria-hidden data-soft-edge={edge} data-soft-strong={strong ? "" : undefined} className="soft-edge pointer-events-none absolute">
       <Layers edge={edge} strong={strong} />

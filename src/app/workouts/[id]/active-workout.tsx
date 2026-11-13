@@ -583,7 +583,7 @@ export function ActiveWorkout({
               {/* Apple's soft scroll edge, edge to edge (Frank's call, 2026-11-12): from the top of the screen to 16pt
                   under the header's text, and from the bottom to 16pt above the controls. After the illustration and
                   before everything that stays sharp; they do not slide with the exercise (globals.css). */}
-              <ZoneSoftEdge edge="top" margin={32} zone="[data-soft-zone='top']" solid="[data-soft-solid='top']" strong />
+              <ZoneSoftEdge edge="top" margin={32} zone="[data-soft-zone='top']" solid="[data-soft-solid='top']" solidSide="top" strong />
               <ZoneSoftEdge edge="bottom" margin={32} zone="[data-soft-zone='bottom']" solid="[data-soft-solid='bottom']" strong />
 
               {/* The same in work and rest. Its minimum height is its height with a two-line title, so a shorter title
