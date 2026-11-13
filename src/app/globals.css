@@ -52,7 +52,8 @@
   /* Home's Last 7 Days body map: the untrained body and its outline; heat mixes --red into --heat-body */
   --heat-body: #d8d8dd;
   --heat-line: #b9b9c0;
-  /* Behind an exercise illustration: one gray in both appearances (Frank's call, 2026-11-05) */
+  /* Behind an exercise illustration: this gray in light; in dark it matches the muscle group cards, --muscle-tile
+     (Frank's call, 2026-11-13, replacing 2026-11-05's one gray in both appearances) */
   --exercise-tile: #dedee1;
   /* Glass Steppers' painted glass (.glass-card), measured off the shader's card at 2x on 2026-11-10: light is a
      near-white body with a faint top shade and the preset's ring and cast */
@@ -175,6 +176,7 @@
     --muscle-body: #48484a;
     --muscle-hit: #ff383c; /* the exercise illustrations' red */
     --muscle-tile: #1c1c1e;
+    --exercise-tile: #1c1c1e;
     --heat-body: #3a3a3e;
     --heat-line: #55555c;
     --seg-on: #636366;
@@ -222,6 +224,7 @@
   --muscle-body: #48484a;
   --muscle-hit: #ff383c; /* the exercise illustrations' red */
   --muscle-tile: #1c1c1e;
+  --exercise-tile: #1c1c1e;
   --heat-body: #3a3a3e;
   --heat-line: #55555c;
   --seg-on: #636366;
@@ -247,6 +250,7 @@
     --card: #2c2c2e;
     --card-2: #3a3a3c;
     --muscle-tile: #2c2c2e;
+    --exercise-tile: #2c2c2e;
   }
 }
 :root[data-theme="dark"] :is(.glass-sheet, .jcard) {
@@ -255,6 +259,7 @@
   --card: #2c2c2e;
   --card-2: #3a3a3c;
   --muscle-tile: #2c2c2e;
+  --exercise-tile: #2c2c2e;
 }
 
 /* The page's side, until a unit has read what is behind it */

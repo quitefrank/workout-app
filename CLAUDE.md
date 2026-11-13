@@ -626,8 +626,8 @@ which rewrites `src/lib/exercise-image-slugs.ts`. An exercise without its own im
 through `src/lib/exercise-image-standins.ts` (Frank's call, 2026-11-12: no empty tiles); its own image always wins,
 and a test fails until the stand-in line is deleted. Build every image URL with `exerciseImageSrc`, never
 `/exercises/${slug}.webp`. `src/components/exercise-art.tsx`
-shows one on `--exercise-tile`, the same gray in light and dark (Frank's call,
-2026-11-05), or the muscle group's art on the themed tile until it exists. Going back restores the screen's
+shows one on `--exercise-tile`, a light gray in light and the muscle group cards' `--muscle-tile` in dark, stepping
+up on a sheet as they do (Frank's call, 2026-11-13; the workout cards and row thumbnails use it too), or the muscle group's art on the themed tile until it exists. Going back restores the screen's
 scroll position (`src/components/app-scroller.tsx`). The UI calls templates "workouts" (Frank's call, 2026-11-11);
 the code and tables keep `templates`. The 18 Notion day templates have `program_id` null. Progress is `/analytics`. The active
 workout (`/workouts/[id]`) is described under "Active workout" below. Delete has one place on a
