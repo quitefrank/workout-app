@@ -1440,8 +1440,9 @@ html.keyboard .sheet-body {
     overscroll-behavior: contain;
     scrollbar-width: none;
     /* the exercise cards sit 8pt from the card's edges, as Ladder's do, so their content is 24pt from the screen's edge
-       (8pt plus their 16pt padding) under the check's 16pt */
-    padding: 0 8px calc(var(--dock-bottom) + 24px);
+       (8pt plus their 16pt padding) under the check's 16pt. With no bar under it, the list (Finish Workout last) ends
+       21pt above the screen's bottom, where a bar would sit (Frank's call, 2026-11-13) */
+    padding: 0 8px var(--dock-bottom);
     /* in with the sheet behind it, never over the bare pill */
     opacity: min(1, calc(var(--jp) * 4));
   }

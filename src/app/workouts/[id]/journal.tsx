@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { setExerciseFloor } from "@/app/actions";
+import { Button } from "@/components/button";
 import { ExerciseArt } from "@/components/exercise-art";
 import { CheckIcon, ChevronUpDown, EllipsisIcon, ListIcon, SfFlameFillIcon, SwapIcon } from "@/components/icons";
 import { ActionMenu } from "@/components/pop-up-menu";
@@ -121,9 +122,10 @@ export function JournalBody({
           />
         ))}
       </div>
-      <button type="button" onClick={onFinish} className="mx-3 mt-4 h-[56px] w-[calc(100%-24px)] rounded-full bg-blue text-[17px] font-semibold text-white">
+      {/* the app's filled button, 20pt from the screen's sides as Start Workout is (8pt of the Journal's padding and 12pt) */}
+      <Button variant="filled" onClick={onFinish} className="mx-3 mt-4 w-[calc(100%-24px)]">
         Finish Workout
-      </button>
+      </Button>
     </>
   );
 }
