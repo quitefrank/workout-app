@@ -49,17 +49,17 @@ export function StartTemplate({ templateId }: { templateId: string }) {
       {/* the button's own box, so the edge measures from it and not from the column, which is the screen's height in a
           home screen app */}
       <div className="relative flex flex-col">
-        {/* Apple's soft scroll edge behind the button, the screen's width, from the screen's bottom to 32pt above the
+        {/* Apple's soft scroll edge behind the button, the screen's width, from the screen's bottom to 40pt above the
             button. Live over the canvas with the button, so it keeps its CSS blur on both paths; first, so the button
             stacks over it. */}
         <SoftEdge
           edge="bottom"
           live
           strong
-          // from the screen's bottom to 32pt above the button: a 10pt blur and a gradient from 25% to 0% (Frank's spec,
+          // from the screen's bottom to 40pt above the button: a 10pt blur and a gradient from 25% to 0% (Frank's spec,
           // 2026-11-13), their strengths tunable from Settings' Start Workout edge sliders
           tuned
-          className="-top-8 bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
+          className="-top-10 bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
           style={tune}
         />
         <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto relative mx-5">

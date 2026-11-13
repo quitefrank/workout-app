@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 /**
  * Start Workout's soft edge (Frank's calls, 2026-11-13): the blur and one gradient both run from the screen's bottom up
- * to 32pt above the button, strongest at the bottom; the gradient is the screen's colour from 25% at the bottom to 0% at
+ * to 40pt above the button, strongest at the bottom; the gradient is the screen's colour from 25% at the bottom to 0% at
  * the top, with no kit tint or darkening layer under it. Two strengths stay tunable by eye from Settings, saved per
  * device in localStorage and read by the edge as custom properties. Pure apart from the storage.
  */
