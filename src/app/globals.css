@@ -147,6 +147,15 @@
   /* A bottom toolbar's controls (Start Workout, the active workout's pill) sit 32pt up, as the iOS 27 kit's bottom
      toolbar buttons do (2517:14526); the tab bar is a bar and keeps 21pt (Frank's call, 2026-11-13) */
   --toolbar-bottom: 32px;
+  /* where a screen's content ends (Screen's bottom padding): as far above the bottom bar as the bar sits above the
+     screen's bottom */
+  --screen-end: calc(var(--bottom-bar-h) + 2 * var(--bottom-bar-gap));
+}
+
+/* With no bar at all (the Library's search takes the dock away) the content ends 32pt above what is under it: the
+   keyboard while it is up (the scroller then ends at the keyboard), else the screen's bottom (Frank's call, 2026-11-13) */
+html.dock-hidden {
+  --screen-end: var(--toolbar-bottom);
 }
 
 /* Start Workout's 50pt button stands in for the tab bar on a workout's page, 32pt up as a toolbar's button */

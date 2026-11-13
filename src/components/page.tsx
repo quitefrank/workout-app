@@ -16,7 +16,7 @@ export function Screen({ children, className }: { children: ReactNode; className
     <main
       className={cn("mx-auto w-full max-w-[640px] flex-1", className)}
       // the last section ends as far above the bottom bar as the bar sits above the screen's bottom
-      style={{ paddingBottom: "calc(var(--bottom-bar-h) + 2 * var(--bottom-bar-gap))" }}
+      style={{ paddingBottom: "var(--screen-end)" }}
     >
       {children}
     </main>
