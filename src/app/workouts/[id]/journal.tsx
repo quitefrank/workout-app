@@ -5,7 +5,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { setExerciseFloor } from "@/app/actions";
 import { ExerciseArt } from "@/components/exercise-art";
-import { ChevronUpDown, EllipsisIcon, ListIcon, SfFlameFillIcon, SwapIcon } from "@/components/icons";
+import { CheckIcon, ChevronUpDown, EllipsisIcon, ListIcon, SfFlameFillIcon, SwapIcon } from "@/components/icons";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { cn } from "@/lib/cn";
@@ -277,7 +277,9 @@ function ExerciseCard({
         className="col-span-2 mt-6 isolate grid items-center gap-x-[13px] gap-y-[15px]"
         style={{ gridTemplateColumns: `38px ${fields.map(() => `${cellWidth}px`).join(" ")} 1fr` }}
       >
-        <span className="whitespace-nowrap text-[15px] text-blue">Log It</span>
+        <span role="columnheader" aria-label="Log it" className="flex justify-center text-ink-2">
+          <CheckIcon size={15} strokeWidth={2.4} />
+        </span>
         {fields.map((f) => (
           <span key={f} className="text-center text-[15px] text-ink-2">
             {fieldLabel(f, measure, unit)}
