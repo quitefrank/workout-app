@@ -649,13 +649,15 @@ only closes it. Below large: 6pt inset, 34pt top and 58pt bottom corners, a CSS 
 transparency.
 Large: edge to edge under the 62pt status bar, 38pt top corners, opaque. A focused
 text field takes it to large. The confirming action is `SheetConfirm`.
-A `thumbnail` makes the sheet open on it large (232pt), and scrolling the content
-shrinks it into the kit's Activity View header (thumbnail, title and subtitle in
-one row, close at the trailing edge), as the exercise sheet uses. The shrink
-follows the finger, the large title rides up and fades while the small one fades
-in where it rests, the close button never moves, and a header stopped halfway
-settles on SwiftUI's smooth spring (Frank's call, 2026-11-07, from the Exercise
-Sheet Hero prototype, https://claude.ai/artifact/4WWmpj6GS3aqRKhwm7eKur). Values
+A `thumbnail` makes the sheet open on it large (232pt, 78pt from the top, under the
+header row), and scrolling the content shrinks it into the kit's Activity View
+header (thumbnail, title and subtitle in one row, close at the trailing edge), as
+the exercise sheet uses. The shrink follows the finger. The title and subtitle sit
+in the header row from the start at their final size and height, and the thumbnail
+pushes them right as it lands (Frank's call, 2026-11-13, replacing a large title
+under the image that faded). The close button never moves, and a header stopped
+halfway settles on SwiftUI's smooth spring (Frank's call, 2026-11-07, from the
+Exercise Sheet Hero prototype, https://claude.ai/artifact/4WWmpj6GS3aqRKhwm7eKur). Values
 and geometry are pure and tested in `src/lib/sheet-hero.ts`. At the large detent
 the content gets a minimum height so the shrink can always finish; a fitted sheet
 never scrolls, so it stays large. Without a thumbnail a sheet has the kit's
@@ -892,7 +894,9 @@ lifts over the canvas while typing.
   754:64315) and tuned in the Journal Pill Lab (Frank's calls, 2026-11-12, https://claude.ai/artifact/LoiDBexQCNYGfaauP8uTQ2):
   70pt tall, 16pt from each side, 32pt off the bottom as the kit's bottom toolbar buttons (2517:14526; Frank's call,
   2026-11-13, replacing 27pt: the pill and Start Workout are toolbar controls and sit at `--toolbar-bottom`, the tab bar
-  keeps 21pt; a screen's last section ends as far above its bottom bar as the bar sits above the screen's bottom), 24pt corners, Liquid Glass (`PILL` in
+  keeps 21pt; a screen's last section ends as far above its bottom bar as the bar sits above the screen's bottom, and
+  with no bar at all, as in the Library's search, 32pt above the keyboard or the screen's bottom, `--screen-end` in
+  globals.css, confirmed on the phone 2026-11-13), 24pt corners, Liquid Glass (`PILL` in
   `src/lib/workout/journal-card.ts`, tested). The workout sets `PILL.bottom` as `--dock-bottom` on `<html>` while it is
   up, so the steppers, the Journal card and the drag follow; the app's other docks keep 21pt. Settings' Journal glass (a test setting, 2026-11-12,
   `workout_journal_glass`, `css` by default) picks how the pill and the card it grows into are drawn. CSS: the pill is
