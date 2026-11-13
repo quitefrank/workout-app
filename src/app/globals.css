@@ -1333,6 +1333,17 @@ html.keyboard .sheet-body {
     pointer-events: none;
     opacity: clamp(0, calc(1 - var(--jp) / 0.2), 1);
   }
+  /* CSS mode with a constant frost (Frank's call, 2026-11-12): the pill and the card's glass layer both blur 10pt, the
+     whole time, collapsed too, so the first frame is still the pill exactly (luminosity layer and all) and the blur
+     never changes value during the drag. The layer stays whole under the card while the fill comes in, so the page
+     never shows through unblurred, and switches off past a quarter, once the fill is opaque. */
+  .glass.glass-css,
+  .jcard-stage[data-glass-mode="css"] > .jcard-glass {
+    --glass-blur: 10px;
+  }
+  .jcard-stage[data-glass-mode="css"] > .jcard-glass {
+    opacity: clamp(0, calc((0.25 - var(--jp)) * 1000), 1);
+  }
   .jcard {
     display: flex;
     flex-direction: column;
