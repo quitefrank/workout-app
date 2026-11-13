@@ -6,7 +6,7 @@
  * decoding (`pending`) do.
  */
 import { parseBoxShadows, parseColor, parseLinearGradients, parseLinearTransform, type Gradient, type Linear, type Shadow } from "./css";
-import { softEdgeValues } from "@/components/soft-edge";
+import { softEdgeValues, solidDarken } from "@/components/soft-edge";
 import { svgImage } from "./svg";
 import { inputTextItems, textItems, type Metrics } from "./text";
 
@@ -92,7 +92,12 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     if (edge === "top" || edge === "bottom") {
       const rgb = cs.getPropertyValue("--bg-rgb").trim().split(/[\s,]+/).map(Number);
       const tint = rgb.length >= 3 && rgb.every(Number.isFinite) ? `${rgb[0]}, ${rgb[1]}, ${rgb[2]}` : "0, 0, 0";
-      if (visible && w > 0 && h > 0) items.push({ k: "soft", x, y, w, h, edge, ...softEdgeValues((el as HTMLElement).dataset.softStrong !== undefined), tint, ...base });
+      if (visible && w > 0 && h > 0) {
+        const d = (el as HTMLElement).dataset;
+        const v = softEdgeValues(d.softStrong !== undefined);
+        const at = d.softSolidAt != null ? Number(d.softSolidAt) : NaN;
+        items.push({ k: "soft", x, y, w, h, edge, blur: v.blur, darken: Number.isFinite(at) ? solidDarken(at) : v.darken, tint, ...base });
+      }
       return false;
     }
     const radii = cornerRadii([cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius], w, h);

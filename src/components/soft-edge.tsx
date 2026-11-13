@@ -29,6 +29,16 @@ export const SOFT_EDGE_STRONG = {
   darken: [[0, 0], [0.25, 0.35], [0.6, 0.7], [1, 0.9]] as ReadonlyArray<readonly [number, number]>,
 } as const;
 
+/**
+ * The darkening when it goes solid before the screen's edge (Frank's call, 2026-11-12: the active workout's bottom edge
+ * reaches 100% at the top of the stepper cards rather than at the screen's edge, where it never darkened the image
+ * enough). `at` is that point as a fraction of the edge from its far end; the ramp keeps the strong preset's shape.
+ */
+export function solidDarken(at: number): ReadonlyArray<readonly [number, number]> {
+  const f = Math.min(1, Math.max(0.05, at));
+  return [[0, 0], [f * 0.35, 0.4], [f * 0.7, 0.78], [f, 1], [1, 1]];
+}
+
 /** The values an edge uses: the kit's, or the strong ones */
 export function softEdgeValues(strong: boolean) {
   return strong ? { blur: SOFT_EDGE_STRONG.blur, darken: SOFT_EDGE_STRONG.darken } : { blur: SOFT_EDGE.blur, darken: SOFT_EDGE.darken };
@@ -65,7 +75,8 @@ function Layers({ edge, strong = false }: { edge: Edge; strong?: boolean }) {
       <div
         className="absolute inset-0"
         style={{
-          background: `linear-gradient(${dir}, ${v.darken.map(([at, a]) => `rgb(var(--bg-rgb) / ${a}) ${at * 100}%`).join(", ")})`,
+          // a zone edge with a solid point swaps in its own stops through --soft-darken (ZoneSoftEdge)
+          background: `var(--soft-darken, linear-gradient(${dir}, ${v.darken.map(([at, a]) => `rgb(var(--bg-rgb) / ${a}) ${at * 100}%`).join(", ")}))`,
         }}
       />
     </>
@@ -109,7 +120,20 @@ function offsetIn(el: HTMLElement, frame: HTMLElement) {
  * may come later in the DOM, since the edge must paint before it), or else the parent itself. It measures itself against
  * the nearest `[data-focus-screen]`, so it follows the zone (a two-line title, the steppers or the rest arc).
  */
-export function ZoneSoftEdge({ edge, margin, zone: selector, strong }: { edge: Edge; margin: number; zone?: string; strong?: boolean }) {
+export function ZoneSoftEdge({
+  edge,
+  margin,
+  zone: selector,
+  solid: solidSelector,
+  strong,
+}: {
+  edge: Edge;
+  margin: number;
+  zone?: string;
+  /** an element (a selector inside the edge's parent) where the darkening reaches 100% and holds to the screen's edge */
+  solid?: string;
+  strong?: boolean;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -128,6 +152,20 @@ export function ZoneSoftEdge({ edge, margin, zone: selector, strong }: { edge: E
       el.style.width = `${frame.clientWidth}px`;
       el.style.top = `${top - o.y}px`;
       el.style.height = `${Math.max(0, bottom - top)}px`;
+      // the darkening's solid point, as a fraction of the edge from its far end; read by the painter too
+      const solid = solidSelector ? parent.querySelector<HTMLElement>(solidSelector) : null;
+      const height = bottom - top;
+      if (solid && solid.offsetHeight > 0 && height > 0) {
+        const s = offsetIn(solid, frame);
+        const at = edge === "top" ? (bottom - (s.y + solid.offsetHeight)) / height : (s.y - top) / height;
+        const stops = solidDarken(at);
+        const dir = edge === "top" ? "to top" : "to bottom";
+        el.dataset.softSolidAt = String(Math.round(at * 1000) / 1000);
+        el.style.setProperty("--soft-darken", `linear-gradient(${dir}, ${stops.map(([p, a]) => `rgb(var(--bg-rgb) / ${a}) ${p * 100}%`).join(", ")})`);
+      } else {
+        delete el.dataset.softSolidAt;
+        el.style.removeProperty("--soft-darken");
+      }
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -136,7 +174,7 @@ export function ZoneSoftEdge({ edge, margin, zone: selector, strong }: { edge: E
     // the zone moves without resizing when the space around it changes (the pill's distance off the bottom)
     ro.observe(parent);
     return () => ro.disconnect();
-  }, [edge, margin, selector]);
+  }, [edge, margin, selector, solidSelector]);
   return (
     <div ref={ref} aria-hidden data-soft-edge={edge} data-soft-strong={strong ? "" : undefined} className="soft-edge pointer-events-none absolute">
       <Layers edge={edge} strong={strong} />

@@ -584,7 +584,7 @@ export function ActiveWorkout({
                   under the header's text, and from the bottom to 16pt above the controls. After the illustration and
                   before everything that stays sharp; they do not slide with the exercise (globals.css). */}
               <ZoneSoftEdge edge="top" margin={32} zone="[data-soft-zone='top']" strong />
-              <ZoneSoftEdge edge="bottom" margin={32} zone="[data-soft-zone='bottom']" strong />
+              <ZoneSoftEdge edge="bottom" margin={32} zone="[data-soft-zone='bottom']" solid="[data-soft-solid]" strong />
 
               {/* The same in work and rest. Its minimum height is its height with a two-line title, so a shorter title
                   leaves room under Up next and the illustration stays put. */}
@@ -637,6 +637,8 @@ export function ActiveWorkout({
                           {row.last ? `Last time · ${summarize(measure, row.last, unit)}` : "No history yet"}
                         </p>
                         <div
+                          // the bottom soft edge's darkening is solid from here down (ZoneSoftEdge's `solid`)
+                          data-soft-solid
                           className={cn("grid justify-center", zoneColumns > 2 ? "gap-2" : "gap-3")}
                           style={{
                             gridTemplateColumns:
