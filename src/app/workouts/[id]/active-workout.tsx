@@ -26,14 +26,11 @@ import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
 import {
-  PILL_BOTTOMS,
   setGlassSteppers,
   setJournalGlass,
-  setPillBottom,
   setWorkoutVersion,
   VERSIONS,
   type JournalGlass,
-  type PillBottom,
   type WorkoutVersion,
 } from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
@@ -108,34 +105,32 @@ export function ActiveWorkout({
   settings,
   version: initialVersion,
   glassSteppers: initialGlass,
-  pillBottom: initialPillBottom,
   journalGlass: initialJournalGlass,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
   version: WorkoutVersion;
   glassSteppers: boolean;
-  pillBottom: PillBottom;
   journalGlass: JournalGlass;
 }) {
   // Version 1 is the pill, Version 2 the toolbar under the steppers (src/lib/workout-layout.ts), switched in More
   const [version, setVersion] = useState(initialVersion);
   // Glass stepper cards, a Settings switch saved on this device (src/lib/workout-layout.ts)
   const [glassSteppers, setGlass] = useState(initialGlass);
-  // The pill's distance off the bottom, a Settings choice saved on this device (21, 27 or 32pt). It is the dock's
-  // --dock-bottom while this screen is up, so the pill, the steppers above it, the Journal card and the drag all follow.
-  const [pillBottom, setBottom] = useState(initialPillBottom);
   // How the Journal pill and its card's glass are drawn, a test setting saved on this device (css, match or shader;
   // src/lib/workout-layout.ts, journal-card.tsx)
   const [journalGlass, setJGlass] = useState(initialJournalGlass);
   const pillRef = useRef<HTMLDivElement>(null);
   const toolbar = version === 2;
+  // The pill sits PILL.bottom (27pt) off the screen's bottom (Frank's call, 2026-11-12, after trying 21, 27 and 32 on the
+  // phone). It is the dock's --dock-bottom while this screen is up, so the steppers above it, the Journal card and the
+  // drag all follow; the app's other docks keep 21pt.
   useLayoutEffect(() => {
-    if (toolbar || pillBottom === 21) return;
+    if (toolbar) return;
     const root = document.documentElement;
-    root.style.setProperty("--dock-bottom", `${pillBottom}px`);
+    root.style.setProperty("--dock-bottom", `${PILL.bottom}px`);
     return () => void root.style.removeProperty("--dock-bottom");
-  }, [toolbar, pillBottom]);
+  }, [toolbar]);
   const [journalSheet, setJournalSheet] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const router = useRouter();
@@ -928,20 +923,6 @@ export function ActiveWorkout({
               }}
             />
           </Group>
-          {!toolbar && (
-            <Group title="Pill" footer="How far the pill sits off the bottom of the screen. Saved on this device only.">
-              <Segmented
-                label="Pill to bottom"
-                value={String(pillBottom)}
-                options={PILL_BOTTOMS.map((pt) => [String(pt), `${pt} pt`] as [string, string])}
-                onChange={(v) => {
-                  const pt = Number(v) as PillBottom;
-                  setBottom(pt);
-                  setPillBottom(pt);
-                }}
-              />
-            </Group>
-          )}
           {!toolbar && (
             <Group
               title="Journal glass"

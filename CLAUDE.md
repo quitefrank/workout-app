@@ -182,7 +182,7 @@ Eleven pure modules with full unit-test coverage:
   header dropped, option B for week 10, "(OR ...)" names split by
   `NAME_CHOICES`, a "~" RPE kept as the RPE with an "Approximate RPE" note.
 
-Run `bun run test` to exercise them. 581 tests across 54 files.
+Run `bun run test` to exercise them. 580 tests across 54 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -865,10 +865,10 @@ lifts over the canvas while typing.
   in 10pt from the left as it fades (`.upnext-in`); it is hidden, not removed, so nothing moves.
 - The pill is in the dock, sized after the iOS 27 kit's collapsed notification (Figma `wH8YZbekJXNew109clIJz1`
   754:64315) and tuned in the Journal Pill Lab (Frank's calls, 2026-11-12, https://claude.ai/artifact/LoiDBexQCNYGfaauP8uTQ2):
-  70pt tall, 16pt from each side, 21pt off the bottom as the kit's tab bar, 24pt corners, Liquid Glass (`PILL` in
-  `src/lib/workout/journal-card.ts`, tested). Settings' Pill to bottom picks 21, 27 or 32pt, saved per device in the
-  `workout_pill_bottom` cookie (`pillBottomFrom` in `src/lib/workout-layout.ts`); the workout sets it as `--dock-bottom`
-  on `<html>` while it is up, so the steppers, the Journal card and the drag follow. Settings' Journal glass (a test setting, 2026-11-12,
+  70pt tall, 16pt from each side, 27pt off the bottom (Frank's call, 2026-11-12, after trying the kit's tab bar 21pt,
+  27pt and the kit's bottom toolbar 32pt on the phone), 24pt corners, Liquid Glass (`PILL` in
+  `src/lib/workout/journal-card.ts`, tested). The workout sets `PILL.bottom` as `--dock-bottom` on `<html>` while it is
+  up, so the steppers, the Journal card and the drag follow; the app's other docks keep 21pt. Settings' Journal glass (a test setting, 2026-11-12,
   `workout_journal_glass`, `css` by default) picks how the pill and the card it grows into are drawn. CSS: the pill is
   CSS glass (`glass-css`, which the stage leaves to CSS but keeps in its unit for the light/dark rule) and hides while the
   card is up; the card's first layer (`.jcard-glass`) is the same glass with the pill's side copied onto it, crossfading
@@ -934,9 +934,12 @@ relative`. Illustrations are 1024px WebP (`images:import`) and kept out of the P
 
 Apple's iOS 27 "Scroll Edge Effect - Soft" (Frank's call, 2026-11-12; Figma `RrXV3TJi8viPxN3lELlvfK` 2681:67704: a
 blur from 0 to 10 toward the edge under the screen's colour from 0 to 81%; the kit draws only dark, so light uses the
-screen's white) is `src/components/soft-edge.tsx`. The CSS path stacks masked `backdrop-filter` bands. On the WebGPU path
-the page painter blurs what is already painted in the edge's box (`drawSoftEdge` in `src/glass/paint/paint.ts`, a
-downscale blur where canvas `filter` is missing), so an edge must come after what it blurs in the DOM and before what
+screen's white) is `src/components/soft-edge.tsx`, with a darkening gradient over the kit's tint (`SOFT_EDGE.darken`,
+0 to 70% of the screen's colour, reaching further from the edge; Frank's call after the phone, matched by eye to Claude's
+iOS side menu, whose last row dissolves almost fully). The CSS path stacks masked `backdrop-filter` bands. On the WebGPU path
+the page painter blurs what is already painted in the edge's box (`drawSoftEdge` in `src/glass/paint/paint.ts`; iPhone
+Safari has no canvas `filter`, so `mipBlur` halves the copy step by step and doubles it back, since one large downscale
+drew blocks), so an edge must come after what it blurs in the DOM and before what
 stays sharp. The active workout's focus screen therefore uses grid rows, never `order` (which reorders CSS painting):
 Art, the two `ZoneSoftEdge`s, header, controls, then the timer row and progress bar. Its edges run edge to edge, from the
 screen's top to 16pt under Up next and from its bottom to 16pt above the controls; they replaced the 65% fades. Start

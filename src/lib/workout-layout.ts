@@ -43,25 +43,6 @@ export function setGlassSteppers(on: boolean) {
 }
 
 /**
- * How far the pill sits off the screen's bottom (Frank's call, 2026-11-12, to compare on the phone): 21pt as the iOS 27
- * kit's tab bar, 27pt, or 32pt as the kit's bottom toolbar buttons. A Settings choice in the pill version, saved per
- * device; 21 unless set. The active workout applies it as `--dock-bottom` while it is on screen.
- */
-export const PILL_BOTTOMS = [21, 27, 32] as const;
-export type PillBottom = (typeof PILL_BOTTOMS)[number];
-
-export const PILL_BOTTOM_COOKIE = "workout_pill_bottom";
-
-export function pillBottomFrom(get: (name: string) => string | undefined): PillBottom {
-  const n = Number(get(PILL_BOTTOM_COOKIE));
-  return (PILL_BOTTOMS as readonly number[]).includes(n) ? (n as PillBottom) : 21;
-}
-
-export function setPillBottom(pt: PillBottom) {
-  document.cookie = `${PILL_BOTTOM_COOKIE}=${pt}; path=/; max-age=31536000; samesite=lax`;
-}
-
-/**
  * How the Journal pill and the card it grows into are drawn (2026-11-12, a test setting for comparing on the phone). A
  * Settings choice in the pill version, saved per device; `css` unless set.
  *

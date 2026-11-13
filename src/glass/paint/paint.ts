@@ -183,9 +183,10 @@ function newScratch(): Scratch {
   return { canvas, ctx };
 }
 
-/** A scratch canvas at least w x h, cleared, transform reset. Grown, never shrunk, so a steady screen allocates once. */
+/** A scratch canvas at least w x h, cleared, transform reset. Grown, never shrunk, so a steady screen allocates once.
+ *  0 holds the copy, 1 a band, 2 and 3 take turns in `mipBlur`. */
 function sized(i: number, w: number, h: number): Scratch {
-  scratch ??= [newScratch(), newScratch(), newScratch()];
+  scratch ??= [newScratch(), newScratch(), newScratch(), newScratch()];
   const s = scratch[i];
   if (s.canvas.width < w || s.canvas.height < h) {
     s.canvas.width = Math.max(s.canvas.width, w);
@@ -211,6 +212,42 @@ function filterSupported() {
     }
   }
   return canFilter;
+}
+
+/**
+ * A blur of about `sigma` px without canvas `filter`: halve `src` (w x h) until a step is near sigma, then double it back
+ * to full size into `dst` at (dx, dy). Scratch canvases 2 and 3 take turns, so no canvas is drawn onto itself.
+ */
+function mipBlur(src: CanvasImageSource, w: number, h: number, sigma: number, dst: Scratch["ctx"], dx: number, dy: number) {
+  const levels = Math.max(1, Math.round(Math.log2(Math.max(1, sigma))));
+  const sizes: [number, number][] = [[w, h]];
+  let cur: CanvasImageSource = src;
+  let slot = 2;
+  for (let l = 0; l < levels; l++) {
+    const [pw, ph] = sizes[sizes.length - 1];
+    const nw = Math.max(1, Math.ceil(pw / 2)), nh = Math.max(1, Math.ceil(ph / 2));
+    const next = sized(slot, nw, nh);
+    next.ctx.imageSmoothingEnabled = true;
+    next.ctx.imageSmoothingQuality = "high";
+    next.ctx.drawImage(cur, 0, 0, pw, ph, 0, 0, nw, nh);
+    sizes.push([nw, nh]);
+    cur = next.canvas;
+    slot = slot === 2 ? 3 : 2;
+  }
+  // back up, one doubling at a time, the last straight into the destination
+  for (let l = sizes.length - 1; l > 1; l--) {
+    const [cw, ch] = sizes[l], [uw, uh] = sizes[l - 1];
+    const next = sized(slot, uw, uh);
+    next.ctx.imageSmoothingEnabled = true;
+    next.ctx.imageSmoothingQuality = "high";
+    next.ctx.drawImage(cur, 0, 0, cw, ch, 0, 0, uw, uh);
+    cur = next.canvas;
+    slot = slot === 2 ? 3 : 2;
+  }
+  const [lw, lh] = sizes[1];
+  dst.imageSmoothingEnabled = true;
+  dst.imageSmoothingQuality = "high";
+  dst.drawImage(cur, 0, 0, lw, lh, dx, dy, w, h);
 }
 
 /**
@@ -248,16 +285,9 @@ function drawSoftEdge(c: CanvasRenderingContext2D, it: Extract<Item, { k: "soft"
         b.drawImage(src.canvas, px0 - x0, py0 - y0);
         b.filter = "none";
       } else {
-        // a box filter about twice sigma wide, from a bilinear downscale and upscale
-        const k = Math.max(1, 2 * s);
-        const sw = Math.max(1, Math.round((px1 - px0) / k)), sh = Math.max(1, Math.round((py1 - py0) / k));
-        const small = sized(2, sw, sh).ctx;
-        small.imageSmoothingEnabled = true;
-        small.imageSmoothingQuality = "high";
-        small.drawImage(src.canvas, 0, 0, px1 - px0, py1 - py0, 0, 0, sw, sh);
-        b.imageSmoothingEnabled = true;
-        b.imageSmoothingQuality = "high";
-        b.drawImage(scratch![2].canvas, 0, 0, sw, sh, px0 - x0, py0 - y0, px1 - px0, py1 - py0);
+        // iPhone Safari has no canvas filter: halve the copy step by step and double it back, each step a 2x2 bilinear
+        // average, which approaches a Gaussian. One large downscale and upscale drew visible blocks (2026-11-12).
+        mipBlur(src.canvas, px1 - px0, py1 - py0, s, b, px0 - x0, py0 - y0);
       }
       // solid from i / 4 of the way toward the edge, fading in over the eighth before, as the CSS masks
       const start = i / SOFT_BANDS.length;
@@ -283,5 +313,10 @@ function drawSoftEdge(c: CanvasRenderingContext2D, it: Extract<Item, { k: "soft"
   g.addColorStop(0, `rgba(${it.tint}, 0)`);
   g.addColorStop(1, `rgba(${it.tint}, ${SOFT_EDGE.tint})`);
   c.fillStyle = g;
+  c.fillRect(x, y, it.w, it.h);
+  // the darkening on top, reaching further from the edge (as the CSS layer in soft-edge.tsx)
+  const d = top ? c.createLinearGradient(0, y + it.h, 0, y) : c.createLinearGradient(0, y, 0, y + it.h);
+  for (const [at, a] of SOFT_EDGE.darken) d.addColorStop(at, `rgba(${it.tint}, ${a})`);
+  c.fillStyle = d;
   c.fillRect(x, y, it.w, it.h);
 }

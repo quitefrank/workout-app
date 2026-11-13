@@ -13,7 +13,14 @@ import { cn } from "@/lib/cn";
  * On the WebGPU path the page painter finds `[data-soft-edge]` and blurs what it has painted so far in that box, so the
  * edge must come after what it blurs in the DOM and before what stays sharp over it (src/glass/paint/).
  */
-export const SOFT_EDGE = { blur: 10, tint: 0.81 } as const;
+export const SOFT_EDGE = {
+  blur: 10,
+  tint: 0.81,
+  /** A darkening gradient over the kit's tint (Frank's call, 2026-11-12, after seeing it on the phone: the image sits at the
+   *  edge's far end, where the kit's tint barely reaches; Claude's iOS side menu dissolves its last row almost fully).
+   *  Stops from the far end (0) to the edge (1), as alpha of the screen's colour: black in dark, white in light. */
+  darken: [[0, 0], [0.35, 0.3], [0.7, 0.55], [1, 0.7]] as ReadonlyArray<readonly [number, number]>,
+} as const;
 
 /** The blur bands, weakest first: each covers from its start to the edge, so the strongest is nearest the edge */
 const BANDS = [0.125, 0.25, 0.5, 1] as const;
@@ -40,6 +47,12 @@ function Layers({ edge }: { edge: Edge }) {
       <div
         className="absolute inset-0"
         style={{ background: `linear-gradient(${dir}, rgb(var(--bg-rgb) / 0), rgb(var(--bg-rgb) / ${SOFT_EDGE.tint}))` }}
+      />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `linear-gradient(${dir}, ${SOFT_EDGE.darken.map(([at, a]) => `rgb(var(--bg-rgb) / ${a}) ${at * 100}%`).join(", ")})`,
+        }}
       />
     </>
   );

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { glassSteppersFrom, journalGlassFrom, pillBottomFrom, workoutVersionFrom } from "../workout-layout";
+import { glassSteppersFrom, journalGlassFrom, workoutVersionFrom } from "../workout-layout";
 
 describe("journalGlassFrom", () => {
   it("is css, match or shader, and css for anything else", () => {
@@ -29,12 +29,3 @@ describe("workoutVersionFrom", () => {
   });
 });
 
-describe("pillBottomFrom", () => {
-  it("is 21, 27 or 32, and 21 for anything else", () => {
-    expect(pillBottomFrom(() => undefined)).toBe(21);
-    expect(pillBottomFrom((n) => (n === "workout_pill_bottom" ? "27" : undefined))).toBe(27);
-    expect(pillBottomFrom((n) => (n === "workout_pill_bottom" ? "32" : undefined))).toBe(32);
-    expect(pillBottomFrom((n) => (n === "workout_pill_bottom" ? "40" : undefined))).toBe(21);
-    expect(pillBottomFrom((n) => (n === "workout_pill_bottom" ? "x" : undefined))).toBe(21);
-  });
-});
