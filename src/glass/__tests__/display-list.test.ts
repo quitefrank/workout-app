@@ -63,6 +63,15 @@ describe("buildDisplayList (jsdom, stubbed geometry)", () => {
     expect(items[1]).toMatchObject({ fade: off });
   });
 
+  it("never clips to the root, whose overflow only stops the window scrolling", () => {
+    root.style.overflow = "hidden";
+    place(root, rect(0, 0, 400, 824));
+    root.innerHTML = `<div id="card" style="background-color: rgb(3, 3, 3)"></div>`;
+    place(root.querySelector("#card")!, rect(0, 800, 400, 60));
+    const [card] = buildDisplayList(root, () => {}).items;
+    expect(card.clip).toBeNull();
+  });
+
   it("chains overflow clips inside the padding box, with radii less the border", () => {
     root.innerHTML = `<div id="outer" style="overflow-x: hidden; overflow-y: hidden; border-top-left-radius: 12px; border-top-right-radius: 12px; border-bottom-right-radius: 12px; border-bottom-left-radius: 12px"><div id="rail" style="overflow-x: auto; border: 2px solid rgb(0, 0, 0); border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-bottom-left-radius: 10px"><div id="tile" style="background-color: rgb(9, 9, 9)"></div></div></div>`;
     place(root.querySelector("#outer")!, rect(0, 0, 200, 100));

@@ -151,7 +151,10 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     if (el instanceof SVGElement || el instanceof HTMLImageElement) return cs.position === "sticky";
 
     let childClip = clip;
-    if (cs.overflowX !== "visible" || cs.overflowY !== "visible") {
+    // The root (body) never clips: its overflow hidden only stops the window scrolling, and the absolute scroller's
+    // containing block is the screen, not body, so the browser does not clip it there. A home screen app's window
+    // flips to 50pt short of the screen, and clipping to body then cut the painted page 50pt above the screen's bottom.
+    if (el !== root && (cs.overflowX !== "visible" || cs.overflowY !== "visible")) {
       // overflow clips to the padding box, whose corners are the outer radii less the borders
       const inner = radii.map((v, i) => Math.max(0, v - Math.max(bw[(i + 3) % 4], bw[i])));
       const scrolls = !/^(visible|clip)$/.test(cs.overflowX) || !/^(visible|clip)$/.test(cs.overflowY);
