@@ -49,9 +49,17 @@ const BANDS = [0.125, 0.25, 0.5, 1] as const;
 
 type Edge = "top" | "bottom";
 
-function Layers({ edge, strong = false }: { edge: Edge; strong?: boolean }) {
+function Layers({ edge, strong = false, tuned = false }: { edge: Edge; strong?: boolean; tuned?: boolean }) {
   const dir = edge === "top" ? "to top" : "to bottom";
   const v = softEdgeValues(strong);
+  // `tuned` reads the blur, tint and darkening from the --se-* properties Settings sets (src/lib/soft-edge-tune.ts),
+  // falling back to these values; the darkening keeps the strong preset's stop positions
+  const blur = (f: number) => (tuned ? `blur(calc(var(--se-blur, ${v.blur}px) * ${f}))` : `blur(${v.blur * f}px)`);
+  const tint = tuned ? `var(--se-tint, ${SOFT_EDGE.tint})` : `${SOFT_EDGE.tint}`;
+  const stops = v.darken.map(([at, a], i) => {
+    const alpha = tuned && i > 0 ? `var(--se-d${i}, ${a})` : `${a}`;
+    return `rgb(var(--bg-rgb) / ${alpha}) ${at * 100}%`;
+  });
   return (
     <>
       {BANDS.map((f, i) => {
@@ -64,19 +72,19 @@ function Layers({ edge, strong = false }: { edge: Edge; strong?: boolean }) {
             key={f}
             // the blur is a custom property applied by `.soft-edge-blur` in globals.css, so html.gpu can turn it off
             className="soft-edge-blur absolute inset-0"
-            style={{ "--soft-blur": `blur(${v.blur * f}px)`, maskImage: mask, WebkitMaskImage: mask } as CSSProperties}
+            style={{ "--soft-blur": blur(f), maskImage: mask, WebkitMaskImage: mask } as CSSProperties}
           />
         );
       })}
       <div
         className="absolute inset-0"
-        style={{ background: `linear-gradient(${dir}, rgb(var(--bg-rgb) / 0), rgb(var(--bg-rgb) / ${SOFT_EDGE.tint}))` }}
+        style={{ background: `linear-gradient(${dir}, rgb(var(--bg-rgb) / 0), rgb(var(--bg-rgb) / ${tint}))` }}
       />
       <div
         className="absolute inset-0"
         style={{
           // a zone edge with a solid point swaps in its own stops through --soft-darken (ZoneSoftEdge)
-          background: `var(--soft-darken, linear-gradient(${dir}, ${v.darken.map(([at, a]) => `rgb(var(--bg-rgb) / ${a}) ${at * 100}%`).join(", ")}))`,
+          background: `var(--soft-darken, linear-gradient(${dir}, ${stops.join(", ")}))`,
         }}
       />
     </>
@@ -88,7 +96,22 @@ function Layers({ edge, strong = false }: { edge: Edge; strong?: boolean }) {
  * `[data-unpainted]` layer, as the Start Workout button's is), so it keeps its CSS blur under html.gpu; an edge in the
  * painted page drops it there, where the painter draws it and the CSS layers sit unseen under the canvas.
  */
-export function SoftEdge({ edge, live, strong, className, style }: { edge: Edge; live?: boolean; strong?: boolean; className?: string; style?: CSSProperties }) {
+export function SoftEdge({
+  edge,
+  live,
+  strong,
+  tuned,
+  className,
+  style,
+}: {
+  edge: Edge;
+  live?: boolean;
+  strong?: boolean;
+  /** reads the --se-* properties set from Settings (a live edge only: the painter draws its own values) */
+  tuned?: boolean;
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
     <div
       aria-hidden
@@ -97,7 +120,7 @@ export function SoftEdge({ edge, live, strong, className, style }: { edge: Edge;
       className={cn("soft-edge pointer-events-none absolute", live && "soft-edge-live", className)}
       style={style}
     >
-      <Layers edge={edge} strong={strong} />
+      <Layers edge={edge} strong={strong} tuned={tuned} />
     </div>
   );
 }

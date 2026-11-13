@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { toast } from "sonner";
 import { startWorkout } from "@/app/actions";
 import { Button } from "@/components/button";
 import { SoftEdge } from "@/components/soft-edge";
 import { navState } from "@/glass/nav-state";
 import { cn } from "@/lib/cn";
+import { parseTune, readTuneRaw, subscribeTune, tuneVars } from "@/lib/soft-edge-tune";
 
 /**
  * Start a workout from this template: the app's filled blue button, pinned at the bottom 20pt from each side (Frank's
@@ -19,6 +20,9 @@ export function StartTemplate({ templateId }: { templateId: string }) {
   const [pushIn] = useState(() =>
     navState.phase === "idle" ? null : navState.direction === "back" ? "push-in-back" : "push-in",
   );
+  // the edge's values as tuned on this device in Settings (the defaults until a slider moves)
+  const raw = useSyncExternalStore(subscribeTune, readTuneRaw, () => null);
+  const tune = useMemo(() => tuneVars(parseTune(raw)), [raw]);
 
   const go = () =>
     start(async () => {
@@ -52,7 +56,10 @@ export function StartTemplate({ templateId }: { templateId: string }) {
           edge="bottom"
           live
           strong
-          className="-top-4 bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
+          // its reach, blur, tint and darkening come from Settings' Start Workout edge sliders while they are tuned
+          tuned
+          className="bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
+          style={{ ...tune, top: "calc(-1 * var(--se-reach, 16px))" }}
         />
         <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto relative mx-5">
           {pending ? "Starting…" : "Start Workout"}
