@@ -52,9 +52,9 @@
   /* Home's Last 7 Days body map: the untrained body and its outline; heat mixes --red into --heat-body */
   --heat-body: #d8d8dd;
   --heat-line: #b9b9c0;
-  /* Behind an exercise illustration: this gray in light; in dark it matches the muscle group cards, --muscle-tile
-     (Frank's call, 2026-11-13, replacing 2026-11-05's one gray in both appearances) */
-  --exercise-tile: #dedee1;
+  /* Behind an exercise illustration: the card level on the screen, inside-a-card in a card (rule below; Frank's
+     call, 2026-11-13, replacing 2026-11-05's one #dedee1 gray in both appearances) */
+  --exercise-tile: #f2f2f7;
   /* Glass Steppers' painted glass (.glass-card), measured off the shader's card at 2x on 2026-11-10: light is a
      near-white body with a faint top shade and the preset's ring and cast */
   --gc-body: #fdfdfd;
@@ -262,16 +262,12 @@
   --exercise-tile: #2c2c2e;
 }
 
-/* An illustration tile in dark sits one background level above what holds it, as the kit's Backgrounds page steps
-   (Screen, Card, Inside a card): on the screen it is a card (the workout cards, like the muscle group cards), and in
-   a card (list rows, the Journal's exercise cards) it is the inside-a-card colour, stepping up again on a sheet
-   (Frank's call, 2026-11-13). Light keeps its gray. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) :is(.bg-card, .grouped) {
-    --exercise-tile: var(--card-2);
-  }
-}
-:root[data-theme="dark"] :is(.bg-card, .grouped) {
+/* An illustration tile sits one background level above what holds it, in both appearances, as the HIG's system
+   backgrounds step (primary for the view, secondary within it, tertiary within secondary; the kit's Screen, Card and
+   Inside a card): on the screen it is a card (the workout cards: #f2f2f7 light, #1c1c1e dark), and in a card (list
+   rows, the Journal's exercise cards) it is the inside-a-card colour (#ffffff light, #2c2c2e dark), each stepping up
+   on a dark sheet (Frank's calls, 2026-11-13). */
+:is(.bg-card, .grouped) {
   --exercise-tile: var(--card-2);
 }
 
