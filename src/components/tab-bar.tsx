@@ -11,6 +11,7 @@ import { LENS, lensGoal, lensSettled, lensShape, nearestIndex, restingLens, step
 import { lensState } from "@/glass/lens-state";
 import type { TemplateSummary } from "@/lib/data/queries";
 import type { NextTemplate } from "@/lib/programs/up-next";
+import type { RecommendedWorkout } from "@/lib/workout/start-sheet";
 import { ChevronRight } from "./icons";
 import { SfSymbol } from "./sf-symbol";
 import type { SfSymbolName } from "./sf-symbol-data";
@@ -46,9 +47,19 @@ const CAPSULE_PAD = 2, CAPSULE_H = 54;
 /** A press becomes a drag past this many px */
 const DRAG_SLOP = 6;
 
-export type InProgress = { id: string; name: string; startedAt: string | null } | null;
+export type InProgress = { id: string; name: string; startedAt: string | null; category?: string | null; slugs?: string[] } | null;
 
-export function TabBar({ inProgress, templates, next }: { inProgress: InProgress; templates: TemplateSummary[]; next: NextTemplate | null }) {
+export function TabBar({
+  inProgress,
+  templates,
+  next,
+  recommended,
+}: {
+  inProgress: InProgress;
+  templates: TemplateSummary[];
+  next: NextTemplate | null;
+  recommended: RecommendedWorkout | null;
+}) {
   const pathname = usePathname() ?? "/";
   if (ACTIVE_WORKOUT.test(pathname)) return null;
   return (
@@ -66,7 +77,7 @@ export function TabBar({ inProgress, templates, next }: { inProgress: InProgress
         {inProgress && <ResumePill workout={inProgress} />}
         <div className="mx-auto flex w-full max-w-[420px] items-center gap-2">
           <Tabs pathname={pathname} />
-          <StartWorkout templates={templates} next={next} />
+          <StartWorkout templates={templates} next={next} recommended={recommended} inProgress={inProgress} />
         </div>
       </div>
     </nav>

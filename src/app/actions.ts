@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect, RedirectType } from "next/navigation";
-import { getActiveProgramId, getProgram } from "@/lib/data/queries";
+import { getActiveProgramId, getInProgress, getProgram } from "@/lib/data/queries";
 import { programHasEnded } from "@/lib/programs/today";
 import { programTodayOf } from "@/lib/programs/up-next";
 import { db, timeZone, userId } from "@/lib/supabase/server";
 import { localDate } from "@/lib/workout/dates";
 import { swappedFrom } from "@/lib/workout/active";
+import { startDecision } from "@/lib/workout/start-sheet";
 import { midpoint } from "@/lib/workout/format";
 import { FIRST_FLOOR, FLOORS, type MachineLocation } from "@/lib/workout/machine-location";
 import { parseWeightCsv } from "../../scripts/parse-weight-csv";
@@ -85,7 +86,35 @@ async function lastFloors(exerciseIds: string[]): Promise<Map<string, MachineLoc
 // Starting and finishing
 // ------------------------------------------------------------
 
+/** Start a workout from a template and open it. Refused while another is in progress (see beginWorkout). */
 export async function startWorkout(templateId: string): Promise<void> {
+  const id = await guardedStart(templateId, null);
+  redirect(`/workouts/${id}`);
+}
+
+/**
+ * The dock sheet's start: creates the workout and returns its id, so the sheet stays up until the workout screen has
+ * arrived and can offer Undo. `replacing` is the in-progress workout the person chose to discard (Discard and Start);
+ * without it a start is refused while one is in progress (startDecision in src/lib/workout/start-sheet.ts).
+ */
+export async function beginWorkout(templateId: string, replacing?: string | null): Promise<{ id: string }> {
+  return { id: await guardedStart(templateId, replacing ?? null) };
+}
+
+async function guardedStart(templateId: string, replacing: string | null): Promise<string> {
+  const open = await getInProgress();
+  const decision = startDecision(open?.id ?? null, replacing);
+  if (decision === "refuse") throw new Error(`${open!.name} is still in progress. Resume or discard it first.`);
+  if (decision === "replace") {
+    const { error } = await db().from("workouts").delete().eq("id", open!.id).eq("user_id", userId()).is("completed_at", null);
+    fail(error);
+  }
+  const id = await createWorkout(templateId);
+  revalidatePath("/", "layout");
+  return id;
+}
+
+async function createWorkout(templateId: string): Promise<string> {
   const { data: rows, error: rowsError } = await db()
     .from("template_exercises")
     .select("*, exercises(id, has_floors)")
@@ -137,8 +166,7 @@ export async function startWorkout(templateId: string): Promise<void> {
       fail(insError);
     }
   }
-  revalidatePath("/", "layout");
-  redirect(`/workouts/${workout!.id}`);
+  return workout!.id;
 }
 
 /**

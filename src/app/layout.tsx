@@ -12,6 +12,7 @@ import { SetupNeeded } from "@/components/setup-needed";
 import { THEME_COOKIE, themeFrom } from "@/lib/appearance";
 import { getInProgress, listTemplates } from "@/lib/data/queries";
 import { getNextTemplate } from "@/lib/programs/up-next";
+import { getTopRecommendation } from "@/lib/data/recommended";
 import { missingConfig } from "@/lib/supabase/server";
 import "./globals.css";
 
@@ -82,9 +83,12 @@ export default async function RootLayout({
   let inProgress: Awaited<ReturnType<typeof getInProgress>> = null;
   let templates: Awaited<ReturnType<typeof listTemplates>> = [];
   let next: Awaited<ReturnType<typeof getNextTemplate>> = null;
+  let recommended: Awaited<ReturnType<typeof getTopRecommendation>> = null;
   if (missing.length === 0) {
     try {
       [inProgress, templates, next] = await Promise.all([getInProgress(), listTemplates(), getNextTemplate()]);
+      // the sheet's hero: Up Next when a program is followed, else Home's first Recommended
+      if (!next) recommended = await getTopRecommendation();
     } catch (e) {
       problem = e instanceof Error ? e.message : String(e);
     }
@@ -103,9 +107,18 @@ export default async function RootLayout({
       <body className="h-full">
         <AppScroller>{children}</AppScroller>
         <TabBar
-          inProgress={inProgress && { id: inProgress.id, name: inProgress.name, startedAt: inProgress.startedAt }}
+          inProgress={
+            inProgress && {
+              id: inProgress.id,
+              name: inProgress.name,
+              startedAt: inProgress.startedAt,
+              category: inProgress.category,
+              slugs: inProgress.slugs,
+            }
+          }
           templates={templates}
           next={next}
+          recommended={recommended}
         />
         <GlassContext />
         <GlassStage />

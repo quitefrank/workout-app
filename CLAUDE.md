@@ -600,9 +600,22 @@ Bar and Home Lab, https://claude.ai/artifact/CTuL1AAXJZ52gaByMyMRTk). Home (`src
 Recommended), then Last 7 Days (see "Home: Last 7 Days" below). Starting a workout is the dock's + button, on every tab but the
 active workout (`src/components/start-workout.tsx`): Apple's Glass Prominent (iOS 27
 kit, `prominentMaterial` in `src/glass/presets.ts`), 62pt and 8pt from the bar. It
-keeps its blue, outside the context rule (`data-glass-skip`). It opens the template
-sheet, the program's next workout first. The sheet lives in the root layout, so a
-pick closes it itself. The date header is
+keeps its blue, outside the context rule (`data-glass-skip`). It opens Choose a Workout, which starts a workout from
+the sheet (Frank's calls, 2026-11-13, option D "Split row" with the hero card, https://claude.ai/artifact/NhAD3QmuzrigseuXLTvxXR).
+A workout in progress comes first, under In Progress, with a Resume capsule. Then the hero card: the followed program's
+Up Next (main lift art, the name, "Next in the rotation · N exercises"), else Home's first Recommended with its reason
+(`topRecommendations` in `src/lib/workout/start-sheet.ts`, shared with Home; `getTopRecommendation` in the layout), else
+no card. Its Start Workout is the list's one filled button. Then the day templates by category. The rule: a list row
+whose job is an action carries a trailing button, never a chevron; the row body opens a preview. Each row ends in a gray
+Start capsule (`Button compact`, the kit's Medium Bordered button: 34pt, play symbol, touch area padded to 44pt) that
+starts it, and its body opens a preview step inside the sheet (title the workout, `onBack` to the list, the exercises
+from `/api/templates/[id]` worded as the workout page words them, a filled Start Workout at the end). Starting calls
+`beginWorkout` and pushes the new workout; the sheet stays up showing Starting… until the workout screen replaces the
+tab bar, and then a toast offers Undo for 5 seconds, which is `discardWorkout` (back to Home). One workout in progress
+at a time: `startWorkout` and `beginWorkout` refuse a second one on the server (`startDecision`, tested), and in the
+sheet a Start with one in progress closes the sheet and asks in its own sheet ("<name> is still in progress. Discard it
+to start <new>?", with Discard and Start, Resume and Cancel; Cancel reopens the list). Discard and Start deletes the
+open workout and starts the new one in one action. `/templates/[id]` stays the full preview from the Library. The date header is
 MyFitnessPal's (`src/app/week-calendar.tsx`): the title is the selected day
 and opens the floating month panel (`month-panel.tsx`, Liquid Glass's menu
 morph, measured; see `Templates/liquid-glass/liquid-glass-reference.md` in the

@@ -14,7 +14,8 @@ import {
   listRecommendTemplates,
   type WorkoutListItem,
 } from "@/lib/data/queries";
-import { addDays, heatOf, lastTrained, recommend, recommendReason } from "@/lib/workout/heat";
+import { heatOf } from "@/lib/workout/heat";
+import { topRecommendations } from "@/lib/workout/start-sheet";
 import { weeksLabel } from "@/lib/programs/label";
 import { programHasEnded } from "@/lib/programs/today";
 import { programTodayOf } from "@/lib/programs/up-next";
@@ -61,13 +62,8 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const heat = heatOf(heatWorkouts, today, settings.heat_window);
   const short = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
   const heatRange = settings.heat_window === "rolling" ? `${short(heat.from)} to ${short(today)}` : heat.from === today ? "Since today" : "Since Monday";
-  // Recommended leaves out what was done today or yesterday
-  const recent = new Set(
-    workouts.filter((w) => w.completedAt && w.templateId && (w.day === today || w.day === addDays(today, -1))).map((w) => w.templateId!),
-  );
-  const recommended = recommend(candidates, lastTrained(heatWorkouts, today), today, recent)
-    .slice(0, 3)
-    .map((r) => ({ id: r.template.id, name: r.template.name, category: r.template.category, slugs: r.template.slugs, reason: recommendReason(r.group, r.days) }));
+  // Recommended leaves out what was done today or yesterday; the dock's sheet shows the same first pick
+  const recommended = topRecommendations(candidates, heatWorkouts, workouts, today);
 
   return (
     <>
