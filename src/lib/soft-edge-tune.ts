@@ -2,7 +2,7 @@ import type { CSSProperties } from "react";
 
 /**
  * Start Workout's soft edge (Frank's calls, 2026-11-13): the blur and one gradient both run from the screen's bottom up
- * a reach above the button (40pt), strongest at the bottom; the gradient is the screen's colour from 25% at the bottom to 0% at
+ * a reach above the button (32pt), strongest at the bottom; the gradient is the screen's colour from 50% at the bottom to 0% at
  * the top, with no kit tint or darkening layer under it. The reach and both strengths stay tunable by eye from Settings, saved per
  * device in localStorage and read by the edge as custom properties. Pure apart from the storage.
  *
@@ -19,8 +19,8 @@ export const TUNE_DIALS: ReadonlyArray<{ key: TuneKey; label: string; min: numbe
   { key: "grad", label: "Gradient at the bottom", min: 0, max: 100, step: 1, unit: "%" },
 ];
 
-/** Frank's values, 2026-11-13: 40pt above the button, 10pt blur, 25% gradient */
-export const TUNE_DEFAULTS: Tune = { reach: 40, blur: 10, grad: 25 };
+/** Frank's values, tuned on the phone 2026-11-13: 32pt above the button, 10pt blur, 50% gradient */
+export const TUNE_DEFAULTS: Tune = { reach: 32, blur: 10, grad: 50 };
 
 // renamed with each new set of defaults, so a value saved under the old ones never overrides them
 export const TUNE_KEY = "start_edge_tune_2";

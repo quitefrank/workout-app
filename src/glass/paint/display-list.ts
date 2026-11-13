@@ -99,7 +99,7 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
         if (d.softTuned !== undefined) {
           // the edge tuned from Settings (src/lib/soft-edge-tune.ts): its blur and one gradient, no kit tint
           const blur = parseFloat(cs.getPropertyValue("--se-blur")), grad = parseFloat(cs.getPropertyValue("--se-grad"));
-          const a = Number.isFinite(grad) ? grad : 0.25;
+          const a = Number.isFinite(grad) ? grad : 0.5;
           items.push({ k: "soft", x, y, w, h, edge, blur: Number.isFinite(blur) ? blur : 10, darken: [[0, 0], [1, a]], tint, tintAlpha: 0, ...base });
           return false;
         }

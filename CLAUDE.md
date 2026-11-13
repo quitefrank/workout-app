@@ -978,7 +978,7 @@ call, 2026-11-12, so the image fades further); they replaced the 65% fades.
 Start Workout's edge and the tab bar's share one tuned edge (Frank's calls, 2026-11-13): a blur and one gradient of the
 screen's colour, both from the screen's bottom up to a reach above the button or bar, strongest at the bottom, with no
 kit tint or darkening (`tuned` on `SoftEdge`, `TunedLayers`; the painter reads `data-soft-tuned` and the `--se-*`
-properties). Reach 40pt, blur 10pt, gradient 25% at the bottom, tunable per device in Settings' Bottom edge
+properties). Reach 32pt, blur 10pt, gradient 50% at the bottom (tuned on the phone), tunable per device in Settings' Bottom edge
 (`src/lib/soft-edge-tune.ts`, localStorage; its key is renamed when the defaults change). Start Workout's is `live`
 (outside the painted page), keeping its CSS blur over the canvas. The tab bar's (`DockEdge` in `tab-bar.tsx`) is on every
 page with the bar, which is every page but the active workout and Start Workout, unless Under the tab bar is switched

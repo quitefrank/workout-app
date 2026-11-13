@@ -87,7 +87,7 @@ function DockEdge() {
       edge="bottom"
       tuned
       className="bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
-      style={{ ...vars, top: "calc(-1 * var(--se-reach, 40px))" }}
+      style={{ ...vars, top: "calc(-1 * var(--se-reach, 32px))" }}
     />
   );
 }
