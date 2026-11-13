@@ -2,6 +2,7 @@ import { MuscleArt } from "@/components/muscle-art/muscle-art";
 import { LargeTitle, Screen, SectionHeader } from "@/components/page";
 import { WorkoutTiles } from "@/components/workout-tiles";
 import { getActiveProgramId, listMuscleGroups, listPrograms, listTemplates } from "@/lib/data/queries";
+import { libraryCards } from "@/lib/workout/library-cards";
 import { LibrarySearch } from "./library-search";
 import { MuscleGroupGrid, ProgramRows } from "./sections";
 
@@ -14,11 +15,13 @@ export const metadata = { title: "Library" };
  */
 export default async function LibraryPage() {
   const [groups, templates, programs, activeId] = await Promise.all([listMuscleGroups(), listTemplates(), listPrograms(), getActiveProgramId()]);
-  const cards = groups.map((g) => ({ id: g.id, name: g.name, art: <MuscleArt group={g.name} /> }));
+  // search keeps all fourteen groups for its pills and row art; the grid shows the twelve cards
+  const groupArt = groups.map((g) => ({ id: g.id, name: g.name, art: <MuscleArt group={g.name} /> }));
+  const cards = libraryCards(groups).map((c) => ({ id: c.id, name: c.name, art: <MuscleArt group={c.name} /> }));
   return (
     <Screen>
       <LibrarySearch
-        groups={cards}
+        groups={groupArt}
         workouts={templates.map((t) => ({ id: t.id, name: t.name, category: t.category, slugs: t.slugs ?? [], exerciseCount: t.exerciseCount }))}
         programs={programs.map((p) => ({ id: p.id, name: p.name, slugs: p.slugs, weeks: p.phaseCount }))}
         header={<LargeTitle title="Library" />}

@@ -614,8 +614,12 @@ only). Each section title carries a chevron to its own page (`SectionHeader`'s `
 place of See All): `/library/exercises` (the groups, then every exercise A to Z), `/library/workouts` (by category)
 and `/library/programs` (Following first). `/templates` and `/exercises` redirect into it; `/templates/[id]` is still
 a workout's page, pushed with the tab bar hidden and Start Workout pinned; its exercise rows open the exercise sheet
-over it, never another page (`template-exercises.tsx`, Frank's call, 2026-11-13, from the HIG's one-sheet rule and Hevy). A New button (creating workouts and programs) is decided in concept and not built. A group card
-opens `/exercises/group/[id]`, a list with a back arrow. An exercise row, there or in
+over it, never another page (`template-exercises.tsx`, Frank's call, 2026-11-13, from the HIG's one-sheet rule and Hevy). A New button (creating workouts and programs) is decided in concept and not built. The muscle groups show as twelve cards, three across, four full rows (Frank's call, 2026-11-13, after
+Equinox+'s Find a Movement grid on Mobbin): Forearms shows in the Biceps card and Neck in Shoulders (`CARD_PARENT` in
+`src/lib/workout/library-cards.ts`, tested). Display only: exercises keep their own group, and search pills, the body
+map and records still use all fourteen. A group card
+opens `/exercises/group/[id]`, a list with a back arrow; a card holding two groups shows a section per group with
+All and per-group pills that filter, and a link to a folded group opens its parent's card. An exercise row, there or in
 search, opens the exercise's bottom sheet (`src/components/exercise-sheet.tsx`,
 fetching `/api/exercises/[id]`): Summary, History, How to
 (`exercise-detail.tsx`). Search loads its rows from `/api/exercises` when it

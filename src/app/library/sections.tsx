@@ -5,10 +5,10 @@ import { Row } from "@/components/page";
 import { WorkoutThumb } from "@/components/workout-thumb";
 import type { ProgramSummary } from "@/lib/data/queries";
 
-/** Notion's Muscle Groups gallery: a card opens the group's exercises. */
+/** Notion's Muscle Groups gallery: a card opens the group's exercises. Three across, as Equinox+ (see `libraryCards`). */
 export function MuscleGroupGrid({ groups }: { groups: { id: string; name: string; art: ReactNode }[] }) {
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(104px,1fr))] gap-2.5 px-4">
+    <div className="grid grid-cols-3 gap-2.5 px-4">
       {groups.map((g) => (
         <Link key={g.id} href={`/exercises/group/${g.id}`} className="overflow-hidden rounded-[18px] bg-card ring-1 ring-[var(--sep)] active:opacity-80">
           <div className="aspect-square bg-[var(--muscle-tile)] p-2">{g.art}</div>
