@@ -7,11 +7,11 @@ import type { CSSProperties } from "react";
  * The defaults are the strong preset (SOFT_EDGE_STRONG with the kit's tint), so nothing changes until a slider moves.
  */
 
-export type TuneKey = "blur" | "tint" | "d1" | "d2" | "d3" | "reach";
+export type TuneKey = "blur" | "tint" | "d1" | "d2" | "d3" | "height";
 export type Tune = Record<TuneKey, number>;
 
 export const TUNE_DIALS: ReadonlyArray<{ key: TuneKey; label: string; min: number; max: number; step: number; unit: "pt" | "%" }> = [
-  { key: "reach", label: "Reach above button", min: 0, max: 80, step: 1, unit: "pt" },
+  { key: "height", label: "Height from the bottom", min: 0, max: 320, step: 1, unit: "pt" },
   { key: "blur", label: "Blur at the edge", min: 0, max: 40, step: 1, unit: "pt" },
   { key: "tint", label: "Tint at the edge", min: 0, max: 100, step: 1, unit: "%" },
   { key: "d1", label: "Darkening at 25%", min: 0, max: 100, step: 1, unit: "%" },
@@ -19,7 +19,8 @@ export const TUNE_DIALS: ReadonlyArray<{ key: TuneKey; label: string; min: numbe
   { key: "d3", label: "Darkening at the edge", min: 0, max: 100, step: 1, unit: "%" },
 ];
 
-export const TUNE_DEFAULTS: Tune = { reach: 16, blur: 20, tint: 81, d1: 35, d2: 70, d3: 90 };
+/** height 87pt: where the edge started before, 16pt above the 50pt button that sits 21pt off the bottom */
+export const TUNE_DEFAULTS: Tune = { height: 87, blur: 20, tint: 81, d1: 35, d2: 70, d3: 90 };
 
 export const TUNE_KEY = "start_edge_tune";
 const EVENT = "start-edge-tune";
@@ -43,7 +44,7 @@ export function parseTune(raw: string | null): Tune {
 /** The custom properties the edge reads (`tuned` on SoftEdge) */
 export function tuneVars(t: Tune): CSSProperties {
   return {
-    "--se-reach": `${t.reach}px`,
+    "--se-height": `${t.height}px`,
     "--se-blur": `${t.blur}px`,
     "--se-tint": t.tint / 100,
     "--se-d1": t.d1 / 100,
@@ -57,7 +58,7 @@ export function tuneSource(t: Tune): string {
   const a = (v: number) => +(v / 100).toFixed(2);
   return [
     `// Start Workout's soft edge, tuned on the phone`,
-    `reach: ${t.reach}, // pt above the button`,
+    `height: ${t.height}, // pt up from the screen's bottom`,
     `blur: ${t.blur},`,
     `tint: ${a(t.tint)},`,
     `darken: [[0, 0], [0.25, ${a(t.d1)}], [0.6, ${a(t.d2)}], [1, ${a(t.d3)}]],`,

@@ -18,9 +18,9 @@ describe("Start Workout edge tuning", () => {
   });
 
   it("turns values into the edge's custom properties and the source's shape", () => {
-    const t = { ...TUNE_DEFAULTS, reach: 24, d3: 55 };
-    expect(tuneVars(t)).toMatchObject({ "--se-reach": "24px", "--se-blur": "20px", "--se-tint": 0.81, "--se-d3": 0.55 });
+    const t = { ...TUNE_DEFAULTS, height: 120, d3: 55 };
+    expect(tuneVars(t)).toMatchObject({ "--se-height": "120px", "--se-blur": "20px", "--se-tint": 0.81, "--se-d3": 0.55 });
     expect(tuneSource(t)).toContain("darken: [[0, 0], [0.25, 0.35], [0.6, 0.7], [1, 0.55]],");
-    expect(tuneSource(t)).toContain("reach: 24,");
+    expect(tuneSource(t)).toContain("height: 120,");
   });
 });
