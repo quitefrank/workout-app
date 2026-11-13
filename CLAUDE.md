@@ -838,7 +838,8 @@ prescription's rest, which takes the steppers' place as an arc, and the log butt
 exercise during rest shows a Rest capsule over the controls that goes back. The screen carries no floor, "Preview" or
 "Swapped from" labels (Frank's call).
 
-Two versions, switched in the workout's More menu under Settings and saved per device in the `workout_version` cookie
+Version 2 and Glass Steppers left Settings on 2026-11-12 (Frank's call): the page always passes Version 1 and no glass
+steppers and no longer reads their cookies, and their code stays for now. Two versions, switched in the workout's More menu under Settings and saved per device in the `workout_version` cookie
 (`src/lib/workout-layout.ts`, Frank's call, 2026-11-09). Version 1, the default, is View 5 of the five views Frank
 tried (https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=7-2): the pill below. Version 2 brings back the old
 View 3 toolbar under the steppers (https://www.figma.com/design/ZD41TUAEBtLJI7t0qChNup?node-id=28-1716): the 72pt

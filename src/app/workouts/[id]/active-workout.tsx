@@ -25,14 +25,7 @@ import { exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
-import {
-  setGlassSteppers,
-  setJournalGlass,
-  setWorkoutVersion,
-  VERSIONS,
-  type JournalGlass,
-  type WorkoutVersion,
-} from "@/lib/workout-layout";
+import { setJournalGlass, type JournalGlass, type WorkoutVersion } from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { ZoneSoftEdge } from "@/components/soft-edge";
@@ -113,10 +106,10 @@ export function ActiveWorkout({
   glassSteppers: boolean;
   journalGlass: JournalGlass;
 }) {
-  // Version 1 is the pill, Version 2 the toolbar under the steppers (src/lib/workout-layout.ts), switched in More
-  const [version, setVersion] = useState(initialVersion);
-  // Glass stepper cards, a Settings switch saved on this device (src/lib/workout-layout.ts)
-  const [glassSteppers, setGlass] = useState(initialGlass);
+  // Version 1 is the pill, Version 2 the toolbar under the steppers; Glass Steppers puts glass behind the steppers. Both
+  // left Settings (Frank's call, 2026-11-12): the page passes Version 1 and no glass steppers, and the code stays.
+  const version = initialVersion;
+  const glassSteppers = initialGlass;
   // How the Journal pill and its card's glass are drawn, a test setting saved on this device (css, match or shader;
   // src/lib/workout-layout.ts, journal-card.tsx)
   const [journalGlass, setJGlass] = useState(initialJournalGlass);
@@ -905,26 +898,8 @@ export function ActiveWorkout({
         />
       )}
 
-      {/* The two versions, switched here mid-workout and saved on this device */}
       <Sheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
         <div className="flex flex-col gap-6 pb-4">
-          <Group title="Workout view" footer={`${VERSIONS[version]}. Saved on this device only.`}>
-            <Segmented
-              label="Workout view"
-              value={String(version)}
-              options={[
-                ["1", "Version 1"],
-                ["2", "Version 2"],
-              ]}
-              onChange={(v) => {
-                const next: WorkoutVersion = v === "2" ? 2 : 1;
-                setCardOpen(null);
-                setJournalSheet(false);
-                setVersion(next);
-                setWorkoutVersion(next);
-              }}
-            />
-          </Group>
           {!toolbar && (
             <Group
               title="Journal glass"
@@ -948,16 +923,6 @@ export function ActiveWorkout({
               />
             </Group>
           )}
-          <Group title="Steppers" footer="Liquid Glass behind the steppers. Saved on this device only.">
-            <SwitchRow
-              label="Glass Steppers"
-              on={glassSteppers}
-              onChange={(on) => {
-                setGlass(on);
-                setGlassSteppers(on);
-              }}
-            />
-          </Group>
         </div>
       </Sheet>
 
@@ -1035,25 +1000,6 @@ function SetText({ rows, current, className }: { rows: SetRowView[]; current: nu
  * The set dots in the pill (Frank's Figma frame, 2026-11-09): 8pt, 4pt apart; logged solid blue, the current set
  * ringed in blue, the rest in Fills/Primary. Logging fills the current dot to blue as a transition.
  */
-/** A Settings row with the iOS switch (51 × 31pt, green when on) */
-function SwitchRow({ label, on, onChange }: { label: string; on: boolean; onChange: (on: boolean) => void }) {
-  return (
-    <div className="flex min-h-[52px] items-center gap-3 px-4">
-      <span className="flex-1 text-[17px] tracking-[-0.43px]">{label}</span>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={on}
-        aria-label={label}
-        onClick={() => onChange(!on)}
-        className={cn("relative h-[31px] w-[51px] shrink-0 rounded-full transition-colors", on ? "bg-green" : "bg-fill-2")}
-      >
-        <span className={cn("absolute left-0.5 top-0.5 size-[27px] rounded-full bg-white shadow transition-transform", on && "translate-x-5")} />
-      </button>
-    </div>
-  );
-}
-
 function PillDots({ rows, current }: { rows: SetRowView[]; current: number }) {
   return (
     <div className="flex gap-1" aria-hidden>

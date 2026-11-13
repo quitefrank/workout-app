@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { getSettings, getWorkout } from "@/lib/data/queries";
-import { glassSteppersFrom, journalGlassFrom, workoutVersionFrom } from "@/lib/workout-layout";
+import { journalGlassFrom } from "@/lib/workout-layout";
 import { ActiveWorkout } from "./active-workout";
 
 export const metadata = { title: "Workout" };
@@ -16,8 +16,9 @@ export default async function WorkoutPage({ params }: { params: Promise<{ id: st
     <ActiveWorkout
       workout={workout}
       settings={settings}
-      version={workoutVersionFrom(cookie)}
-      glassSteppers={glassSteppersFrom(cookie)}
+      // Version 2 and Glass Steppers left Settings (Frank's call, 2026-11-12); their cookies are no longer read
+      version={1}
+      glassSteppers={false}
       journalGlass={journalGlassFrom(cookie)}
     />
   );
