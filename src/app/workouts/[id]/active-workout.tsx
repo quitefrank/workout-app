@@ -29,6 +29,7 @@ import { setJournalGlass, type JournalGlass, type WorkoutVersion } from "@/lib/w
 import { ActionMenu } from "@/components/pop-up-menu";
 import { ExerciseSheet } from "@/components/exercise-sheet";
 import { Sheet } from "@/components/sheet";
+import { SfSymbol } from "@/components/sf-symbol";
 import { ZoneSoftEdge } from "@/components/soft-edge";
 import { TopBar } from "@/components/top-bar";
 import { useElapsed } from "@/components/tab-bar";
@@ -1141,8 +1142,9 @@ function Art({ slug }: { slug: string | null | undefined }) {
 
 /**
  * Rest on the focus screen: an arc of ticks that drains, the time left, and − and + either side for 15 seconds less or
- * more. The buttons sit on the 20pt gutters, centred on the digits, 49pt circles with bare − and + (Frank's call,
- * 2026-11-13: not a stepper, so no "15" and not the stepper's glyph size).
+ * more. The buttons sit 32pt from the screen's edges, in line with the pill's circle below, centred on the digits, as the iOS 27 kit's Large Bordered icon-only button
+ * (Figma wH8YZbekJXNew109clIJz1 40:59288): a 50pt circle, the app's gray fill, SF Symbols minus and plus at Body (17pt
+ * Regular) in blue (Frank's call, 2026-11-13: not a stepper, so no "15").
  */
 function RestArc({
   remaining,
@@ -1161,6 +1163,8 @@ function RestArc({
   return (
     <div
       className="relative flex items-end justify-between pb-1"
+      // the buttons' outer edges line up with the pill's circle, 32pt from the screen's edge, inside the zone's 20pt
+      style={{ marginInline: PILL.inset + PILL.padding - 20 }}
       role="timer"
       aria-live="off"
       aria-label={remaining ? `${label}, ${remaining} seconds left` : `${label} over`}
@@ -1169,11 +1173,11 @@ function RestArc({
         type="button"
         onClick={() => onAdd(-15)}
         aria-label="15 seconds less"
-        className="mb-[18px] grid size-[49px] place-items-center rounded-full bg-fill-2 text-[26px] font-medium leading-none"
+        className="mb-[17px] grid size-[50px] shrink-0 place-items-center rounded-full bg-fill-2 text-blue"
       >
-        −
+        <SfSymbol name="minus" scale={17 / 19} />
       </button>
-      <div className="relative h-[140px] w-[220px]">
+      <div className="relative h-[140px] w-[220px] min-w-0">
         <svg
           viewBox="0 0 220 140"
           className="absolute inset-0 size-full"
@@ -1208,9 +1212,9 @@ function RestArc({
         type="button"
         onClick={() => onAdd(15)}
         aria-label="15 seconds more"
-        className="mb-[18px] grid size-[49px] place-items-center rounded-full bg-fill-2 text-[26px] font-medium leading-none"
+        className="mb-[17px] grid size-[50px] shrink-0 place-items-center rounded-full bg-fill-2 text-blue"
       >
-        +
+        <SfSymbol name="plus" scale={17 / 19} />
       </button>
     </div>
   );

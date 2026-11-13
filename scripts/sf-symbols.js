@@ -7,7 +7,8 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions, @typescript-eslint/no-unused-vars */
 ObjC.import("AppKit");
 
-const SYMBOLS = ["house.fill", "square.stack.fill", "chart.line.uptrend.xyaxis"];
+// minus and plus: the rest arc's buttons, drawn at 17pt (the kit's Large Bordered icon button, Body Regular) by scale
+const SYMBOLS = ["house.fill", "square.stack.fill", "chart.line.uptrend.xyaxis", "minus", "plus"];
 const POINT_SIZE = 19; // a tab bar symbol
 const SCALE = 6; // px per point, so the glass lens can magnify without blur
 const WEIGHT_REGULAR = 0; // NSFontWeightRegular
