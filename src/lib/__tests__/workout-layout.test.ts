@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { glassSteppersFrom, workoutVersionFrom } from "../workout-layout";
+import { glassSteppersFrom, pillBottomFrom, workoutVersionFrom } from "../workout-layout";
 
 describe("glassSteppersFrom", () => {
   it("is on only when its cookie says 1", () => {
@@ -16,5 +16,15 @@ describe("workoutVersionFrom", () => {
     expect(workoutVersionFrom(() => undefined)).toBe(1);
     // the old five-view cookie is ignored
     expect(workoutVersionFrom((n) => (n === "workout_view" ? "3" : undefined))).toBe(1);
+  });
+});
+
+describe("pillBottomFrom", () => {
+  it("is 21, 27 or 32, and 21 for anything else", () => {
+    expect(pillBottomFrom(() => undefined)).toBe(21);
+    expect(pillBottomFrom((n) => (n === "workout_pill_bottom" ? "27" : undefined))).toBe(27);
+    expect(pillBottomFrom((n) => (n === "workout_pill_bottom" ? "32" : undefined))).toBe(32);
+    expect(pillBottomFrom((n) => (n === "workout_pill_bottom" ? "40" : undefined))).toBe(21);
+    expect(pillBottomFrom((n) => (n === "workout_pill_bottom" ? "x" : undefined))).toBe(21);
   });
 });

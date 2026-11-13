@@ -182,7 +182,7 @@ Eleven pure modules with full unit-test coverage:
   header dropped, option B for week 10, "(OR ...)" names split by
   `NAME_CHOICES`, a "~" RPE kept as the RPE with an "Approximate RPE" note.
 
-Run `bun run test` to exercise them. 579 tests across 54 files.
+Run `bun run test` to exercise them. 580 tests across 54 files.
 
 - `src/lib/recovery/` The recovery domain: dates, restriction state,
   dose parsing, the eleven authoring rules, frequency caps. Pure, no
@@ -866,7 +866,9 @@ lifts over the canvas while typing.
 - The pill is in the dock, sized after the iOS 27 kit's collapsed notification (Figma `wH8YZbekJXNew109clIJz1`
   754:64315) and tuned in the Journal Pill Lab (Frank's calls, 2026-11-12, https://claude.ai/artifact/LoiDBexQCNYGfaauP8uTQ2):
   70pt tall, 16pt from each side, 21pt off the bottom as the kit's tab bar, 24pt corners, Liquid Glass (`PILL` in
-  `src/lib/workout/journal-card.ts`, tested). The steppers sit 20pt above it. Its empty circle logs the set (`PillCheck`:
+  `src/lib/workout/journal-card.ts`, tested). Settings' Pill to bottom picks 21, 27 or 32pt, saved per device in the
+  `workout_pill_bottom` cookie (`pillBottomFrom` in `src/lib/workout-layout.ts`); the workout sets it as `--dock-bottom`
+  on `<html>` while it is up, so the steppers, the Journal card and the drag follow. The steppers sit 20pt above it. Its empty circle logs the set (`PillCheck`:
   38pt, 16pt from every edge of the pill, a 2pt `#0082f0` ring from Figma node 28:945 and a 17pt check, the kit's symbol
   size; a blue fill for a moment when logged, Skip while resting, and solid blue with a white check at full strength once
   every set of the shown exercise is logged, Frank's call, 2026-11-10; the "logged, swipe" line then sits 12pt above the
@@ -885,7 +887,10 @@ The Journal is `journal-card.tsx`, one card that grows from the pill under the f
   from 38pt to 44pt on its 16pt edge, the set dots over the title still leading, 8pt after it, at 17pt in both states, the
   kit's 58 by 4pt grabber 5pt from the top, and a 44pt close button 16pt from the trailing edge with SF Symbols `xmark` at
   17pt Medium (`SfXmarkIcon`, a mask in `public/icons/sf-xmark.png`), both coming in as it opens. No set label, count,
-  summary line or divider. Glass on the card is CSS, as on a sheet (`:is(.glass-sheet, .jcard) .glass` in globals.css,
+  summary line or divider. The card has no material of its own (Frank's call, 2026-11-12): the pill's real glass stays
+  on screen under it with only its content hidden (on the WebGPU path the dock's glass is drawn whatever its visibility),
+  and the card fades in as a plain opaque sheet over the first quarter of the travel, its content with it, so nothing
+  swaps as it mounts or unmounts. Glass on the card (the close button) is CSS, as on a sheet (`:is(.glass-sheet, .jcard) .glass` in globals.css,
   and the stage skips `.jcard`). Each exercise is Ladder's card (`ExerciseCard` in `journal.tsx`, measured off
   Ladder, Figma `ZD41TUAEBtLJI7t0qChNup` 11:706): 8pt from the Journal's edges, 4pt apart, 20pt corners, `bg-card` (the
   elevated step: `#2c2c2e` on the dark Journal, `#f2f2f7` on the light), 16pt sides (Frank's call, 2026-11-12), 14pt top,

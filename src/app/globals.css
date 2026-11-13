@@ -1319,13 +1319,12 @@ html.keyboard .sheet-body {
     right: calc(16px * (1 - var(--jp)));
     bottom: calc(var(--dock-bottom) * (1 - var(--jp)));
     border-radius: calc(24px + 14px * var(--jp)) calc(24px + 14px * var(--jp)) calc(24px * (1 - var(--jp))) calc(24px * (1 - var(--jp)));
-    background: rgb(var(--bg-rgb) / calc(0.6 + 0.37 * var(--jp)));
-    -webkit-backdrop-filter: blur(22px) saturate(1.6);
-    backdrop-filter: blur(22px) saturate(1.6);
-    box-shadow:
-      inset 0 1px 0.5px rgb(255 255 255 / calc(0.32 * (1 - var(--jp)))),
-      inset 0 0 0 0.5px rgb(255 255 255 / 0.14),
-      0 -10px 40px rgb(0 0 0 / calc(0.45 * var(--jp)));
+    /* No material of its own (Frank's call, 2026-11-12): the pill's real glass stays on screen under the card, its content
+       hidden, so at --jp 0 the card is only the pill's content over the pill and nothing swaps when it mounts or unmounts.
+       The card fades in as a plain opaque sheet over the first quarter of the travel; it always contains the pill's box,
+       so by then the pill is covered. Open, it is a sheet with no glass. */
+    background: rgb(var(--bg-rgb) / min(1, calc(var(--jp) * 4)));
+    box-shadow: 0 -10px 40px rgb(0 0 0 / calc(0.45 * var(--jp)));
     /* the app's colours, in light and dark (the elevated set in dark, above) */
     color: var(--ink);
   }
@@ -1378,6 +1377,8 @@ html.keyboard .sheet-body {
     /* the exercise cards sit 8pt from the card's edges, as Ladder's do, so their content is 24pt from the screen's edge
        (8pt plus their 16pt padding) under the check's 16pt */
     padding: 0 8px calc(var(--dock-bottom) + 24px);
+    /* in with the sheet behind it, never over the bare pill */
+    opacity: min(1, calc(var(--jp) * 4));
   }
   .jcard-body::-webkit-scrollbar {
     display: none;

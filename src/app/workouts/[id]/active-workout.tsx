@@ -25,7 +25,7 @@ import { exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { GlassCircleButton } from "@/components/glass";
 import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIcon } from "@/components/icons";
 import { Group, Segmented } from "@/components/segmented";
-import { setGlassSteppers, setWorkoutVersion, VERSIONS, type WorkoutVersion } from "@/lib/workout-layout";
+import { PILL_BOTTOMS, setGlassSteppers, setPillBottom, setWorkoutVersion, VERSIONS, type PillBottom, type WorkoutVersion } from "@/lib/workout-layout";
 import { ActionMenu } from "@/components/pop-up-menu";
 import { Sheet } from "@/components/sheet";
 import { TopBar } from "@/components/top-bar";
@@ -97,17 +97,28 @@ export function ActiveWorkout({
   settings,
   version: initialVersion,
   glassSteppers: initialGlass,
+  pillBottom: initialPillBottom,
 }: {
   workout: WorkoutDetail;
   settings: Settings;
   version: WorkoutVersion;
   glassSteppers: boolean;
+  pillBottom: PillBottom;
 }) {
   // Version 1 is the pill, Version 2 the toolbar under the steppers (src/lib/workout-layout.ts), switched in More
   const [version, setVersion] = useState(initialVersion);
   // Glass stepper cards, a Settings switch saved on this device (src/lib/workout-layout.ts)
   const [glassSteppers, setGlass] = useState(initialGlass);
+  // The pill's distance off the bottom, a Settings choice saved on this device (21, 27 or 32pt). It is the dock's
+  // --dock-bottom while this screen is up, so the pill, the steppers above it, the Journal card and the drag all follow.
+  const [pillBottom, setBottom] = useState(initialPillBottom);
   const toolbar = version === 2;
+  useLayoutEffect(() => {
+    if (toolbar || pillBottom === 21) return;
+    const root = document.documentElement;
+    root.style.setProperty("--dock-bottom", `${pillBottom}px`);
+    return () => void root.style.removeProperty("--dock-bottom");
+  }, [toolbar, pillBottom]);
   const [journalSheet, setJournalSheet] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const router = useRouter();
@@ -813,8 +824,13 @@ export function ActiveWorkout({
           </div>
         ) : (
           <div
-            className="glass pointer-events-auto relative mx-4 flex h-[70px] touch-none select-none items-center px-4 [--r:24px]"
-            style={cardOpen ? { visibility: "hidden" } : undefined}
+            // While the Journal card is up only the pill's content hides: its glass stays, under the card, which has no
+            // material of its own until it fades in, so nothing swaps as the card mounts or unmounts (Frank's call,
+            // 2026-11-12). On the WebGPU path the dock's glass is drawn whatever its visibility, so this also matches it.
+            className={cn(
+              "glass pointer-events-auto relative mx-4 flex h-[70px] touch-none select-none items-center px-4 [--r:24px]",
+              cardOpen && "*:invisible",
+            )}
             onPointerDown={onPillDown}
           >
             <span data-pill-check className="contents">
@@ -893,6 +909,20 @@ export function ActiveWorkout({
               }}
             />
           </Group>
+          {!toolbar && (
+            <Group title="Pill" footer="How far the pill sits off the bottom of the screen. Saved on this device only.">
+              <Segmented
+                label="Pill to bottom"
+                value={String(pillBottom)}
+                options={PILL_BOTTOMS.map((pt) => [String(pt), `${pt} pt`] as [string, string])}
+                onChange={(v) => {
+                  const pt = Number(v) as PillBottom;
+                  setBottom(pt);
+                  setPillBottom(pt);
+                }}
+              />
+            </Group>
+          )}
           <Group title="Steppers" footer="Liquid Glass behind the steppers. Saved on this device only.">
             <SwitchRow
               label="Glass Steppers"
