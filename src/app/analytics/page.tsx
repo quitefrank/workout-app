@@ -68,7 +68,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
     return (
       <Screen>
         <LargeTitle title="Progress" />
-        <div className="mt-6">
+        <div>
           <Empty title="No history yet">Finish a workout and your charts start here.</Empty>
         </div>
       </Screen>
@@ -79,7 +79,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
     <Screen>
       <LargeTitle title="Progress" subtitle={`${counts.size} exercises with history`} />
 
-      <SectionHeader title="Workouts per Week" />
+      <SectionHeader title="Workouts per Week" className="pt-0" />
       <div className="mx-4 rounded-[26px] bg-card px-2 pb-2 pt-4">
         <WeeklyBars
           points={weeks.map((wk) => ({

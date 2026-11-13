@@ -134,7 +134,7 @@ export function LibrarySearch({
       <div className={searching ? "hidden" : undefined}>
         {header}
         {/* at rest the field is plain content, painted and scrolled with the page; the glass one is search mode's */}
-        <div className="px-4 pt-3">
+        <div className="px-4">
           <button
             type="button"
             onClick={openSearch}

@@ -32,7 +32,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
           </GlassCircleLink>
         }
       />
-      <nav aria-label="Filter by workout" className="no-scrollbar mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
+      <nav aria-label="Filter by workout" className="no-scrollbar flex gap-2 overflow-x-auto px-4 pb-1">
         <Chip href="/workouts" on={!template}>
           All
         </Chip>

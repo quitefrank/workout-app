@@ -174,7 +174,7 @@ export function WeekCalendar({ selected, today, days, trailing }: { selected: st
         }
       />
 
-      <section aria-label="Week" className="mt-3 px-4">
+      <section aria-label="Week" className="px-4">
         <div className="grid grid-cols-7 pb-1 text-center text-[13px] font-semibold text-ink-2">
           {WEEKDAYS.map((d, i) => (
             <div key={i}>{d}</div>

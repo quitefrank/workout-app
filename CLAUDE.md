@@ -667,6 +667,14 @@ workout discards from its More menu. A finished workout's summary deletes (`dele
 progress). Pure helpers for dates, formatting and PRs live in
 `src/lib/workout/` with tests.
 
+The large-title header is the kit's Toolbar - Top - iPhone (Figma `wH8YZbekJXNew109clIJz1` 754:47485; Frank's calls,
+2026-11-13, from the Large Title Spacing prototype, https://claude.ai/artifact/8KEgoTinwD1fFxH16GZ6VV): the controls row
+starts at the status bar's edge (`--bar-top` is the safe area, no added 8pt, so every top bar moved up with it), the 34pt
+title sits 10pt under the controls with -0.24px tracking (the kit has +0.4), and the first content starts 26pt under the
+title or subtitle (the toolbar's 10 plus the grouped table's 16). `LargeTitle` owns the 26 as its bottom padding, so the
+first block on a page adds no top margin and a leading `SectionHeader` takes `pt-0`. Cards keep their 16pt side inset
+(the kit's 20 was declined).
+
 Sheets are Apple's iOS 27 sheet (kit 27.0.1, `src/components/sheet.tsx`, values
 in `src/lib/sheet-detent.ts`), fitted to their content by Frank's call
 (2026-11-04), as Apple's `.height(_:)` detents allow. A sheet rests at its

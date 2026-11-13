@@ -32,7 +32,7 @@ export default async function MuscleGroupPage({ params }: { params: Promise<{ id
   return (
     <Screen>
       <LargeTitle title={card.name} subtitle={`${count} ${count === 1 ? "exercise" : "exercises"}`} leading={<BackButton label="Back to Library" fallback="/library/exercises" />} />
-      <div className="pt-3">{sections.length ? <GroupExercises sections={sections} art={art} /> : <Empty title="No exercises yet" />}</div>
+      <div>{sections.length ? <GroupExercises sections={sections} art={art} /> : <Empty title="No exercises yet" />}</div>
     </Screen>
   );
 }

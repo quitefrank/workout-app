@@ -6,7 +6,7 @@ import { WorkoutIcon } from "./workout-icon";
 
 /**
  * Screen scaffolding: the kit's Large Title toolbar (controls row 44pt
- * under the status bar, pinned; title 34 Bold scrolls under it),
+ * at the status bar's edge, pinned; title 34 Bold 10pt under it, scrolls under it),
  * section headers at 22 Bold,
  * and grouped rows at 17/15.
  */
@@ -35,9 +35,12 @@ export function LargeTitle({
   trailing?: ReactNode;
 }) {
   return (
-    <header className="px-4">
+    // the kit's Toolbar - Top - iPhone (754:47485): 10pt from the controls to the title, and the first content 26pt
+    // under the title or subtitle (the toolbar's 10 plus the grouped table's 16). The header owns the 26, so whatever
+    // comes first on a page adds no top margin of its own (Frank's calls, 2026-11-13; tracking his pick, the kit's +0.4)
+    <header className="px-4 pb-[26px]">
       <TopBar leading={leading} trailing={trailing} />
-      <h1 className="mt-1 text-[34px] font-bold leading-[41px] tracking-[-0.01em] [text-wrap:balance]">{title}</h1>
+      <h1 className="mt-2.5 text-[34px] font-bold leading-[41px] tracking-[-0.24px] [text-wrap:balance]">{title}</h1>
       {subtitle && <div className="text-[15px] font-medium leading-5 text-ink-2">{subtitle}</div>}
     </header>
   );

@@ -16,7 +16,7 @@ export default async function ExercisePage({ params }: { params: Promise<{ id: s
   return (
     <Screen>
       <LargeTitle title={view.exercise.title ?? view.exercise.name} leading={<BackButton fallback="/library/exercises" />} />
-      <div className="px-4 pt-3">
+      <div className="px-4">
         <ExerciseDetailTabs
           view={view}
           art={

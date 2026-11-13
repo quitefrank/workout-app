@@ -19,7 +19,7 @@ export default async function ExercisesPage() {
   return (
     <Screen>
       <LargeTitle title="Exercises" subtitle={`${items.length} exercises`} leading={<BackButton label="Back to Library" fallback="/library" />} />
-      <SectionHeader title="Muscle Groups" />
+      <SectionHeader title="Muscle Groups" className="pt-0" />
       <MuscleGroupGrid groups={cards} />
       <SectionHeader title="A to Z" />
       <AllExercises items={items} arts={Object.fromEntries(groupArt.map((g) => [g.id, g.art]))} />

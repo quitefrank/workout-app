@@ -15,13 +15,13 @@ export default async function ProgramsLibraryPage() {
       <LargeTitle title="Programs" subtitle={`${programs.length} programs`} leading={<BackButton label="Back to Library" fallback="/library" />} />
       {following.length > 0 && (
         <>
-          <SectionHeader title="Following" />
+          <SectionHeader title="Following" className="pt-0" />
           <ProgramRows programs={following} activeId={activeId} />
         </>
       )}
       {rest.length > 0 && (
         <>
-          {following.length > 0 ? <SectionHeader title="All Programs" /> : <div className="h-4" />}
+          {following.length > 0 ? <SectionHeader title="All Programs" /> : null}
           <ProgramRows programs={rest} activeId={activeId} />
         </>
       )}

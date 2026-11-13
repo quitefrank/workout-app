@@ -13,9 +13,9 @@ export default async function WorkoutsLibraryPage() {
   return (
     <Screen>
       <LargeTitle title="Workouts" subtitle={`${templates.length} workouts`} leading={<BackButton label="Back to Library" fallback="/library" />} />
-      {groupByCategory(templates).map(([category, items]) => (
+      {groupByCategory(templates).map(([category, items], i) => (
         <section key={category}>
-          <SectionHeader title={CATEGORY_LABELS[category] ?? "Other"} />
+          <SectionHeader title={CATEGORY_LABELS[category] ?? "Other"} className={i === 0 ? "pt-0" : undefined} />
           <WorkoutTiles items={items} />
         </section>
       ))}

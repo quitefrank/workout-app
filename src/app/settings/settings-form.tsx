@@ -53,7 +53,7 @@ export function SettingsForm({
     <div
       aria-busy={pending}
       // not dimmed under the WebGPU stage: the painted page is already what shows
-      className={cn("mt-4 flex flex-col gap-6 px-4", pending && "[html:not(.gpu)_&]:opacity-90")}>
+      className={cn("flex flex-col gap-6 px-4", pending && "[html:not(.gpu)_&]:opacity-90")}>
       <Group title="Appearance" footer="System follows this device's light or dark setting. Saved on this device only.">
         <Segmented
           value={theme}

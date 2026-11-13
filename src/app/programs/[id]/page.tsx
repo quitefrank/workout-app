@@ -59,7 +59,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
           <BackButton label="Back to Programs" fallback="/library/programs" />
         }
       />
-      <div className="mt-3 flex gap-3 px-4">
+      <div className="flex gap-3 px-4">
         <FollowButton programId={program.id} following={program.following} className="flex-1" />
         {hasAbout && (
           <AboutButton
