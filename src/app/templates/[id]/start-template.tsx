@@ -56,11 +56,11 @@ export function StartTemplate({ templateId }: { templateId: string }) {
           edge="bottom"
           live
           strong
-          // where its blur and gradient start (up from the screen's bottom), where the gradient is full, and their
-          // strengths come from Settings' Start Workout edge sliders (the defaults until one moves); as tall as the taller
+          // from the screen's bottom to 16pt above the button: the blur and a gradient from 50% to 0% (Frank's spec,
+          // 2026-11-13), their strengths tunable from Settings' Start Workout edge sliders
           tuned
-          className="bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
-          style={{ ...tune, height: "max(var(--se-blur-from), var(--se-grad-from))" }}
+          className="-top-4 bottom-[calc(-1*var(--dock-bottom))] left-[calc(50%-50vw)] w-screen"
+          style={tune}
         />
         <Button variant="filled" disabled={pending} onClick={go} className="pointer-events-auto relative mx-5">
           {pending ? "Starting…" : "Start Workout"}

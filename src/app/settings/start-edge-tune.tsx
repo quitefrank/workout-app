@@ -29,7 +29,7 @@ export function StartEdgeTune() {
   return (
     <Group
       title="Start Workout edge"
-      footer="The fade behind a workout's Start Workout button. Heights are measured up from the screen's bottom. The darkening's 25% and 60% are of the way from where the gradient starts to where it is full; below full it holds. Saved on this device only."
+      footer="The fade behind a workout's Start Workout button, from the screen's bottom to 16pt above the button. Both are strongest at the bottom and fade to nothing at the top. Saved on this device only."
     >
       {TUNE_DIALS.map((d) => (
         <div key={d.key} className="pt-2.5">
