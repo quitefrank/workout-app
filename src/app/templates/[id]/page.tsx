@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { GlassCircleLink } from "@/components/glass";
 import { TopBar } from "@/components/top-bar";
-import { ChevronLeft, FigureIcon } from "@/components/icons";
+import { ChevronLeft, FigureIcon, GearIcon } from "@/components/icons";
 import { MuscleArt } from "@/components/muscle-art/muscle-art";
 import { ExerciseArt, exerciseImageSrc, hasExerciseImage } from "@/components/exercise-art";
 import { hueStyle, Screen, SectionHeader, tileGradient } from "@/components/page";
@@ -45,6 +45,12 @@ export default async function TemplatePage({
         leading={
           <GlassCircleLink href={context.program ? `/programs/${context.program.id}` : "/library/workouts"} label="Back">
             <ChevronLeft size={20} />
+          </GlassCircleLink>
+        }
+        // Settings, for tuning the Start Workout edge on this page (Frank's call, 2026-11-12)
+        trailing={
+          <GlassCircleLink href="/settings" label="Settings">
+            <GearIcon size={20} />
           </GlassCircleLink>
         }
       />

@@ -1,5 +1,4 @@
-import { GlassCircleLink } from "@/components/glass";
-import { ChevronLeft } from "@/components/icons";
+import { BackButton } from "@/components/back-button";
 import { LargeTitle, Screen } from "@/components/page";
 import { cookies } from "next/headers";
 import { THEME_COOKIE, themeFrom } from "@/lib/appearance";
@@ -13,14 +12,8 @@ export default async function SettingsPage() {
   const theme = themeFrom(jar.get(THEME_COOKIE)?.value);
   return (
     <Screen>
-      <LargeTitle
-        title="Settings"
-        leading={
-          <GlassCircleLink href="/" label="Back to calendar">
-            <ChevronLeft size={20} />
-          </GlassCircleLink>
-        }
-      />
+      {/* back to whichever page opened Settings (Home, or a workout's page while tuning its Start Workout edge) */}
+      <LargeTitle title="Settings" leading={<BackButton />} />
       <SettingsForm settings={settings} theme={theme} />
     </Screen>
   );
