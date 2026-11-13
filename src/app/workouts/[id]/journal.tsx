@@ -137,7 +137,7 @@ export function JournalBody({
       </div>
       {/* the app's filled button, 20pt from the screen's sides as Start Workout is (8pt of the Journal's padding and 12pt) */}
       <Button variant="filled" onClick={onFinish} className="mx-3 mt-4 w-[calc(100%-24px)]">
-        Finish Workout
+        Complete Workout
       </Button>
     </>
   );

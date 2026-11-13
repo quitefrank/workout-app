@@ -613,9 +613,9 @@ from `/api/templates/[id]` worded as the workout page words them, a filled Start
 `beginWorkout` and pushes the new workout; the sheet stays up showing Starting… until the workout screen replaces the
 tab bar, and then a toast offers Undo for 5 seconds, which is `discardWorkout` (back to Home). One workout in progress
 at a time: `startWorkout` and `beginWorkout` refuse a second one on the server (`startDecision`, tested), and in the
-sheet a Start with one in progress closes the sheet and asks in its own sheet ("<name> is still in progress. Discard it
-to start <new>?", with Discard and Start, Resume and Cancel; Cancel reopens the list). Discard and Start deletes the
-open workout and starts the new one in one action. `/templates/[id]` stays the full preview from the Library. The date header is
+sheet a Start with one in progress closes the sheet and asks in its own sheet ("<name> is still in progress. Exit it
+early to start <new>?", with Exit Early and Start, Resume and Cancel; Cancel reopens the list). Exit Early and Start
+deletes the open workout and starts the new one in one action. `/templates/[id]` stays the full preview from the Library. The date header is
 MyFitnessPal's (`src/app/week-calendar.tsx`): the title is the selected day
 and opens the floating month panel (`month-panel.tsx`, Liquid Glass's menu
 morph, measured; see `Templates/liquid-glass/liquid-glass-reference.md` in the
@@ -663,7 +663,7 @@ scroll position (`src/components/app-scroller.tsx`). The UI calls templates "wor
 the code and tables keep `templates`. The 18 Notion day templates have `program_id` null. Progress is `/analytics`. The active
 workout (`/workouts/[id]`) is described under "Active workout" below. Delete has one place on a
 finished workout: the trash button in the summary's top bar, opening a confirming sheet; the active
-workout discards from its More menu. A finished workout's summary deletes (`deleteWorkout` in `actions.ts`, which refuses one in
+workout deletes itself with Exit Workout Early in its More menu. A finished workout's summary deletes (`deleteWorkout` in `actions.ts`, which refuses one in
 progress). Pure helpers for dates, formatting and PRs live in
 `src/lib/workout/` with tests.
 
@@ -988,6 +988,15 @@ lifts over the canvas while typing.
   dots above the name (Frank's call, 2026-11-10; `PillDots`: 8pt, 4pt apart; logged solid blue, current ringed in blue, upcoming Fills/Primary;
   logging fills the dot as a transition). Swap is not in the pill or the Journal's header (Frank's call, 2026-11-12; the
   Swap in Pill setting and its `workout_pill_swap` cookie are gone): Swap Exercise is in More and on each exercise card.
+
+The More menu (Frank's layout from the More Menu Lab, 2026-11-13, https://claude.ai/artifact/UnFkaJUBwEUwquSLLk4AGn)
+is a row of three, Journal, Swap and Do Later, each an SF Symbol over a 13pt label (`palette` on `ActionMenu`, as
+UIMenu's medium element size), then a hairline, Settings, a hairline, Complete Workout and Exit Workout Early in red.
+List rows lead with a 17pt SF Symbol in a 26pt column, 11pt to the label, 24pt in from the menu's edges (`icon` and
+`separator` on `PopUpItem`). Swap and Do Later show only while an exercise is on screen. Back to Home was removed:
+Complete and Exit are the two ways out. The app's words are Complete (never Finish) and Exit Workout Early (never
+Discard) everywhere on screen, including the finish sheet, the Journal's button and the Start sheet's in-progress
+question (Frank's call, 2026-11-13); code names (`FinishSheet`, `discardWorkout`) keep theirs.
 
 The prototype's other options (set circles under Last time, steppers as an inset list) are not built; `StepperList` and
 `StepperRow` stay in `stepper.tsx` unused.

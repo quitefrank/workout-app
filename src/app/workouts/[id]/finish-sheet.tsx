@@ -47,12 +47,12 @@ export function FinishSheet({
         await completeWorkout(workout.id, { keepSwaps: keep && swaps.length > 0 });
       } catch (e) {
         if (e instanceof Error && e.message.includes("NEXT_REDIRECT")) throw e;
-        toast.error(e instanceof Error ? e.message : "Could not finish");
+        toast.error(e instanceof Error ? e.message : "Could not complete the workout");
       }
     });
 
   return (
-    <Sheet open={open} onClose={onClose} title="Finish Workout" trailing={<SheetConfirm label="Finish" disabled={pending} onClick={finish} />}>
+    <Sheet open={open} onClose={onClose} title="Complete Workout" trailing={<SheetConfirm label="Complete"disabled={pending} onClick={finish} />}>
       <section className="mb-3 rounded-[16px] bg-card px-4 py-3">
         <h3 className="pb-2 text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-2">{records.length ? "New records" : "Records"}</h3>
         {records.length === 0 ? (

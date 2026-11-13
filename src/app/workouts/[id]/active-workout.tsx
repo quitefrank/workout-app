@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
   useCallback,
   useLayoutEffect,
@@ -131,7 +130,6 @@ export function ActiveWorkout({
   }, [toolbar]);
   const [journalSheet, setJournalSheet] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const router = useRouter();
   const unit = settings.weight_unit;
   const elapsed = useElapsed(workout.started_at);
   const timer = useRestTimer(workout.id);
@@ -789,7 +787,7 @@ export function ActiveWorkout({
                 </h1>
               </div>
               <Button variant="filled" onClick={() => setFinishing(true)}>
-                Finish Workout
+                Complete Workout
               </Button>
             </div>
           )}
@@ -876,7 +874,7 @@ export function ActiveWorkout({
                 logState === "skip"
                   ? "Skip rest"
                   : logState === "finish"
-                    ? "Finish workout"
+                    ? "Complete workout"
                     : logState === "start"
                       ? "Start set"
                       : logState === "stop"
@@ -938,24 +936,26 @@ export function ActiveWorkout({
       {menu && (
         <ActionMenu
           rect={menu}
+          // Frank's layout from the More Menu Lab (2026-11-13, https://claude.ai/artifact/UnFkaJUBwEUwquSLLk4AGn): a row
+          // of three, Settings, then the two ways out. Swap and Do Later need an exercise on screen.
+          palette={[
+            { value: "Journal", icon: "list.bullet.rectangle" },
+            ...(shown && !toolbar ? [{ value: "Swap", icon: "arrow.triangle.2.circlepath" as const }] : []),
+            ...(shown ? [{ value: "Do Later", icon: "arrow.turn.down.right" as const }] : []),
+          ]}
           items={[
-            ...(shown ? [{ value: "Do Later" }] : []),
-            ...(shown && !toolbar ? [{ value: "Swap Exercise" }] : []),
-            { value: "Journal" },
-            { value: "Settings" },
-            { value: "Back to Home" },
-            { value: "Finish Workout" },
-            { value: "Discard Workout", destructive: true },
+            { value: "Settings", icon: "gearshape" },
+            { value: "Complete Workout", icon: "checkmark.circle", separator: true },
+            { value: "Exit Workout Early", icon: "xmark.circle", destructive: true },
           ]}
           onClose={() => setMenu(null)}
           onPick={(v) => {
             if (v === "Do Later" && shown) move(shown.we, "end");
-            else if (v === "Swap Exercise" && shown) setSwapFor(shown.we);
+            else if (v === "Swap" && shown) setSwapFor(shown.we);
             else if (v === "Journal") openJournal();
             else if (v === "Settings") setSettingsOpen(true);
-            else if (v === "Back to Home") router.push("/");
-            else if (v === "Finish Workout") setFinishing(true);
-            else if (v === "Discard Workout") setConfirmDiscard(true);
+            else if (v === "Complete Workout") setFinishing(true);
+            else if (v === "Exit Workout Early") setConfirmDiscard(true);
           }}
         />
       )}
@@ -1049,7 +1049,7 @@ export function ActiveWorkout({
       <Sheet
         open={confirmDiscard}
         onClose={() => setConfirmDiscard(false)}
-        title="Discard Workout?"
+        title="Exit Workout Early?"
       >
         <p className="px-4 pb-4 text-[15px] text-ink-2">
           Every set logged in this workout is deleted. This cannot be undone.
@@ -1060,10 +1060,10 @@ export function ActiveWorkout({
             tone="red"
             disabled={pending}
             onClick={() =>
-              run(() => discardWorkout(workout.id), "Could not discard")
+              run(() => discardWorkout(workout.id), "Could not exit the workout")
             }
           >
-            Discard Workout
+            Exit Workout Early
           </Button>
           <Button variant="gray" onClick={() => setConfirmDiscard(false)}>
             Keep Going

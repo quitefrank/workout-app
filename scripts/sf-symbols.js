@@ -8,7 +8,11 @@
 ObjC.import("AppKit");
 
 // minus and plus: the rest arc's buttons, drawn at 17pt (the kit's Large Bordered icon button, Body Regular) by scale
-const SYMBOLS = ["house.fill", "square.stack.fill", "chart.line.uptrend.xyaxis", "minus", "plus"];
+// the active workout's More menu, drawn at 17pt by scale (Frank's picks in the More Menu Lab, 2026-11-13)
+const SYMBOLS = [
+  "house.fill", "square.stack.fill", "chart.line.uptrend.xyaxis", "minus", "plus",
+  "list.bullet.rectangle", "arrow.triangle.2.circlepath", "arrow.turn.down.right", "gearshape", "checkmark.circle", "xmark.circle",
+];
 const POINT_SIZE = 19; // a tab bar symbol
 const SCALE = 6; // px per point, so the glass lens can magnify without blur
 const WEIGHT_REGULAR = 0; // NSFontWeightRegular

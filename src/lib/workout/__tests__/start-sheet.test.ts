@@ -67,10 +67,10 @@ describe("startAsk", () => {
   it("starts straight away with nothing in progress", () => {
     expect(startAsk(null, "Legs")).toBeNull();
   });
-  it("asks to discard or resume the workout in progress", () => {
+  it("asks to exit early or resume the workout in progress", () => {
     expect(startAsk({ name: "Full Body P2" }, "Push P1")).toEqual({
-      message: "Full Body P2 is still in progress. Discard it to start Push P1?",
-      discard: "Discard and Start Push P1",
+      message: "Full Body P2 is still in progress. Exit it early to start Push P1?",
+      discard: "Exit Early and Start Push P1",
       resume: "Resume Full Body P2",
     });
   });

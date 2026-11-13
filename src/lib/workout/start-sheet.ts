@@ -67,15 +67,15 @@ export type StartAsk = { message: string; discard: string; resume: string };
 export function startAsk(inProgress: { name: string } | null, starting: string): StartAsk | null {
   if (!inProgress) return null;
   return {
-    message: `${inProgress.name} is still in progress. Discard it to start ${starting}?`,
-    discard: `Discard and Start ${starting}`,
+    message: `${inProgress.name} is still in progress. Exit it early to start ${starting}?`,
+    discard: `Exit Early and Start ${starting}`,
     resume: `Resume ${inProgress.name}`,
   };
 }
 
 /**
  * The server's guard on starting: one workout in progress at a time. A start names the in-progress workout it replaces
- * (after the person chose Discard and Start); anything else is refused while one is open.
+ * (after the person chose Exit Early and Start); anything else is refused while one is open.
  */
 export function startDecision(inProgressId: string | null, replacingId: string | null | undefined): "start" | "replace" | "refuse" {
   if (!inProgressId) return "start";

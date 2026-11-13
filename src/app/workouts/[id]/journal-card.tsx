@@ -282,7 +282,7 @@ export function PillCheck({
           : skip
           ? "Skip rest"
           : state === "finish"
-            ? "Finish workout"
+            ? "Complete workout"
             : state === "start"
               ? "Start set"
               : state === "stop"

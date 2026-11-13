@@ -69,7 +69,7 @@ export default async function ProgressPage({ searchParams }: { searchParams: Pro
       <Screen>
         <LargeTitle title="Progress" />
         <div>
-          <Empty title="No history yet">Finish a workout and your charts start here.</Empty>
+          <Empty title="No history yet">Complete a workout and your charts start here.</Empty>
         </div>
       </Screen>
     );

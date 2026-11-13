@@ -104,7 +104,7 @@ export default async function ProgramPage({ params }: { params: Promise<{ id: st
             {now.kind === "training" && (
               <div className="px-4 py-3">
                 <div className="text-[20px] font-semibold leading-tight">
-                  {now.finished ? "Program finished" : inForce ? phaseTitle(inForce) : "Not started"}
+                  {now.finished ? "Program complete" : inForce ? phaseTitle(inForce) : "Not started"}
                 </div>
                 <p className="mt-1 text-[13px] leading-[18px] text-ink-2">
                   {now.inForce.reason === "chosen"

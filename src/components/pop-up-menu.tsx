@@ -4,8 +4,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/cn";
 import { CheckIcon, ChevronUpDown } from "./icons";
+import { SfSymbol } from "./sf-symbol";
+import type { SfSymbolName } from "./sf-symbol-data";
 
-export type PopUpItem = { value: string; note?: string; disabled?: boolean; destructive?: boolean };
+/** `icon` is an SF Symbol leading the label (17pt); `separator` draws a hairline above the item, starting a new group. */
+export type PopUpItem = { value: string; note?: string; disabled?: boolean; destructive?: boolean; icon?: SfSymbolName; separator?: boolean };
+
+/** Symbols are rendered at 19pt (scripts/sf-symbols.js); a menu draws them at 17pt, the kit's Body size */
+const MENU_SYMBOL = 17 / 19;
 
 /**
  * A labelled pop-up button (iOS 27 kit, Pop-up Button) whose menu grows out of the value with the measured morph
@@ -54,13 +60,15 @@ export function PopUpMenu({ label, value, items, disabled, onChange }: { label: 
 
 /**
  * A menu of actions from a button (a More button, a chip): the same glass and morph as the pop-up button's menu, with
- * no checkmark. `rect` is the button's box; the menu grows from its top-right corner.
+ * no checkmark. `rect` is the button's box; the menu grows from its top-right corner. `palette` is a row of up to three
+ * actions above the list, each its symbol over a short label, as UIMenu's medium element size draws them; a hairline
+ * separates it from the list.
  */
-export function ActionMenu({ rect, items, onClose, onPick }: { rect: DOMRect; items: PopUpItem[]; onClose: () => void; onPick: (value: string) => void }) {
-  return <Menu rect={rect} items={items} value="" onClose={() => onClose()} onPick={onPick} />;
+export function ActionMenu({ rect, items, palette, onClose, onPick }: { rect: DOMRect; items: PopUpItem[]; palette?: PopUpItem[]; onClose: () => void; onPick: (value: string) => void }) {
+  return <Menu rect={rect} items={items} palette={palette} value="" onClose={() => onClose()} onPick={onPick} />;
 }
 
-function Menu({ rect, items, value, onClose, onPick }: { rect: DOMRect; items: PopUpItem[]; value: string; onClose: (focus: boolean) => void; onPick: (value: string) => void }) {
+function Menu({ rect, items, palette, value, onClose, onPick }: { rect: DOMRect; items: PopUpItem[]; palette?: PopUpItem[]; value: string; onClose: (focus: boolean) => void; onPick: (value: string) => void }) {
   const panel = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<"closed" | "open">("closed");
@@ -137,31 +145,65 @@ function Menu({ rect, items, value, onClose, onPick }: { rect: DOMRect; items: P
   return createPortal(
     <div ref={panel} role="menu" data-state={state} onKeyDown={onKeyDown} className="glass-sheet pop-menu fixed z-[60] outline-none">
       <div ref={content} className="pop-menu-content grid py-1.5">
+        {palette && palette.length > 0 && (
+          <>
+            <div className="grid px-3" style={{ gridTemplateColumns: `repeat(${palette.length}, minmax(0, 1fr))` }}>
+              {palette.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  role="menuitem"
+                  aria-disabled={item.disabled || undefined}
+                  onClick={() => {
+                    if (item.disabled) return;
+                    close(true, () => onPick(item.value));
+                  }}
+                  className={cn(
+                    "grid min-w-[76px] content-start justify-items-center gap-1.5 rounded-[14px] px-1 pb-2 pt-2.5 text-center outline-none focus-visible:bg-fill",
+                    item.disabled ? "cursor-default text-ink-3" : "active:bg-fill",
+                    item.destructive && !item.disabled && "text-red",
+                  )}
+                >
+                  {item.icon && <span className="grid h-[22px] place-items-center"><SfSymbol name={item.icon} scale={MENU_SYMBOL} /></span>}
+                  <span className="text-[13px] leading-4 tracking-[-0.08px]">{item.value}</span>
+                </button>
+              ))}
+            </div>
+            {items.length > 0 && <div aria-hidden="true" className="mx-6 my-1.5 h-px origin-top scale-y-50 bg-sep" />}
+          </>
+        )}
         {items.map((item) => {
           const on = item.value === value;
+          const icons = items.some((i) => i.icon);
           return (
-            <button
-              key={item.value}
-              type="button"
-              role="menuitemradio"
-              aria-checked={on}
-              aria-disabled={item.disabled || undefined}
-              onClick={() => {
-                if (item.disabled) return;
-                close(true, () => onPick(item.value));
-              }}
-              className={cn(
-                "grid min-h-11 grid-cols-[28px_1fr] items-center pl-3 pr-5 text-left text-[17px] outline-none focus-visible:bg-fill",
-                item.disabled ? "cursor-default text-ink-3" : "active:bg-fill",
-                item.destructive && !item.disabled && "text-red",
-              )}
-            >
-              <span>{on && <CheckIcon size={15} strokeWidth={2.6} />}</span>
-              <span className="grid py-2">
-                <span className="whitespace-nowrap">{item.value}</span>
-                {item.note && <span className="text-[13px] text-ink-3">{item.note}</span>}
-              </span>
-            </button>
+            <div key={item.value} className="contents">
+              {item.separator && <div aria-hidden="true" className="mx-6 my-1.5 h-px origin-top scale-y-50 bg-sep" />}
+              <button
+                type="button"
+                role={icons ? "menuitem" : "menuitemradio"}
+                aria-checked={icons ? undefined : on}
+                aria-disabled={item.disabled || undefined}
+                onClick={() => {
+                  if (item.disabled) return;
+                  close(true, () => onPick(item.value));
+                }}
+                className={cn(
+                  "grid min-h-11 items-center text-left text-[17px] outline-none focus-visible:bg-fill",
+                  // with symbols: the kit's 24pt inset, a 26pt symbol column and 11pt to the label (More Menu Lab)
+                  icons ? "grid-cols-[26px_1fr] gap-[11px] px-6" : "grid-cols-[28px_1fr] pl-3 pr-5",
+                  item.disabled ? "cursor-default text-ink-3" : "active:bg-fill",
+                  item.destructive && !item.disabled && "text-red",
+                )}
+              >
+                <span className={cn(icons && "grid place-items-center")}>
+                  {icons ? item.icon && <SfSymbol name={item.icon} scale={MENU_SYMBOL} /> : on && <CheckIcon size={15} strokeWidth={2.6} />}
+                </span>
+                <span className="grid py-2">
+                  <span className="whitespace-nowrap">{item.value}</span>
+                  {item.note && <span className="text-[13px] text-ink-3">{item.note}</span>}
+                </span>
+              </button>
+            </div>
           );
         })}
       </div>

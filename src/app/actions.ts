@@ -104,7 +104,7 @@ export async function beginWorkout(templateId: string, replacing?: string | null
 async function guardedStart(templateId: string, replacing: string | null): Promise<string> {
   const open = await getInProgress();
   const decision = startDecision(open?.id ?? null, replacing);
-  if (decision === "refuse") throw new Error(`${open!.name} is still in progress. Resume or discard it first.`);
+  if (decision === "refuse") throw new Error(`${open!.name} is still in progress. Resume it or exit it early first.`);
   if (decision === "replace") {
     const { error } = await db().from("workouts").delete().eq("id", open!.id).eq("user_id", userId()).is("completed_at", null);
     fail(error);
@@ -239,7 +239,7 @@ export async function discardWorkout(workoutId: string): Promise<void> {
 /** Delete a finished workout, with its exercises and sets. One still in progress goes through discardWorkout. */
 export async function deleteWorkout(workoutId: string): Promise<void> {
   const w = await ownedWorkout(workoutId);
-  if (!w.completed_at) throw new Error("This workout is still in progress. Discard it from the workout instead.");
+  if (!w.completed_at) throw new Error("This workout is still in progress. Exit it early from the workout instead.");
   const { error } = await db().from("workouts").delete().eq("id", workoutId);
   fail(error);
   revalidatePath("/", "layout");
