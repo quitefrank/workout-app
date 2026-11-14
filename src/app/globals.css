@@ -126,8 +126,9 @@
   --sheet-outer: 0 0 0 0.5px rgba(219, 219, 219, 0.9), 0 8px 48px rgba(0, 0, 0, 0.25);
   /* The dimming behind a sheet, black at the kit's Overlays/Default: 20% light, 48% dark */
   --scrim-alpha: 0.2;
-  /* The dimming behind an action sheet or alert, the kit's Overlay - Alerts (5446:18875, in the Action Sheet example
-     754:62559): a fixed fill with no variable, so the kit keeps it in both appearances */
+  /* The dimming behind an action sheet or alert: in light the kit's Overlay - Alerts (5446:18875, in the Action Sheet
+     example 754:62559). The kit gives it no dark value and its light fill barely shows over black, so dark uses the
+     kit's Overlays/Default dark, 48% black (Frank's call, 2026-11-13: "I'm not seeing the scrim") */
   --alert-overlay: rgba(41, 41, 58, 0.23);
   /* A glass control on a sheet has no blur or luminosity layer, so its fill is its whole body */
   --sheet-control-fill: rgba(254, 254, 254, 0.5);
@@ -221,6 +222,7 @@ html:has([data-bottom-bar="button"]) {
     --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
     --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
     --scrim-alpha: 0.48;
+    --alert-overlay: rgba(0, 0, 0, 0.48);
     --sheet-control-fill: rgba(255, 255, 255, 0.045);
     --sheet-solid: #1c1c1e;
   }
@@ -270,6 +272,7 @@ html:has([data-bottom-bar="button"]) {
   --sheet-inner: inset 0 1px 0 rgba(255, 255, 255, 0.14), inset 0 -1px 0 rgba(255, 255, 255, 0.08);
   --sheet-outer: 0 0 0 0.5px rgba(166, 166, 166, 0.35), 0 8px 48px rgba(0, 0, 0, 0.45);
   --scrim-alpha: 0.48;
+  --alert-overlay: rgba(0, 0, 0, 0.48);
   --sheet-control-fill: rgba(255, 255, 255, 0.045);
   --sheet-solid: #1c1c1e;
 }
