@@ -7,6 +7,9 @@
  * - On the muscle: the same scale, panned so the highlight is centred, stopping at the image's edges.
  * - Smart zoom: each image zooms until its highlight with a margin fills 60% of the tile (capped at 2.5x), panned the same.
  *
+ * Thumbnails are off by default (Frank's call, 2026-11-14, until the performance levers are settled): the row shows its
+ * plain tile and the image, lazy and `display: none`, is never fetched. `thumbs_on` turns them on (`data-thumbs` on body).
+ *
  * <body> carries `--thumb-zoom` and `data-thumb-mode`; each thumbnail carries its image's `--fx`, `--fy`, `--fz` from
  * src/lib/exercise-image-focus.ts (`thumbFocusStyle`). `.thumb-zoom` in globals.css turns them into a `transform`,
  * which the glass painter draws.
@@ -27,6 +30,7 @@ export const THUMB_ZOOMS: ReadonlyArray<readonly [ThumbMode, string]> = [
 ];
 
 export const THUMB_ZOOM_KEY = "thumb_zoom";
+export const THUMBS_ON_KEY = "thumbs_on";
 const EVENT = "thumb-zoom";
 
 export function parseThumbZoom(raw: string | null): ThumbMode {
@@ -38,6 +42,25 @@ export function thumbModeParts(mode: ThumbMode): { scale: number; place: "centre
   if (mode === "smart") return { scale: 1, place: "smart" };
   if (mode.startsWith("focus-")) return { scale: Number(mode.slice(6)), place: "focus" };
   return { scale: Number(mode), place: "centre" };
+}
+
+export const parseThumbsOn = (raw: string | null) => raw === "1";
+
+export function thumbsOn(): boolean {
+  try {
+    return parseThumbsOn(localStorage.getItem(THUMBS_ON_KEY));
+  } catch {
+    return false;
+  }
+}
+
+export function setThumbsOn(on: boolean) {
+  try {
+    if (on) localStorage.setItem(THUMBS_ON_KEY, "1");
+    else localStorage.removeItem(THUMBS_ON_KEY);
+  } catch {}
+  applyThumbZoom();
+  window.dispatchEvent(new Event(EVENT));
 }
 
 export function thumbZoom(): ThumbMode {
@@ -53,6 +76,8 @@ export function applyThumbZoom() {
   if (typeof document === "undefined") return;
   const { scale, place } = thumbModeParts(thumbZoom());
   const b = document.body;
+  if (thumbsOn()) b.dataset.thumbs = "on";
+  else delete b.dataset.thumbs;
   if (scale === 1) b.style.removeProperty("--thumb-zoom");
   else b.style.setProperty("--thumb-zoom", String(scale));
   if (place === "centre") delete b.dataset.thumbMode;

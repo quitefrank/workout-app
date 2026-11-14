@@ -1168,8 +1168,8 @@ screen's colour, both from the screen's bottom up to a reach above the button or
 kit tint or darkening (`tuned` on `SoftEdge`, `TunedLayers`; the painter reads `data-soft-tuned` and the `--se-*`
 properties). Reach 32pt, blur 10pt, gradient 50% at the bottom (tuned on the phone), tunable per device in Settings' Bottom edge
 (`src/lib/soft-edge-tune.ts`, localStorage; its key is renamed when the defaults change). Start Workout's is `live`
-(outside the painted page), keeping its CSS blur over the canvas, and shows unless On workout pages is switched off. The tab bar's (`DockEdge` in `tab-bar.tsx`) is on every
-page with the bar, which is every page but the active workout and Start Workout, unless Under the tab bar is switched
+(outside the painted page), keeping its CSS blur over the canvas, and shows only while On workout pages is switched on. The tab bar's (`DockEdge` in `tab-bar.tsx`) is on every
+page with the bar, which is every page but the active workout and Start Workout, only while Under the tab bar is switched
 off; it is painted into the page so the bar's glass sits on the faded page, and its CSS layers are hidden under
 `html.gpu`.
 
@@ -1230,13 +1230,19 @@ readout (`?glassdebug=1`) shows frames, renders, paints and rebuilds per second 
 
 Two per-device test settings came out of Frank's phone test (2026-11-14), mounted by `DevicePrefs` in the layout:
 
+- Both bottom-edge switches are off by default and the style defaults to Gradient only (Frank's call, 2026-11-14:
+  scrolling was still slow with every edge off, so the edges wait until it is fast; the switches' storage key became
+  `start_edge_tune_3`). The active workout's edges have no switch and draw as Gradient only.
 - Settings > Bottom edge > Style (`src/lib/soft-edge-style.ts`, tested): every soft edge, the tab bar's, Start
   Workout's and the active workout's, drawn as Blur and gradient (as built), Fast blur (`drawFastBlur` in `paint.ts`: a
   quarter-resolution copy in three bands) or Gradient only (no blur; `html[data-edge-style="gradient"]` drops the CSS
   blur layers too). Switching the tab bar's edge off made scrolling smoother on the phone, which prompted the options.
   In desktop Chromium at 3x on the iPhone blur path, Gradient only scrolled about 38% more frames than the full blur,
   Fast blur about 8%.
-- Settings > Library > Thumbnails (`src/lib/thumb-zoom.ts`, tested): how row thumbnails crop their illustration, to
+- Settings > Library > Thumbnails, a switch, off by default (Frank's call, 2026-11-14, until the performance levers are
+  settled): off, every row shows its plain tile, and the image (`loading="lazy"`, hidden by
+  `body:not([data-thumbs]) .thumb-zoom`) is never fetched; `thumbs_on` in localStorage. Large art still shows.
+- Settings > Library > Crop, shown while Thumbnails is on (`src/lib/thumb-zoom.ts`, tested): how row thumbnails crop their illustration, to
   try it before Frank edits the images and small thumbnails are generated. Full body, 1.5x or 2x centred, 1.5x or 2x on
   the muscle (panned so the red highlight is centred, stopping at the image's edges), or Smart zoom (each image zooms
   until its highlight with a margin fills 60% of the tile, capped at 2.5x; 160 of 224 images hit the cap). Frank's
@@ -1279,7 +1285,7 @@ Liquid Glass" (219) and "Build a SwiftUI app with the new design"
   white, and on the dark side, a dimming (0.45 of the page at the
   screen edge, gone about 140pt down). The soft effect appears once
   content has scrolled under the bar. The bottom dock has the tuned
-  bottom edge, on by default and switched in Settings (Frank's call,
+  bottom edge, off by default since 2026-11-14 and switched in Settings (Frank's call,
   2026-11-13, replacing 2026-10-11's no edge; see "Soft scroll edge").
 - A media page (a photo grid, as Photos draws its Library) gets a
   dimming edge at all times, and its top bar sits on the dark side.

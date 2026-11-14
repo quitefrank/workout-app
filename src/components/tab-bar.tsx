@@ -85,7 +85,7 @@ export function TabBar({
 }
 
 /**
- * The Start Workout edge under the tab bar, on every page that has the bar (Frank's call, 2026-11-13, on by default,
+ * The Start Workout edge under the tab bar, on every page that has the bar (Frank's call, 2026-11-13; off by default since 2026-11-14,
  * switched in Settings): from the screen's bottom to the tuned reach above the dock's top, its blur and gradient from the
  * same sliders. In the painted page, so the bar's glass sits on the faded page; first, so the bar stacks over it.
  */

@@ -4,7 +4,7 @@
  * resolution under the gradient); `fast` blurs a quarter-resolution copy in three bands, about a sixteenth of the pixels;
  * `gradient` drops the blur and keeps only the gradient of the screen's colour. It applies to the tab bar's edge, Start
  * Workout's and the active workout's. On the CSS path `gradient` hides the blur layers and `fast` draws as `blur`.
- * Saved in localStorage. Pure apart from the storage, the change event and the attribute on <html>.
+ * Gradient only is the default (Frank's call, 2026-11-14: off until scrolling is fast enough). Saved in localStorage. Pure apart from the storage, the change event and the attribute on <html>.
  */
 
 export type EdgeStyle = "blur" | "fast" | "gradient";
@@ -19,7 +19,7 @@ export const EDGE_STYLE_KEY = "soft_edge_style";
 const EVENT = "soft-edge-style";
 
 export function parseEdgeStyle(raw: string | null): EdgeStyle {
-  return raw === "fast" || raw === "gradient" ? raw : "blur";
+  return raw === "fast" || raw === "blur" ? raw : "gradient";
 }
 
 let current: EdgeStyle | null = null;
@@ -35,7 +35,7 @@ function readRaw(): string | null {
 /** This device's style, read once and kept, so the painter can ask for every edge it draws */
 export function edgeStyle(): EdgeStyle {
   if (current) return current;
-  if (typeof window === "undefined") return "blur";
+  if (typeof window === "undefined") return "gradient";
   current = parseEdgeStyle(readRaw());
   return current;
 }
@@ -53,7 +53,7 @@ export function applyEdgeStyle() {
 
 export function setEdgeStyle(style: EdgeStyle) {
   try {
-    if (style === "blur") localStorage.removeItem(EDGE_STYLE_KEY);
+    if (style === "gradient") localStorage.removeItem(EDGE_STYLE_KEY);
     else localStorage.setItem(EDGE_STYLE_KEY, style);
   } catch {}
   current = style;

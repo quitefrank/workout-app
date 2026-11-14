@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { parseEdgeStyle } from "../soft-edge-style";
-import { parseThumbZoom, thumbFocusStyle, thumbModeParts } from "../thumb-zoom";
+import { parseThumbsOn, parseThumbZoom, thumbFocusStyle, thumbModeParts } from "../thumb-zoom";
 
 describe("per-device test settings", () => {
-  it("reads the soft edge style, blur unless set", () => {
-    expect(parseEdgeStyle(null)).toBe("blur");
+  it("reads the soft edge style, gradient only unless set", () => {
+    expect(parseEdgeStyle(null)).toBe("gradient");
+    expect(parseEdgeStyle("blur")).toBe("blur");
     expect(parseEdgeStyle("fast")).toBe("fast");
     expect(parseEdgeStyle("gradient")).toBe("gradient");
-    expect(parseEdgeStyle("nonsense")).toBe("blur");
+    expect(parseEdgeStyle("nonsense")).toBe("gradient");
   });
 
   it("reads the thumbnail mode, only the offered ones, keeping the earlier centred levels", () => {
@@ -17,6 +18,12 @@ describe("per-device test settings", () => {
     expect(parseThumbZoom("focus-2")).toBe("focus-2");
     expect(parseThumbZoom("smart")).toBe("smart");
     expect(parseThumbZoom("3")).toBe("1");
+  });
+
+  it("keeps thumbnails off unless switched on", () => {
+    expect(parseThumbsOn(null)).toBe(false);
+    expect(parseThumbsOn("0")).toBe(false);
+    expect(parseThumbsOn("1")).toBe(true);
   });
 
   it("splits a mode into its scale and placement", () => {

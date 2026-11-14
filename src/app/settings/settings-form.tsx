@@ -13,7 +13,7 @@ import type { Settings } from "@/lib/data/queries";
 import { type LibraryLayout, setLibraryLayout } from "@/lib/library-layout";
 import { formatRest } from "@/lib/workout/format";
 import { StartEdgeTune } from "./start-edge-tune";
-import { onThumbZoomChange, setThumbZoom, thumbZoom, THUMB_ZOOMS } from "@/lib/thumb-zoom";
+import { onThumbZoomChange, setThumbsOn, setThumbZoom, thumbsOn, thumbZoom, THUMB_ZOOMS } from "@/lib/thumb-zoom";
 import { PerfLevers } from "./perf-levers";
 
 const REST_STEPS = [60, 90, 120, 150, 180, 210, 240, 300];
@@ -36,6 +36,7 @@ export function SettingsForm({
   // a device setting: the server renders it off, the device reads its own
   const stored = useSyncExternalStore(noop, debugSetting, () => false);
   const zoom = useSyncExternalStore(onThumbZoomChange, thumbZoom, () => "1" as const);
+  const thumbs = useSyncExternalStore(onThumbZoomChange, thumbsOn, () => false);
   const [debug, setDebug] = useState<boolean | null>(null);
   const debugOn = debug ?? stored;
 
@@ -79,7 +80,7 @@ export function SettingsForm({
         />
       </Group>
 
-      <Group title="Library" footer="Pills switch the Library between Exercises, Workouts and Programs under the search field. Thumbnails zooms row thumbnails into their illustration, to try the crop. Saved on this device only.">
+      <Group title="Library" footer="Pills switch the Library between Exercises, Workouts and Programs under the search field. Thumbnails shows the illustrations in rows, off for now while performance is tuned (a plain tile shows instead); Crop zooms them in. Saved on this device only.">
         <SelectRow
           label="Layout"
           value={libraryLayout}
@@ -94,7 +95,8 @@ export function SettingsForm({
             router.refresh();
           }}
         />
-        <SelectRow label="Thumbnails" value={zoom} options={THUMB_ZOOMS} onChange={setThumbZoom} />
+        <ToggleRow label="Thumbnails" checked={thumbs} onChange={setThumbsOn} />
+        {thumbs && <SelectRow label="Crop" value={zoom} options={THUMB_ZOOMS} onChange={setThumbZoom} />}
       </Group>
 
       <Group title="Units" footer="Machine and cardio readings always show the raw number, with no unit.">

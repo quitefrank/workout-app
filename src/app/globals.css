@@ -1644,6 +1644,10 @@ html:not(.gpu) .glass[data-glass-hidden] {
       )
       scale(var(--s));
   }
+  /* off by default: the tile shows alone and the lazy image, never rendered, is never fetched */
+  body:not([data-thumbs]) .thumb-zoom {
+    display: none;
+  }
   body[data-thumb-mode="focus"] .thumb-zoom {
     --k: 1;
   }

@@ -6,7 +6,7 @@ import type { CSSProperties } from "react";
  * the top, with no kit tint or darkening layer under it. The reach and both strengths stay tunable by eye from Settings, saved per
  * device in localStorage and read by the edge as custom properties. Pure apart from the storage.
  *
- * The same edge sits under the tab bar on every other page while `pages` is on (Frank's call, 2026-11-13, on by default):
+ * The same edge sits under the tab bar on every other page while `pages` is on (Frank's call, 2026-11-13; off by default since 2026-11-14):
  * the reach is then above the bar. The active workout keeps its own edges, and the tab bar is not on it.
  */
 
@@ -23,7 +23,8 @@ export const TUNE_DIALS: ReadonlyArray<{ key: TuneKey; label: string; min: numbe
 export const TUNE_DEFAULTS: Tune = { reach: 32, blur: 10, grad: 50 };
 
 // renamed with each new set of defaults, so a value saved under the old ones never overrides them
-export const TUNE_KEY = "start_edge_tune_2";
+// renamed when the defaults change (2026-11-14: both switches off), so a stored copy of the old defaults is dropped
+export const TUNE_KEY = "start_edge_tune_3";
 const EVENT = "start-edge-tune";
 
 /** A stored value read back: anything missing or out of range falls back to its default */
@@ -45,18 +46,19 @@ export function parseTune(raw: string | null): Tune {
 /** The two switches: `pages` puts the edge under the tab bar, `workout` behind a workout's Start Workout button */
 export type EdgeSwitch = "pages" | "workout";
 
-/** Whether a switch is on: on unless switched off */
+/** Whether a switch is on: off unless switched on (Frank's call, 2026-11-14: the edges stay off until scrolling is fast
+ *  enough without them) */
 export function parseSwitch(raw: string | null, key: EdgeSwitch): boolean {
   try {
-    return (raw ? (JSON.parse(raw) as Record<string, unknown>) : {})[key] !== false;
+    return (raw ? (JSON.parse(raw) as Record<string, unknown>) : {})[key] === true;
   } catch {
-    return true;
+    return false;
   }
 }
 
 /** Whether the edge is under the tab bar on the other pages */
 export const parsePages = (raw: string | null) => parseSwitch(raw, "pages");
-/** Whether the edge is behind a workout's Start Workout button (Frank's call, 2026-11-13, on by default) */
+/** Whether the edge is behind a workout's Start Workout button (Frank's call, 2026-11-13; off by default since 2026-11-14) */
 export const parseWorkout = (raw: string | null) => parseSwitch(raw, "workout");
 
 function switches(raw: string | null) {

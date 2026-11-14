@@ -21,7 +21,7 @@ export function WorkoutThumb({
   return (
     <div className="size-12 shrink-0 overflow-hidden rounded-[10px] bg-[var(--exercise-tile)]">
       {/* eslint-disable-next-line @next/next/no-img-element -- served as sized WebP, and the glass painter reads the element */}
-      <img src={exerciseImageSrc(lift)} alt="" className="thumb-zoom size-12 object-contain" style={thumbFocusStyle(exerciseImageSlug(lift))} />
+      <img src={exerciseImageSrc(lift)} alt="" loading="lazy" className="thumb-zoom size-12 object-contain" style={thumbFocusStyle(exerciseImageSlug(lift))} />
     </div>
   );
 }

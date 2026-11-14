@@ -18,16 +18,16 @@ describe("Start Workout edge tuning", () => {
   });
 
   it("has the edge under the tab bar on the other pages unless it was switched off", () => {
-    expect(parsePages(null)).toBe(true);
-    expect(parsePages("not json")).toBe(true);
-    expect(parsePages(JSON.stringify({ blur: 4 }))).toBe(true);
-    expect(parsePages(JSON.stringify({ blur: 4, pages: false }))).toBe(false);
+    expect(parsePages(null)).toBe(false);
+    expect(parsePages("not json")).toBe(false);
+    expect(parsePages(JSON.stringify({ blur: 4 }))).toBe(false);
+    expect(parsePages(JSON.stringify({ blur: 4, pages: true }))).toBe(true);
   });
 
   it("has the edge behind Start Workout unless that switch is off, apart from the tab bar's", () => {
-    expect(parseWorkout(null)).toBe(true);
-    expect(parseWorkout(JSON.stringify({ pages: false }))).toBe(true);
-    expect(parseWorkout(JSON.stringify({ workout: false }))).toBe(false);
-    expect(parsePages(JSON.stringify({ workout: false }))).toBe(true);
+    expect(parseWorkout(null)).toBe(false);
+    expect(parseWorkout(JSON.stringify({ pages: true }))).toBe(false);
+    expect(parseWorkout(JSON.stringify({ workout: true }))).toBe(true);
+    expect(parsePages(JSON.stringify({ workout: true }))).toBe(false);
   });
 });

@@ -28,14 +28,14 @@ const SWITCHES: ReadonlyArray<{ key: EdgeSwitch; label: string }> = [
 
 /**
  * Sliders for Start Workout's soft edge (a test setting, Frank's call, 2026-11-12), saved on this device, and whether the
- * same edge sits under the tab bar on every other page (Frank's call, 2026-11-13, on by default). Settings has the tab
+ * same edge sits under the tab bar on every other page (Frank's call, 2026-11-13; off by default since 2026-11-14). Settings has the tab
  * bar, so its edge changes here as a slider moves; Copy prints the values to paste into the code.
  */
 export function StartEdgeTune() {
   const raw = useSyncExternalStore(subscribeTune, readTuneRaw, () => null);
   const t = useMemo(() => parseTune(raw), [raw]);
   const set = (next: Tune) => writeTune(next);
-  const style = useSyncExternalStore(onEdgeStyleChange, edgeStyleSnapshot, () => "blur" as const);
+  const style = useSyncExternalStore(onEdgeStyleChange, edgeStyleSnapshot, () => "gradient" as const);
   const changed = TUNE_DIALS.some((d) => t[d.key] !== TUNE_DEFAULTS[d.key]);
   return (
     <Group

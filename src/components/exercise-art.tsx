@@ -34,6 +34,7 @@ export function ExerciseArt({ slug, art, pad = "p-1.5", thumb = false }: { slug:
       <img
         src={exerciseImageSrc(slug)}
         alt=""
+        loading={thumb ? "lazy" : undefined}
         className={cn("aspect-square h-full object-contain", thumb && "thumb-zoom")}
         style={thumb ? thumbFocusStyle(exerciseImageSlug(slug)) : undefined}
       />
