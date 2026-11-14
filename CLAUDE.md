@@ -1072,7 +1072,8 @@ The Journal is `journal-card.tsx`, one card that grows from the pill under the f
   elevated step: `#2c2c2e` on the dark Journal, `#f2f2f7` on the light), 16pt sides (Frank's call, 2026-11-12), 14pt top,
   a 58pt thumbnail 20pt from the title, 36pt chips 8pt apart, and a 56pt band on the current set. The cards' content is
   24pt from the screen's edge, the open check 16pt. Tapping a card's header opens or closes it,
-  its body's height animating; the current exercise starts open, any number can be open, and opening one moves the
+  its body's height animating; the current exercise starts open, one card is open at a time (opening one closes the other;
+  Frank's call, 2026-11-13), and opening one moves the
   focus screen there. A tap or swipe grows it, a drag past
   90pt or a flick opens it, the header pulls down to close and the close button closes it (`src/lib/workout/journal-card.ts`, tested). The card is CSS
   on both glass paths: `[data-unpainted]` keeps it out of the painted page, as sheets are.

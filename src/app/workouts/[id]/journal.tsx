@@ -82,23 +82,22 @@ export function JournalBody({
   initialOpenIds,
   onOpenIdsChange,
 }: JournalProps) {
-  // Which cards are open: the current exercise to start with (the parent keys the Journal per opening), or the cards that
-  // were open when a sheet opened from it was cancelled; a tap on a card's header opens or closes it, and any number can be
-  // open at once (Frank's call, 2026-11-10)
+  // Which card is open: the current exercise to start with (the parent keys the Journal per opening), or the card that
+  // was open when a sheet opened from it was cancelled. One at a time (Frank's call, 2026-11-13, replacing any number
+  // open from 2026-11-10): opening a card closes the other, and a tap on the open one closes it.
   const [openIds, setOpenIds] = useState<ReadonlySet<string>>(() => initialOpenIds ?? new Set(current ? [current] : []));
   useEffect(() => {
     onOpenIdsChange?.(openIds);
   }, [openIds, onOpenIdsChange]);
-  const toggle = (we: WorkoutExerciseRow) =>
-    setOpenIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(we.id)) next.delete(we.id);
-      else {
-        next.add(we.id);
-        onPick(we);
-      }
-      return next;
-    });
+  const toggle = (we: WorkoutExerciseRow) => {
+    if (openIds.has(we.id)) {
+      setOpenIds(new Set());
+      return;
+    }
+    setOpenIds(new Set([we.id]));
+    // outside the state update, so the workout screen is not told while the Journal renders
+    onPick(we);
+  };
 
   return (
     <>
