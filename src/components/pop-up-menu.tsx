@@ -92,8 +92,9 @@ export type SheetAction = { label: string; destructive?: boolean; onPick: () => 
 /**
  * The kit's Action Sheet (values and sources in src/lib/action-sheet.ts): choices about an action the person just
  * chose, grown out of the button that asked with the menu's morph and glass. Destructive actions come first. There is
- * no Cancel: a tap outside, a scroll or Escape cancels, as iOS does with an anchored action sheet. The page is not
- * dimmed, as behind a menu. A pick closes it, then runs once the glass has landed.
+ * no Cancel: a tap outside, a scroll or Escape cancels, as iOS does with an anchored action sheet. The screen behind
+ * takes the kit's Overlay - Alerts, fading in and out with it (unlike a menu, which dims nothing). A pick closes it,
+ * then runs once the glass has landed.
  */
 export function ActionSheet({ rect, title, message, actions, onClose }: { rect: DOMRect; title: string; message?: string; actions: SheetAction[]; onClose: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
@@ -144,6 +145,15 @@ export function ActionSheet({ rect, title, message, actions, onClose }: { rect: 
   useDismiss(panel, close);
 
   return createPortal(
+    <>
+    {/* The kit's Overlay - Alerts over everything, bars and any sheet included. CSS on both glass paths, above the
+        canvas (a full-screen flat tint cannot drift), so the painter skips it; a tap on it is a tap outside. */}
+    <div
+      aria-hidden
+      data-unpainted
+      data-screen-fill
+      className={cn("fixed inset-0 z-[59] bg-[var(--alert-overlay)] transition-opacity duration-300", state === "open" ? "opacity-100" : "opacity-0")}
+    />
     <div
       ref={panel}
       role="alertdialog"
@@ -181,7 +191,8 @@ export function ActionSheet({ rect, title, message, actions, onClose }: { rect: 
           ))}
         </div>
       </div>
-    </div>,
+    </div>
+    </>,
     document.body,
   );
 }

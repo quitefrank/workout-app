@@ -430,7 +430,11 @@ corners, 14pt padding, a 17pt semibold title and 17pt message, 48pt capsule acti
 (`bg-fill-secondary`), 8pt apart, destructive first in red. It grows out of the button that asked with the menu's
 measured morph, pinned at the button's top-right corner, or its bottom-right corner growing up when there is no room
 below. No Cancel, as the kit draws it: anchored to its button, iOS leaves the cancel action out, and a tap outside, a
-scroll or Escape cancels. The page is not dimmed, as behind a menu. A question that would lose nothing is not asked.
+scroll or Escape cancels. Behind it the whole screen, bars and any open sheet included, takes the kit's Overlay -
+Alerts (754:62559, layer 5446:18875: `rgba(41, 41, 58, 0.23)`, `--alert-overlay`, a fixed fill the kit keeps in both
+appearances), fading in and out over 300ms (Frank's catch, 2026-11-13). It is plain CSS above the canvas on both glass
+paths (`data-unpainted`), not the sheet's painted scrim, which sits under an open sheet. A question that would lose
+nothing is not asked.
 The words are in `src/lib/workout/confirm.ts` and `startAsk` (tested). Three today: Exit Workout Early (Delete Workout,
 Complete Workout), a finished workout's Delete, and Start with a workout in progress. An alert stays for something the
 person did not start (none yet).

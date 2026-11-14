@@ -126,6 +126,9 @@
   --sheet-outer: 0 0 0 0.5px rgba(219, 219, 219, 0.9), 0 8px 48px rgba(0, 0, 0, 0.25);
   /* The dimming behind a sheet, black at the kit's Overlays/Default: 20% light, 48% dark */
   --scrim-alpha: 0.2;
+  /* The dimming behind an action sheet or alert, the kit's Overlay - Alerts (5446:18875, in the Action Sheet example
+     754:62559): a fixed fill with no variable, so the kit keeps it in both appearances */
+  --alert-overlay: rgba(41, 41, 58, 0.23);
   /* A glass control on a sheet has no blur or luminosity layer, so its fill is its whole body */
   --sheet-control-fill: rgba(254, 254, 254, 0.5);
   /* A full-height sheet's opaque body, the kit's Backgrounds/Primary - Elevated */
