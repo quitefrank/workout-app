@@ -5,9 +5,8 @@ import { toast } from "sonner";
 import { setExerciseFloor } from "@/app/actions";
 import { Button } from "@/components/button";
 import { ExerciseArt } from "@/components/exercise-art";
-import { CheckIcon, ChevronUpDown, EllipsisIcon, ListIcon, SfFlameFillIcon, SwapIcon } from "@/components/icons";
-import { ActionMenu, Alert } from "@/components/pop-up-menu";
-import { removeAsk } from "@/lib/workout/confirm";
+import { CheckIcon, ChevronUpDown, ListIcon, SfFlameFillIcon, SwapIcon } from "@/components/icons";
+import { SfSymbol } from "@/components/sf-symbol";
 import { Sheet } from "@/components/sheet";
 import { SwipeRow } from "@/components/swipe-row";
 import { cn } from "@/lib/cn";
@@ -40,8 +39,6 @@ export type JournalProps = {
   onSwap: (we: WorkoutExerciseRow) => void;
   /** History: the exercise's sheet on its History tab, without leaving the workout */
   onHistory: (we: WorkoutExerciseRow) => void;
-  onMove: (we: WorkoutExerciseRow, to: "up" | "down" | "end") => void;
-  onRemove: (we: WorkoutExerciseRow) => void;
   onFinish: () => void;
   /** the cards open when the Journal comes back after a sheet opened from it was cancelled */
   initialOpenIds?: ReadonlySet<string>;
@@ -51,8 +48,8 @@ export type JournalProps = {
 
 /**
  * The Journal (Ladder's), pulled up from the focus screen: every exercise in the workout as a card (`ExerciseCard`). The
- * current one starts open with its best weight and estimated 1RM, the floor (on a two-floor exercise), Swap, History and
- * More, and a Log It grid of every set; the others start closed, their sets as circles. Tapping a card's header opens or
+ * current one starts open with its best weight and estimated 1RM, Swap, History and Edit Sets, and a Log It grid of every
+ * set (the floor, on a two-floor exercise, in the Last column's heading); the others start closed, their sets as circles. Tapping a card's header opens or
  * closes it; opening one also moves the focus screen there.
  * Version 1 shows it in the card that grows from the pill (journal-card.tsx); Version 2, with no pill, in a sheet.
  */
@@ -81,8 +78,6 @@ export function JournalBody({
   onPick,
   onSwap,
   onHistory,
-  onMove,
-  onRemove,
   onFinish,
   initialOpenIds,
   onOpenIdsChange,
@@ -109,15 +104,13 @@ export function JournalBody({
     <>
       {/* Ladder's stack: a card per exercise, 4pt apart (measured off Ladder, Figma ZD41TUAEBtLJI7t0qChNup 11:706) */}
       <div className="flex flex-col gap-1">
-        {entries.map((entry, idx) => (
+        {entries.map((entry) => (
           <ExerciseCard
             key={entry.we.id}
             id={entry.we.id}
             entry={entry}
             open={openIds.has(entry.we.id)}
             onToggle={() => toggle(entry.we)}
-            first={idx === 0}
-            last={idx === entries.length - 1}
             currentRow={entry.we.id === current ? currentRow : -1}
             unit={unit}
             best={bests[floorKey(entry.we.exercises.id, entry.we.machine_location)] ?? null}
@@ -131,8 +124,6 @@ export function JournalBody({
             onDeleteRow={onDeleteRow}
             onSwap={onSwap}
             onHistory={onHistory}
-            onMove={onMove}
-            onRemove={onRemove}
           />
         ))}
       </div>
@@ -177,16 +168,17 @@ function Circles({ rows }: { rows: SetRowView[] }) {
  * Frank's call, 2026-11-12, from the Journal Pill Lab). The card is
  * the elevated step above the Journal (`bg-card`: #2c2c2e on the dark Journal, #f2f2f7 on the light), its chips and cells
  * a step above that (`bg-fill`). The header (thumbnail and title) opens and closes it; closed, the title has the sets as
- * circles under it, open, the best weight and estimated 1RM, then the chips, the Log It grid and Add Set, whose height
- * animates.
+ * circles under it, open, the best weight and estimated 1RM, then the chips and the Log It grid, whose height animates.
+ * The chips are Swap, History and Edit Sets (Frank's row from the Journal Card Lab, 2026-11-13,
+ * https://claude.ai/artifact/Fm4BQbQ1kkuxkffbexcpxT). Edit Sets is Ladder's edit mode: the chip becomes a filled Done
+ * Editing, each set's Log It circle a red minus that deletes it, and an Add Set row closes the grid. There is no More:
+ * Swap stands in for removing an exercise, and Do After is in the workout's More menu.
  */
 function ExerciseCard({
   id,
   entry,
   open,
   onToggle,
-  first,
-  last,
   currentRow,
   unit,
   best,
@@ -200,15 +192,11 @@ function ExerciseCard({
   onDeleteRow,
   onSwap,
   onHistory,
-  onMove,
-  onRemove,
 }: {
   id: string;
   entry: Entry;
   open: boolean;
   onToggle: () => void;
-  first: boolean;
-  last: boolean;
   currentRow: number;
   unit: "lbs" | "kg";
   best: Best | null;
@@ -222,8 +210,6 @@ function ExerciseCard({
   onDeleteRow: (entry: Entry, i: number) => void;
   onSwap: (we: WorkoutExerciseRow) => void;
   onHistory: (we: WorkoutExerciseRow) => void;
-  onMove: (we: WorkoutExerciseRow, to: "up" | "down" | "end") => void;
-  onRemove: (we: WorkoutExerciseRow) => void;
 }) {
   const { we, rows } = entry;
   const ex = we.exercises;
@@ -231,9 +217,9 @@ function ExerciseCard({
   const fields = FIELDS[measure];
   // circle, one cell per field (narrower for a treadmill's three), then last time
   const cellWidth = fields.length > 2 ? 58 : 66;
-  const [menu, setMenu] = useState<DOMRect | null>(null);
-  // Remove asks in a centred alert: it is picked from a menu (Frank's rule, 2026-11-13)
-  const [removeAsking, setRemoveAsking] = useState(false);
+  // Edit Sets: on until Done Editing, and off whenever the card closes
+  const [editingOn, setEditing] = useState(false);
+  const editing = editingOn && open;
   const [floorPending, startFloor] = useTransition();
   const columns = `38px ${fields.map(() => `${cellWidth}px`).join(" ")} 1fr`;
   // bumped on every delete so the rows remount: the collapsed row never comes back as the row after it
@@ -266,40 +252,23 @@ function ExerciseCard({
       <div className={cn("grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
       <div className="min-h-0 overflow-hidden" inert={!open}>
       <div className="grid grid-cols-[58px_1fr] gap-x-5 px-4 pb-[14px]">
-      <div className="col-span-2 mt-3 flex gap-2 overflow-x-auto [scrollbar-width:none]">
-        {ex.has_floors && (
-          <label className={cn("relative inline-flex h-9 shrink-0 items-center gap-1 rounded-full bg-fill px-4 text-[15px] font-medium", floorPending && "opacity-50")}>
-            {floorLabel(we.machine_location) ?? "Floor"}
-            <ChevronUpDown size={13} strokeWidth={2.2} />
-            <select
-              aria-label="Floor"
-              value={we.machine_location ?? ""}
-              onChange={(e) =>
-                startFloor(async () => {
-                  try {
-                    await setExerciseFloor(we.id, e.target.value as MachineLocation);
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Could not change the floor");
-                  }
-                })
-              }
-              className="absolute inset-0 cursor-pointer appearance-none opacity-0"
-            >
-              {FLOORS.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
+      {/* one line that scrolls sideways when it outgrows the card */}
+      <div className="col-span-2 -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
         <Chip onClick={() => onSwap(we)}>
           <SwapIcon size={15} /> Swap
         </Chip>
-        <Chip onClick={() => onHistory(we)}>History</Chip>
-        <Chip label="More" onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}>
-          <EllipsisIcon size={17} />
+        <Chip onClick={() => onHistory(we)}>
+          <SfSymbol name="clock.arrow.circlepath" scale={CHIP_SYMBOL} /> History
         </Chip>
+        {editing ? (
+          <Chip onClick={() => setEditing(false)} className="bg-blue text-white">
+            <SfSymbol name="checkmark.circle.fill" scale={CHIP_SYMBOL} /> Done Editing
+          </Chip>
+        ) : (
+          <Chip onClick={() => setEditing(true)}>
+            <SfSymbol name="pencil" scale={CHIP_SYMBOL} /> Edit Sets
+          </Chip>
+        )}
       </div>
 
       {/* The Log It grid: the header, then each set as its own row with swipe to delete, full width so the row and its
@@ -315,87 +284,107 @@ function ExerciseCard({
               {fieldLabel(f, measure, unit)}
             </span>
           ))}
-          <span className="text-center text-[15px] text-ink-2">Last</span>
+          {/* On a two-floor exercise the Last heading is the floor's pop-up button: the floor decides which last time the
+              column shows and which weights fill in (Frank's pick from the Journal Card Lab, 2026-11-13). The value and
+              chevrons are painted, a transparent select over them takes the tap. */}
+          {ex.has_floors ? (
+            <label className={cn("relative inline-flex items-center justify-center gap-0.5 justify-self-center whitespace-nowrap text-[13px] font-semibold text-blue", floorPending && "opacity-50")}>
+              {floorLabel(we.machine_location) ?? "Floor"}
+              <ChevronUpDown size={12} strokeWidth={2.2} />
+              <select
+                aria-label="Floor"
+                value={we.machine_location ?? ""}
+                onChange={(e) =>
+                  startFloor(async () => {
+                    try {
+                      await setExerciseFloor(we.id, e.target.value as MachineLocation);
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Could not change the floor");
+                    }
+                  })
+                }
+                className="absolute inset-0 cursor-pointer appearance-none opacity-0"
+              >
+                {FLOORS.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <span className="text-center text-[15px] text-ink-2">Last</span>
+          )}
         </div>
         <div className="-mx-4 mt-[7.5px]">
-          {rows.map((row, i) => (
-            <SwipeRow
-              key={`${row.set?.id ?? "new"}-${i}-${deletes}`}
-              disabled={pending || rows.length <= 1 || !!row.set?.id.startsWith("pending-")}
-              label="Delete"
-              contentClassName="bg-card"
-              onDelete={() => {
-                onDeleteRow(entry, i);
-                setDeletes((n) => n + 1);
-              }}
+          {rows.map((row, i) => {
+            const deletable = !pending && rows.length > 1 && !row.set?.id.startsWith("pending-");
+            const del = () => {
+              onDeleteRow(entry, i);
+              setDeletes((n) => n + 1);
+            };
+            return (
+              <SwipeRow
+                key={`${row.set?.id ?? "new"}-${i}-${deletes}`}
+                disabled={editing || !deletable}
+                label="Delete"
+                contentClassName="bg-card"
+                onDelete={del}
+              >
+                <SetLine
+                  row={row}
+                  fields={fields}
+                  columns={columns}
+                  width={cellWidth}
+                  last={row.last ? summarizeShort(measure, row.last) : "--"}
+                  value={row.set ? valuesOf(row.set) : valueOf(we.id, i, row)}
+                  current={!editing && i === currentRow}
+                  disabled={pending}
+                  onToggle={() => (row.set ? onUnlog(entry, row.set) : onLog(entry, i))}
+                  onChange={(d) => (row.set ? onEditLogged(row.set, d) : setDraft(we.id, i, d))}
+                  onDelete={editing ? (deletable ? del : null) : undefined}
+                />
+              </SwipeRow>
+            );
+          })}
+          {editing && (
+            <button
+              type="button"
+              onClick={() => onAddRow(we)}
+              className="grid h-[56px] w-full items-center gap-x-[13px] px-4 text-left text-[17px]"
+              style={{ gridTemplateColumns: "38px 1fr" }}
             >
-              <SetLine
-                row={row}
-                fields={fields}
-                columns={columns}
-                width={cellWidth}
-                last={row.last ? summarizeShort(measure, row.last) : "--"}
-                value={row.set ? valuesOf(row.set) : valueOf(we.id, i, row)}
-                current={i === currentRow}
-                disabled={pending}
-                onToggle={() => (row.set ? onUnlog(entry, row.set) : onLog(entry, i))}
-                onChange={(d) => (row.set ? onEditLogged(row.set, d) : setDraft(we.id, i, d))}
-              />
-            </SwipeRow>
-          ))}
+              <span className="grid size-[29px] place-items-center justify-self-center rounded-full border-[1.5px] border-ink">
+                <SfSymbol name="plus" scale={CHIP_SYMBOL} />
+              </span>
+              Add Set
+            </button>
+          )}
         </div>
       </div>
-      <button type="button" onClick={() => onAddRow(we)} className="col-span-2 mt-[8.5px] justify-self-start text-[15px] font-semibold text-blue">
-        + Add Set
-      </button>
       </div>
       </div>
       </div>
 
-      {menu && (
-        <ActionMenu
-          rect={menu}
-          items={[
-            { value: "Do Later" },
-            { value: "Move Up", disabled: first },
-            { value: "Move Down", disabled: last },
-            { value: "Remove", destructive: true },
-          ]}
-          onClose={() => setMenu(null)}
-          onPick={(v) => {
-            if (v === "Do Later") onMove(we, "end");
-            else if (v === "Move Up") onMove(we, "up");
-            else if (v === "Move Down") onMove(we, "down");
-            // always asks: an exercise cannot be added back mid-workout (Frank's call, 2026-11-13)
-            else if (v === "Remove") setRemoveAsking(true);
-          }}
-        />
-      )}
-      {removeAsking &&
-        (() => {
-          const ask = removeAsk(exerciseTitle(ex), we.sets.length);
-          return (
-            <Alert
-              title={ask.title}
-              message={ask.message}
-              action={{ label: ask.action, destructive: true, onPick: () => onRemove(we) }}
-              onClose={() => setRemoveAsking(false)}
-            />
-          );
-        })()}
     </div>
   );
 }
 
-function Chip({ label, onClick, children }: { label?: string; onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; children: React.ReactNode }) {
+/** Symbols are rendered at 19pt (scripts/sf-symbols.js); a chip draws them at its 15pt label size */
+const CHIP_SYMBOL = 15 / 19;
+
+function Chip({ onClick, className, children }: { onClick: () => void; className?: string; children: React.ReactNode }) {
   return (
-    <button type="button" aria-label={label} onClick={onClick} className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-fill px-4 text-[15px] font-medium">
+    <button type="button" onClick={onClick} className={cn("inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-fill px-4 text-[15px] font-medium", className)}>
       {children}
     </button>
   );
 }
 
-/** One set in the grid: the Log It circle (tap to log, tap again to undo), a cell per field and last time. */
+/**
+ * One set in the grid: the Log It circle (tap to log, tap again to undo), a cell per field and last time. In Edit Sets
+ * (`onDelete` given) the circle is a red minus that deletes the set, or empty when the set cannot go (the last one left).
+ */
 function SetLine({
   row,
   fields,
@@ -407,6 +396,7 @@ function SetLine({
   disabled,
   onToggle,
   onChange,
+  onDelete,
 }: {
   row: SetRowView;
   fields: readonly Field[];
@@ -418,6 +408,8 @@ function SetLine({
   disabled: boolean;
   onToggle: () => void;
   onChange: (d: Draft) => void;
+  /** Edit Sets: null when this set cannot be deleted; undefined when not editing */
+  onDelete?: (() => void) | null;
 }) {
   const cell = cn(
     "tabular h-[41px] rounded-[10px] border-[1.5px] border-sep bg-transparent p-0 text-center text-[17px] font-semibold outline-none focus:border-blue placeholder:text-ink-3",
@@ -428,19 +420,34 @@ function SetLine({
       {/* The current set's row is tinted blue across the card, as Ladder highlights it in its accent (Frank's call,
           2026-11-09): 15% blue over the row's own card colour, 56pt tall as Ladder's, sliding with the row. */}
       {current && <span aria-hidden className="pointer-events-none absolute inset-0 bg-blue/15" />}
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={onToggle}
-        aria-label={row.set ? `Undo set ${row.label}` : `Log set ${row.label}`}
-        className={cn(
-          "tabular relative grid size-[29px] place-items-center justify-self-center rounded-full border-[1.5px] text-[14px] font-semibold",
-          "border-ink",
-          row.set && "border-blue bg-blue text-white",
-        )}
-      >
-        {row.set ? "✓" : row.kind === "warm" ? <SfFlameFillIcon size={15} /> : row.label}
-      </button>
+      {onDelete !== undefined ? (
+        onDelete ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label={`Delete set ${row.label}`}
+            className="relative grid size-[29px] place-items-center justify-self-center rounded-full bg-red text-white"
+          >
+            <SfSymbol name="minus" scale={CHIP_SYMBOL} />
+          </button>
+        ) : (
+          <span />
+        )
+      ) : (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onToggle}
+          aria-label={row.set ? `Undo set ${row.label}` : `Log set ${row.label}`}
+          className={cn(
+            "tabular relative grid size-[29px] place-items-center justify-self-center rounded-full border-[1.5px] text-[14px] font-semibold",
+            "border-ink",
+            row.set && "border-blue bg-blue text-white",
+          )}
+        >
+          {row.set ? "✓" : row.kind === "warm" ? <SfFlameFillIcon size={15} /> : row.label}
+        </button>
+      )}
       {fields.map((f) => (
         <FieldCell key={f} field={f} value={value[f]} width={width} className={cn(cell, "relative")} onCommit={(v) => onChange({ ...value, [f]: v })} />
       ))}

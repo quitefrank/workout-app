@@ -12,6 +12,8 @@ ObjC.import("AppKit");
 const SYMBOLS = [
   "house.fill", "square.stack.fill", "chart.line.uptrend.xyaxis", "minus", "plus",
   "list.bullet.rectangle", "arrow.triangle.2.circlepath", "arrow.turn.down.right", "gearshape", "checkmark.circle", "xmark.circle",
+  // the Journal card's chips (Frank's row from the Journal Card Lab, 2026-11-13): History, Edit Sets and Done Editing
+  "clock.arrow.circlepath", "pencil", "checkmark.circle.fill",
 ];
 const POINT_SIZE = 19; // a tab bar symbol
 const SCALE = 6; // px per point, so the glass lens can magnify without blur

@@ -15,8 +15,7 @@ import {
   deleteSet,
   discardWorkout,
   logSet,
-  moveWorkoutExercise,
-  removeWorkoutExercise,
+  moveAfterNext,
   updateSet,
 } from "@/app/actions";
 import { Button } from "@/components/button";
@@ -513,16 +512,16 @@ export function ActiveWorkout({
   const exit = exitAsk(loggedSets);
   const discard = () => run(() => discardWorkout(workout.id), "Could not exit the workout");
 
-  const move = (we: WorkoutExerciseRow, to: "up" | "down" | "end") => {
+  // Do After: the machine is taken, so this exercise goes after the next one (Frank's call, 2026-11-13). There is no
+  // Remove: Swap covers it.
+  const doAfter = (we: WorkoutExerciseRow) => {
+    const i = entries.findIndex((e) => e.we.id === we.id);
+    const next = entries[i + 1];
+    if (!next) return;
     if (pinned === we.id) setPinned(null);
     if (viewId === we.id) setViewId(null);
-    run(() => moveWorkoutExercise(we.id, to), "Could not move the exercise");
-    if (to === "end") toast(`${exerciseTitle(we.exercises)} moved to the end`);
-  };
-  const remove = (we: WorkoutExerciseRow) => {
-    if (pinned === we.id) setPinned(null);
-    if (viewId === we.id) setViewId(null);
-    run(() => removeWorkoutExercise(we.id), "Could not remove the exercise");
+    run(() => moveAfterNext(we.id), "Could not move the exercise");
+    toast(`${exerciseTitle(we.exercises)} moved after ${exerciseTitle(next.we.exercises)}`);
   };
 
   const upNext = shownIndex >= 0 ? entries[shownIndex + 1] : undefined;
@@ -570,8 +569,6 @@ export function ActiveWorkout({
       }),
     initialOpenIds: journalRestore?.openIds ?? undefined,
     onOpenIdsChange: rememberOpenIds,
-    onMove: move,
-    onRemove: remove,
     onFinish: () => {
       closeJournal();
       setFinishing(true);
@@ -943,11 +940,12 @@ export function ActiveWorkout({
         <ActionMenu
           rect={menu}
           // Frank's layout from the More Menu Lab (2026-11-13, https://claude.ai/artifact/UnFkaJUBwEUwquSLLk4AGn): a row
-          // of three, Settings, then the two ways out. Swap and Do Later need an exercise on screen.
+          // of three, Settings, then the two ways out. Swap and Do After need an exercise on screen; Do After is dimmed on
+          // the last one, with nothing to go after.
           palette={[
             { value: "Journal", icon: "list.bullet.rectangle" },
             ...(shown && !toolbar ? [{ value: "Swap", icon: "arrow.triangle.2.circlepath" as const }] : []),
-            ...(shown ? [{ value: "Do Later", icon: "arrow.turn.down.right" as const }] : []),
+            ...(shown ? [{ value: "Do After", icon: "arrow.turn.down.right" as const, disabled: !upNext }] : []),
           ]}
           items={[
             { value: "Settings", icon: "gearshape" },
@@ -956,7 +954,7 @@ export function ActiveWorkout({
           ]}
           onClose={() => setMenu(null)}
           onPick={(v) => {
-            if (v === "Do Later" && shown) move(shown.we, "end");
+            if (v === "Do After" && shown) doAfter(shown.we);
             else if (v === "Swap" && shown) setSwapFor(shown.we);
             else if (v === "Journal") openJournal();
             else if (v === "Settings") setSettingsOpen(true);

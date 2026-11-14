@@ -349,31 +349,23 @@ async function shiftPositions(workoutId: string, position: number): Promise<void
   }
 }
 
-/** Do Later (to the end), Move Up or Move Down. Positions are rewritten 1..n in the new order. */
-export async function moveWorkoutExercise(workoutExerciseId: string, to: "up" | "down" | "end"): Promise<void> {
+/** Do After: the exercise goes one place down, after the next one. On the last exercise it stays. Positions are rewritten
+ *  1..n in the new order. */
+export async function moveAfterNext(workoutExerciseId: string): Promise<void> {
   const we = await ownedWorkoutExercise(workoutExerciseId);
   const { data, error } = await db().from("workout_exercises").select("id, position").eq("workout_id", we.workout_id).order("position");
   fail(error);
   const order = (data ?? []).map((r) => r.id);
   const i = order.indexOf(workoutExerciseId);
-  if (i < 0) return;
+  if (i < 0 || i === order.length - 1) return;
   order.splice(i, 1);
-  const j = to === "end" ? order.length : to === "up" ? Math.max(0, i - 1) : Math.min(order.length, i + 1);
-  order.splice(j, 0, workoutExerciseId);
+  order.splice(i + 1, 0, workoutExerciseId);
   const before = new Map((data ?? []).map((r) => [r.id, r.position]));
   for (const [k, id] of order.entries()) {
     if (before.get(id) === k + 1) continue;
     const { error: e } = await db().from("workout_exercises").update({ position: k + 1 }).eq("id", id);
     fail(e);
   }
-  refreshWorkout(we.workout_id);
-}
-
-/** Take an exercise out of today's workout, with any sets logged on it. The template is untouched. */
-export async function removeWorkoutExercise(workoutExerciseId: string): Promise<void> {
-  const we = await ownedWorkoutExercise(workoutExerciseId);
-  const { error } = await db().from("workout_exercises").delete().eq("id", workoutExerciseId);
-  fail(error);
   refreshWorkout(we.workout_id);
 }
 

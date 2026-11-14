@@ -458,7 +458,8 @@ The words are in `src/lib/workout/confirm.ts` and `startAsk` (tested).
 
 ## Swipe to delete a set
 
-A set row in the Journal deletes with UITableView's trailing swipe (Frank's call, 2026-11-12), the pair to + Add Set.
+A set row in the Journal deletes with UITableView's trailing swipe (Frank's call, 2026-11-12), beside Edit Sets' red
+minus (see "Active workout"); swipe is off while editing.
 `src/components/swipe-row.tsx` is the gesture; its values are pure and tested in `src/lib/swipe-row.ts`, taken from
 SwipeCellKit's `.destructive` style (built to match Mail; Apple publishes no numbers, sources in the file's header): a
 74pt Delete, 1:1 travel to 30pt short of the row's width and 20% past it, a full swipe armed past that or with the
@@ -467,7 +468,7 @@ release on UIKit's mass 1 / stiffness 100 / damping 18 spring, and a delete that
 0.3s. One row is open at a time; a tap elsewhere or a scroll closes it. iOS Safari has no haptics, so the arming tick
 is missing on the phone. The last row of an exercise can't be deleted. What a delete means is
 `src/lib/workout/row-delete.ts` (tested): a logged row deletes its set; prescribed rows are dropped off the end of
-their block as a count, kept on the screen like + Add Set's, and the rows after keep their values.
+their block as a count, kept on the screen like Add Set's, and the rows after keep their values.
 
 ## Drop sets
 
@@ -1040,10 +1041,13 @@ lifts over the canvas while typing.
   Swap in Pill setting and its `workout_pill_swap` cookie are gone): Swap Exercise is in More and on each exercise card.
 
 The More menu (Frank's layout from the More Menu Lab, 2026-11-13, https://claude.ai/artifact/UnFkaJUBwEUwquSLLk4AGn)
-is a row of three, Journal, Swap and Do Later, each an SF Symbol over a 13pt label (`palette` on `ActionMenu`, as
+is a row of three, Journal, Swap and Do After, each an SF Symbol over a 13pt label (`palette` on `ActionMenu`, as
 UIMenu's medium element size), then a hairline, Settings, a hairline, Complete Workout and Exit Workout Early in red.
 List rows lead with a 17pt SF Symbol in a 26pt column, 11pt to the label, 24pt in from the menu's edges (`icon` and
-`separator` on `PopUpItem`). Swap and Do Later show only while an exercise is on screen. Back to Home was removed:
+`separator` on `PopUpItem`). Swap and Do After show only while an exercise is on screen. Do After moves it one place
+down, after the next exercise, for a machine that is taken (`moveAfterNext`; Frank's call, 2026-11-13, replacing Do
+Later, which sent it to the end), and is dimmed on the last exercise. It is the only reorder: Move Up and Move Down are
+gone, and there is no Remove, since Swap covers it. Back to Home was removed:
 Complete and Exit are the two ways out. The app's words are Complete (never Finish) and Exit Workout Early (never
 Discard) everywhere on screen, including the finish sheet, the Journal's button and the Start sheet's in-progress
 question (Frank's call, 2026-11-13); code names (`FinishSheet`, `discardWorkout`) keep theirs. Exit Workout Early's
@@ -1082,8 +1086,14 @@ and records, totals and stepper steps live there too. `journal.tsx` is the Journ
 (`SfFlameFillIcon`, a mask in `public/icons`, Frank's call, 2026-11-09, aware Apple licenses SF Symbols for Apple-platform
 apps) in the label colour, never orange. The current set's Log It circle keeps the default ring (no blue, no outer ring; it got
 lost on the band) and its row a 15% blue band across the card, as Ladder tints its active row (no left-edge bar). It has no sections (supersets get none until there is a way to mark one): every exercise with set
-circles, the shown one open with Max Weight and Est. 1 Rep Max (`bests` in `getWorkout`), a floor chip on two-floor
-exercises, Swap, History and More (Do Later, Move Up, Move Down, Remove), and a Log It grid. Swap and History close
+circles, the shown one open with Max Weight and Est. 1 Rep Max (`bests` in `getWorkout`), one line of chips that
+scrolls sideways (Swap, History with `clock.arrow.circlepath`, Edit Sets with `pencil`; no More), and a Log It grid
+(Frank's row from the Journal Card Lab, 2026-11-13, https://claude.ai/artifact/Fm4BQbQ1kkuxkffbexcpxT). On a two-floor
+exercise the Last heading is the floor's pop-up button ("Upstairs" and up-down chevrons in blue), since the floor decides
+which last time the column shows. Edit Sets is Ladder's edit mode: the chip becomes a filled Done Editing
+(`checkmark.circle.fill`), each Log It circle a red minus that deletes the set (hidden on the last set left, as swipe
+is), and an Add Set row closes the grid; the band is off while editing, and closing the card ends it. Adding a set lives
+only there. Swap and History close
 the Journal and open their sheet (History is the exercise sheet on its History tab, `initialTab`, so it no longer
 leaves the workout), and a cancel reopens the Journal where it was (see the sheet rules under "App"). `swap-sheet.tsx` is a
 carousel of `getSwapPicks` (the program's subs, versions of the movement done before, the muscle group's most done)
@@ -1241,6 +1251,7 @@ measurements in `docs/lab/glass-presets.md`.
 - Done: programs in the UI (`/programs/[id]`, Programs on Templates,
   Up Next on Home) and the Achilles rehab templates by phase.
 - Done (2026-11-08): the Ladder-aligned active workout, with swapping, Do Later, Move and Remove (see "Active workout").
+  Changed 2026-11-13: Do Later became Do After (one place down), and Move and Remove left with the card's More.
   Not built: adding an exercise mid-workout, and supersets of two lifts that alternate. A lift with a static stretch
   between its sets is built (see "What a set measures").
 - `_notion_id` stays: it is the ownership key for the three seeds
