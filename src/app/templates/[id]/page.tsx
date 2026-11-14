@@ -169,20 +169,20 @@ export default async function TemplatePage({
               art,
               row: (
                 <>
-                  {/* Row's layout with the lines flipped: the sets over the name, as the active workout's header has them */}
+                  {/* Row's layout: the target and name, then the sets under them, as Ladder lists a workout (Figma ZD41TUAEBtLJI7t0qChNup 61:5) */}
                   <div className="flex min-h-11 items-center gap-3 px-4 py-2.5">
                     {/* the exercise's illustration, as the library's rows show it, in place of its number */}
                     <div className="size-12 shrink-0 overflow-hidden rounded-[10px] bg-[var(--muscle-tile)]">
                       <ExerciseArt slug={r.exercises.slug} pad="p-1" art={art} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-[15px] leading-5 text-ink-2">
-                        {dose || (template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type])}
-                      </div>
                       <div className="truncate text-[17px] leading-[22px]">
                         {target && <span className="text-blue">{target} </span>}
                         {exerciseTitle(r.exercises)}
                         {r.variant && <span className="text-ink-2"> · {r.variant}</span>}
+                      </div>
+                      <div className="truncate text-[15px] leading-5 text-ink-2">
+                        {dose || (template.category === "rehab" ? "No dose given" : EQUIPMENT_LABELS[r.exercises.equipment_type])}
                       </div>
                     </div>
                     <svg width="8" height="13" viewBox="0 0 8 13" aria-hidden className="shrink-0 text-ink-3">

@@ -251,11 +251,11 @@ function PreviewStep({
                 />
               </div>
               <div className="min-w-0 flex-1">
-                {r.dose && <div className="truncate text-[15px] leading-5 text-ink-2">{r.dose}</div>}
                 <div className="truncate text-[17px] leading-[22px]">
                   {r.target && <span className="text-blue">{r.target} </span>}
                   {r.title}
                 </div>
+                {r.dose && <div className="truncate text-[15px] leading-5 text-ink-2">{r.dose}</div>}
               </div>
             </div>
           ))}
