@@ -24,12 +24,13 @@ export const exerciseImageSrc = (slug: string | null | undefined): string => `/e
  * inset by `pad`, on the themed tile. The image stays square, since the glass painter draws an image into its box and
  * ignores object-fit.
  */
-export function ExerciseArt({ slug, art, pad = "p-1.5" }: { slug: string | null | undefined; art: ReactNode; pad?: string }) {
+/** `thumb`: a row thumbnail, zoomed by the per-device test setting (src/lib/thumb-zoom.ts); large art never is */
+export function ExerciseArt({ slug, art, pad = "p-1.5", thumb = false }: { slug: string | null | undefined; art: ReactNode; pad?: string; thumb?: boolean }) {
   if (!hasExerciseImage(slug)) return <div className={cn("size-full", pad)}>{art}</div>;
   return (
     <div className="flex size-full justify-center bg-[var(--exercise-tile)]">
       {/* eslint-disable-next-line @next/next/no-img-element -- served as sized WebP, and the glass painter reads the element */}
-      <img src={exerciseImageSrc(slug)} alt="" className="aspect-square h-full" />
+      <img src={exerciseImageSrc(slug)} alt="" className={cn("aspect-square h-full", thumb && "thumb-zoom")} />
     </div>
   );
 }

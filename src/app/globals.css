@@ -1614,7 +1614,9 @@ html:not(.gpu) .glass[data-glass-hidden] {
     backdrop-filter: var(--soft-blur);
     -webkit-backdrop-filter: var(--soft-blur);
   }
-  html.gpu .soft-edge:not(.soft-edge-live) > .soft-edge-blur {
+  html.gpu .soft-edge:not(.soft-edge-live) > .soft-edge-blur,
+  /* Settings > Bottom edge > Style: Gradient only (src/lib/soft-edge-style.ts) drops every blur layer, live ones too */
+  html[data-edge-style="gradient"] .soft-edge-blur {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -1626,5 +1628,13 @@ html:not(.gpu) .glass[data-glass-hidden] {
   .focus-slide-l > .soft-edge,
   .focus-slide-r > .soft-edge {
     animation: none;
+  }
+}
+
+/* Row thumbnails zoom into their illustration by --thumb-zoom, a per-device test setting (src/lib/thumb-zoom.ts,
+   2026-11-14); the container clips, and the glass painter draws the scale and the clip */
+@layer components {
+  .thumb-zoom {
+    scale: var(--thumb-zoom, 1);
   }
 }

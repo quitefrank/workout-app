@@ -1227,6 +1227,21 @@ readout (`?glassdebug=1`) shows frames, renders, paints and rebuilds per second 
   under the canvas. The rest chime is a timeout at the end of rest either way.
 - `gpu`, `dpr2`, `edge`, `push`: diagnostics (the stage off, a 2x canvas, the painted soft edges off, the page push off).
 
+Two per-device test settings came out of Frank's phone test (2026-11-14), mounted by `DevicePrefs` in the layout:
+
+- Settings > Bottom edge > Style (`src/lib/soft-edge-style.ts`, tested): every soft edge, the tab bar's, Start
+  Workout's and the active workout's, drawn as Blur and gradient (as built), Fast blur (`drawFastBlur` in `paint.ts`: a
+  quarter-resolution copy in three bands) or Gradient only (no blur; `html[data-edge-style="gradient"]` drops the CSS
+  blur layers too). Switching the tab bar's edge off made scrolling smoother on the phone, which prompted the options.
+  In desktop Chromium at 3x on the iPhone blur path, Gradient only scrolled about 38% more frames than the full blur,
+  Fast blur about 8%.
+- Settings > Library > Thumbnails (`src/lib/thumb-zoom.ts`, tested): row thumbnails zoom 1x, 1.5x or 2x into their
+  illustration (`--thumb-zoom` on body, `.thumb-zoom` as `scale`; `ExerciseArt`'s `thumb` and `WorkoutThumb`), to try
+  the crop before Frank edits the images and small thumbnails are generated. Large art is never zoomed. At 2x a centred
+  crop loses the red highlight on some exercises (Ankle Stretch, Arm Circles); 1.5x keeps it.
+
+The glass readout sits above the tab bar, about seven lines tall, and scrolls (Frank's call, 2026-11-14).
+
 Still open (next phases): scroll on the GPU path repaints and uploads the whole page every frame (about 20fps in desktop
 Chromium even at 1x; the tab bar's soft edge alone halves Home's rate, 22 to 48fps without it); server waves, duplicate
 layout and page queries and the iad1 region (Supabase is ca-central-1, Vercel offers `yul1`); 1024px thumbnails.

@@ -4,7 +4,8 @@ import { useMemo, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/button";
 import { Group } from "@/components/segmented";
-import { ToggleRow } from "@/components/settings-rows";
+import { SelectRow, ToggleRow } from "@/components/settings-rows";
+import { EDGE_STYLES, edgeStyleSnapshot, onEdgeStyleChange, setEdgeStyle } from "@/lib/soft-edge-style";
 import { TuneSlider } from "@/components/tune-slider";
 import {
   parseSwitch,
@@ -34,12 +35,14 @@ export function StartEdgeTune() {
   const raw = useSyncExternalStore(subscribeTune, readTuneRaw, () => null);
   const t = useMemo(() => parseTune(raw), [raw]);
   const set = (next: Tune) => writeTune(next);
+  const style = useSyncExternalStore(onEdgeStyleChange, edgeStyleSnapshot, () => "blur" as const);
   const changed = TUNE_DIALS.some((d) => t[d.key] !== TUNE_DEFAULTS[d.key]);
   return (
     <Group
       title="Bottom edge"
-      footer="The fade under the tab bar, and behind the Start Workout button on a workout's page, each while its switch is on (the active workout keeps its own). It runs from the screen's bottom up to the reach above the button or bar, strongest at the bottom. Saved on this device only."
+      footer="The fade under the tab bar, and behind the Start Workout button on a workout's page, each while its switch is on (the active workout keeps its own). It runs from the screen's bottom up to the reach above the button or bar, strongest at the bottom. Style applies to every soft edge, the active workout's too: Fast blur blurs at quarter resolution, Gradient only drops the blur. Saved on this device only."
     >
+      <SelectRow label="Style" value={style} options={EDGE_STYLES} onChange={setEdgeStyle} />
       {SWITCHES.map((s) => (
         <ToggleRow key={s.key} label={s.label} checked={parseSwitch(raw, s.key)} onChange={(on) => writeSwitch(s.key, on)} />
       ))}

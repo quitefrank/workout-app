@@ -13,6 +13,7 @@ import type { Settings } from "@/lib/data/queries";
 import { type LibraryLayout, setLibraryLayout } from "@/lib/library-layout";
 import { formatRest } from "@/lib/workout/format";
 import { StartEdgeTune } from "./start-edge-tune";
+import { onThumbZoomChange, setThumbZoom, thumbZoom, THUMB_ZOOMS } from "@/lib/thumb-zoom";
 import { PerfLevers } from "./perf-levers";
 
 const REST_STEPS = [60, 90, 120, 150, 180, 210, 240, 300];
@@ -34,6 +35,7 @@ export function SettingsForm({
   const [pending, start] = useTransition();
   // a device setting: the server renders it off, the device reads its own
   const stored = useSyncExternalStore(noop, debugSetting, () => false);
+  const zoom = useSyncExternalStore(onThumbZoomChange, thumbZoom, () => 1);
   const [debug, setDebug] = useState<boolean | null>(null);
   const debugOn = debug ?? stored;
 
@@ -77,7 +79,7 @@ export function SettingsForm({
         />
       </Group>
 
-      <Group title="Library" footer="Pills switch the Library between Exercises, Workouts and Programs under the search field. Saved on this device only.">
+      <Group title="Library" footer="Pills switch the Library between Exercises, Workouts and Programs under the search field. Thumbnails zooms row thumbnails into their illustration, to try the crop. Saved on this device only.">
         <SelectRow
           label="Layout"
           value={libraryLayout}
@@ -92,6 +94,7 @@ export function SettingsForm({
             router.refresh();
           }}
         />
+        <SelectRow label="Thumbnails" value={zoom} options={THUMB_ZOOMS} onChange={setThumbZoom} />
       </Group>
 
       <Group title="Units" footer="Machine and cardio readings always show the raw number, with no unit.">

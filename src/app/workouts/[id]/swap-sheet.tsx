@@ -188,7 +188,7 @@ export function SwapSheet({
               {results.slice(0, 120).map((e) => (
                 <button key={e.id} type="button" disabled={pending} onClick={() => swap(e.id, e.name)} className="flex w-full items-center gap-3 px-4 py-2 text-left">
                   <span className="size-11 shrink-0 overflow-hidden rounded-[10px] bg-fill">
-                    <ExerciseArt slug={e.slug} art={null} />
+                    <ExerciseArt slug={e.slug} art={null} thumb />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-[17px]">{e.name}</span>

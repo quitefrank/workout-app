@@ -22,6 +22,7 @@ export function ExerciseRow({ item, art, showGroup, onOpen }: { item: LibraryIte
             <ExerciseArt
               slug={item.slug}
               pad="p-1"
+              thumb
               art={
                 art || (
                   <div className="grid size-full place-items-center text-ink-3">

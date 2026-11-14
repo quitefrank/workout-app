@@ -1,6 +1,7 @@
 import { gradientLine, parseColor, resolveStops, type Gradient, type Shadow } from "./css";
 import type { Clip, DisplayList, Item } from "./display-list";
 import { perf } from "@/lib/perf-flags";
+import { edgeStyle } from "@/lib/soft-edge-style";
 
 const ELLIPSIS = "\u2026";
 const SENTINEL = "#010203";
@@ -308,6 +309,66 @@ function sharedChain(src: CanvasImageSource, w: number, h: number, levels: numbe
   };
 }
 
+/** The fast edge's bands, weakest first, each ramping in over a third of the box as the full edge's six do */
+const FAST_BANDS = [1 / 3, 2 / 3, 1];
+/** The fast edge works at a quarter of the canvas's resolution: a sixteenth of the pixels */
+const FAST_SCALE = 4;
+
+/**
+ * The fast soft edge (style `fast`, 2026-11-14): the box and a margin halved twice to a quarter-resolution copy, blurred
+ * there in three bands, each masked and drawn back up over the box. A blurred image scales up smoothly, so the loss is
+ * little detail where there is meant to be none. Scratch slots 30 and 31 hold the copy and a band; 2 and 3 the halvings.
+ */
+function drawFastBlur(c: CanvasRenderingContext2D, sigma: number, x0: number, y0: number, w: number, h: number, top: boolean) {
+  try {
+    const cw = c.canvas.width, ch = c.canvas.height, k = FAST_SCALE;
+    const pad = Math.ceil(sigma * 2);
+    const px0 = Math.max(0, x0 - pad), py0 = Math.max(0, y0 - pad);
+    const pw = Math.min(cw, x0 + w + pad) - px0, ph = Math.min(ch, y0 + h + pad) - py0;
+    if (pw <= 0 || ph <= 0) return;
+    // two halvings, each a 2x2 average, so the quarter copy does not alias as one large downscale would
+    const hw = Math.max(1, Math.ceil(pw / 2)), hh = Math.max(1, Math.ceil(ph / 2));
+    const half = sized(2, hw, hh);
+    half.ctx.imageSmoothingEnabled = true; half.ctx.imageSmoothingQuality = "high";
+    half.ctx.drawImage(c.canvas, px0, py0, pw, ph, 0, 0, hw, hh);
+    const sw = Math.max(1, Math.ceil(hw / 2)), sh = Math.max(1, Math.ceil(hh / 2));
+    const small = sized(30, sw, sh);
+    small.ctx.imageSmoothingEnabled = true; small.ctx.imageSmoothingQuality = "high";
+    small.ctx.drawImage(half.canvas, 0, 0, hw, hh, 0, 0, sw, sh);
+    const filter = filterSupported() && !perf("mip");
+    // the box inside the copy, in the copy's pixels
+    const bx = (x0 - px0) / k, by = (y0 - py0) / k, bw = w / k, bh = h / k;
+    for (let i = 0; i < FAST_BANDS.length; i++) {
+      const s = (sigma / k) * FAST_BANDS[i];
+      const band = sized(31, sw, sh);
+      const b = band.ctx;
+      if (filter) {
+        b.filter = `blur(${s}px)`;
+        b.drawImage(small.canvas, 0, 0, sw, sh, 0, 0, sw, sh);
+        b.filter = "none";
+      } else {
+        mipBlur(small.canvas, sw, sh, s, b, 0, 0);
+      }
+      const start = i / FAST_BANDS.length;
+      const g = top ? b.createLinearGradient(0, by + bh, 0, by) : b.createLinearGradient(0, by, 0, by + bh);
+      g.addColorStop(start, "rgba(0,0,0,0)");
+      g.addColorStop(Math.min(1, start + 1 / FAST_BANDS.length), "rgba(0,0,0,1)");
+      g.addColorStop(1, "rgba(0,0,0,1)");
+      b.globalCompositeOperation = "destination-in";
+      b.fillStyle = g;
+      b.fillRect(0, 0, sw, sh);
+      b.globalCompositeOperation = "source-over";
+      c.save();
+      c.setTransform(1, 0, 0, 1, 0, 0);
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+      c.drawImage(band.canvas, bx, by, bw, bh, x0, y0, w, h);
+      c.restore();
+    }
+  } catch {
+    // no scratch canvas: the gradient alone still carries the edge
+  }
+}
+
 /**
  * Apple's soft scroll edge on the painted page: blur what is already painted in the box, in bands that grow toward the
  * edge, then the screen's colour fading in toward it. The page so far is copied out of the canvas (with a margin, so the
@@ -325,8 +386,10 @@ function drawSoftEdge(c: CanvasRenderingContext2D, it: Extract<Item, { k: "soft"
   const w = x1 - x0, h = y1 - y0;
   if (w <= 0 || h <= 0) return;
   const top = it.edge === "top";
-
-  try {
+  // Settings > Bottom edge > Style (src/lib/soft-edge-style.ts): `gradient` draws no blur, `fast` a quarter-res one
+  const style = edgeStyle();
+  if (style === "fast") drawFastBlur(c, it.blur * ratio, x0, y0, w, h, top);
+  if (style === "blur") try {
     const sigma = it.blur * ratio;
     const pad = Math.ceil(sigma * 3);
     const px0 = Math.max(0, x0 - pad), py0 = Math.max(0, y0 - pad);

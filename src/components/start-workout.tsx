@@ -243,6 +243,7 @@ function PreviewStep({
                 <ExerciseArt
                   slug={r.slug}
                   pad="p-1"
+              thumb
                   art={
                     <div className="grid size-full place-items-center text-ink-3">
                       <FigureIcon size={20} />

@@ -173,7 +173,7 @@ export default async function TemplatePage({
                   <div className="flex min-h-11 items-center gap-3 px-4 py-2.5">
                     {/* the exercise's illustration, as the library's rows show it, in place of its number */}
                     <div className="size-12 shrink-0 overflow-hidden rounded-[10px] bg-[var(--muscle-tile)]">
-                      <ExerciseArt slug={r.exercises.slug} pad="p-1" art={art} />
+                      <ExerciseArt slug={r.exercises.slug} pad="p-1" art={art} thumb />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[17px] leading-[22px]">

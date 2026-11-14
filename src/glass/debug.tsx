@@ -81,9 +81,10 @@ export function GlassDebug() {
   const lines = typing
     ? [`html.gpu ${gpu}  phase ${s.phase}`, g.inner, g.vv, g.canvas, g.window]
     : [
+        // the rates first: the panel shows about seven lines and scrolls for the rest
+        rateLine(),
         `html.gpu ${gpu}  phase ${s.phase}  frames ${s.frames}`,
         `adapter ${s.adapter || "?"}  stage ${s.stage || "?"}`,
-        rateLine(),
         g.inner, g.vv, g.canvas, g.window, g.bars,
         s.error ? `error ${s.error}` : "error none",
         ...s.entries.map((e) => `${e.laidOut ? "on" : "off"} ${e.compile}  ${e.label}`),
@@ -92,10 +93,11 @@ export function GlassDebug() {
     <pre
       // fixed over the canvas already, so it takes no live lift (whose position: relative would pull it to the top)
       data-glass-debug
-      // at the bottom, over the dock, so it never covers the top bar or the search field
+      // Just above the tab bar (Frank's call, 2026-11-14: over the dock it blocked navigation), about seven lines tall and
+      // scrollable with a finger. The bar is 62pt at --dock-bottom; 8pt above it.
       // while typing, just above the keyboard: the top of what is on screen plus its height (src/lib/scroller.ts)
-      style={typing ? { top: "calc(var(--vv-h, 100vh) - 84px)" } : { bottom: "calc(env(safe-area-inset-bottom, 0px) + 8px)" }}
-      className={`pointer-events-none fixed inset-x-2 z-[100] overflow-hidden whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-white ${typing ? "text-[9px] leading-[11px]" : "max-h-[45vh] text-[10px] leading-[13px]"}`}
+      style={typing ? { top: "calc(var(--vv-h, 100vh) - 84px)" } : { bottom: "calc(var(--dock-bottom, 21px) + 62px + 8px)" }}
+      className={`fixed inset-x-2 z-[100] whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-white ${typing ? "pointer-events-none overflow-hidden text-[9px] leading-[11px]" : "max-h-[107px] touch-pan-y overflow-y-auto overscroll-contain text-[10px] leading-[13px]"}`}
     >
       {lines.join("\n")}
     </pre>

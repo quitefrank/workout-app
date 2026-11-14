@@ -148,7 +148,7 @@ export function JournalBody({
 function Thumb({ we }: { we: WorkoutExerciseRow }) {
   return (
     <span className="block size-[58px] overflow-hidden rounded-[10px] bg-fill">
-      <ExerciseArt slug={we.exercises.slug} art={<ListIcon size={20} className="m-auto mt-5 text-ink-3" />} pad="p-0" />
+      <ExerciseArt slug={we.exercises.slug} art={<ListIcon size={20} className="m-auto mt-5 text-ink-3" />} pad="p-0" thumb />
     </span>
   );
 }
