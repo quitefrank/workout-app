@@ -87,9 +87,11 @@ export default async function RootLayout({
   let recommended: Awaited<ReturnType<typeof getTopRecommendation>> = null;
   if (missing.length === 0) {
     try {
-      [inProgress, templates, next] = await Promise.all([getInProgress(), listTemplates(), getNextTemplate()]);
-      // the sheet's hero: Up Next when a program is followed, else Home's first Recommended
-      if (!next) recommended = await getTopRecommendation();
+      // the sheet's hero: Up Next when a program is followed, else Home's first Recommended, both started at once
+      // (2026-11-14) rather than Recommended waiting on the program; the page shares their reads through the cache
+      let top: Awaited<ReturnType<typeof getTopRecommendation>> = null;
+      [inProgress, templates, next, top] = await Promise.all([getInProgress(), listTemplates(), getNextTemplate(), getTopRecommendation()]);
+      if (!next) recommended = top;
     } catch (e) {
       problem = e instanceof Error ? e.message : String(e);
     }

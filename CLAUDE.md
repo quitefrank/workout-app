@@ -1255,9 +1255,15 @@ Two per-device test settings came out of Frank's phone test (2026-11-14), mounte
 
 The glass readout sits in the status bar's band at the top, four lines (rates, changed levers, stage, error), and never takes a tap (Frank's call, 2026-11-14).
 
+Server (phase 3, 2026-11-14): functions run in Montreal (`regions: ["yul1"]` in `vercel.json`, beside Supabase's
+ca-central-1; they ran in iad1). The reads the layout and a page share are wrapped in React's `cache` at the bottom of
+`queries.ts`, one read per request. `getProgram` is two waves (it was six), Home and the layout start every read at
+once (Recommended's inputs even when a program is followed), and `getWorkout` loads its records beside the versions and
+last times. `experimental.staleTimes.dynamic` is 30s, so Back and a tab switch reuse a page seen in the last 30 seconds;
+every data-changing action revalidates the layout (`refreshWorkout`), which clears it.
+
 Still open (next phases): scroll on the GPU path repaints and uploads the whole page every frame (about 20fps in desktop
-Chromium even at 1x; the tab bar's soft edge alone halves Home's rate, 22 to 48fps without it); server waves, duplicate
-layout and page queries and the iad1 region (Supabase is ca-central-1, Vercel offers `yul1`); 1024px thumbnails.
+Chromium even at 1x; the tab bar's soft edge alone halves Home's rate, 22 to 48fps without it); 1024px thumbnails.
 
 ## Glass context rule
 

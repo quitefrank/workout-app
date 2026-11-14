@@ -19,12 +19,12 @@ export const metadata = { title: "Summary" };
 
 export default async function SummaryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [workout, settings] = await Promise.all([getWorkout(id), getSettings()]);
+  const [workout, settings, tops] = await Promise.all([getWorkout(id), getSettings(), getTopSets()]);
   if (!workout) notFound();
 
   // PRs this workout set: compare against every earlier session of the same exercises
   const exerciseIds = new Set(workout.exercises.map((e) => e.exercises.id));
-  const history = (await getTopSets()).filter((t) => exerciseIds.has(t.exercise_id));
+  const history = tops.filter((t) => exerciseIds.has(t.exercise_id));
   const prSet = new Set(prs(history).filter((p) => p.workout_id === id).map((p) => floorKey(p.exercise_id, p.floor)));
 
   const minutes = durationMinutes(workout.started_at, workout.completed_at);

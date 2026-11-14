@@ -35,18 +35,21 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // the month is the selected day's, which seeds the strip and the panel; other weeks load as they come near
   const ym = monthOf(selected);
 
-  const [workouts, activeId, heatWorkouts, settings, inProgress] = await Promise.all([
+  // Every read starts at once (2026-11-14): Recommended's inputs are fetched even when a program is followed, rather than
+  // waiting for the program to say whether they are needed. The layout shares these through the queries' cache.
+  const [workouts, program, heatWorkouts, settings, inProgress, allPrograms, allCandidates] = await Promise.all([
     getMonthWorkouts(ym),
-    getActiveProgramId(),
+    getActiveProgramId().then((id) => (id ? getProgram(id) : null)),
     getHeatWorkouts(today),
     getSettings(),
     getInProgress(),
+    listPrograms(),
+    listRecommendTemplates(),
   ]);
-  const program = activeId ? await getProgram(activeId) : null;
   const followed = program ? programTodayOf(program, today) : null;
   // A program that has ended reads the same as following none
   const upNext = followed && !programHasEnded(followed) ? followed : null;
-  const [programs, candidates] = upNext ? [[], []] : await Promise.all([listPrograms(), listRecommendTemplates()]);
+  const [programs, candidates] = upNext ? [[], []] : [allPrograms, allCandidates];
   const upPhase = program?.phases.find((p) => p.id === upNext?.inForce.phase?.id) ?? null;
   // The program's own rows carry the variant and the sign-off note the pure model does not need.
   const rowOf = new Map(program?.phases.flatMap((p) => p.templates.map((t) => [t.id, t] as const)) ?? []);

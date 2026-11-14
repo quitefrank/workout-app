@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { workingSlugs } from "@/lib/workout/workout-art";
 import type { ExerciseSession } from "@/lib/workout/exercise-metrics";
 import { db, selectAll, timeZone, userId } from "@/lib/supabase/server";
@@ -31,7 +32,7 @@ export type Settings = {
   heat_window: HeatWindow;
 };
 
-export async function getSettings(): Promise<Settings> {
+async function getSettingsUncached(): Promise<Settings> {
   const row = check(
     await db()
       .from("user_settings")
@@ -96,13 +97,13 @@ function toListItem(w: WorkoutRow, tz: string): WorkoutListItem {
 }
 
 /** Workouts whose day falls inside the month grid (neighbouring days included). */
-export async function getMonthWorkouts(ym: YearMonth): Promise<WorkoutListItem[]> {
+async function getMonthWorkoutsUncached(ym: YearMonth): Promise<WorkoutListItem[]> {
   const { from, to } = gridBounds(ym);
   return getWorkoutsBetween(from, to);
 }
 
 /** Workouts whose calendar day falls from `from` to `to`, both YYYY-MM-DD and inclusive. */
-export async function getWorkoutsBetween(from: string, to: string): Promise<WorkoutListItem[]> {
+async function getWorkoutsBetweenUncached(from: string, to: string): Promise<WorkoutListItem[]> {
   const tz = timeZone();
   // Pad the instant window by a day either side; the day is settled in the zone below.
   const fromTs = new Date(Date.parse(from) - 86400000).toISOString();
@@ -126,7 +127,7 @@ export async function getWorkoutsBetween(from: string, to: string): Promise<Work
     .sort((a, b) => (a.completedAt ?? a.startedAt ?? "").localeCompare(b.completedAt ?? b.startedAt ?? ""));
 }
 
-export async function getHistory(templateId?: string | null): Promise<WorkoutListItem[]> {
+async function getHistoryUncached(templateId?: string | null): Promise<WorkoutListItem[]> {
   const tz = timeZone();
   const found = (await selectAll((a, b) => {
     let q = db()
@@ -140,7 +141,7 @@ export async function getHistory(templateId?: string | null): Promise<WorkoutLis
   return found.map((w) => toListItem(w, tz));
 }
 
-export async function getLastCompleted(): Promise<WorkoutListItem | null> {
+async function getLastCompletedUncached(): Promise<WorkoutListItem | null> {
   const found = check(
     await db()
       .from("workouts")
@@ -154,7 +155,7 @@ export async function getLastCompleted(): Promise<WorkoutListItem | null> {
 }
 
 /** A workout that was started and never completed or discarded. */
-export async function getInProgress(): Promise<WorkoutListItem | null> {
+async function getInProgressUncached(): Promise<WorkoutListItem | null> {
   const found = check(
     await db()
       .from("workouts")
@@ -184,7 +185,7 @@ export type TemplateSummary = {
 };
 
 /** The day templates you pick from freestyle: the Notion ones, not program weeks. */
-export async function listTemplates(): Promise<TemplateSummary[]> {
+async function listTemplatesUncached(): Promise<TemplateSummary[]> {
   const found = check(
     await db()
       .from("templates")
@@ -328,13 +329,15 @@ export async function getWorkout(id: string): Promise<WorkoutDetail | null> {
   const exercises = [...workout_exercises]
     .sort((a, b) => a.position - b.position)
     .map((we) => ({ ...we, sets: [...we.sets].sort((a, b) => a.set_number - b.set_number) }));
-  const movementOptions = await getMovementOptions(exercises.map((e) => e.exercises.movement));
-  // every way of doing each movement, so switching equipment shows that row's last time straight away
-  const lastTime = await getLastTimes(
-    [...new Set([...exercises.map((e) => e.exercises.id), ...Object.values(movementOptions).flat().map((o) => o.id)])],
-    id,
-  );
-  const bests = await getBests([...new Set(exercises.map((e) => e.exercises.id))], id);
+  // the records need only the workout's own exercises, so they load beside the versions and last times (2026-11-14)
+  const [[movementOptions, lastTime], bests] = await Promise.all([
+    getMovementOptions(exercises.map((e) => e.exercises.movement)).then(async (movementOptions) => {
+      // every way of doing each movement, so switching equipment shows that row's last time straight away
+      const ids = [...new Set([...exercises.map((e) => e.exercises.id), ...Object.values(movementOptions).flat().map((o) => o.id)])];
+      return [movementOptions, await getLastTimes(ids, id)] as const;
+    }),
+    getBests([...new Set(exercises.map((e) => e.exercises.id))], id),
+  ]);
   return { ...rest, day: workoutDay(rest, timeZone()) ?? "", exercises, lastTime, movementOptions, bests };
 }
 
@@ -443,11 +446,11 @@ async function getLastTimes(exerciseIds: string[], excludeWorkoutId: string): Pr
 // Library and progress
 // ------------------------------------------------------------
 
-export async function listMuscleGroups(): Promise<{ id: string; name: string }[]> {
+async function listMuscleGroupsUncached(): Promise<{ id: string; name: string }[]> {
   return rows(await db().from("muscle_groups").select("id, name, display_order").order("display_order", { nullsFirst: false }).order("name"));
 }
 
-export async function listExercises(): Promise<LibraryExercise[]> {
+async function listExercisesUncached(): Promise<LibraryExercise[]> {
   return (await selectAll((a, b) =>
     db().from("exercises").select(EXERCISE_FIELDS).order("name").range(a, b),
   )) as unknown as LibraryExercise[];
@@ -568,7 +571,7 @@ export type ProgramSummary = {
 };
 
 /** Every program in the library, recovery first. */
-export async function listPrograms(): Promise<ProgramSummary[]> {
+async function listProgramsUncached(): Promise<ProgramSummary[]> {
   const found = rows(
     await db().from("programs").select("id, name, kind, description, program_phases(count), templates(count)").eq("kind", "training").order("name"),
   ) as unknown as (Omit<ProgramSummary, "phaseCount" | "templateCount" | "slugs"> & {
@@ -662,36 +665,61 @@ export type ProgramDetail = {
   chosenPhasePosition: number | null;
 };
 
-/** One program with its phases, each phase's templates in order, and your history against it. */
-export async function getProgram(id: string): Promise<ProgramDetail | null> {
-  const program = check(
-    await db().from("programs").select("id, name, kind, description, citation, authority_notes").eq("id", id).maybeSingle(),
-  );
-  if (!program) return null;
-
-  const phases = rows(
-    await db()
+/**
+ * One program with its phases, each phase's templates in order, and your history against it. Two waves (2026-11-14,
+ * from six one after another): the program, its phases, your recovery row and settings together; then the phases'
+ * templates, the recovery's clearances and your completed workouts together, the completions filtered to the program's
+ * templates here.
+ */
+async function getProgramUncached(id: string): Promise<ProgramDetail | null> {
+  const [programRes, phasesRes, recovery, settings] = await Promise.all([
+    db().from("programs").select("id, name, kind, description, citation, authority_notes").eq("id", id).maybeSingle(),
+    db()
       .from("program_phases")
       .select("id, position, label, block, week_from, week_to, load_pct, gate, guidance, flag")
       .eq("program_id", id)
       .order("position"),
-  );
+    db().from("recoveries").select("id, label, injury_date").eq("user_id", userId()).eq("program_id", id).maybeSingle(),
+    db().from("user_settings").select("active_program_id, program_phase_position").eq("user_id", userId()).maybeSingle(),
+  ]);
+  const program = check(programRes);
+  if (!program) return null;
+  const phases = rows(phasesRes);
+  const rec = check(recovery);
+  const set = check(settings);
+
   const phaseIds = phases.map((p) => p.id);
-  const links = phaseIds.length
-    ? ((await selectAll((a, b) =>
-        db()
-          .from("template_phases")
-          .select("phase_id, position, templates(id, name, category, variant, needs_signoff, template_exercises(position, exercises(slug, muscle_groups(name))))")
-          .in("phase_id", phaseIds)
-          .range(a, b),
-      )) as unknown as {
-        phase_id: string;
-        position: number | null;
-        templates: Omit<ProgramTemplateRow, "exerciseCount" | "slugs"> & {
-          template_exercises: EmbeddedExercise[];
-        };
-      }[])
-    : [];
+  const [links, clearanceRows, completedRows] = await Promise.all([
+    phaseIds.length
+      ? (selectAll((a, b) =>
+          db()
+            .from("template_phases")
+            .select("phase_id, position, templates(id, name, category, variant, needs_signoff, template_exercises(position, exercises(slug, muscle_groups(name))))")
+            .in("phase_id", phaseIds)
+            .range(a, b),
+        ) as unknown as Promise<
+          {
+            phase_id: string;
+            position: number | null;
+            templates: Omit<ProgramTemplateRow, "exerciseCount" | "slugs"> & {
+              template_exercises: EmbeddedExercise[];
+            };
+          }[]
+        >)
+      : Promise.resolve([]),
+    rec
+      ? db().from("clearances").select("effective_from, created_at, kind, value_pct, value_text, phase_id, source, voided_at").eq("recovery_id", rec.id)
+      : Promise.resolve(null),
+    selectAll((a, b) =>
+      db()
+        .from("workouts")
+        .select("template_id, completed_at")
+        .eq("user_id", userId())
+        .not("template_id", "is", null)
+        .not("completed_at", "is", null)
+        .range(a, b),
+    ) as Promise<{ template_id: string; completed_at: string }[]>,
+  ]);
 
   const byPhase = new Map<string, { position: number; t: ProgramTemplateRow }[]>();
   for (const l of links) {
@@ -702,20 +730,8 @@ export async function getProgram(id: string): Promise<ProgramDetail | null> {
     byPhase.set(l.phase_id, list);
   }
 
-  const [recovery, settings] = await Promise.all([
-    db().from("recoveries").select("id, label, injury_date").eq("user_id", userId()).eq("program_id", id).maybeSingle(),
-    db().from("user_settings").select("active_program_id, program_phase_position").eq("user_id", userId()).maybeSingle(),
-  ]);
-  const rec = check(recovery);
-  const set = check(settings);
-
-  const clearances = rec
-    ? rows(
-        await db()
-          .from("clearances")
-          .select("effective_from, created_at, kind, value_pct, value_text, phase_id, source, voided_at")
-          .eq("recovery_id", rec.id),
-      ).map((c) => ({
+  const clearances = clearanceRows
+    ? rows(clearanceRows).map((c) => ({
         effectiveFrom: c.effective_from,
         createdAt: c.created_at,
         kind: c.kind,
@@ -727,20 +743,10 @@ export async function getProgram(id: string): Promise<ProgramDetail | null> {
       }))
     : [];
 
-  const templateIds = [...new Set(links.map((l) => l.templates?.id).filter((x): x is string => Boolean(x)))];
-  const completions = templateIds.length
-    ? (
-        (await selectAll((a, b) =>
-          db()
-            .from("workouts")
-            .select("template_id, completed_at")
-            .eq("user_id", userId())
-            .in("template_id", templateIds)
-            .not("completed_at", "is", null)
-            .range(a, b),
-        )) as { template_id: string; completed_at: string }[]
-      ).map((w) => ({ templateId: w.template_id, completedAt: w.completed_at }))
-    : [];
+  const templateIds = new Set(links.map((l) => l.templates?.id).filter((x): x is string => Boolean(x)));
+  const completions = completedRows
+    .filter((w) => templateIds.has(w.template_id))
+    .map((w) => ({ templateId: w.template_id, completedAt: w.completed_at }));
 
   const following = set?.active_program_id === id;
   return {
@@ -758,7 +764,7 @@ export async function getProgram(id: string): Promise<ProgramDetail | null> {
 }
 
 /** The program you are following, if any. */
-export async function getActiveProgramId(): Promise<string | null> {
+async function getActiveProgramIdUncached(): Promise<string | null> {
   const row = check(await db().from("user_settings").select("active_program_id").eq("user_id", userId()).maybeSingle());
   return row?.active_program_id ?? null;
 }
@@ -852,7 +858,7 @@ const HEAT_LOOKBACK_DAYS = 60;
  * Completed workouts from `HEAT_LOOKBACK_DAYS` before `today` to `today`, each exercise with its working sets (warm-ups
  * left out, as the analytics views count them), main group and secondary groups by name.
  */
-export async function getHeatWorkouts(today: string): Promise<HeatWorkout[]> {
+async function getHeatWorkoutsUncached(today: string): Promise<HeatWorkout[]> {
   const tz = timeZone();
   const from = addDays(today, -HEAT_LOOKBACK_DAYS);
   const [groups, found] = await Promise.all([
@@ -900,7 +906,7 @@ export async function getHeatWorkouts(today: string): Promise<HeatWorkout[]> {
 
 /** The day templates (not program weeks) with the muscle groups they train, for Recommended. */
 export type RecommendTemplate = RecommendCandidate & { slugs: string[]; exerciseCount: number };
-export async function listRecommendTemplates(): Promise<RecommendTemplate[]> {
+async function listRecommendTemplatesUncached(): Promise<RecommendTemplate[]> {
   const found = check(
     await db()
       .from("templates")
@@ -916,3 +922,21 @@ export async function listRecommendTemplates(): Promise<RecommendTemplate[]> {
     exerciseCount: t.template_exercises.length,
   }));
 }
+
+// One read per request (2026-11-14): the layout and the page ask for some of the same rows (the workout in progress,
+// the followed program, Recommended's inputs), and React's cache shares each answer within a request. Outside a render
+// (a server action) it simply calls through.
+export const getProgram = cache(getProgramUncached);
+export const getSettings = cache(getSettingsUncached);
+export const getMonthWorkouts = cache(getMonthWorkoutsUncached);
+export const getWorkoutsBetween = cache(getWorkoutsBetweenUncached);
+export const getInProgress = cache(getInProgressUncached);
+export const listTemplates = cache(listTemplatesUncached);
+export const getActiveProgramId = cache(getActiveProgramIdUncached);
+export const getHeatWorkouts = cache(getHeatWorkoutsUncached);
+export const listRecommendTemplates = cache(listRecommendTemplatesUncached);
+export const listPrograms = cache(listProgramsUncached);
+export const getHistory = cache(getHistoryUncached);
+export const getLastCompleted = cache(getLastCompletedUncached);
+export const listMuscleGroups = cache(listMuscleGroupsUncached);
+export const listExercises = cache(listExercisesUncached);

@@ -19,6 +19,11 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  experimental: {
+    // A page visited in the last 30 seconds comes back from the client's cache (Back, a tab switch) instead of a fresh
+    // server render (2026-11-14). Every server action that changes data revalidates the layout, which clears it.
+    staleTimes: { dynamic: 30 },
+  },
 };
 
 export default withPWA(nextConfig);
