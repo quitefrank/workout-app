@@ -971,6 +971,13 @@ body {
     bottom: 0;
   }
 
+  /* A menu with no room to grow left from its button's top-right corner pins the top-left corner and grows right
+     (pop-up-menu.tsx), so its content hangs from the left */
+  .pop-menu[data-pin-x="left"] .pop-menu-content {
+    right: auto;
+    left: 0;
+  }
+
   .pop-menu[data-state="open"] {
     --pw: 1;
     --ph: 1;

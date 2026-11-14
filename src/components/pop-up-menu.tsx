@@ -336,9 +336,18 @@ function Menu({ rect, items, palette, value, onClose, onPick }: { rect: DOMRect;
     el.style.setProperty("--W0", `${rect.width}px`);
     el.style.setProperty("--B", `${rect.height}px`);
     el.style.setProperty("--H", `${height}px`);
-    // pinned at the value's right edge, shifted right just enough to stay 12pt in from the left when a button near the
-    // leading edge (the Journal's equipment chip) leaves no room for it to grow left
-    el.style.right = `${Math.min(Math.max(12, window.innerWidth - rect.right), window.innerWidth - width - 12)}px`;
+    // Grow from the corner that has room: the value's top-right corner, growing left (the More button), unless that
+    // would pass 12pt from the screen's left edge; then its top-left corner, growing right (the Journal's equipment
+    // chip). Frank's rule, 2026-11-13.
+    const fromLeft = rect.right - width < 12;
+    el.dataset.pinX = fromLeft ? "left" : "right";
+    if (fromLeft) {
+      el.style.left = `${Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))}px`;
+      el.style.right = "auto";
+    } else {
+      el.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+      el.style.left = "auto";
+    }
     el.style.top = `${Math.max(12, Math.min(rect.top, window.innerHeight - height - 12))}px`;
     el.getBoundingClientRect();
     const frame = requestAnimationFrame(() => {
