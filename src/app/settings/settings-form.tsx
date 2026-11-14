@@ -10,6 +10,7 @@ import { SelectRow, ToggleRow } from "@/components/settings-rows";
 import { setTheme, type Theme } from "@/lib/appearance";
 import { cn } from "@/lib/cn";
 import type { Settings } from "@/lib/data/queries";
+import { type LibraryLayout, setLibraryLayout } from "@/lib/library-layout";
 import { formatRest } from "@/lib/workout/format";
 import { StartEdgeTune } from "./start-edge-tune";
 
@@ -19,12 +20,15 @@ const REST_STEPS = [60, 90, 120, 150, 180, 210, 240, 300];
 export function SettingsForm({
   settings,
   theme: initialTheme,
+  libraryLayout: initialLibraryLayout,
 }: {
   settings: Settings;
   theme: Theme;
+  libraryLayout: LibraryLayout;
 }) {
   const [s, setS] = useState(settings);
   const [theme, setThemeState] = useState(initialTheme);
+  const [libraryLayout, setLibraryLayoutState] = useState(initialLibraryLayout);
   const router = useRouter();
   const [pending, start] = useTransition();
   // a device setting: the server renders it off, the device reads its own
@@ -67,6 +71,23 @@ export function SettingsForm({
             setThemeState(v);
             setTheme(v);
             // the layout reads the choice too (status bar colour, toasts)
+            router.refresh();
+          }}
+        />
+      </Group>
+
+      <Group title="Library" footer="Pills switch the Library between Exercises, Workouts and Programs under the search field. Saved on this device only.">
+        <SelectRow
+          label="Layout"
+          value={libraryLayout}
+          options={[
+            ["scroll", "One Scroll"],
+            ["pills", "Pills"],
+            ["pills-all", "Pills with All"],
+          ]}
+          onChange={(v) => {
+            setLibraryLayoutState(v);
+            setLibraryLayout(v);
             router.refresh();
           }}
         />

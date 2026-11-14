@@ -678,7 +678,11 @@ tall cards, those with exercises first) and Programs, in that order since exerci
 search field over all three (`library-search.tsx`; results in the same order, the muscle group pills filter exercises
 only). Each section title carries a chevron to its own page (`SectionHeader`'s `href`, as Photos marks a section, in
 place of See All): `/library/exercises` (the groups, then every exercise A to Z), `/library/workouts` (by category)
-and `/library/programs` (Following first). `/templates` and `/exercises` redirect into it; `/templates/[id]` is still
+and `/library/programs` (Following first). On trial (2026-11-13): Settings > Library > Layout swaps the one scroll for
+capsule pills under the search field (Apple Fitness+'s switcher, the search pills' look), Pills or Pills with All, saved
+per device in the `library_layout` cookie, the last pill in localStorage (`src/lib/library-layout.ts`, tested;
+`library-pills.tsx`). Search covers the whole Library in every layout and hides the pills while up. With All, the four
+pills run 22pt past a 402pt screen. `/templates` and `/exercises` redirect into it; `/templates/[id]` is still
 a workout's page, pushed with the tab bar hidden and Start Workout pinned; its exercise rows open the exercise sheet
 over it, never another page (`template-exercises.tsx`, Frank's call, 2026-11-13, from the HIG's one-sheet rule and Hevy). A New button (creating workouts and programs) is decided in concept and not built. The muscle groups show as twelve cards, three across, four full rows, each one muscle (Frank's calls, 2026-11-13,
 after Equinox+'s Find a Movement grid on Mobbin; `CARD_SPECS` in `src/lib/workout/library-cards.ts`, tested): Core
