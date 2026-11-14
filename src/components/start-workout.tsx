@@ -212,7 +212,7 @@ export function HeroArt({ slugs }: { slugs: string[] }) {
   return (
     <div className="flex h-[150px] justify-center overflow-hidden bg-[var(--exercise-tile)]">
       {/* eslint-disable-next-line @next/next/no-img-element -- sized WebP, and the glass painter reads the element */}
-      <img src={exerciseImageSrc(lift)} alt="" className="aspect-square h-[150px]" />
+      <img src={exerciseImageSrc(lift)} alt="" className="aspect-square h-[150px] object-contain" />
     </div>
   );
 }

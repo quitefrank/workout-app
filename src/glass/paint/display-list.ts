@@ -145,7 +145,22 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
       const uw = el instanceof HTMLElement ? el.offsetWidth : el.clientWidth, uh = el instanceof HTMLElement ? el.offsetHeight : el.clientHeight;
       const tf = m && { cx: x + w / 2, cy: y + h / 2, w: uw || w, h: uh || h, m };
       if (el instanceof HTMLImageElement) {
-        if (el.complete && el.naturalWidth) items.push({ k: "image", x, y, w, h, img: el, tf, ...base });
+        if (el.complete && el.naturalWidth) {
+          // object-fit: contain (and scale-down at or above its size) draws the whole image centred in its box, as CSS
+          // does, so an image that is not square is not stretched (2026-11-14). Other values fill the box.
+          const fit = cs.objectFit;
+          if (fit === "contain" || fit === "scale-down") {
+            const nw = el.naturalWidth, nh = el.naturalHeight;
+            const s0 = Math.min(w / nw, h / nh), s = fit === "scale-down" ? Math.min(1, s0) : s0;
+            if (tf) {
+              const k = Math.min(tf.w / nw, tf.h / nh);
+              const kk = fit === "scale-down" ? Math.min(1, k) : k;
+              items.push({ k: "image", x, y, w, h, img: el, tf: { ...tf, w: nw * kk, h: nh * kk }, ...base });
+            } else {
+              items.push({ k: "image", x: x + (w - nw * s) / 2, y: y + (h - nh * s) / 2, w: nw * s, h: nh * s, img: el, tf, ...base });
+            }
+          } else items.push({ k: "image", x, y, w, h, img: el, tf, ...base });
+        }
         else if (!el.complete) {
           // Lever `cull` (2026-11-14): an image still loading is left out until its load event rebuilds the list. Marked
           // pending, every scroll frame rebuilt the whole page while any image loaded (History's 245), and a lazy image

@@ -68,7 +68,7 @@ export default async function TemplatePage({
               alt=""
               draggable={false}
               // the hero is the original height, shorter than the square, so the figure is centred in it
-              className="absolute left-1/2 top-1/2 aspect-square w-full max-w-[480px] -translate-x-1/2 -translate-y-1/2"
+              className="absolute left-1/2 top-1/2 aspect-square w-full max-w-[480px] -translate-x-1/2 -translate-y-1/2 object-contain"
             />
             {/* The illustration fades into the screen's colour under the text, as the active workout's header fade does */}
             <div

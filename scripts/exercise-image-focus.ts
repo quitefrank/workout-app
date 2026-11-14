@@ -25,8 +25,8 @@ export async function writeFocus() {
   const rows: string[] = [];
   let centred = 0;
   for (const slug of slugs) {
-    // stretched to a square, as the thumbnail draws it, so the fractions are the tile's
-    const { data, info } = await sharp(join(DIR, `${slug}.webp`)).ensureAlpha().resize(SIZE, SIZE, { fit: "fill" }).raw().toBuffer({ resolveWithObject: true });
+    // contained in a transparent square, as the thumbnail draws it (object-contain), so the fractions are the tile's
+    const { data, info } = await sharp(join(DIR, `${slug}.webp`)).ensureAlpha().resize(SIZE, SIZE, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).raw().toBuffer({ resolveWithObject: true });
     const f = OVERRIDES[slug] ?? findFocus(data, info.width, info.height);
     if (f.fz === 1 && f.fx === 0.5 && f.fy === 0.5) centred++;
     rows.push(`  ${JSON.stringify(slug)}: [${f.fx}, ${f.fy}, ${f.fz}],`);

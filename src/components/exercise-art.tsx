@@ -22,8 +22,8 @@ export const exerciseImageSrc = (slug: string | null | undefined): string => `/e
 
 /**
  * What fills an exercise's tile: its illustration on the one gray both appearances share, else its muscle group's drawing
- * inset by `pad`, on the themed tile. The image stays square, since the glass painter draws an image into its box and
- * ignores object-fit.
+ * inset by `pad`, on the themed tile. The box stays square and the image is contained in it (object-contain, which the
+ * glass painter follows), so an illustration that is not square is not stretched.
  */
 /** `thumb`: a row thumbnail, zoomed by the per-device test setting (src/lib/thumb-zoom.ts); large art never is */
 export function ExerciseArt({ slug, art, pad = "p-1.5", thumb = false }: { slug: string | null | undefined; art: ReactNode; pad?: string; thumb?: boolean }) {
@@ -34,7 +34,7 @@ export function ExerciseArt({ slug, art, pad = "p-1.5", thumb = false }: { slug:
       <img
         src={exerciseImageSrc(slug)}
         alt=""
-        className={cn("aspect-square h-full", thumb && "thumb-zoom")}
+        className={cn("aspect-square h-full object-contain", thumb && "thumb-zoom")}
         style={thumb ? thumbFocusStyle(exerciseImageSlug(slug)) : undefined}
       />
     </div>
