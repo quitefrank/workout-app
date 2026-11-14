@@ -4,26 +4,42 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { followProgram } from "@/app/actions";
-import { Button, ButtonLink } from "@/components/button";
+import { Button } from "@/components/button";
 import { Row, SectionHeader } from "@/components/page";
 import { WorkoutThumb } from "@/components/workout-thumb";
 import { Sheet } from "@/components/sheet";
+import { HeroArt, StartCapsule } from "@/components/start-workout";
+import type { InProgress } from "@/components/tab-bar";
+import { useStartWorkout } from "@/components/use-start-workout";
 import type { ProgramSummary } from "@/lib/data/queries";
 
 export type RecommendedWorkout = { id: string; name: string; category: string | null; slugs: string[]; reason: string };
 
 /**
- * Home's slot when no program is followed (Frank's call, 2026-11-11): Recommended, the workout whose muscles have rested
- * longest with the reason, two runners-up, and Choose Program. Following a program stays optional; any workout can still
- * start from the + button. With no workout to suggest it is the plain No Program card.
+ * Home's slot when no program is followed (Frank's calls, 2026-11-11 and 2026-11-13, option E2 of the Recommended Card
+ * Lab, https://claude.ai/artifact/MNr5o88RgkRkg2cdtJWuAG): one card holding the three recommendations, as the HIG's
+ * Layout page groups related items, with the top pick as a hero (main lift art, name, reason, the view's one filled
+ * button) and the runners-up as the Start sheet's split rows under a hairline, each with its reason. Choose Program
+ * changes how Home works, so it sits outside the card as a tinted button. Start Workout and the Start capsules begin
+ * the workout at once (useStartWorkout, as the + sheet does); the hero and the row bodies open the workout's page.
+ * With no workout to suggest it is the plain No Program card.
  */
-export function ProgramEmptyState({ programs, recommended }: { programs: ProgramSummary[]; recommended: RecommendedWorkout[] }) {
+export function ProgramEmptyState({
+  programs,
+  recommended,
+  inProgress,
+}: {
+  programs: ProgramSummary[];
+  recommended: RecommendedWorkout[];
+  inProgress: InProgress;
+}) {
   const [open, setOpen] = useState(false);
-  const [pending, start] = useTransition();
+  const [pending, startFollow] = useTransition();
+  const { starting, start, ask } = useStartWorkout(inProgress);
   const [top, ...rest] = recommended;
 
   const choose = (id: string) =>
-    start(async () => {
+    startFollow(async () => {
       try {
         await followProgram(id);
         setOpen(false);
@@ -43,26 +59,46 @@ export function ProgramEmptyState({ programs, recommended }: { programs: Program
       {top ? (
         <>
           <SectionHeader title="Recommended" />
-          <div className="mx-4 flex flex-col gap-3.5 rounded-[26px] bg-card p-4">
-            <Link href={`/templates/${top.id}`} className="flex items-center gap-3.5 active:opacity-70">
-              <WorkoutThumb category={top.category} label={top.name.slice(0, 1)} slugs={top.slugs} />
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-[17px] font-semibold leading-[22px]">{top.name}</div>
-                <div className="truncate text-[15px] leading-5 text-ink-2">{top.reason}</div>
+          <div className="grouped mx-4">
+            <div>
+              <Link href={`/templates/${top.id}`} className="block active:bg-fill">
+                <HeroArt slugs={top.slugs} />
+                <div className="px-4 pb-3.5 pt-3">
+                  <div className="truncate text-[22px] font-bold leading-7 tracking-[-0.26px]">{top.name}</div>
+                  <div className="truncate text-[15px] leading-5 text-ink-2">{top.reason}</div>
+                </div>
+              </Link>
+              <div className="px-4 pb-4">
+                <Button variant="filled" className="w-full" disabled={!!starting} onClick={(e) => start(top, e.currentTarget.getBoundingClientRect())}>
+                  {starting === top.id ? "Starting…" : "Start Workout"}
+                </Button>
               </div>
-            </Link>
-            <ButtonLink href={`/templates/${top.id}`} variant="filled">
-              Start
-            </ButtonLink>
-            <div className="flex flex-wrap gap-2">
-              {rest.map((r) => (
-                <ButtonLink key={r.id} href={`/templates/${r.id}`} small variant="gray" className="pr-4" style={{ color: "var(--ink)" }}>
-                  {r.name}
-                </ButtonLink>
-              ))}
-              {chooseButton}
             </div>
+            {rest.map((r) => (
+              <div key={r.id} className="relative">
+                <Link href={`/templates/${r.id}`} className="block active:bg-fill">
+                  <Row
+                    leading={<WorkoutThumb category={r.category} label={r.name.slice(0, 1)} slugs={r.slugs} />}
+                    title={r.name}
+                    subtitle={r.reason}
+                    // room for the capsule, 16pt from the trailing edge with a 12pt gap
+                    className="pr-[107px]"
+                  />
+                </Link>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <StartCapsule label={`Start ${r.name}`} pending={starting === r.id} disabled={!!starting} onClick={(rect) => start(r, rect)} />
+                </div>
+              </div>
+            ))}
           </div>
+          {programs.length > 0 && (
+            <div className="mx-4 mt-3">
+              <Button variant="tinted" className="w-full" onClick={() => setOpen(true)}>
+                Choose Program
+              </Button>
+            </div>
+          )}
+          {ask}
         </>
       ) : (
         <>

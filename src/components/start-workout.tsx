@@ -1,23 +1,20 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { startTransition, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import { beginWorkout, discardWorkout } from "@/app/actions";
+import { useState } from "react";
 import type { TemplatePreview } from "@/app/api/templates/[id]/route";
 import type { TemplateSummary } from "@/lib/data/queries";
 import type { NextTemplate } from "@/lib/programs/up-next";
 import { CATEGORY_LABELS, formatClock } from "@/lib/workout/format";
 import { groupByCategory } from "@/lib/workout/group";
-import { heroOf, rowSubtitle, startAsk, type HeroTemplate, type RecommendedWorkout } from "@/lib/workout/start-sheet";
+import { heroOf, rowSubtitle, type HeroTemplate, type RecommendedWorkout } from "@/lib/workout/start-sheet";
 import { mainLift } from "@/lib/workout/workout-art";
 import { Button } from "./button";
 import { ExerciseArt, exerciseImageSrc, hasExerciseImage } from "./exercise-art";
 import { FigureIcon, PlayIcon } from "./icons";
 import { Row } from "./page";
-import { ActionSheet } from "./pop-up-menu";
 import { Sheet } from "./sheet";
 import { useElapsed, type InProgress } from "./tab-bar";
+import { useStartWorkout } from "./use-start-workout";
 import { WorkoutThumb } from "./workout-thumb";
 
 const SECTION_TITLE = "px-4 pb-1.5 pt-2 text-[13px] font-semibold uppercase tracking-[0.06em] text-ink-2";
@@ -59,33 +56,10 @@ export function StartWorkout({
   recommended: RecommendedWorkout | null;
   inProgress: InProgress;
 }) {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<Pick | null>(null);
   const [previews, setPreviews] = useState<Record<string, TemplatePreview | "error">>({});
-  /** Starting with a workout in progress: the pick and the Start it came from, which the action sheet grows out of */
-  const [asking, setAsking] = useState<{ pick: Pick; rect: DOMRect } | null>(null);
-  /** The template being started; every Start reads Starting… or is disabled meanwhile */
-  const [starting, setStarting] = useState<string | null>(null);
-  /** The workout in progress as it was when a start began: the refresh after it shows the new one, which is not "in progress" here */
-  const [frozen, setFrozen] = useState<InProgress | undefined>(undefined);
-  const busy = frozen !== undefined ? frozen : inProgress;
-  /** The workout just started, for the toast this offers once the workout screen has replaced the tab bar */
-  const started = useRef<{ id: string; name: string } | null>(null);
-  const timer = useRef(0);
-
-  useEffect(
-    () => () => {
-      window.clearTimeout(timer.current);
-      const s = started.current;
-      if (!s) return;
-      toast(`Started ${s.name}`, {
-        duration: 5000,
-        action: { label: "Undo", onClick: () => undo(s.id) },
-      });
-    },
-    [],
-  );
+  const { starting, busy, start, resume, ask } = useStartWorkout(inProgress);
 
   const hero = heroOf(next, recommended);
   const heroPick = hero && pickOf(hero.template, rowSubtitle(hero.template.exerciseCount, null));
@@ -103,31 +77,6 @@ export function StartWorkout({
       .then((data) => setPreviews((m) => ({ ...m, [p.id]: data })))
       .catch(() => setPreviews((m) => ({ ...m, [p.id]: "error" })));
   };
-
-  const go = async (p: Pick, replacing: string | null) => {
-    setFrozen(busy);
-    setStarting(p.id);
-    try {
-      const { id } = await beginWorkout(p.id, replacing);
-      started.current = { id, name: p.name };
-      router.push(`/workouts/${id}`);
-    } catch (e) {
-      started.current = null;
-      setStarting(null);
-      setFrozen(undefined);
-      toast.error(e instanceof Error ? e.message : "Could not start the workout");
-    }
-  };
-
-  /** `rect` is the tapped Start's box, where the question grows from when a workout is in progress */
-  const start = (p: Pick, rect: DOMRect) => {
-    if (starting) return;
-    if (!startAsk(busy, p.name)) return void go(p, null);
-    setAsking({ pick: p, rect });
-  };
-
-  const resume = (id: string) => router.push(`/workouts/${id}`);
-  const ask = asking && startAsk(busy, asking.pick.name);
 
   return (
     <>
@@ -194,37 +143,13 @@ export function StartWorkout({
           </>
         )}
       </Sheet>
-      {asking && ask && busy && (
-        <ActionSheet
-          rect={asking.rect}
-          title={ask.title}
-          message={ask.message}
-          actions={[
-            { label: ask.discard, destructive: true, onPick: () => go(asking.pick, busy.id) },
-            { label: ask.resume, onPick: () => resume(busy.id) },
-          ]}
-          onClose={() => setAsking(null)}
-        />
-      )}
+      {ask}
     </>
   );
 }
 
-/** Undo from the toast: the existing discard, which deletes the workout and replaces the route with Home */
-function undo(id: string) {
-  startTransition(async () => {
-    try {
-      await discardWorkout(id);
-    } catch (e) {
-      // redirect() throws to navigate; only real failures land here
-      if (e instanceof Error && e.message.includes("NEXT_REDIRECT")) throw e;
-      toast.error(e instanceof Error ? e.message : "Could not undo");
-    }
-  });
-}
-
 /** The kit's Medium Bordered content button with play.fill: gray, the blue label, 34pt, its touch area 44pt */
-function StartCapsule({ label, pending, disabled, onClick }: { label: string; pending: boolean; disabled: boolean; onClick: (rect: DOMRect) => void }) {
+export function StartCapsule({ label, pending, disabled, onClick }: { label: string; pending: boolean; disabled: boolean; onClick: (rect: DOMRect) => void }) {
   return (
     <Button compact variant="gray" disabled={disabled} onClick={(e) => onClick(e.currentTarget.getBoundingClientRect())} aria-label={pending ? undefined : label}>
       {pending ? (
@@ -281,7 +206,7 @@ function InProgressRow({ workout, onResume }: { workout: NonNullable<InProgress>
 }
 
 /** The hero's main lift, 150pt tall on the inside-a-card colour; nothing drawn, no art */
-function HeroArt({ slugs }: { slugs: string[] }) {
+export function HeroArt({ slugs }: { slugs: string[] }) {
   const lift = mainLift(slugs, hasExerciseImage);
   if (!lift) return null;
   return (

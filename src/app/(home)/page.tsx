@@ -7,6 +7,7 @@ import { BodyMap } from "@/components/body-map/body-map";
 import {
   getActiveProgramId,
   getHeatWorkouts,
+  getInProgress,
   getMonthWorkouts,
   getProgram,
   getSettings,
@@ -34,11 +35,12 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   // the month is the selected day's, which seeds the strip and the panel; other weeks load as they come near
   const ym = monthOf(selected);
 
-  const [workouts, activeId, heatWorkouts, settings] = await Promise.all([
+  const [workouts, activeId, heatWorkouts, settings, inProgress] = await Promise.all([
     getMonthWorkouts(ym),
     getActiveProgramId(),
     getHeatWorkouts(today),
     getSettings(),
+    getInProgress(),
   ]);
   const program = activeId ? await getProgram(activeId) : null;
   const followed = program ? programTodayOf(program, today) : null;
@@ -95,7 +97,21 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
         </>
       )}
 
-      {!upNext && (programs.length > 0 || recommended.length > 0) && <ProgramEmptyState programs={programs} recommended={recommended} />}
+      {!upNext && (programs.length > 0 || recommended.length > 0) && (
+        <ProgramEmptyState
+          programs={programs}
+          recommended={recommended}
+          inProgress={
+            inProgress && {
+              id: inProgress.id,
+              name: inProgress.name,
+              startedAt: inProgress.startedAt,
+              category: inProgress.category,
+              slugs: inProgress.slugs,
+            }
+          }
+        />
+      )}
 
       {program && upNext && (
         <>

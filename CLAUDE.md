@@ -546,9 +546,13 @@ were reviewed and rejected: they are blue duotone or dark grayscale in the sourc
 
 ## Following a program is optional
 
-With no program followed, Home shows Recommended in Up Next's place (Frank's call, 2026-11-11): the day workout whose
-muscle groups have rested longest, with the reason ("Glutes last trained 9 days ago"), a Start button, two runners-up
-and Choose Program, which opens a sheet of the training programs (`src/app/(home)/program-empty-state.tsx`; ranking in
+With no program followed, Home shows Recommended in Up Next's place (Frank's call, 2026-11-11; layout E2 of the
+Recommended Card Lab, 2026-11-13, https://claude.ai/artifact/MNr5o88RgkRkg2cdtJWuAG): one card holding the three picks,
+since the HIG groups related items, the top one as a hero (main lift art, name, reason, a filled Start Workout) and the
+two runners-up as the Start sheet's split rows with their own reasons and Start capsules. Every Start begins the workout
+at once (`useStartWorkout` in `src/components/use-start-workout.tsx`, shared with the + sheet: the in-progress question,
+Starting…, the Undo toast); the hero and row bodies open the workout's page. Choose Program sits outside the card as a
+tinted button, since it changes how Home works, and opens a sheet of the training programs (`src/app/(home)/program-empty-state.tsx`; ranking in
 `recommend` in `src/lib/workout/heat.ts`, tested: cardio and anything done today or yesterday left out, days rested
 capped at 14). With nothing to suggest it is the No Program card. The app never requires a program. The workout
 that completes a program's last day stops following it (`stopFollowingIfEnded` in `actions.ts`), and Home
