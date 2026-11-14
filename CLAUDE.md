@@ -511,7 +511,11 @@ wrote it); fill no other gaps unless he asks. Rows stamped `library:` in `_notio
 ## Records
 
 An exercise's chart is Heaviest Weight alone, under its own heading with no switch (Frank's call, 2026-11-13: he never
-tests a one rep max). Its PRs are Heaviest Weight and One Rep Max. Best-set volume was removed (Frank's call, 2026-11-05):
+tests a one rep max). Its PRs are Heaviest Weight and One Rep Max. The chart has a time axis and a range in a pop-up
+button beside its heading (Frank's calls, 2026-11-13, Figma `ZD41TUAEBtLJI7t0qChNup` 113:29): Last month, 3 months, 6
+months (the default), Last year and All time. The range picked last is kept per device for every exercise, as Stocks
+does; an exercise with fewer than 2 sessions in it opens on the shortest range that has 2, leaving the saved one alone.
+`src/lib/workout/chart-range.ts` (tested) holds the ranges, the fallback, the axis and the storage. Best-set volume was removed (Frank's call, 2026-11-05):
 volume is not a goal, and it ranks a set of 21 above a heavy set of 5. A workout's summary still shows its total. A rep
 scheme such as 21s is reps on the set and a `variant` on the template row, never its own exercise.
 

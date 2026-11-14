@@ -2,17 +2,31 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { TrendChart } from "@/components/charts";
 import type { ExerciseView } from "@/lib/exercise-view";
 import { cn } from "@/lib/cn";
+import {
+  CHART_RANGES,
+  chartAxis,
+  chartRangeSnapshot,
+  dayMs,
+  DEFAULT_CHART_RANGE,
+  inRange,
+  openingRange,
+  rangeLabel,
+  subscribeChartRange,
+  writeChartRange,
+  type ChartRange,
+} from "@/lib/workout/chart-range";
 import { dayLabel, localDate } from "@/lib/workout/dates";
 import { latestFloor, metricBest, metricSeries, sessionsOnFloor, type ExerciseSession, type MetricPoint } from "@/lib/workout/exercise-metrics";
 import { displayWeight, EQUIPMENT_LABELS, formatNumber } from "@/lib/workout/format";
 import { FIRST_FLOOR, type MachineLocation } from "@/lib/workout/machine-location";
 import { FloorPicker } from "./floor-picker";
 import { MovementPicker } from "./movement-picker";
-import { ChevronRight, TrophyIcon } from "./icons";
+import { ChevronRight, ChevronUpDown, TrophyIcon } from "./icons";
+import { ChoiceMenu } from "./pop-up-menu";
 import { Row } from "./page";
 
 const TABS = ["Summary", "History", "How to"] as const;
@@ -121,16 +135,30 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNo
   // the same movement on other equipment is a choice above, so only other movements are alternates
   const others = exercise.alternates.filter((a) => !view.options.some((o) => o.id === a.exercise.id));
   const weight = (n: number) => displayWeight(n, exercise.equipment_type, unit) || "BW";
-  // one chart, Heaviest Weight (Frank's call, 2026-11-13: he never tests a one rep max)
-  const points = useMemo(
-    () =>
-      metricSeries(sessions, "heaviest").map((p) => ({
-        label: dayLabel(localDate(p.at)).replace(/^\w+, /, ""),
+  // one chart, Heaviest Weight (Frank's call, 2026-11-13: he never tests a one rep max), over a time range
+  const today = localDate(new Date());
+  const points = useMemo(() => {
+    const year = today.slice(0, 4);
+    return metricSeries(sessions, "heaviest").map((p) => {
+      const date = localDate(p.at);
+      return {
+        label: dayLabel(date, { year: date.slice(0, 4) !== year }).replace(/^\w+, /, ""),
         value: Math.round(p.value * 10) / 10,
         detail: `${formatNumber(p.value)} (${formatNumber(p.weight)} × ${p.reps})`,
-      })),
-    [sessions],
-  );
+        t: dayMs(date),
+      };
+    });
+  }, [sessions, today]);
+  const saved = useSyncExternalStore(subscribeChartRange, chartRangeSnapshot, () => DEFAULT_CHART_RANGE);
+  // a range picked here holds on this exercise even with no sessions in it; otherwise the saved one, or the shortest
+  // with a trend when the saved one has none
+  const [picked, setPicked] = useState<{ id: string; range: ChartRange } | null>(null);
+  const range = picked?.id === exercise.id ? picked.range : openingRange(points, saved, today);
+  const shown = inRange(points, range, today);
+  const pickRange = (r: ChartRange) => {
+    setPicked({ id: exercise.id, range: r });
+    writeChartRange(r);
+  };
   return (
     <>
       {art && (
@@ -144,9 +172,17 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNo
         <>
           {points.length > 1 && (
             <>
-              <h3 className="mb-2 mt-5 text-[17px] font-semibold">Heaviest Weight</h3>
+              <div className="mb-2 mt-5 flex items-center justify-between gap-3">
+                <h3 className="text-[17px] font-semibold">Heaviest Weight</h3>
+                <RangeButton value={range} onChange={pickRange} />
+              </div>
               <div className="rounded-[20px] bg-card px-2 pb-2 pt-4">
-                <TrendChart points={points} />
+                {shown.length > 0 ? (
+                  <TrendChart points={shown} axis={chartAxis(shown, range, today)} />
+                ) : (
+                  // the chart's height (180) plus its caption, so the card keeps its size
+                  <p className="flex h-[204px] items-center justify-center text-[15px] text-ink-2">No sessions in the {rangeLabel(range).replace(/^Last /, "last ")}</p>
+                )}
               </div>
             </>
           )}
@@ -179,6 +215,44 @@ function Summary({ view, art, onAlternate }: { view: ExerciseView; art?: ReactNo
             )}
           </div>
         </>
+      )}
+    </>
+  );
+}
+
+/**
+ * The chart's time range: the kit's pop-up button, value and chevrons in blue beside the heading, its menu grown from
+ * the value with the measured morph (`ChoiceMenu`). A pop-up button because it sets a value among five (Frank's
+ * example, Figma ZD41TUAEBtLJI7t0qChNup 113:29).
+ */
+function RangeButton({ value, onChange }: { value: ChartRange; onChange: (r: ChartRange) => void }) {
+  const button = useRef<HTMLButtonElement>(null);
+  const [rect, setRect] = useState<DOMRect | null>(null);
+  return (
+    <>
+      <button
+        ref={button}
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={!!rect}
+        aria-label={`Time range: ${rangeLabel(value)}`}
+        onClick={() => button.current && setRect(rect ? null : button.current.getBoundingClientRect())}
+        className={cn("-mr-2 flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[15px] font-medium text-blue active:bg-fill", rect && "invisible")}
+      >
+        {rangeLabel(value)}
+        <ChevronUpDown size={14} strokeWidth={2.2} />
+      </button>
+      {rect && (
+        <ChoiceMenu
+          rect={rect}
+          value={rangeLabel(value)}
+          items={CHART_RANGES.map((r) => ({ value: r.label }))}
+          onClose={() => setRect(null)}
+          onPick={(label) => {
+            const r = CHART_RANGES.find((c) => c.label === label);
+            if (r) onChange(r.value);
+          }}
+        />
       )}
     </>
   );

@@ -19,9 +19,13 @@ import {
  * Thin marks, recessive grid, a crosshair or per-bar tooltip on hover.
  */
 
-const axis = { fontSize: 11, fill: "var(--ink-2)" };
+const axisTick = { fontSize: 11, fill: "var(--ink-2)" };
 
-export type Point = { label: string; value: number; detail?: string };
+/** `t` (ms) places the point on a time axis when the chart has one */
+export type Point = { label: string; value: number; detail?: string; t?: number };
+
+/** A time axis: the domain, its ticks and their labels (`chartAxis` in src/lib/workout/chart-range.ts) */
+export type TimeAxis = { domain: [number, number]; ticks: number[]; format: (t: number) => string };
 
 function Tip({ active, payload }: TooltipProps<number, string>) {
   const p = payload?.[0]?.payload as Point | undefined;
@@ -34,8 +38,13 @@ function Tip({ active, payload }: TooltipProps<number, string>) {
   );
 }
 
-export function TrendChart({ points, height = 180, unit }: { points: Point[]; height?: number; unit?: string }) {
+/**
+ * Without `axis` the points sit evenly, one slot each, by label. With it they sit at their time `t`, so a long gap
+ * between sessions reads as one; a lone point shows as a dot.
+ */
+export function TrendChart({ points, height = 180, unit, axis }: { points: Point[]; height?: number; unit?: string; axis?: TimeAxis }) {
   const last = points[points.length - 1];
+  const lone = points.length === 1;
   return (
     <figure>
       <div style={{ height }}>
@@ -48,8 +57,24 @@ export function TrendChart({ points, height = 180, unit }: { points: Point[]; he
               </linearGradient>
             </defs>
             <CartesianGrid vertical={false} stroke="var(--sep)" strokeOpacity={0.5} />
-            <XAxis dataKey="label" tick={axis} tickLine={false} axisLine={false} minTickGap={24} />
-            <YAxis tick={axis} tickLine={false} axisLine={false} width={40} domain={["auto", "auto"]} />
+            {axis ? (
+              <XAxis
+                dataKey="t"
+                type="number"
+                scale="time"
+                domain={axis.domain}
+                ticks={axis.ticks}
+                tickFormatter={axis.format}
+                interval={0}
+                tick={axisTick}
+                tickLine={false}
+                axisLine={false}
+                allowDataOverflow
+              />
+            ) : (
+              <XAxis dataKey="label" tick={axisTick} tickLine={false} axisLine={false} minTickGap={24} />
+            )}
+            <YAxis tick={axisTick} tickLine={false} axisLine={false} width={40} domain={["auto", "auto"]} />
             <Tooltip wrapperStyle={{ zIndex: 6 }} content={<Tip />} cursor={{ stroke: "var(--ink-3)", strokeWidth: 1 }} />
             <Area
               type="monotone"
@@ -57,7 +82,7 @@ export function TrendChart({ points, height = 180, unit }: { points: Point[]; he
               stroke="var(--blue)"
               strokeWidth={2}
               fill="url(#trend-fill)"
-              dot={false}
+              dot={lone ? { r: 4, stroke: "none", fill: "var(--blue)" } : false}
               activeDot={{ r: 5, stroke: "var(--card)", strokeWidth: 2, fill: "var(--blue)" }}
               isAnimationActive={false}
             />
@@ -79,8 +104,8 @@ export function WeeklyBars({ points, height = 160 }: { points: Point[]; height?:
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }} barCategoryGap={2}>
           <CartesianGrid vertical={false} stroke="var(--sep)" strokeOpacity={0.5} />
-          <XAxis dataKey="label" tick={axis} tickLine={false} axisLine={false} minTickGap={16} />
-          <YAxis tick={axis} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
+          <XAxis dataKey="label" tick={axisTick} tickLine={false} axisLine={false} minTickGap={16} />
+          <YAxis tick={axisTick} tickLine={false} axisLine={false} width={28} allowDecimals={false} />
           <Tooltip wrapperStyle={{ zIndex: 6 }} content={<Tip />} cursor={{ fill: "var(--fill)" }} />
           <Bar dataKey="value" fill="var(--blue)" radius={[4, 4, 0, 0]} maxBarSize={22} isAnimationActive={false} />
         </BarChart>
