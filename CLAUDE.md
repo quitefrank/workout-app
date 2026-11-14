@@ -1116,7 +1116,9 @@ relative`. Illustrations are 1024px WebP (`images:import`) and kept out of the P
 
 The Journal card's first chip is the exercise's equipment (Frank's calls, 2026-11-13, after Ladder's equipment pill):
 "Barbell" and up-down chevrons, a menu of the family's equipment with a checkmark on the current one (`ChoiceMenu` in
-`pop-up-menu.tsx`), or a plain chip when the family has one. Picking one goes to the version on that equipment that
+`pop-up-menu.tsx`), or a plain chip when the family has one. Its menu grows from the chip's top-left corner: every menu
+grows from its button's top-right corner unless the full menu would not fit leftward, then from the top-left (`data-pin-x`;
+Frank's rule, 2026-11-13, in the vault's Liquid Glass reference under "Which corner it grows from"). Picking one goes to the version on that equipment that
 keeps the position and variation (`optionFor`, as the version picker does) through `swapExercise`: with nothing logged
 the row becomes it in place. With a set logged, the database stays as it is: the new version is its own row right
 after, `swapped_from_exercise_id` set, prescribing only the working sets still to do and no warm-ups
