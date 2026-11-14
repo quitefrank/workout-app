@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { setExerciseFloor } from "@/app/actions";
 import { Button } from "@/components/button";
 import { ExerciseArt } from "@/components/exercise-art";
 import { CheckIcon, ChevronUpDown, EllipsisIcon, ListIcon, SfFlameFillIcon, SwapIcon } from "@/components/icons";
-import { ActionMenu, ActionSheet } from "@/components/pop-up-menu";
+import { ActionMenu, Alert } from "@/components/pop-up-menu";
 import { removeAsk } from "@/lib/workout/confirm";
 import { Sheet } from "@/components/sheet";
 import { SwipeRow } from "@/components/swipe-row";
@@ -232,9 +232,8 @@ function ExerciseCard({
   // circle, one cell per field (narrower for a treadmill's three), then last time
   const cellWidth = fields.length > 2 ? 58 : 66;
   const [menu, setMenu] = useState<DOMRect | null>(null);
-  // Remove asks in an action sheet grown from the More chip the menu came from
-  const moreRect = useRef<DOMRect | null>(null);
-  const [removeFrom, setRemoveFrom] = useState<DOMRect | null>(null);
+  // Remove asks in a centred alert: it is picked from a menu (Frank's rule, 2026-11-13)
+  const [removeAsking, setRemoveAsking] = useState(false);
   const [floorPending, startFloor] = useTransition();
   const columns = `38px ${fields.map(() => `${cellWidth}px`).join(" ")} 1fr`;
   // bumped on every delete so the rows remount: the collapsed row never comes back as the row after it
@@ -298,13 +297,7 @@ function ExerciseCard({
           <SwapIcon size={15} /> Swap
         </Chip>
         <Chip onClick={() => onHistory(we)}>History</Chip>
-        <Chip
-          label="More"
-          onClick={(e) => {
-            moreRect.current = e.currentTarget.getBoundingClientRect();
-            setMenu(moreRect.current);
-          }}
-        >
+        <Chip label="More" onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}>
           <EllipsisIcon size={17} />
         </Chip>
       </div>
@@ -374,20 +367,19 @@ function ExerciseCard({
             else if (v === "Move Up") onMove(we, "up");
             else if (v === "Move Down") onMove(we, "down");
             // always asks: an exercise cannot be added back mid-workout (Frank's call, 2026-11-13)
-            else if (v === "Remove") setRemoveFrom(moreRect.current);
+            else if (v === "Remove") setRemoveAsking(true);
           }}
         />
       )}
-      {removeFrom &&
+      {removeAsking &&
         (() => {
           const ask = removeAsk(exerciseTitle(ex), we.sets.length);
           return (
-            <ActionSheet
-              rect={removeFrom}
+            <Alert
               title={ask.title}
               message={ask.message}
-              actions={[{ label: ask.remove, destructive: true, onPick: () => onRemove(we) }]}
-              onClose={() => setRemoveFrom(null)}
+              action={{ label: ask.action, destructive: true, onPick: () => onRemove(we) }}
+              onClose={() => setRemoveAsking(false)}
             />
           );
         })()}

@@ -197,6 +197,97 @@ export function ActionSheet({ rect, title, message, actions, onClose }: { rect: 
   );
 }
 
+/** Longest label that fits a side-by-side capsule (half of 272pt less 32pt padding, 17pt semibold); longer ones stack */
+const SIDE_BY_SIDE_CHARS = 9;
+
+/**
+ * The kit's Alert (Figma wH8YZbekJXNew109clIJz1, Alerts 63:57121): the action sheet's card (300pt, 14pt padding, 34pt
+ * corners, the sheet's glass, the same title and message), centred on the screen over the kit's Overlay - Alerts.
+ * Cancel and the action are 48pt capsules on Fills/Secondary, side by side 8pt apart with Cancel leading, or stacked
+ * with the action on top when a label is too long (the kit's Stacked layout). The action is red when destructive, and
+ * never the focused button (HIG, Buttons). It is modal: a tap on the overlay does nothing; Cancel and Escape cancel.
+ *
+ * Used for a confirmation of an item picked from a menu (Frank's rule, 2026-11-13): a second popover out of the button
+ * whose menu just closed reads as tapping twice, and the HIG lets only an alert sit over a popover. An action in the
+ * content keeps the anchored ActionSheet. The entrance (fade with a 1.06 to 1 scale over 250ms) is hand-tuned, not
+ * measured.
+ */
+export function Alert({ title, message, action, onClose }: { title: string; message?: string; action: SheetAction; onClose: () => void }) {
+  const [state, setState] = useState<"closed" | "open">("closed");
+  const closing = useRef(false);
+  const cancelButton = useRef<HTMLButtonElement>(null);
+  const ids = useId();
+  const stacked = action.label.length > SIDE_BY_SIDE_CHARS;
+
+  const close = useCallback(
+    (after?: () => void) => {
+      if (closing.current) return;
+      closing.current = true;
+      setState("closed");
+      window.setTimeout(() => {
+        onClose();
+        after?.();
+      }, 200);
+    },
+    [onClose],
+  );
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setState("open");
+      cancelButton.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  const capsule = "h-12 min-w-0 truncate rounded-full bg-fill-secondary px-4 text-[17px] font-semibold tracking-[-0.43px] outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-blue active:opacity-60";
+  const cancel = (
+    <button key="cancel" ref={cancelButton} type="button" onClick={() => close()} className={capsule}>
+      Cancel
+    </button>
+  );
+  const act = (
+    <button key="action" type="button" onClick={() => close(action.onPick)} className={cn(capsule, action.destructive && "text-red")}>
+      {action.label}
+    </button>
+  );
+
+  return createPortal(
+    <>
+      <div
+        aria-hidden
+        data-unpainted
+        data-screen-fill
+        className={cn("fixed inset-0 z-[59] bg-[var(--alert-overlay)] transition-opacity duration-300", state === "open" ? "opacity-100" : "opacity-0")}
+      />
+      <div data-unpainted data-screen-fill className="pointer-events-none fixed inset-0 z-[60] grid place-items-center px-3">
+        <div
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby={`${ids}-title`}
+          aria-describedby={message ? `${ids}-message` : undefined}
+          onKeyDown={(e) => {
+            if (e.key !== "Escape") return;
+            e.preventDefault();
+            close();
+          }}
+          className={cn(
+            "glass-sheet pointer-events-auto grid w-full max-w-[300px] overflow-hidden rounded-[34px] p-[14px] transition-[opacity,scale] duration-[250ms] ease-[cubic-bezier(0.2,0.9,0.3,1)]",
+            state === "open" ? "scale-100 opacity-100" : "scale-[1.06] opacity-0",
+          )}
+        >
+          <div className="grid gap-2.5 px-2 pb-6 pt-2 text-[17px] leading-[22px] tracking-[-0.43px]">
+            <h2 id={`${ids}-title`} className="font-semibold">{title}</h2>
+            {message && <p id={`${ids}-message`}>{message}</p>}
+          </div>
+          <div className={cn("grid gap-2", !stacked && "grid-cols-2")}>{stacked ? [act, cancel] : [cancel, act]}</div>
+        </div>
+      </div>
+    </>,
+    document.body,
+  );
+}
+
 function Menu({ rect, items, palette, value, onClose, onPick }: { rect: DOMRect; items: PopUpItem[]; palette?: PopUpItem[]; value: string; onClose: (focus: boolean) => void; onPick: (value: string) => void }) {
   const panel = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);

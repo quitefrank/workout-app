@@ -36,7 +36,7 @@ export function DeleteWorkout({ workoutId, setCount }: { workoutId: string; setC
           rect={from}
           title={ask.title}
           message={ask.message}
-          actions={[{ label: ask.delete, destructive: true, onPick: confirm }]}
+          actions={[{ label: ask.action, destructive: true, onPick: confirm }]}
           onClose={() => setFrom(null)}
         />
       )}

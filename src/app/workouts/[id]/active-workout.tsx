@@ -26,7 +26,7 @@ import { CheckIcon, EllipsisIcon, ListIcon, PlayIcon, SkipIcon, StopIcon, SwapIc
 import { Group } from "@/components/segmented";
 import { SelectRow } from "@/components/settings-rows";
 import { setJournalGlass, type JournalGlass, type WorkoutVersion } from "@/lib/workout-layout";
-import { ActionMenu, ActionSheet } from "@/components/pop-up-menu";
+import { ActionMenu, Alert } from "@/components/pop-up-menu";
 import { exitAsk } from "@/lib/workout/confirm";
 import { ExerciseSheet } from "@/components/exercise-sheet";
 import { Sheet } from "@/components/sheet";
@@ -507,9 +507,8 @@ export function ActiveWorkout({
   const [historyOpen, setHistoryOpen] = useState(false);
   const [finishing, setFinishing] = useState(false);
   const [menu, setMenu] = useState<DOMRect | null>(null);
-  // Exit Workout Early asks in an action sheet grown from the More button the menu came from (null: not asking)
-  const [exitFrom, setExitFrom] = useState<DOMRect | null>(null);
-  const moreRect = useRef<DOMRect | null>(null);
+  // Exit Workout Early asks in a centred alert: it is picked from a menu (Frank's rule, 2026-11-13)
+  const [exitAsking, setExitAsking] = useState(false);
   const loggedSets = entries.reduce((n, e) => n + e.we.sets.length, 0);
   const exit = exitAsk(loggedSets);
   const discard = () => run(() => discardWorkout(workout.id), "Could not exit the workout");
@@ -613,10 +612,7 @@ export function ActiveWorkout({
         trailing={
           <GlassCircleButton
             label="Workout options"
-            onClick={(e) => {
-              moreRect.current = e.currentTarget.getBoundingClientRect();
-              setMenu(moreRect.current);
-            }}
+            onClick={(e) => setMenu(e.currentTarget.getBoundingClientRect())}
           >
             <EllipsisIcon size={20} />
           </GlassCircleButton>
@@ -966,7 +962,7 @@ export function ActiveWorkout({
             else if (v === "Settings") setSettingsOpen(true);
             else if (v === "Complete Workout") setFinishing(true);
             // always asks: it cannot be undone, and even an empty workout takes its time with it (Frank's call, 2026-11-13)
-            else if (v === "Exit Workout Early") setExitFrom(moreRect.current);
+            else if (v === "Exit Workout Early") setExitAsking(true);
           }}
         />
       )}
@@ -1057,16 +1053,12 @@ export function ActiveWorkout({
         unit={unit}
       />
 
-      {exitFrom && (
-        <ActionSheet
-          rect={exitFrom}
+      {exitAsking && (
+        <Alert
           title={exit.title}
           message={exit.message}
-          actions={[
-            { label: exit.delete, destructive: true, onPick: discard },
-            ...(exit.complete ? [{ label: exit.complete, onPick: () => setFinishing(true) }] : []),
-          ]}
-          onClose={() => setExitFrom(null)}
+          action={{ label: exit.action, destructive: true, onPick: discard }}
+          onClose={() => setExitAsking(false)}
         />
       )}
     </>
