@@ -91,14 +91,14 @@ export function GlassDebug() {
       // fixed over the canvas already, so it takes no live lift (whose position: relative would pull it to the top)
       data-glass-debug
       // In the status bar's band at the top, over no control, and never takes a tap (Frank's call, 2026-11-14: above the
-      // tab bar it still blocked what was behind it). Three short lines fit the band's height.
+      // tab bar it still blocked what was behind it). Four 11pt lines end at the band's bottom.
       // while typing, just above the keyboard: the top of what is on screen plus its height (src/lib/scroller.ts)
       style={
         typing
           ? { top: "calc(var(--vv-h, 100vh) - 84px)" }
-          : { top: 0, height: "max(env(safe-area-inset-top), 44px)", paddingTop: "max(env(safe-area-inset-top) - 41px, 4px)" }
+          : { top: 0, height: "max(env(safe-area-inset-top), 44px)", paddingTop: "max(env(safe-area-inset-top) - 44px, 0px)" }
       }
-      className={`pointer-events-none fixed inset-x-0 z-[100] overflow-hidden whitespace-pre bg-black/75 font-mono text-white ${typing ? "mx-2 rounded-xl p-2 text-[9px] leading-[11px]" : "px-2 text-[9px] leading-[12px]"}`}
+      className={`pointer-events-none fixed inset-x-0 z-[100] overflow-hidden whitespace-pre bg-black/75 font-mono text-white ${typing ? "mx-2 rounded-xl p-2 text-[9px] leading-[11px]" : "px-2 text-[9px] leading-[11px]"}`}
     >
       {lines.join("\n")}
     </pre>
