@@ -448,9 +448,9 @@ below. No Cancel, as the kit draws it: anchored to its button, iOS leaves the ca
 scroll or Escape cancels. Behind it the whole screen, bars and any open sheet included, takes the kit's Overlay -
 Alerts in light (754:62559, layer 5446:18875: `rgba(41, 41, 58, 0.23)`, `--alert-overlay`) and, since the kit gives no
 dark value and that fill barely shows over black, Overlays/Default dark (48% black) in dark (Frank's calls,
-2026-11-13), fading in and out over 300ms. The Alert uses the same overlay (`AlertOverlayLayer`). Settings' Alert
-dimming (a test setting, `src/lib/alert-overlay.ts`, localStorage) swaps it per device for Kit (the blue-gray in both
-appearances, as first shipped), Black 48% or None, with Show Alert to compare. It is plain CSS above the canvas on both glass
+2026-11-13), fading in and out over 300ms. The Alert uses the same overlay (`AlertOverlayLayer`). The kit's own
+dark Alert example (12844:19060) keeps the 23% blue-gray, which barely shows on black; Frank compared both on the phone
+and chose 48% black for dark (2026-11-13). It is plain CSS above the canvas on both glass
 paths (`data-unpainted`), not the sheet's painted scrim, which sits under an open sheet. Used by a finished workout's
 Delete and by Start with a workout in progress.
 

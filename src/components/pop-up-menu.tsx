@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ACTION_SHEET, placeActionSheet } from "@/lib/action-sheet";
-import { alertOverlayFill, parseAlertOverlay, readAlertOverlay, subscribeAlertOverlay } from "@/lib/alert-overlay";
 import { cn } from "@/lib/cn";
 import { CheckIcon, ChevronUpDown } from "./icons";
 import { SfSymbol } from "./sf-symbol";
@@ -194,18 +193,15 @@ export function ActionSheet({ rect, title, message, actions, onClose }: { rect: 
 
 /**
  * The dimming behind an alert or action sheet, over everything, bars and any sheet included: `--alert-overlay` in
- * globals.css, or the Alert dimming test setting's fill (src/lib/alert-overlay.ts). CSS on both glass paths, above the
- * canvas (a full-screen flat tint cannot drift), so the painter skips it. Fades over 300ms.
+ * globals.css (the kit's blue-gray in light, 48% black in dark). CSS on both glass paths, above the canvas (a
+ * full-screen flat tint cannot drift), so the painter skips it. Fades over 300ms.
  */
 function AlertOverlayLayer({ open }: { open: boolean }) {
-  const raw = useSyncExternalStore(subscribeAlertOverlay, readAlertOverlay, () => null);
-  const fill = alertOverlayFill(parseAlertOverlay(raw));
   return (
     <div
       aria-hidden
       data-unpainted
       data-screen-fill
-      style={fill ? { background: fill } : undefined}
       className={cn("fixed inset-0 z-[59] bg-[var(--alert-overlay)] transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
     />
   );

@@ -11,7 +11,6 @@ import { setTheme, type Theme } from "@/lib/appearance";
 import { cn } from "@/lib/cn";
 import type { Settings } from "@/lib/data/queries";
 import { formatRest } from "@/lib/workout/format";
-import { AlertOverlayTune } from "./alert-overlay-tune";
 import { StartEdgeTune } from "./start-edge-tune";
 
 const REST_STEPS = [60, 90, 120, 150, 180, 210, 240, 300];
@@ -112,8 +111,6 @@ export function SettingsForm({
       </Group>
 
       <StartEdgeTune />
-
-      <AlertOverlayTune />
 
       <Group title="Developer" footer="Shows the glass renderer's readout at the bottom of the screen. Saved on this device only.">
         <ToggleRow
