@@ -1108,6 +1108,25 @@ The focus screen is painted with the page (the glass stage repaints on DOM chang
 fields are live. A full-screen box must not carry `data-live`, since `html.gpu [data-live]` forces `position:
 relative`. Illustrations are 1024px WebP (`images:import`) and kept out of the PWA's install cache.
 
+## Equipment chip and switching mid-exercise
+
+The Journal card's first chip is the exercise's equipment (Frank's calls, 2026-11-13, after Ladder's equipment pill):
+"Barbell" and up-down chevrons, a menu of the family's equipment with a checkmark on the current one (`ChoiceMenu` in
+`pop-up-menu.tsx`), or a plain chip when the family has one. Picking one goes to the version on that equipment that
+keeps the position and variation (`optionFor`, as the version picker does) through `swapExercise`: with nothing logged
+the row becomes it in place. With a set logged, the database stays as it is: the new version is its own row right
+after, `swapped_from_exercise_id` set, prescribing only the working sets still to do and no warm-ups
+(`remainingSets`), and history and records stay with each version. No migration.
+
+On screen the two rows are one exercise (`mergeSwitched` in `src/lib/workout/equipment-switch.ts`, tested), merged
+once where the workout screen builds its entries, so the Journal card, the progress bar, swiping, "Set 2 of 3" and the
+pill dots all follow. A row joins the one before it when it was switched from what that row started as, in the same
+family, on different equipment, and the earlier row has a logged set; the earlier row shows only its logged sets.
+The heading, Max Weight and Est. 1RM are the current version's. A card holding two equipment gets an Equipment column
+(13pt, after the Log It circle) naming each set's; each set's Last is its own version's. Unlogged sets always belong to
+the current row, so logging is unchanged; Undo finds a set's own row (`ownerOf`) and a delete plans on it (`locate`),
+while drafts, timers and indices stay in the entry's order as shown. Exit Workout Early counts every row's sets.
+
 ## Soft scroll edge
 
 Apple's iOS 27 "Scroll Edge Effect - Soft" (Frank's call, 2026-11-12; Figma `RrXV3TJi8viPxN3lELlvfK` 2681:67704: a

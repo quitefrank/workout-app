@@ -9,6 +9,7 @@ import { db, timeZone, userId } from "@/lib/supabase/server";
 import { localDate } from "@/lib/workout/dates";
 import { swappedFrom } from "@/lib/workout/active";
 import { startDecision } from "@/lib/workout/start-sheet";
+import { remainingSets } from "@/lib/workout/equipment-switch";
 import { midpoint } from "@/lib/workout/format";
 import { FIRST_FLOOR, FLOORS, type MachineLocation } from "@/lib/workout/machine-location";
 import { parseWeightCsv } from "../../scripts/parse-weight-csv";
@@ -293,7 +294,7 @@ export async function swapExercise(workoutExerciseId: string, exerciseId: string
   fail(rowError);
   const current = row as unknown as Record<string, unknown> & { exercise_id: string; swapped_from_exercise_id: string | null; position: number; machine_location: MachineLocation | null; sets: { count: number }[] };
   if (current.exercise_id === exerciseId) return { mode: "replaced", previousExerciseId: exerciseId };
-  const { data: next, error: nextError } = await db().from("exercises").select("id, has_floors").eq("id", exerciseId).maybeSingle();
+  const { data: next, error: nextError } = await db().from("exercises").select("id, has_floors, movement").eq("id", exerciseId).maybeSingle();
   fail(nextError);
   if (!next) throw new Error("No such exercise.");
   const floors = next.has_floors ? await lastFloors([next.id]) : null;
@@ -313,14 +314,31 @@ export async function swapExercise(workoutExerciseId: string, exerciseId: string
     return { mode: "replaced", previousExerciseId: current.exercise_id };
   }
 
+  // The same family on other equipment (the Journal's equipment chip, or a version picked in Swap) continues the
+  // exercise: the new row takes the working sets still to do and no warm-ups, and the screen shows the two as one
+  // (src/lib/workout/equipment-switch.ts). Another exercise takes the whole prescription.
+  const { data: was, error: wasError } = await db().from("exercises").select("movement").eq("id", current.exercise_id).maybeSingle();
+  fail(wasError);
+  const continues = !!next.movement && next.movement === was?.movement;
+  let sets = { min: current.prescribed_sets_min as number | null, max: current.prescribed_sets_max as number | null };
+  if (continues) {
+    const { count, error: countError } = await db()
+      .from("sets")
+      .select("id", { count: "exact", head: true })
+      .eq("workout_exercise_id", workoutExerciseId)
+      .eq("is_warm_up", false);
+    fail(countError);
+    sets = remainingSets(sets.min, sets.max, count ?? 0);
+  }
+
   await shiftPositions(we.workout_id, current.position);
   const { error } = await db().from("workout_exercises").insert({
     workout_id: we.workout_id,
     exercise_id: next.id,
     machine_location: floor,
     position: current.position + 1,
-    prescribed_sets_min: current.prescribed_sets_min as number | null,
-    prescribed_sets_max: current.prescribed_sets_max as number | null,
+    prescribed_sets_min: sets.min,
+    prescribed_sets_max: sets.max,
     prescribed_reps_min: current.prescribed_reps_min as number | null,
     prescribed_reps_max: current.prescribed_reps_max as number | null,
     prescribed_rir_min: current.prescribed_rir_min as number | null,
@@ -329,8 +347,8 @@ export async function swapExercise(workoutExerciseId: string, exerciseId: string
     prescribed_seconds_max: current.prescribed_seconds_max as number | null,
     prescribed_rest_seconds: current.prescribed_rest_seconds as number | null,
     prescribed_rpe: current.prescribed_rpe as string | null,
-    warm_up_sets_min: current.warm_up_sets_min as number | null,
-    warm_up_sets_max: current.warm_up_sets_max as number | null,
+    warm_up_sets_min: continues ? 0 : (current.warm_up_sets_min as number | null),
+    warm_up_sets_max: continues ? 0 : (current.warm_up_sets_max as number | null),
     notes: current.notes as string | null,
     swapped_from_exercise_id: current.swapped_from_exercise_id ?? current.exercise_id,
   });

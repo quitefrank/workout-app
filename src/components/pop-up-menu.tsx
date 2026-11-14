@@ -69,6 +69,12 @@ export function ActionMenu({ rect, items, palette, onClose, onPick }: { rect: DO
   return <Menu rect={rect} items={items} palette={palette} value="" onClose={() => onClose()} onPick={onPick} />;
 }
 
+/** The pop-up button's menu (a checkmark on `value`) from a button of the caller's own, such as the Journal's equipment
+ *  chip. Picking the current value only closes it. */
+export function ChoiceMenu({ rect, items, value, onClose, onPick }: { rect: DOMRect; items: PopUpItem[]; value: string; onClose: () => void; onPick: (value: string) => void }) {
+  return <Menu rect={rect} items={items} value={value} onClose={() => onClose()} onPick={(v) => v !== value && onPick(v)} />;
+}
+
 /** A tap outside, a scroll or a resize closes it, as a menu or an anchored action sheet does */
 function useDismiss(panel: React.RefObject<HTMLDivElement | null>, close: (focus: boolean) => void) {
   useEffect(() => {
@@ -330,7 +336,9 @@ function Menu({ rect, items, palette, value, onClose, onPick }: { rect: DOMRect;
     el.style.setProperty("--W0", `${rect.width}px`);
     el.style.setProperty("--B", `${rect.height}px`);
     el.style.setProperty("--H", `${height}px`);
-    el.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+    // pinned at the value's right edge, shifted right just enough to stay 12pt in from the left when a button near the
+    // leading edge (the Journal's equipment chip) leaves no room for it to grow left
+    el.style.right = `${Math.min(Math.max(12, window.innerWidth - rect.right), window.innerWidth - width - 12)}px`;
     el.style.top = `${Math.max(12, Math.min(rect.top, window.innerHeight - height - 12))}px`;
     el.getBoundingClientRect();
     const frame = requestAnimationFrame(() => {

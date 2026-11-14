@@ -6,6 +6,7 @@ import { setExerciseFloor } from "@/app/actions";
 import { Button } from "@/components/button";
 import { ExerciseArt } from "@/components/exercise-art";
 import { CheckIcon, ChevronUpDown, ListIcon, SfFlameFillIcon, SwapIcon } from "@/components/icons";
+import { ChoiceMenu } from "@/components/pop-up-menu";
 import { SfSymbol } from "@/components/sf-symbol";
 import { Sheet } from "@/components/sheet";
 import { SwipeRow } from "@/components/swipe-row";
@@ -15,7 +16,8 @@ import { valuesOf, type Best, type SetRowView } from "@/lib/workout/active";
 import { formatNumber } from "@/lib/workout/format";
 import { FIELDS, fieldLabel, formatField, measureOf, parseField, summarizeShort, type Field, type SetValues } from "@/lib/workout/measure";
 import { FLOORS, floorKey, floorLabel, type MachineLocation } from "@/lib/workout/machine-location";
-import { exerciseTitle } from "@/lib/workout/movements";
+import { axisChoices, exerciseTitle, optionFor, type MovementOption } from "@/lib/workout/movements";
+import { mixedEquipment } from "@/lib/workout/equipment-switch";
 import type { Entry } from "./active-workout";
 
 type Draft = SetValues;
@@ -39,6 +41,11 @@ export type JournalProps = {
   onSwap: (we: WorkoutExerciseRow) => void;
   /** History: the exercise's sheet on its History tab, without leaving the workout */
   onHistory: (we: WorkoutExerciseRow) => void;
+  /** every version of each family in the workout (getWorkout), for the equipment chip */
+  movementOptions: Record<string, MovementOption[]>;
+  /** the equipment chip picked another version: swapExercise, which continues the exercise on its own row once a set is
+   *  logged (equipment-switch.ts) */
+  onEquipment: (we: WorkoutExerciseRow, exerciseId: string) => void;
   onFinish: () => void;
   /** the cards open when the Journal comes back after a sheet opened from it was cancelled */
   initialOpenIds?: ReadonlySet<string>;
@@ -78,6 +85,8 @@ export function JournalBody({
   onPick,
   onSwap,
   onHistory,
+  movementOptions,
+  onEquipment,
   onFinish,
   initialOpenIds,
   onOpenIdsChange,
@@ -123,6 +132,8 @@ export function JournalBody({
             onDeleteRow={onDeleteRow}
             onSwap={onSwap}
             onHistory={onHistory}
+            options={(entry.we.exercises.movement && movementOptions[entry.we.exercises.movement]) || []}
+            onEquipment={onEquipment}
           />
         ))}
       </div>
@@ -191,6 +202,8 @@ function ExerciseCard({
   onDeleteRow,
   onSwap,
   onHistory,
+  options,
+  onEquipment,
 }: {
   id: string;
   entry: Entry;
@@ -209,18 +222,26 @@ function ExerciseCard({
   onDeleteRow: (entry: Entry, i: number) => void;
   onSwap: (we: WorkoutExerciseRow) => void;
   onHistory: (we: WorkoutExerciseRow) => void;
+  options: MovementOption[];
+  onEquipment: (we: WorkoutExerciseRow, exerciseId: string) => void;
 }) {
   const { we, rows } = entry;
   const ex = we.exercises;
   const measure = measureOf(ex);
   const fields = FIELDS[measure];
   // circle, one cell per field (narrower for a treadmill's three), then last time
-  const cellWidth = fields.length > 2 ? 58 : 66;
+  // After an equipment switch the card holds sets on two equipment: an Equipment column names each (equipment-switch.ts)
+  const mixed = mixedEquipment(entry);
+  const cellWidth = fields.length > 2 || mixed ? 58 : 66;
+  // The equipment chip: this family's equipment, a checkmark on the current one; one choice is a plain chip
+  const current = options.find((o) => o.id === ex.id) ?? null;
+  const equipmentChoices = current ? axisChoices(options, "equipment") : [];
+  const [equipMenu, setEquipMenu] = useState<DOMRect | null>(null);
   // Edit Sets: on until Done Editing, and off whenever the card closes
   const [editingOn, setEditing] = useState(false);
   const editing = editingOn && open;
   const [floorPending, startFloor] = useTransition();
-  const columns = `38px ${fields.map(() => `${cellWidth}px`).join(" ")} 1fr`;
+  const columns = `38px ${mixed ? "72px " : ""}${fields.map(() => `${cellWidth}px`).join(" ")} 1fr`;
   // bumped on every delete so the rows remount: the collapsed row never comes back as the row after it
   const [deletes, setDeletes] = useState(0);
 
@@ -253,6 +274,16 @@ function ExerciseCard({
       <div className="grid grid-cols-[58px_1fr] gap-x-5 px-4 pb-[14px]">
       {/* one line that scrolls sideways when it outgrows the card */}
       <div className="col-span-2 -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none]">
+        {/* Equipment first, what changes most from one visit to the next (Frank's row, after Ladder's equipment pill) */}
+        {current &&
+          (equipmentChoices.length > 1 ? (
+            <Chip onClick={(e) => setEquipMenu(e.currentTarget.getBoundingClientRect())} label={`Equipment: ${current.equipment}`}>
+              {current.equipment}
+              <ChevronUpDown size={13} strokeWidth={2.2} />
+            </Chip>
+          ) : (
+            <span className="inline-flex h-9 shrink-0 items-center rounded-full bg-fill px-4 text-[15px] font-medium">{current.equipment}</span>
+          ))}
         <Chip onClick={() => onSwap(we)}>
           <SwapIcon size={15} /> Swap
         </Chip>
@@ -278,6 +309,7 @@ function ExerciseCard({
           <span role="columnheader" aria-label="Log it" className="flex justify-center text-ink-2">
             <CheckIcon size={15} strokeWidth={2.4} />
           </span>
+          {mixed && <span className="text-center text-[13px] text-ink-2">Equipment</span>}
           {fields.map((f) => (
             <span key={f} className="text-center text-[15px] text-ink-2">
               {fieldLabel(f, measure, unit)}
@@ -342,6 +374,7 @@ function ExerciseCard({
                   onToggle={() => (row.set ? onUnlog(entry, row.set) : onLog(entry, i))}
                   onChange={(d) => (row.set ? onEditLogged(row.set, d) : setDraft(we.id, i, d))}
                   onDelete={editing ? (deletable ? del : null) : undefined}
+                  equipment={mixed ? (entry.equipment?.[i] ?? null) : undefined}
                 />
               </SwipeRow>
             );
@@ -365,6 +398,19 @@ function ExerciseCard({
       </div>
       </div>
 
+      {equipMenu && current && (
+        <ChoiceMenu
+          rect={equipMenu}
+          items={equipmentChoices.map((value) => ({ value }))}
+          value={current.equipment}
+          onClose={() => setEquipMenu(null)}
+          onPick={(equipment) => {
+            // the version on that equipment that keeps this one's position and variation, as the version picker does
+            const to = optionFor(options, current, "equipment", equipment);
+            if (to && to.id !== ex.id) onEquipment(we, to.id);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -372,9 +418,9 @@ function ExerciseCard({
 /** Symbols are rendered at 19pt (scripts/sf-symbols.js); a chip draws them at its 15pt label size */
 const CHIP_SYMBOL = 15 / 19;
 
-function Chip({ onClick, className, children }: { onClick: () => void; className?: string; children: React.ReactNode }) {
+function Chip({ onClick, className, label, children }: { onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; className?: string; label?: string; children: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className={cn("inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-fill px-4 text-[15px] font-medium", className)}>
+    <button type="button" aria-label={label} onClick={onClick} className={cn("inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-fill px-4 text-[15px] font-medium", className)}>
       {children}
     </button>
   );
@@ -396,6 +442,7 @@ function SetLine({
   onToggle,
   onChange,
   onDelete,
+  equipment,
 }: {
   row: SetRowView;
   fields: readonly Field[];
@@ -409,6 +456,8 @@ function SetLine({
   onChange: (d: Draft) => void;
   /** Edit Sets: null when this set cannot be deleted; undefined when not editing */
   onDelete?: (() => void) | null;
+  /** the set's equipment, on a card after an equipment switch; undefined hides the column */
+  equipment?: string | null;
 }) {
   const cell = cn(
     "tabular h-[41px] rounded-[10px] border-[1.5px] border-sep bg-transparent p-0 text-center text-[17px] font-semibold outline-none focus:border-blue placeholder:text-ink-3",
@@ -447,6 +496,7 @@ function SetLine({
           {row.set ? "✓" : row.kind === "warm" ? <SfFlameFillIcon size={15} /> : row.label}
         </button>
       )}
+      {equipment !== undefined && <span className="relative truncate text-center text-[13px] text-ink-2">{equipment ?? "--"}</span>}
       {fields.map((f) => (
         <FieldCell key={f} field={f} value={value[f]} width={width} className={cn(cell, "relative")} onCommit={(v) => onChange({ ...value, [f]: v })} />
       ))}

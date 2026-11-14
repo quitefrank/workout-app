@@ -16,6 +16,7 @@ import {
   discardWorkout,
   logSet,
   moveAfterNext,
+  swapExercise,
   updateSet,
 } from "@/app/actions";
 import { Button } from "@/components/button";
@@ -63,6 +64,7 @@ import { deletePlan, NO_DROP, rowsFor, shiftDrafts, type Drop } from "@/lib/work
 import { floorKey } from "@/lib/workout/machine-location";
 import { opensOnRelease, PILL, progressFor, travel } from "@/lib/workout/journal-card";
 import { exerciseTitle } from "@/lib/workout/movements";
+import { locate, mergeSwitched, ownerOf, type Merged } from "@/lib/workout/equipment-switch";
 import { FinishSheet } from "./finish-sheet";
 import { Journal, JournalBody, type JournalProps } from "./journal";
 import { JournalCard, PillCheck, type CardControl } from "./journal-card";
@@ -94,7 +96,9 @@ const JOURNAL_SHEET_CLOSE_MS = 450;
  * Ladder's pill with set dots above the name. Swap is in the More menu.
  */
 
-export type Entry = { we: WorkoutExerciseRow; rows: SetRowView[] };
+/** One exercise on screen: a workout row and its set rows, or rows joined by an equipment switch (equipment-switch.ts),
+ *  whose `we` is the current row. Unlogged sets always belong to `we`; a logged set may belong to an earlier part. */
+export type Entry = Merged<{ we: WorkoutExerciseRow; rows: SetRowView[] }>;
 type Draft = SetValues;
 type Optimistic = { weId: string; add?: SetRow; remove?: string };
 
@@ -160,15 +164,18 @@ export function ActiveWorkout({
     workout.lastTime[floorKey(we.exercises.id, we.machine_location)] ?? null;
   const entries: Entry[] = useMemo(
     () =>
-      exercises.map((we) => ({
-        we,
-        rows: rowsFor(
+      // an equipment switch after a logged set is two rows in the database and one exercise on screen
+      mergeSwitched(
+        exercises.map((we) => ({
           we,
-          workout.lastTime[floorKey(we.exercises.id, we.machine_location)] ?? null,
-          extra[we.id] ?? 0,
-          dropped[we.id] ?? NO_DROP,
-        ),
-      })),
+          rows: rowsFor(
+            we,
+            workout.lastTime[floorKey(we.exercises.id, we.machine_location)] ?? null,
+            extra[we.id] ?? 0,
+            dropped[we.id] ?? NO_DROP,
+          ),
+        })),
+      ),
     [exercises, workout.lastTime, extra, dropped],
   );
 
@@ -327,26 +334,31 @@ export function ActiveWorkout({
     holdDoneRef.current = holdDone;
   });
 
+  // A logged set may belong to an earlier row of an equipment switch: undo it there
   const unlog = (entry: Entry, set: SetRow) =>
     run(async () => {
-      apply({ weId: entry.we.id, remove: set.id });
+      apply({ weId: ownerOf(entry, set.id).we.id, remove: set.id });
       await deleteSet(set.id);
     }, "Could not undo the set");
 
-  // Swipe to delete in the Journal: the row goes, its set too when logged, and the rows after it keep their values
+  // Swipe to delete or Edit Sets' minus in the Journal: the row goes, its set too when logged, and the rows after it
+  // keep their values. The plan is made on the set's own row (`locate`); drafts, timers and indices on screen are the
+  // entry's, as shown.
   const deleteRow = (entry: Entry, i: number) => {
-    const weId = entry.we.id;
-    const plan = deletePlan(entry.we, lastTimeOf(entry.we), extra[weId] ?? 0, dropped[weId] ?? NO_DROP, i);
+    const { entry: part, i: j } = locate(entry, i);
+    const partId = part.we.id;
+    const plan = deletePlan(part.we, lastTimeOf(part.we), extra[partId] ?? 0, dropped[partId] ?? NO_DROP, j);
     if (!plan) return;
-    const shown = entry.rows.map((r, j) => (r.set ? valuesOf(r.set) : valueOf(weId, j, r)));
+    const weId = entry.we.id;
+    const shown = entry.rows.map((r, k) => (r.set ? valuesOf(r.set) : valueOf(weId, k, r)));
     setDrafts((cur) => shiftDrafts(cur, weId, entry.rows, shown, i));
-    setExtra((cur) => ({ ...cur, [weId]: plan.extra }));
-    setDropped((cur) => ({ ...cur, [weId]: plan.drop }));
+    setExtra((cur) => ({ ...cur, [partId]: plan.extra }));
+    setDropped((cur) => ({ ...cur, [partId]: plan.drop }));
     if (setTimer.state?.weId === weId && setTimer.state.row >= i) setTimer.stop();
     const setId = plan.setId;
     if (setId)
       run(async () => {
-        apply({ weId, remove: setId });
+        apply({ weId: partId, remove: setId });
         await deleteSet(setId);
       }, "Could not delete the set");
   };
@@ -508,7 +520,8 @@ export function ActiveWorkout({
   const [menu, setMenu] = useState<DOMRect | null>(null);
   // Exit Workout Early asks in a centred alert: it is picked from a menu (Frank's rule, 2026-11-13)
   const [exitAsking, setExitAsking] = useState(false);
-  const loggedSets = entries.reduce((n, e) => n + e.we.sets.length, 0);
+  // every row, so an earlier part of an equipment switch counts too
+  const loggedSets = exercises.reduce((n, we) => n + we.sets.length, 0);
   const exit = exitAsk(loggedSets);
   const discard = () => run(() => discardWorkout(workout.id), "Could not exit the workout");
 
@@ -567,6 +580,13 @@ export function ActiveWorkout({
         setHistoryFor(we);
         setHistoryOpen(true);
       }),
+    movementOptions: workout.movementOptions,
+    // the equipment chip: the row becomes the other version, or continues on a new row once a set is logged, which
+    // the screen joins to this one (equipment-switch.ts)
+    onEquipment: (we, exerciseId) =>
+      run(async () => {
+        await swapExercise(we.id, exerciseId);
+      }, "Could not switch the equipment"),
     initialOpenIds: journalRestore?.openIds ?? undefined,
     onOpenIdsChange: rememberOpenIds,
     onFinish: () => {
