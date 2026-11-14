@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { ACTION_SHEET, placeActionSheet } from "@/lib/action-sheet";
+import { alertOverlayFill, parseAlertOverlay, readAlertOverlay, subscribeAlertOverlay } from "@/lib/alert-overlay";
 import { cn } from "@/lib/cn";
 import { CheckIcon, ChevronUpDown } from "./icons";
 import { SfSymbol } from "./sf-symbol";
@@ -146,14 +147,8 @@ export function ActionSheet({ rect, title, message, actions, onClose }: { rect: 
 
   return createPortal(
     <>
-    {/* The kit's Overlay - Alerts over everything, bars and any sheet included. CSS on both glass paths, above the
-        canvas (a full-screen flat tint cannot drift), so the painter skips it; a tap on it is a tap outside. */}
-    <div
-      aria-hidden
-      data-unpainted
-      data-screen-fill
-      className={cn("fixed inset-0 z-[59] bg-[var(--alert-overlay)] transition-opacity duration-300", state === "open" ? "opacity-100" : "opacity-0")}
-    />
+    {/* a tap on the overlay is a tap outside */}
+    <AlertOverlayLayer open={state === "open"} />
     <div
       ref={panel}
       role="alertdialog"
@@ -197,6 +192,25 @@ export function ActionSheet({ rect, title, message, actions, onClose }: { rect: 
   );
 }
 
+/**
+ * The dimming behind an alert or action sheet, over everything, bars and any sheet included: `--alert-overlay` in
+ * globals.css, or the Alert dimming test setting's fill (src/lib/alert-overlay.ts). CSS on both glass paths, above the
+ * canvas (a full-screen flat tint cannot drift), so the painter skips it. Fades over 300ms.
+ */
+function AlertOverlayLayer({ open }: { open: boolean }) {
+  const raw = useSyncExternalStore(subscribeAlertOverlay, readAlertOverlay, () => null);
+  const fill = alertOverlayFill(parseAlertOverlay(raw));
+  return (
+    <div
+      aria-hidden
+      data-unpainted
+      data-screen-fill
+      style={fill ? { background: fill } : undefined}
+      className={cn("fixed inset-0 z-[59] bg-[var(--alert-overlay)] transition-opacity duration-300", open ? "opacity-100" : "opacity-0")}
+    />
+  );
+}
+
 /** Longest label that fits a side-by-side capsule (half of 272pt less 32pt padding, 17pt semibold); longer ones stack */
 const SIDE_BY_SIDE_CHARS = 9;
 
@@ -215,7 +229,7 @@ const SIDE_BY_SIDE_CHARS = 9;
 export function Alert({ title, message, action, onClose }: { title: string; message?: string; action: SheetAction; onClose: () => void }) {
   const [state, setState] = useState<"closed" | "open">("closed");
   const closing = useRef(false);
-  const cancelButton = useRef<HTMLButtonElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
   const ids = useId();
   const stacked = action.label.length > SIDE_BY_SIDE_CHARS;
 
@@ -235,14 +249,15 @@ export function Alert({ title, message, action, onClose }: { title: string; mess
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
       setState("open");
-      cancelButton.current?.focus({ preventScroll: true });
+      // the alert takes focus, not a button, so no ring shows on a tap; Tab reaches Cancel first
+      dialog.current?.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
   }, []);
 
   const capsule = "h-12 min-w-0 truncate rounded-full bg-fill-secondary px-4 text-[17px] font-semibold tracking-[-0.43px] outline-none transition-opacity focus-visible:ring-2 focus-visible:ring-blue active:opacity-60";
   const cancel = (
-    <button key="cancel" ref={cancelButton} type="button" onClick={() => close()} className={capsule}>
+    <button key="cancel" type="button" onClick={() => close()} className={capsule}>
       Cancel
     </button>
   );
@@ -254,25 +269,22 @@ export function Alert({ title, message, action, onClose }: { title: string; mess
 
   return createPortal(
     <>
-      <div
-        aria-hidden
-        data-unpainted
-        data-screen-fill
-        className={cn("fixed inset-0 z-[59] bg-[var(--alert-overlay)] transition-opacity duration-300", state === "open" ? "opacity-100" : "opacity-0")}
-      />
+      <AlertOverlayLayer open={state === "open"} />
       <div data-unpainted data-screen-fill className="pointer-events-none fixed inset-0 z-[60] grid place-items-center px-3">
         <div
+          ref={dialog}
           role="alertdialog"
           aria-modal="true"
           aria-labelledby={`${ids}-title`}
           aria-describedby={message ? `${ids}-message` : undefined}
+          tabIndex={-1}
           onKeyDown={(e) => {
             if (e.key !== "Escape") return;
             e.preventDefault();
             close();
           }}
           className={cn(
-            "glass-sheet pointer-events-auto grid w-full max-w-[300px] overflow-hidden rounded-[34px] p-[14px] transition-[opacity,scale] duration-[250ms] ease-[cubic-bezier(0.2,0.9,0.3,1)]",
+            "glass-sheet pointer-events-auto grid w-full max-w-[300px] overflow-hidden rounded-[34px] p-[14px] outline-none transition-[opacity,scale] duration-[250ms] ease-[cubic-bezier(0.2,0.9,0.3,1)]",
             state === "open" ? "scale-100 opacity-100" : "scale-[1.06] opacity-0",
           )}
         >
