@@ -81,23 +81,24 @@ export function GlassDebug() {
   const lines = typing
     ? [`html.gpu ${gpu}  phase ${s.phase}`, g.inner, g.vv, g.canvas, g.window]
     : [
-        // the rates first: the panel shows about seven lines and scrolls for the rest
+        // only what fits in the status bar's band: the rates, the stage's state and any error
         rateLine(),
-        `html.gpu ${gpu}  phase ${s.phase}  frames ${s.frames}`,
-        `adapter ${s.adapter || "?"}  stage ${s.stage || "?"}`,
-        g.inner, g.vv, g.canvas, g.window, g.bars,
+        `gpu ${gpu}  phase ${s.phase}  stage ${s.stage || "?"}`,
         s.error ? `error ${s.error}` : "error none",
-        ...s.entries.map((e) => `${e.laidOut ? "on" : "off"} ${e.compile}  ${e.label}`),
       ];
   return (
     <pre
       // fixed over the canvas already, so it takes no live lift (whose position: relative would pull it to the top)
       data-glass-debug
-      // Just above the tab bar (Frank's call, 2026-11-14: over the dock it blocked navigation), about seven lines tall and
-      // scrollable with a finger. The bar is 62pt at --dock-bottom; 8pt above it.
+      // In the status bar's band at the top, over no control, and never takes a tap (Frank's call, 2026-11-14: above the
+      // tab bar it still blocked what was behind it). Three short lines fit the band's height.
       // while typing, just above the keyboard: the top of what is on screen plus its height (src/lib/scroller.ts)
-      style={typing ? { top: "calc(var(--vv-h, 100vh) - 84px)" } : { bottom: "calc(var(--dock-bottom, 21px) + 62px + 8px)" }}
-      className={`fixed inset-x-2 z-[100] whitespace-pre-wrap rounded-xl bg-black/80 p-2 font-mono text-white ${typing ? "pointer-events-none overflow-hidden text-[9px] leading-[11px]" : "max-h-[107px] touch-pan-y overflow-y-auto overscroll-contain text-[10px] leading-[13px]"}`}
+      style={
+        typing
+          ? { top: "calc(var(--vv-h, 100vh) - 84px)" }
+          : { top: 0, height: "max(env(safe-area-inset-top), 44px)", paddingTop: "max(env(safe-area-inset-top) - 41px, 4px)" }
+      }
+      className={`pointer-events-none fixed inset-x-0 z-[100] overflow-hidden whitespace-pre bg-black/75 font-mono text-white ${typing ? "mx-2 rounded-xl p-2 text-[9px] leading-[11px]" : "px-2 text-[9px] leading-[12px]"}`}
     >
       {lines.join("\n")}
     </pre>

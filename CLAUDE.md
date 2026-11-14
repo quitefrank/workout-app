@@ -1240,7 +1240,7 @@ Two per-device test settings came out of Frank's phone test (2026-11-14), mounte
   the crop before Frank edits the images and small thumbnails are generated. Large art is never zoomed. At 2x a centred
   crop loses the red highlight on some exercises (Ankle Stretch, Arm Circles); 1.5x keeps it.
 
-The glass readout sits above the tab bar, about seven lines tall, and scrolls (Frank's call, 2026-11-14).
+The glass readout sits in the status bar's band at the top, three lines (rates, stage, error), and never takes a tap (Frank's call, 2026-11-14).
 
 Still open (next phases): scroll on the GPU path repaints and uploads the whole page every frame (about 20fps in desktop
 Chromium even at 1x; the tab bar's soft edge alone halves Home's rate, 22 to 48fps without it); server waves, duplicate
