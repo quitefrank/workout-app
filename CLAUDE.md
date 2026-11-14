@@ -433,10 +433,12 @@ below. No Cancel, as the kit draws it: anchored to its button, iOS leaves the ca
 scroll or Escape cancels. Behind it the whole screen, bars and any open sheet included, takes the kit's Overlay -
 Alerts (754:62559, layer 5446:18875: `rgba(41, 41, 58, 0.23)`, `--alert-overlay`, a fixed fill the kit keeps in both
 appearances), fading in and out over 300ms (Frank's catch, 2026-11-13). It is plain CSS above the canvas on both glass
-paths (`data-unpainted`), not the sheet's painted scrim, which sits under an open sheet. A question that would lose
-nothing is not asked.
-The words are in `src/lib/workout/confirm.ts` and `startAsk` (tested). Three today: Exit Workout Early (Delete Workout,
-Complete Workout), a finished workout's Delete, and Start with a workout in progress. An alert stays for something the
+paths (`data-unpainted`), not the sheet's painted scrim, which sits under an open sheet. A delete that cannot be undone
+always asks, even with nothing logged (Frank's call, 2026-11-13, after an empty Exit deleted a workout and its time
+with one tap).
+The words are in `src/lib/workout/confirm.ts` and `startAsk` (tested). Four today: Exit Workout Early (Delete Workout,
+and Complete Workout once a set is logged), a finished workout's Delete, Remove in a Journal card's More (Remove
+Exercise, naming any logged sets; an exercise cannot be added back mid-workout), and Start with a workout in progress. An alert stays for something the
 person did not start (none yet).
 
 ## Swipe to delete a set
@@ -686,7 +688,7 @@ the code and tables keep `templates`. The 18 Notion day templates have `program_
 workout (`/workouts/[id]`) is described under "Active workout" below. Delete has one place on a
 finished workout: the trash button in the summary's top bar, asking in an action sheet grown from it; the active
 workout deletes itself with Exit Workout Early in its More menu, which asks in an action sheet grown from More (Delete
-Workout or Complete Workout) and, with nothing logged, exits without asking. A finished workout's summary deletes (`deleteWorkout` in `actions.ts`, which refuses one in
+Workout, and Complete Workout once a set is logged), every time. A finished workout's summary deletes (`deleteWorkout` in `actions.ts`, which refuses one in
 progress). Pure helpers for dates, formatting and PRs live in
 `src/lib/workout/` with tests.
 

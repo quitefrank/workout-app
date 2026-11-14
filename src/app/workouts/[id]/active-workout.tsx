@@ -965,11 +965,8 @@ export function ActiveWorkout({
             else if (v === "Journal") openJournal();
             else if (v === "Settings") setSettingsOpen(true);
             else if (v === "Complete Workout") setFinishing(true);
-            else if (v === "Exit Workout Early") {
-              // nothing logged, nothing lost: no question (HIG, Alerts)
-              if (!exit) discard();
-              else setExitFrom(moreRect.current);
-            }
+            // always asks: it cannot be undone, and even an empty workout takes its time with it (Frank's call, 2026-11-13)
+            else if (v === "Exit Workout Early") setExitFrom(moreRect.current);
           }}
         />
       )}
@@ -1060,14 +1057,14 @@ export function ActiveWorkout({
         unit={unit}
       />
 
-      {exitFrom && exit && (
+      {exitFrom && (
         <ActionSheet
           rect={exitFrom}
           title={exit.title}
           message={exit.message}
           actions={[
             { label: exit.delete, destructive: true, onPick: discard },
-            { label: exit.complete, onPick: () => setFinishing(true) },
+            ...(exit.complete ? [{ label: exit.complete, onPick: () => setFinishing(true) }] : []),
           ]}
           onClose={() => setExitFrom(null)}
         />
