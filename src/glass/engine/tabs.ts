@@ -3,6 +3,7 @@ import { LENS } from "@/lib/tab-lens";
 import { lensState } from "../lens-state";
 import type { Material } from "../presets";
 import { svgImage } from "../paint/svg";
+import { meshKey, uniformsKey } from "./frame-gate";
 
 /* The tabs layer, the Glass Lab V3's (makeGpu, "The tabs layer"), for the app: everything over the tab bar's glass,
    drawn in the canvas. At rest it is the selected tab's capsule (on the device darker than the bar in both appearances,
@@ -104,8 +105,9 @@ export function makeTabsLayer(THREE: any, T: any, o: Opts) {
   // The mask: every tab's symbol and label at twice the screen's density, so the lens can magnify it. Only its alpha is
   // read, so the colours the HTML ink has do not matter; it is redrawn when the bar's size, the labels or a symbol
   // image change.
-  let inkKey = "", loads = 0, pending = true;
+  let inkKey = "", loads = 0, pending = true, inkVersion = 0;
   const drawInk = (bar: HTMLElement, rect: Rect, swell: number, bw: number, bh: number) => {
+    inkVersion++;
     const K = Math.min(6, dpr * 2), qw = bw + 2 * M, qh = bh + 2 * M;
     const iw = Math.round(qw * K), ih = Math.round(qh * K);
     // a new size needs a new GPU texture, not an upload into the old one
@@ -158,6 +160,8 @@ export function makeTabsLayer(THREE: any, T: any, o: Opts) {
     },
     /** The mask has every symbol decoded, so the HTML ink can step aside */
     inkReady: () => !pending && inkKey !== "",
+    /** Everything the layer draws from, for the stage's idle gate (src/glass/engine/frame-gate.ts) */
+    frameKey: () => `${inkVersion}|${meshKey(mesh)}|${uniformsKey(L as unknown as Record<string, unknown>)}`,
     dispose() { mat.dispose(); geo.dispose(); inkTex.dispose(); },
   };
 }

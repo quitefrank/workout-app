@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { debugState } from "./debug-state";
 import { startTrace } from "@/lib/trace";
+import { describe as describePerf, parseStored, perfSnapshot } from "@/lib/perf-flags";
 
 /**
  * A readout of the glass renderer's state, for checking it on the phone where there is no console. Off unless the URL
@@ -36,6 +37,22 @@ export function debugEnabled(): boolean {
   return fromLink || debugSetting();
 }
 
+// Per-second rates of what the stage did, from the counters between two readout ticks (the performance levers): frames
+// the loop ran, composites drawn, page paints and display-list rebuilds. At rest with `idle` on, all but frames read 0.
+let lastRates = { t: 0, frames: 0, renders: 0, paints: 0, rebuilds: 0 };
+let rates = "";
+function rateLine(): string {
+  const now = performance.now(), s = debugState;
+  if (lastRates.t && now - lastRates.t >= 400) {
+    const k = 1000 / (now - lastRates.t);
+    const r = (a: number, b: number) => Math.round((a - b) * k);
+    rates = `per s  frames ${r(s.frames, lastRates.frames)}  renders ${r(s.renders, lastRates.renders)}  paints ${r(s.paints, lastRates.paints)}  rebuilds ${r(s.rebuilds, lastRates.rebuilds)}`;
+  }
+  if (!lastRates.t || now - lastRates.t >= 400) lastRates = { t: now, frames: s.frames, renders: s.renders, paints: s.paints, rebuilds: s.rebuilds };
+  const changed = describePerf(parseStored(perfSnapshot()));
+  return `${rates || "per s  measuring"}\nperf ${changed || "defaults"}`;
+}
+
 export function GlassDebug() {
   const [on, setOn] = useState(false);
   const [, setTick] = useState(0);
@@ -66,6 +83,7 @@ export function GlassDebug() {
     : [
         `html.gpu ${gpu}  phase ${s.phase}  frames ${s.frames}`,
         `adapter ${s.adapter || "?"}  stage ${s.stage || "?"}`,
+        rateLine(),
         g.inner, g.vv, g.canvas, g.window, g.bars,
         s.error ? `error ${s.error}` : "error none",
         ...s.entries.map((e) => `${e.laidOut ? "on" : "off"} ${e.compile}  ${e.label}`),

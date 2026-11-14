@@ -1,4 +1,5 @@
 import { PUSH, type PushDirection } from "@/lib/page-push";
+import { perf } from "@/lib/perf-flags";
 
 /**
  * The page push between the app and the glass stage (src/glass/engine/stage.ts), as lens-state.ts is for the tab bar.
@@ -18,6 +19,8 @@ export const navState = {
 export function beginPush(direction: PushDirection): void {
   // a second tap while one is waiting keeps the first copy, which is still the page that was on screen
   if (navState.phase === "hold") return;
+  // lever `push` off: the new page shows as soon as it arrives
+  if (!perf("push")) return;
   if (!navState.snapshot?.()) return;
   navState.phase = "hold";
   navState.direction = direction;

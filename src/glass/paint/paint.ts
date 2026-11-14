@@ -1,5 +1,6 @@
 import { gradientLine, parseColor, resolveStops, type Gradient, type Shadow } from "./css";
 import type { Clip, DisplayList, Item } from "./display-list";
+import { perf } from "@/lib/perf-flags";
 
 const ELLIPSIS = "\u2026";
 const SENTINEL = "#010203";
@@ -186,7 +187,9 @@ function newScratch(): Scratch {
 /** A scratch canvas at least w x h, cleared, transform reset. Grown, never shrunk, so a steady screen allocates once.
  *  0 holds the copy, 1 a band, 2 and 3 take turns in `mipBlur`. */
 function sized(i: number, w: number, h: number): Scratch {
-  scratch ??= [newScratch(), newScratch(), newScratch(), newScratch()];
+  scratch ??= [];
+  // slots past 3 belong to the shared blur chain (levels from 4, doubled-back results from 20), made on first use
+  while (scratch.length <= i) scratch.push(newScratch());
   const s = scratch[i];
   if (s.canvas.width < w || s.canvas.height < h) {
     s.canvas.width = Math.max(s.canvas.width, w);
@@ -219,7 +222,7 @@ function filterSupported() {
  * to full size into `dst` at (dx, dy). Scratch canvases 2 and 3 take turns, so no canvas is drawn onto itself.
  */
 function mipBlur(src: CanvasImageSource, w: number, h: number, sigma: number, dst: Scratch["ctx"], dx: number, dy: number) {
-  const levels = Math.max(1, Math.round(Math.log2(Math.max(1, sigma))));
+  const levels = mipLevels(sigma);
   const sizes: [number, number][] = [[w, h]];
   let cur: CanvasImageSource = src;
   let slot = 2;
@@ -250,6 +253,61 @@ function mipBlur(src: CanvasImageSource, w: number, h: number, sigma: number, ds
   dst.drawImage(cur, 0, 0, lw, lh, dx, dy, w, h);
 }
 
+/** How many halvings a blur of `sigma` px takes in `mipBlur` */
+export const mipLevels = (sigma: number) => Math.max(1, Math.round(Math.log2(Math.max(1, sigma))));
+
+/** Each band's halvings for a soft edge of `sigma` px; bands that share a level blur to the same pixels */
+export function bandLevels(sigma: number, bands: readonly number[] = SOFT_BANDS): number[] {
+  return bands.map((f) => mipLevels(sigma * f));
+}
+
+/**
+ * The shared blur chain (lever `blurchain`, 2026-11-14): `src` halved once per level up to the deepest band, each level
+ * kept (scratch slots from 4), then each distinct level doubled back to half size once and kept (slots from 20), so a
+ * band only draws its level's result. Per-band `mipBlur` rebuilt the chain from full size for every band: 29 halvings
+ * for six bands where 6 do, and two pairs of bands came out the same. Same pixels as `mipBlur`.
+ */
+function sharedChain(src: CanvasImageSource, w: number, h: number, levels: number[]) {
+  const deepest = Math.max(...levels);
+  const sizes: [number, number][] = [[w, h]];
+  const chain: CanvasImageSource[] = [src];
+  for (let l = 0; l < deepest; l++) {
+    const [pw, ph] = sizes[l];
+    const nw = Math.max(1, Math.ceil(pw / 2)), nh = Math.max(1, Math.ceil(ph / 2));
+    const next = sized(4 + l, nw, nh);
+    next.ctx.imageSmoothingEnabled = true;
+    next.ctx.imageSmoothingQuality = "high";
+    next.ctx.drawImage(chain[l], 0, 0, pw, ph, 0, 0, nw, nh);
+    sizes.push([nw, nh]);
+    chain.push(next.canvas);
+  }
+  const ups = new Map<number, CanvasImageSource>();
+  const upFrom = (level: number): CanvasImageSource => {
+    const hit = ups.get(level);
+    if (hit) return hit;
+    let cur = chain[level];
+    let slot = 2;
+    for (let l = level; l > 1; l--) {
+      const [cw, ch] = sizes[l], [uw, uh] = sizes[l - 1];
+      // the last doubling lands in this level's own slot, so it survives the next level's work
+      const next = sized(l === 2 ? 20 + level : slot, uw, uh);
+      next.ctx.imageSmoothingEnabled = true;
+      next.ctx.imageSmoothingQuality = "high";
+      next.ctx.drawImage(cur, 0, 0, cw, ch, 0, 0, uw, uh);
+      cur = next.canvas;
+      slot = slot === 2 ? 3 : 2;
+    }
+    ups.set(level, cur);
+    return cur;
+  };
+  const [lw, lh] = sizes[1];
+  return (level: number, dst: Scratch["ctx"], dx: number, dy: number) => {
+    dst.imageSmoothingEnabled = true;
+    dst.imageSmoothingQuality = "high";
+    dst.drawImage(upFrom(level), 0, 0, lw, lh, dx, dy, w, h);
+  };
+}
+
 /**
  * Apple's soft scroll edge on the painted page: blur what is already painted in the box, in bands that grow toward the
  * edge, then the screen's colour fading in toward it. The page so far is copied out of the canvas (with a margin, so the
@@ -275,7 +333,9 @@ function drawSoftEdge(c: CanvasRenderingContext2D, it: Extract<Item, { k: "soft"
     const px1 = Math.min(cw, x1 + pad), py1 = Math.min(ch, y1 + pad);
     const src = sized(0, px1 - px0, py1 - py0);
     src.ctx.drawImage(c.canvas, px0, py0, px1 - px0, py1 - py0, 0, 0, px1 - px0, py1 - py0);
-    const filter = filterSupported();
+    // lever `mip` forces the iPhone path on desktop, to measure it there
+    const filter = filterSupported() && !perf("mip");
+    const chained = !filter && perf("blurchain") ? sharedChain(src.canvas, px1 - px0, py1 - py0, bandLevels(sigma)) : null;
     for (let i = 0; i < SOFT_BANDS.length; i++) {
       const s = sigma * SOFT_BANDS[i];
       const band = sized(1, w, h);
@@ -287,7 +347,8 @@ function drawSoftEdge(c: CanvasRenderingContext2D, it: Extract<Item, { k: "soft"
       } else {
         // iPhone Safari has no canvas filter: halve the copy step by step and double it back, each step a 2x2 bilinear
         // average, which approaches a Gaussian. One large downscale and upscale drew visible blocks (2026-11-12).
-        mipBlur(src.canvas, px1 - px0, py1 - py0, s, b, px0 - x0, py0 - y0);
+        if (chained) chained(mipLevels(s), b, px0 - x0, py0 - y0);
+        else mipBlur(src.canvas, px1 - px0, py1 - py0, s, b, px0 - x0, py0 - y0);
       }
       // band i runs from i / n of the way toward the edge to the edge, as the CSS masks
       const start = i / SOFT_BANDS.length;

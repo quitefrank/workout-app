@@ -13,6 +13,7 @@ import type { Settings } from "@/lib/data/queries";
 import { type LibraryLayout, setLibraryLayout } from "@/lib/library-layout";
 import { formatRest } from "@/lib/workout/format";
 import { StartEdgeTune } from "./start-edge-tune";
+import { PerfLevers } from "./perf-levers";
 
 const REST_STEPS = [60, 90, 120, 150, 180, 210, 240, 300];
 
@@ -132,6 +133,8 @@ export function SettingsForm({
       </Group>
 
       <StartEdgeTune />
+
+      <PerfLevers />
 
       <Group title="Developer" footer="Shows the glass renderer's readout at the bottom of the screen. Saved on this device only.">
         <ToggleRow

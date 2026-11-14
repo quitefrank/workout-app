@@ -1202,6 +1202,35 @@ history when a page of ours is behind, else replaces the page with its parent, n
 Back to Home stays a link. `completeWorkout` and `discardWorkout` redirect with `RedirectType.replace`, so Back never
 lands on a finished or discarded workout.
 
+## Performance levers
+
+From the three-agent performance review (2026-11-14; evidence and reports in `tmp/agent-scratch/perf-*.md`, local and not committed). Every cost
+it found sits behind a lever in `src/lib/perf-flags.ts` (tested), switched per device in Settings > Performance or by a
+link, `?perf=-idle,msaa` (`reset` for the defaults), saved in localStorage. Levers marked restart (`gpu`, `msaa`, `dpr2`)
+apply on the next load. Components read one with `usePerf` (hydration-safe), everything else with `perf`. The glass
+readout (`?glassdebug=1`) shows frames, renders, paints and rebuilds per second and the changed levers.
+
+- `idle` (on): the stage skips its composite when nothing it reads changed (`frame-gate.ts`, tested: every uniform,
+  mesh visibility and transform, the tabs layer's key, and anything re-rendered that frame). A WebGPU canvas keeps its
+  last frame. Idle renders went from 60 to 0 a second.
+- `msaa` (off): antialias was a 4x multisampled half-float buffer for quads whose glass smooths its own edges.
+- `cull` (on): an image or svg still loading no longer marks the list pending; its load event rebuilds it. Pending made
+  every scroll frame rebuild the page while History's images loaded, and would make `loading="lazy"` rebuild forever.
+- `blurchain` (on): on the iPhone blur path a soft edge halves its copy once and reuses each level (`bandLevels`,
+  tested), instead of six chains with two duplicate pairs. `mip` (off) forces that path on desktop for measuring.
+- `avg` (on): the brightness grid is read every 4th page draw while the page moves, every frame at rest.
+- `ctx` (on): the CSS path's context sampler uses a 32pt grid at most every 48ms, and writes `--scrolled` only on
+  change. CSS-path scroll went from 2.5s of script per 2.5s to about 0.3s, at 60fps.
+- `tick` (on): the active workout's clock (`ElapsedClock`) and rest arc (`LiveRestArc`) tick in their own components on
+  the live layer (`data-live`), so the screen no longer re-renders 4 times a second during rest. The clock row is
+  outside the sliding exercise; the arc drops to painted while a slide runs, since the slide's transform would sink it
+  under the canvas. The rest chime is a timeout at the end of rest either way.
+- `gpu`, `dpr2`, `edge`, `push`: diagnostics (the stage off, a 2x canvas, the painted soft edges off, the page push off).
+
+Still open (next phases): scroll on the GPU path repaints and uploads the whole page every frame (about 20fps in desktop
+Chromium even at 1x; the tab bar's soft edge alone halves Home's rate, 22 to 48fps without it); server waves, duplicate
+layout and page queries and the iad1 region (Supabase is ca-central-1, Vercel offers `yul1`); 1024px thumbnails.
+
 ## Glass context rule
 
 Applies to every glass control in the lab (`docs/lab/glass-lab-v3.html`)

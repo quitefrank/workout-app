@@ -8,6 +8,7 @@ import { debugState } from "./debug-state";
 import { buildDisplayList, UNPAINTED, type DisplayList } from "./paint/display-list";
 import { paintList } from "./paint/paint";
 import { createFamily, PRESET1_BARS, PRESET1_LIGHT } from "./presets";
+import { perf } from "@/lib/perf-flags";
 
 const unpainted = (n: EventTarget | Node | null | undefined) => {
   const el = n instanceof Element ? n : n instanceof Node ? n.parentElement : null;
@@ -49,7 +50,8 @@ function largeViewportHeight() {
   // a home screen app's window can be 50pt short when the stage starts; the screen's height covers it either way
   return Math.ceil(Math.max(screenHeight(), lvh || Math.max(window.innerHeight, window.screen?.height || 0)));
 }
-const stageDpr = () => Math.min(window.devicePixelRatio || 1, 3);
+// lever `dpr2` paints the page at 2x on a 3x phone: about 44% fewer pixels to paint and upload per scroll frame
+const stageDpr = () => Math.min(window.devicePixelRatio || 1, perf("dpr2") ? 2 : 3);
 
 const ANIM_EVENTS = ["transitionrun", "transitionend", "transitioncancel", "animationstart", "animationend", "animationcancel"];
 
@@ -71,7 +73,8 @@ export function GlassStage() {
   useEffect(() => {
     const canvas = canvasRef.current;
     const gpu = (navigator as Navigator & { gpu?: { requestAdapter: () => Promise<unknown> } }).gpu;
-    if (!canvas || !gpu) return;
+    // lever `gpu` off keeps the CSS material everywhere
+    if (!canvas || !gpu || !perf("gpu")) { debugState.phase = gpu ? "off (perf lever)" : "no WebGPU"; return; }
     let stop: (() => void) | null = null;
     let cancelled = false;
     let generation = 0;
@@ -173,6 +176,7 @@ export function GlassStage() {
             if (list && animating && (rebuildFrame = !rebuildFrame)) list = null;
             if (!list) {
               list = buildDisplayList(document.body, bump); builtAt = at;
+              debugState.rebuilds++;
               painted = Array.from(document.querySelectorAll<HTMLInputElement>(PAINTED_INPUTS)).filter((el) => !unpainted(el.parentElement));
               if (process.env.NODE_ENV !== "production") warnLiveInScroll();
             }

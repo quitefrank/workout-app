@@ -9,6 +9,7 @@ import { parseBoxShadows, parseColor, parseLinearGradients, parseLinearTransform
 import { SOFT_EDGE, softEdgeValues, solidDarken } from "@/components/soft-edge";
 import { svgImage } from "./svg";
 import { screenHeight } from "@/lib/scroller";
+import { perf } from "@/lib/perf-flags";
 import { inputTextItems, textItems, type Metrics } from "./text";
 
 /** A clip rectangle with per-corner radii; `parent` chains the clips of outer overflow containers. `scroller` is the
@@ -92,6 +93,8 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
     // a soft edge is one item; its CSS layers are the fallback's and are not walked
     const edge = (el as HTMLElement).dataset?.softEdge;
     if (edge === "top" || edge === "bottom") {
+      // lever `edge` off drops the painted soft edges (diagnostic)
+      if (!perf("edge")) return false;
       const rgb = cs.getPropertyValue("--bg-rgb").trim().split(/[\s,]+/).map(Number);
       const tint = rgb.length >= 3 && rgb.every(Number.isFinite) ? `${rgb[0]}, ${rgb[1]}, ${rgb[2]}` : "0, 0, 0";
       if (visible && w > 0 && h > 0) {
@@ -144,13 +147,17 @@ export function buildDisplayList(root: HTMLElement, onAsset: () => void): Displa
       if (el instanceof HTMLImageElement) {
         if (el.complete && el.naturalWidth) items.push({ k: "image", x, y, w, h, img: el, tf, ...base });
         else if (!el.complete) {
-          pending = true;
+          // Lever `cull` (2026-11-14): an image still loading is left out until its load event rebuilds the list. Marked
+          // pending, every scroll frame rebuilt the whole page while any image loaded (History's 245), and a lazy image
+          // below the fold would have kept that up until it was reached.
+          if (!perf("cull")) pending = true;
           if (!waiting.has(el)) { waiting.add(el); el.addEventListener("load", () => { waiting.delete(el); onAsset(); }, { once: true }); }
         }
       } else if (el instanceof SVGSVGElement) {
         const { img, loading } = svgImage(el, onAsset);
         if (img) items.push({ k: "image", x, y, w, h, img, tf, ...base });
-        if (loading) pending = true;
+        // a decode in flight shows the svg's last image and rebuilds on load (svg.ts), so it need not hold the list open
+        if (loading && !perf("cull")) pending = true;
       }
     }
     if (el instanceof HTMLInputElement) {

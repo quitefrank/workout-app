@@ -7,6 +7,7 @@ import { parseColor, type Rgba } from "@/glass/paint/css";
 import { CTXV } from "@/glass/presets";
 import { appearance, onAppearanceChange } from "@/lib/appearance";
 import { scrollTop } from "@/lib/scroller";
+import { perf } from "@/lib/perf-flags";
 
 /**
  * The glass context rule (CLAUDE.md, "Glass context rule"; the lab's
@@ -29,6 +30,9 @@ import { scrollTop } from "@/lib/scroller";
  */
 
 const CELL = 12;
+/** Lever `ctx`: a 32pt grid (about 90 hit tests a frame for the bars instead of 700), sampled at most every 48ms */
+const COARSE_CELL = 32;
+const CTX_EVERY_MS = 48;
 /** Preset 1 dark side: Haze level = hazeL + avg x hazeAdapt, at Haze 0.5 with black lift 1 */
 const HAZE = { level: 0.2, adapt: 0.7 };
 
@@ -40,15 +44,21 @@ export function GlassContext() {
   const pathname = usePathname();
 
   useEffect(() => {
-    let frame = 0;
+    let frame = 0, lastRun = 0, lastScrolled = "";
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(run);
     };
-    const run = () => {
+    const run = (now: number) => {
       frame = 0;
       // the WebGPU stage runs the context rule on the page's own pixels
       if (document.documentElement.classList.contains("gpu")) return;
-      document.documentElement.style.setProperty("--scrolled", String(Math.min(1, Math.max(0, scrollTop() / 40))));
+      // Lever `ctx` (2026-11-14): at most one sample every 48ms, the last request always honoured a little later, so the
+      // rule's 0.25s crossfade still lands. Sampling every scroll frame took the whole main thread while scrolling.
+      if (perf("ctx") && now - lastRun < CTX_EVERY_MS) { frame = requestAnimationFrame(run); return; }
+      lastRun = now;
+      // written only when it changes: a write on <html> restyles the whole document before the hit tests
+      const scrolled = String(Math.min(1, Math.max(0, scrollTop() / 40)));
+      if (scrolled !== lastScrolled) { lastScrolled = scrolled; document.documentElement.style.setProperty("--scrolled", scrolled); }
       for (const unit of units()) decide(unit);
     };
 
@@ -157,8 +167,9 @@ function average(b: Band): number | null {
   const y0 = Math.max(0, b.y0);
   const y1 = Math.min(H, b.y1);
   if (x1 <= x0 || y1 <= y0) return null;
-  const nx = Math.max(2, Math.round((x1 - x0) / CELL));
-  const ny = Math.max(2, Math.round((y1 - y0) / CELL));
+  const cell = perf("ctx") ? COARSE_CELL : CELL;
+  const nx = Math.max(2, Math.round((x1 - x0) / cell));
+  const ny = Math.max(2, Math.round((y1 - y0) / cell));
   let sum = 0;
   for (let j = 0; j < ny; j++) {
     for (let i = 0; i < nx; i++) {

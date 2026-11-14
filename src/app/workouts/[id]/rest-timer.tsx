@@ -58,7 +58,15 @@ export const subscribe = (onChange: () => void) => {
   };
 };
 
-export function useRestTimer(workoutId: string): Timer {
+/** Seconds of rest left at `now` */
+export const restRemaining = (endsAt: number | null, now: number) => (endsAt != null ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : 0);
+
+/**
+ * `live` (perf lever `tick`, 2026-11-14): the hook does not tick, so the screen holding it does not re-render four times
+ * a second; the countdown's own component ticks with `useRestRemaining`, and `remaining` here is only as fresh as the
+ * last render. The chime is a timeout at the end of rest either way.
+ */
+export function useRestTimer(workoutId: string, live = false): Timer {
   const key = `rest:${workoutId}`;
   const raw = useSyncExternalStore(
     subscribe,
@@ -72,24 +80,34 @@ export function useRestTimer(workoutId: string): Timer {
 
   const endsAt = state?.endsAt ?? null;
   useEffect(() => {
-    if (endsAt == null) return;
+    if (endsAt == null || live) return;
     const id = window.setInterval(() => setNow(Date.now()), 250);
     return () => window.clearInterval(id);
-  }, [endsAt]);
+  }, [endsAt, live]);
 
-  const remaining = endsAt != null ? Math.max(0, Math.ceil((endsAt - now) / 1000)) : 0;
+  // with `live` this is as of the last render; the countdown component keeps its own
+  const remaining = restRemaining(endsAt, now);
 
+  // when rest runs out: the chime, then the rest clears 2.5s later (a timeout, so nothing has to tick to notice)
   useEffect(() => {
-    if (endsAt == null || remaining > 0 || chimed.current === endsAt) return;
-    chimed.current = endsAt;
-    // A rest that ran out while the page was closed ends quietly
-    if (Date.now() - endsAt < 5000) {
-      chime(audio.current);
-      navigator.vibrate?.([200, 100, 200]);
-    }
-    const t = window.setTimeout(() => write(key, null), 2500);
-    return () => window.clearTimeout(t);
-  }, [remaining, endsAt, key]);
+    if (endsAt == null) return;
+    let clear = 0;
+    const fire = () => {
+      if (chimed.current === endsAt) return;
+      chimed.current = endsAt;
+      // A rest that ran out while the page was closed ends quietly
+      if (Date.now() - endsAt < 5000) {
+        chime(audio.current);
+        navigator.vibrate?.([200, 100, 200]);
+      }
+      clear = window.setTimeout(() => write(key, null), 2500);
+    };
+    const t = window.setTimeout(fire, Math.max(0, endsAt - Date.now()));
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(clear);
+    };
+  }, [endsAt, key]);
 
   const start = useCallback(
     (seconds: number) => {
@@ -104,7 +122,7 @@ export function useRestTimer(workoutId: string): Timer {
       setNow(Date.now());
       write(key, { endsAt: Date.now() + seconds * 1000, total: seconds });
     },
-    [key],
+    [key, setNow],
   );
 
   const add = useCallback(
@@ -119,6 +137,23 @@ export function useRestTimer(workoutId: string): Timer {
   const stop = useCallback(() => write(key, null), [key]);
 
   return { endsAt, total: state?.total ?? 0, remaining, start, add, stop };
+}
+
+/** The seconds left, ticking four times a second while rest runs: for the countdown's own component (lever `tick`) */
+export function useRestRemaining(endsAt: number | null, total: number): number {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (endsAt == null) return;
+    const tick = () => setNow(Date.now());
+    const first = window.setTimeout(tick, 0);
+    const id = window.setInterval(tick, 250);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(id);
+    };
+  }, [endsAt]);
+  // until the first tick `now` can predate the rest, which would read longer than the rest itself
+  return Math.min(restRemaining(endsAt, now), Math.max(0, Math.ceil(total)));
 }
 
 export function chime(ctx: AudioContext | null) {

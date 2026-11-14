@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { setColorResolver } from "../paint/css";
 import type { Clip, DisplayList, Item } from "../paint/display-list";
-import { fitText, gradientGeometry, paintList } from "../paint/paint";
+import { bandLevels, fitText, gradientGeometry, mipLevels, paintList } from "../paint/paint";
 
 /** Records calls and property writes on a stand-in 2D context. Like a real one, it keeps the last colour it accepted
  *  and ignores one it cannot parse (here, any oklch()). */
@@ -150,5 +150,16 @@ describe("paintList", () => {
     const { c, log } = fakeContext();
     paintList(c, list([box({ color: "oklch(0.5 0.1 30)" })]), 0, 0, 390, 844);
     expect(log).toContain("fillStyle=rgba(1, 2, 3, 0.5)");
+  });
+});
+
+describe("soft edge blur levels", () => {
+  it("gives each band its halvings, with the duplicate levels the shared chain reuses", () => {
+    // the strong edge at 3x: sigma 60
+    expect(bandLevels(60)).toEqual([3, 4, 5, 5, 6, 6]);
+    expect(new Set(bandLevels(60)).size).toBe(4);
+    // the tuned 10pt edge at 3x: sigma 30
+    expect(bandLevels(30)).toEqual([2, 3, 4, 4, 5, 5]);
+    expect(mipLevels(0.5)).toBe(1);
   });
 });

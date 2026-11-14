@@ -68,7 +68,8 @@ import { locate, mergeSwitched, ownerOf, type Merged } from "@/lib/workout/equip
 import { FinishSheet } from "./finish-sheet";
 import { Journal, JournalBody, type JournalProps } from "./journal";
 import { JournalCard, PillCheck, type CardControl } from "./journal-card";
-import { useRestTimer } from "./rest-timer";
+import { useRestRemaining, useRestTimer } from "./rest-timer";
+import { usePerf } from "@/lib/perf-flags";
 import { useSetTimer } from "./set-timer";
 import type { SetTimerMode, StoredSetTimer } from "@/lib/workout/set-timer";
 import { stretchPairs } from "@/lib/workout/pairs";
@@ -136,8 +137,12 @@ export function ActiveWorkout({
   const [journalSheet, setJournalSheet] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const unit = settings.weight_unit;
-  const elapsed = useElapsed(workout.started_at);
-  const timer = useRestTimer(workout.id);
+  // Lever `tick` (2026-11-14): the workout's clock and the rest countdown tick in their own small components, drawn on the
+  // live layer, so the screen does not re-render four times a second and the painted page does not rebuild every second.
+  // The screen never scrolls, so nothing live can drift.
+  const liveClocks = usePerf("tick");
+  const elapsed = useElapsed(liveClocks ? null : workout.started_at);
+  const timer = useRestTimer(workout.id, liveClocks);
   // a stretch's hold or an outdoor run's stopwatch, running during the set; a hold logs itself at zero
   const holdDoneRef = useRef<(t: StoredSetTimer) => void>(() => {});
   const setTimer = useSetTimer(workout.id, (t) => holdDoneRef.current(t));
@@ -517,6 +522,8 @@ export function ActiveWorkout({
   const [historyFor, setHistoryFor] = useState<WorkoutExerciseRow | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [finishing, setFinishing] = useState(false);
+  // with live clocks the screen keeps no ticking time, so the finish sheet ticks its own while it is open
+  const finishElapsed = useElapsed(liveClocks && finishing ? workout.started_at : null);
   const [menu, setMenu] = useState<DOMRect | null>(null);
   // Exit Workout Early asks in a centred alert: it is picked from a menu (Frank's rule, 2026-11-13)
   const [exitAsking, setExitAsking] = useState(false);
@@ -772,7 +779,13 @@ export function ActiveWorkout({
                   )}
                 </div>
                 <div className={cn("[grid-area:1/1]", !resting && "invisible")} aria-hidden={!resting}>
-                  <RestArc remaining={timer.remaining} total={timer.total} onAdd={timer.add} />
+                  {liveClocks ? (
+                    // painted while the exercise slides in: its animated transform makes a stacking context that would
+                    // sink a live element under the canvas for the slide's 0.3s
+                    <LiveRestArc endsAt={timer.endsAt} total={timer.total} onAdd={timer.add} lift={!anim} />
+                  ) : (
+                    <RestArc remaining={timer.remaining} total={timer.total} onAdd={timer.add} />
+                  )}
                 </div>
                 {/* a running hold takes the controls' place as the same arc, labelled Hold */}
                 <div className={cn("[grid-area:1/1]", !holding && "invisible")} aria-hidden={!holding}>
@@ -820,10 +833,15 @@ export function ActiveWorkout({
               button too, as Ladder lays them out (Frank's call, 2026-11-10, Figma ZD41TUAEBtLJI7t0qChNup 11:705: the bar
               about 14pt under the button). Tap a segment to look at that exercise. After the shown exercise in the DOM,
               so they paint over its top soft edge; their grid rows keep them at the top. */}
-          <div className="relative row-start-1 flex h-11 items-center pl-5 pr-[72px]">
-            <span className="tabular text-[17px] font-semibold leading-[22px]">
-              {elapsed == null ? "0:00" : formatClock(elapsed)}
-            </span>
+          {/* live with lever `tick`: outside the sliding exercise, so no animated transform can sink it under the canvas */}
+          <div data-live={liveClocks ? "" : undefined} className="relative row-start-1 flex h-11 items-center pl-5 pr-[72px]">
+            {liveClocks ? (
+              <ElapsedClock startedAt={workout.started_at} />
+            ) : (
+              <span className="tabular text-[17px] font-semibold leading-[22px]">
+                {elapsed == null ? "0:00" : formatClock(elapsed)}
+              </span>
+            )}
           </div>
           <div className="relative row-start-2 px-5 pt-1">
             <div className="flex min-w-0 gap-1" role="tablist" aria-label="Exercises">
@@ -1067,7 +1085,7 @@ export function ActiveWorkout({
         onClose={() => setFinishing(false)}
         workout={workout}
         exercises={exercises}
-        elapsed={elapsed}
+        elapsed={liveClocks ? finishElapsed : elapsed}
         unit={unit}
       />
 
@@ -1155,22 +1173,38 @@ function Art({ slug }: { slug: string | null | undefined }) {
  * (Figma wH8YZbekJXNew109clIJz1 40:59288): a 50pt circle, Fills/Tertiary, SF Symbols minus and plus at Body (17pt
  * Regular) in blue (Frank's call, 2026-11-13: not a stepper, so no "15").
  */
+/** The workout's clock on its own, ticking once a second without re-rendering the screen (lever `tick`) */
+function ElapsedClock({ startedAt }: { startedAt: string | null }) {
+  const elapsed = useElapsed(startedAt);
+  return <span className="tabular text-[17px] font-semibold leading-[22px]">{elapsed == null ? "0:00" : formatClock(elapsed)}</span>;
+}
+
+/** The rest arc ticking on its own (lever `tick`), on the live layer while `lift` */
+function LiveRestArc({ endsAt, total, onAdd, lift }: { endsAt: number | null; total: number; onAdd: (s: number) => void; lift: boolean }) {
+  const remaining = useRestRemaining(endsAt, total);
+  return <RestArc remaining={remaining} total={total} onAdd={onAdd} live={lift} />;
+}
+
 function RestArc({
   remaining,
   total,
   onAdd,
   label = "Rest",
+  live = false,
 }: {
   remaining: number;
   total: number;
   onAdd: (s: number) => void;
   /** "Rest" after a set, "Hold" during a stretch */
   label?: "Rest" | "Hold";
+  /** drawn on the live layer over the canvas, so its ticks never rebuild the painted page */
+  live?: boolean;
 }) {
   const N = 34;
   const on = total ? Math.round((remaining / total) * N) : 0;
   return (
     <div
+      data-live={live ? "" : undefined}
       className="relative flex items-end justify-between pb-1"
       // the buttons' outer edges line up with the pill's circle, 32pt from the screen's edge, inside the zone's 20pt
       style={{ marginInline: PILL.inset + PILL.padding - 20 }}

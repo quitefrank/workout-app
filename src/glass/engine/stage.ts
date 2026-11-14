@@ -9,6 +9,8 @@ import { lensState } from "../lens-state";
 import { holdExpired, navState } from "../nav-state";
 import { PUSH, pushLayers, pushProgress } from "@/lib/page-push";
 import { makeTabsLayer } from "./tabs";
+import { makeFrameGate, meshKey, uniformsKey } from "./frame-gate";
+import { perf } from "@/lib/perf-flags";
 
 /* The Glass Lab V3's GPU surface (makeGpu, lines 4275 to 4501), for the app: a canvas, a content texture the painter
    draws into, glass meshes placed from DOM rects, for whatever glass the current screen holds. Changes from the lab:
@@ -37,7 +39,9 @@ type Entry = { el: Element; U: Uniforms; mesh: any; cast: any; ready: boolean; c
 
 export async function startStage(o: StageOptions): Promise<() => void> {
   const { THREE, canvas, W, H, dpr } = o;
-  const renderer = new THREE.WebGPURenderer({ canvas, antialias: true }); renderer.setPixelRatio(dpr); renderer.setSize(W, H, false);
+  // antialias was on until 2026-11-14: 4x MSAA on a half-float buffer the size of the screen, for flat quads whose glass
+  // already smooths its own edges in the shader (perf lever `msaa`, off by default)
+  const renderer = new THREE.WebGPURenderer({ canvas, antialias: perf("msaa") }); renderer.setPixelRatio(dpr); renderer.setSize(W, H, false);
   // anything below failing (init, a shader, an allocation) leaves no renderer behind
   try {
     await renderer.init();
@@ -245,7 +249,8 @@ function setup(o: StageOptions, renderer: any): () => void {
   };
 
   let lastSig: string | null = null, pageDirty = true, lastEdgeKey = "", lastT = performance.now(), frame = 0, stopped = false, readySent = false;
-  let pushT0 = 0;
+  let pushT0 = 0, avgSkip = 0;
+  const gate = makeFrameGate();
   // A tap copies the page on screen, once the shader is showing it (before that the CSS material is, and nothing pushes)
   navState.snapshot = () => {
     if (stopped || !html.classList.contains("gpu")) return false;
@@ -289,13 +294,22 @@ function setup(o: StageOptions, renderer: any): () => void {
     // The page is drawn to the texture (and re-blurred) only when its signature moves: scroll, DOM, appearance. Between
     // those frames only the glass is composited, which is what keeps a 3x phone at frame rate.
     const sig = `${o.signature()}|${org.x}|${org.y}`;
-    if (sig !== lastSig) {
+    // anything re-rendered this frame that the composite reads: it must draw whatever the gate's key says
+    let drew = false;
+    const sigMoved = sig !== lastSig;
+    if (sigMoved) {
       lastSig = sig;
       cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       o.draw(cctx, org);
-      rawTex.needsUpdate = true; edgeFrost.touch(); pageDirty = true; avgWanted = true;
+      rawTex.needsUpdate = true; edgeFrost.touch(); pageDirty = true; avgWanted = true; drew = true;
+      debugState.paints++;
     }
-    if (avgWanted && !avgInFlight) readAverages();
+    // The brightness grid (a 576-tap pass per cell and a readback) every 4th page draw while the page keeps moving, and
+    // on the first frame it rests; the context rule fades over 0.25s, so a grid a few frames old does not show (lever `avg`)
+    if (avgWanted && !avgInFlight) {
+      const throttle = perf("avg") && sigMoved && avgBytes !== null;
+      if (!throttle || ++avgSkip >= 4) { avgSkip = 0; readAverages(); }
+    }
 
     const sheetOpen = html.classList.contains("sheet-open");
     // the scrim is painted into the page, under the glass, so the glass takes the same dimming itself, following the
@@ -363,14 +377,15 @@ function setup(o: StageOptions, renderer: any): () => void {
     } else EDGE.topOn.value = 0;
 
     // the page with its effects, then every frost that reads it (only when either moved)
-    edgeFrost.render(renderer);
+    if (edgeFrost.render(renderer)) drew = true;
     const edgeKey = Object.values(EDGE).map((u: any) => u.value).join("|");
     if (pageDirty || edgeKey !== lastEdgeKey) {
       pageDirty = false; lastEdgeKey = edgeKey;
       renderer.setRenderTarget(pageRT); renderer.render(pageScene, pageCam); renderer.setRenderTarget(null);
       frosts.forEach((f) => f.touch());
+      drew = true;
     }
-    frosts.forEach((f) => f.render(renderer));
+    frosts.forEach((f) => { if (f.render(renderer)) drew = true; });
 
     for (const e of entries.values()) e.U.pillMix.value = 0;
     const barEl = lensState.bar;
@@ -386,7 +401,17 @@ function setup(o: StageOptions, renderer: any): () => void {
       // the HTML ink steps aside once the canvas has it
       if (tabs.inkReady() && !html.classList.contains("tabs-gpu")) html.classList.add("tabs-gpu");
     }
-    renderer.render(scene, camera);
+    // The idle gate (lever `idle`): the composite draws only when something it reads changed. The canvas keeps the last
+    // frame it presented, so a skipped frame looks the same; with nothing moving the GPU does nothing.
+    let key = "";
+    if (perf("idle")) {
+      key = tabs.frameKey();
+      for (const e of entries.values()) key += `#${meshKey(e.mesh)}${meshKey(e.cast)}${e.mesh.visible ? uniformsKey(e.U as unknown as Record<string, unknown>) : ""}`;
+    }
+    if (!perf("idle") || gate.render(key, drew)) {
+      renderer.render(scene, camera);
+      debugState.renders++;
+    }
     // the bars take their side from the first grid, so the CSS material holds the screen until one has arrived
     if (allReady && tabsReady && avgBytes && !readySent) { readySent = true; o.onReady?.(); }
     if (++debugState.frames % 15 === 0) {

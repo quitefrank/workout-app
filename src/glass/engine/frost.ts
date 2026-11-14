@@ -7,7 +7,7 @@ import { FROST_SIGMA, type Material } from "../presets";
    Sampling clamps at the edges, so a bar at the bottom of the screen blurs against the screen's own edge pixels, as
    backdrop-filter does. It averages the page's sRGB bytes as they are, the way the device's blur does (a blur in linear
    light comes out brighter). (Glass Lab V3, lines 4226 to 4267.) */
-export type Frost = { tex: any; touch: () => void; render: (renderer: any) => void; refit: () => void; dispose: () => void };
+export type Frost = { tex: any; touch: () => void; render: (renderer: any) => boolean; refit: () => void; dispose: () => void };
 
 export function makeFrost(
   THREE: any, T: any, src: any, cw: number, ch: number, dpr: number,
@@ -49,6 +49,7 @@ export function makeFrost(
     refit: fit,
     dispose: () => { off?.(); rtA.dispose(); rtB.dispose(); for (const o of owned) o.dispose(); },
     // the passes run only when the page or the radius changed; the targets keep the result between frames
-    render: (renderer: any) => { if (!dirty) return; dirty = false; renderer.setRenderTarget(rtA); renderer.render(sceneA, camera); renderer.setRenderTarget(rtB); renderer.render(sceneB, camera); renderer.setRenderTarget(null); },
+    // true when the passes ran, so the stage knows the composite must draw (the idle gate)
+    render: (renderer: any): boolean => { if (!dirty) return false; dirty = false; renderer.setRenderTarget(rtA); renderer.render(sceneA, camera); renderer.setRenderTarget(rtB); renderer.render(sceneB, camera); renderer.setRenderTarget(null); return true; },
   };
 }
