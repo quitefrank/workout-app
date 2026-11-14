@@ -1631,10 +1631,24 @@ html:not(.gpu) .glass[data-glass-hidden] {
   }
 }
 
-/* Row thumbnails zoom into their illustration by --thumb-zoom, a per-device test setting (src/lib/thumb-zoom.ts,
-   2026-11-14); the container clips, and the glass painter draws the scale and the clip */
+/* Row thumbnails zoom into their illustration, a per-device test setting (src/lib/thumb-zoom.ts, 2026-11-14): scale --s
+   about the centre, then pan by --k of the way to the highlight (--fx, --fy, fractions of the image), clamped so the
+   image's edges never come inside the tile. The container clips; the glass painter draws the transform and the clip. */
 @layer components {
   .thumb-zoom {
-    scale: var(--thumb-zoom, 1);
+    --s: var(--thumb-zoom, 1);
+    --k: 0;
+    transform: translate(
+        clamp(calc((1 - var(--s)) * 50%), calc(var(--k) * (0.5 - var(--fx, 0.5)) * var(--s) * 100%), calc((var(--s) - 1) * 50%)),
+        clamp(calc((1 - var(--s)) * 50%), calc(var(--k) * (0.5 - var(--fy, 0.5)) * var(--s) * 100%), calc((var(--s) - 1) * 50%))
+      )
+      scale(var(--s));
+  }
+  body[data-thumb-mode="focus"] .thumb-zoom {
+    --k: 1;
+  }
+  body[data-thumb-mode="smart"] .thumb-zoom {
+    --k: 1;
+    --s: var(--fz, 1);
   }
 }

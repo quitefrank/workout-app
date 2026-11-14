@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { EXERCISE_IMAGE_SLUGS } from "@/lib/exercise-image-slugs";
 import { EXERCISE_IMAGE_STANDINS } from "@/lib/exercise-image-standins";
 import { cn } from "@/lib/cn";
+import { thumbFocusStyle } from "@/lib/thumb-zoom";
 
 const HAS_IMAGE = new Set(EXERCISE_IMAGE_SLUGS);
 
@@ -30,7 +31,12 @@ export function ExerciseArt({ slug, art, pad = "p-1.5", thumb = false }: { slug:
   return (
     <div className="flex size-full justify-center bg-[var(--exercise-tile)]">
       {/* eslint-disable-next-line @next/next/no-img-element -- served as sized WebP, and the glass painter reads the element */}
-      <img src={exerciseImageSrc(slug)} alt="" className={cn("aspect-square h-full", thumb && "thumb-zoom")} />
+      <img
+        src={exerciseImageSrc(slug)}
+        alt=""
+        className={cn("aspect-square h-full", thumb && "thumb-zoom")}
+        style={thumb ? thumbFocusStyle(exerciseImageSlug(slug)) : undefined}
+      />
     </div>
   );
 }

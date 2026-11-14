@@ -35,7 +35,7 @@ export function SettingsForm({
   const [pending, start] = useTransition();
   // a device setting: the server renders it off, the device reads its own
   const stored = useSyncExternalStore(noop, debugSetting, () => false);
-  const zoom = useSyncExternalStore(onThumbZoomChange, thumbZoom, () => 1);
+  const zoom = useSyncExternalStore(onThumbZoomChange, thumbZoom, () => "1" as const);
   const [debug, setDebug] = useState<boolean | null>(null);
   const debugOn = debug ?? stored;
 

@@ -11,6 +11,7 @@
     "test:watch": "vitest",
     "seed:notion": "bun run scripts/seed-from-notion.ts",
     "images:import": "bun scripts/import-exercise-images.ts",
+    "art:focus": "bun scripts/exercise-image-focus.ts",
     "seed:programs": "bun run scripts/seed-programs.ts",
     "convert:ppl": "bun run scripts/convert-ppl-sheet.ts",
     "extract:pdfs": "bun run scripts/extract-training-pdfs.ts",

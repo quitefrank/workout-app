@@ -21,6 +21,7 @@ bun run convert:powerbuilding   # Powerbuilding 4x dump -> program JSON (gitigno
 bun run convert:arm      # Arm Hypertrophy dump -> program JSON (gitignored)
 bun run convert:powerbuilding3   # Powerbuilding Phase 3.0 5x dump -> program JSON (gitignored)
 bun run seed:programs    # Every program JSON -> programs, phases, templates
+bun run art:focus        # Exercise images -> each one's highlight focus for thumbnails (src/lib/exercise-image-focus.ts)
 bun run icons:generate   # Re-render placeholder PWA icons
 bun run icons:sf         # SF Symbols (macOS renderer, via JXA) -> src/components/sf-symbol-data.ts
 bun run art:muscles      # Notion muscle diagrams -> src/components/muscle-art/paths.ts
@@ -1235,10 +1236,16 @@ Two per-device test settings came out of Frank's phone test (2026-11-14), mounte
   blur layers too). Switching the tab bar's edge off made scrolling smoother on the phone, which prompted the options.
   In desktop Chromium at 3x on the iPhone blur path, Gradient only scrolled about 38% more frames than the full blur,
   Fast blur about 8%.
-- Settings > Library > Thumbnails (`src/lib/thumb-zoom.ts`, tested): row thumbnails zoom 1x, 1.5x or 2x into their
-  illustration (`--thumb-zoom` on body, `.thumb-zoom` as `scale`; `ExerciseArt`'s `thumb` and `WorkoutThumb`), to try
-  the crop before Frank edits the images and small thumbnails are generated. Large art is never zoomed. At 2x a centred
-  crop loses the red highlight on some exercises (Ankle Stretch, Arm Circles); 1.5x keeps it.
+- Settings > Library > Thumbnails (`src/lib/thumb-zoom.ts`, tested): how row thumbnails crop their illustration, to
+  try it before Frank edits the images and small thumbnails are generated. Full body, 1.5x or 2x centred, 1.5x or 2x on
+  the muscle (panned so the red highlight is centred, stopping at the image's edges), or Smart zoom (each image zooms
+  until its highlight with a margin fills 60% of the tile, capped at 2.5x; 160 of 224 images hit the cap). Frank's
+  calls, 2026-11-14. `bun run art:focus` (`scripts/exercise-image-focus.ts`, the finder tested in
+  `scripts/lib/image-focus.ts`) writes each image's highlight centre and zoom to the generated
+  `src/lib/exercise-image-focus.ts`; `images:import` reruns it, and its `OVERRIDES` fixes a slug by hand. The thumbnail
+  carries `--fx`, `--fy`, `--fz` (`thumbFocusStyle`), body carries `--thumb-zoom` and `data-thumb-mode`, and
+  `.thumb-zoom` in globals.css turns them into a `transform`, which the painter draws. Large art is never zoomed. A
+  centred 2x lost the highlight on some exercises (Ankle Stretch, Arm Circles); on the muscle keeps it.
 
 The glass readout sits in the status bar's band at the top, four lines (rates, changed levers, stage, error), and never takes a tap (Frank's call, 2026-11-14).
 
