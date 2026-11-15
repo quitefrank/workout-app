@@ -39,18 +39,41 @@ export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scroll
     }
     return v;
   };
+  // Lever `clipruns` (2026-11-14): a clip chain is applied once for a run of items that share it, rather than rebuilt
+  // for every item, and a clip that cuts nothing (square, covering the canvas) is skipped
+  const runs = perf("clipruns");
+  let open: Clip | null | undefined;
   for (const it of list.items) {
     const [ix, iy] = shiftOf(it.clip);
     const dx = (it.fixed ? 0 : -scrollX) + ix - origin.x, dy = (it.fixed ? 0 : -scrollY) + iy - origin.y;
     if (!onScreen(it, dx, dy, W, H)) continue;
     const fade = it.fade ? parseFloat(getComputedStyle(it.fade).opacity) || 0 : 1;
     if (fade <= 0.001) continue;
+    if (runs) {
+      if (it.clip !== open) {
+        if (open !== undefined) c.restore();
+        c.save();
+        if (it.clip) applyClip(c, it.clip, scrollX, scrollY, shiftOf, origin, { W, H });
+        open = it.clip;
+      }
+      c.save();
+      c.globalAlpha = it.alpha * fade;
+      draw(c, it, dx, dy, s);
+      c.restore();
+      continue;
+    }
     c.save();
     c.globalAlpha = it.alpha * fade;
     if (it.clip) applyClip(c, it.clip, scrollX, scrollY, shiftOf, origin);
     draw(c, it, dx, dy, s);
     c.restore();
   }
+  if (open !== undefined) c.restore();
+}
+
+/** A square clip that covers the whole canvas cuts nothing */
+export function clipIsNoop(x: number, y: number, w: number, h: number, radii: number[], W: number, H: number) {
+  return radii.every((r) => r <= 0) && x <= 0 && y <= 0 && x + w >= W && y + h >= H;
 }
 
 function onScreen(it: Item, dx: number, dy: number, W: number, H: number) {
@@ -59,11 +82,13 @@ function onScreen(it: Item, dx: number, dy: number, W: number, H: number) {
   return it.y + dy - m < H && it.y + dy + it.h + m > 0 && it.x + dx - m < W && it.x + dx + it.w + m > 0;
 }
 
-/** A clip moves with the scrollers around it, not with its own scroller. */
-function applyClip(c: CanvasRenderingContext2D, clip: Clip, sx: number, sy: number, shiftOf: (clip: Clip | null) => Shift, origin: { x: number; y: number }) {
-  if (clip.parent) applyClip(c, clip.parent, sx, sy, shiftOf, origin);
+/** A clip moves with the scrollers around it, not with its own scroller. With `skip` (the canvas size), a clip that
+ *  cuts nothing is left out. */
+function applyClip(c: CanvasRenderingContext2D, clip: Clip, sx: number, sy: number, shiftOf: (clip: Clip | null) => Shift, origin: { x: number; y: number }, skip?: { W: number; H: number }) {
+  if (clip.parent) applyClip(c, clip.parent, sx, sy, shiftOf, origin, skip);
   const [px, py] = shiftOf(clip.parent);
   const dx = (clip.fixed ? 0 : -sx) + px - origin.x, dy = (clip.fixed ? 0 : -sy) + py - origin.y;
+  if (skip && clipIsNoop(clip.x + dx, clip.y + dy, clip.w, clip.h, clip.radii, skip.W, skip.H)) return;
   c.beginPath();
   c.roundRect(clip.x + dx, clip.y + dy, Math.max(0, clip.w), Math.max(0, clip.h), clip.radii);
   c.clip();

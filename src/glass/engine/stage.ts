@@ -2,7 +2,7 @@
 import { averageUnder, blendSides, decideDark, stepSide, unpadRows } from "../context";
 import { CTXV, prominentMaterial, type Family, type Material } from "../presets";
 import { screenHeight, scrollTop } from "@/lib/scroller";
-import { debugState } from "../debug-state";
+import { addSample, debugState } from "../debug-state";
 import { makeFrost } from "./frost";
 import { CAST_MARGIN, GLASS_MARGIN, makeCastMaterial, makeGlassMaterial, makeUniforms, type Uniforms } from "./materials";
 import { lensState } from "../lens-state";
@@ -87,10 +87,18 @@ function setup(o: StageOptions, renderer: any): () => void {
   // 95pt down, gone by about 140pt, detail blurred to a third around the buttons.
   const edgeFrost = makeFrost(THREE, T, rawTex, cw, ch, dpr, { P: CTXV as unknown as Material }, () => CTXV.blur);
   const EDGE = { topS: uniform(0), topReach: uniform(0), topOn: uniform(0), topDim: uniform(0), dimAmt: uniform(CTXV.dim), whiteAmt: uniform(CTXV.white) };
-  const pageMat = new THREE.MeshBasicNodeMaterial();
-  pageMat.colorNode = Fn(() => {
+  // `push`: the page pass with the push's two layers; without it (lever `pushidle`, used whenever no push runs) it samples
+  // the page and its edge blur once each and never the copy
+  const pageColor = (push: boolean) => Fn(() => {
     // a render target reads back flipped, so this pass writes the page upside down (the frost's two passes cancel out)
     const fu = vec2(uv().x, float(1).sub(uv().y));
+    if (!push) {
+      const y = float(1).sub(fu.y).mul(H);
+      const wTop = float(1).sub(smoothstep(EDGE.topReach.mul(0.2), EDGE.topReach, y)).mul(EDGE.topOn);
+      let c = mix(texture(rawTex, fu).rgb, texture(edgeFrost.tex, fu).rgb, clamp(wTop.mul(1.3), 0, 1));
+      c = mix(mix(c, vec3(1, 1, 1), wTop.mul(EDGE.whiteAmt)), c.mul(float(1).sub(wTop.mul(EDGE.dimAmt))), max(EDGE.topS, EDGE.topDim));
+      return c;
+    }
     // the push: the top page from topX rightwards, the page under it shifted by underX, dimmed, with a soft shadow off
     // the top page's leading edge. During a push the edge blur reads the composite unblurred (no frost of the copy).
     const px = fu.x.mul(W);
@@ -111,9 +119,16 @@ function setup(o: StageOptions, renderer: any): () => void {
     c = mix(mix(c, vec3(1, 1, 1), wTop.mul(EDGE.whiteAmt)), c.mul(float(1).sub(wTop.mul(EDGE.dimAmt))), max(EDGE.topS, EDGE.topDim));
     return c;
   })();
+  const pageMat = new THREE.MeshBasicNodeMaterial(); pageMat.colorNode = pageColor(true);
+  const pageIdleMat = new THREE.MeshBasicNodeMaterial(); pageIdleMat.colorNode = pageColor(false);
   const pageGeo = new THREE.PlaneGeometry(2, 2);
-  const pageScene = new THREE.Scene(); pageScene.add(new THREE.Mesh(pageGeo, pageMat));
+  const pageMesh = new THREE.Mesh(pageGeo, pageMat);
+  const pageScene = new THREE.Scene(); pageScene.add(pageMesh);
   const pageCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); pageCam.position.z = 1;
+  // the rest variant is built off the frame; the full pass draws until it is ready
+  let pageIdleReady = false;
+  { const probe = new THREE.Mesh(pageGeo, pageIdleMat); const probeScene = new THREE.Scene(); probeScene.add(probe);
+    renderer.compileAsync(probe, pageCam, probeScene).then(() => { pageIdleReady = true; }, () => {}); }
   const bgMat = new THREE.MeshBasicNodeMaterial(); bgMat.colorNode = sRGBTransferEOTF(texture(pageTex, uv()).rgb);
   const bgGeo = new THREE.PlaneGeometry(W, H);
   scene.add(new THREE.Mesh(bgGeo, bgMat));
@@ -249,7 +264,7 @@ function setup(o: StageOptions, renderer: any): () => void {
   };
 
   let lastSig: string | null = null, pageDirty = true, lastEdgeKey = "", lastT = performance.now(), frame = 0, stopped = false, readySent = false;
-  let pushT0 = 0, avgSkip = 0;
+  let pushT0 = 0, avgSkip = 0, lagTick = 0;
   const gate = makeFrameGate();
   // A tap copies the page on screen, once the shader is showing it (before that the CSS material is, and nothing pushes)
   navState.snapshot = () => {
@@ -297,12 +312,15 @@ function setup(o: StageOptions, renderer: any): () => void {
     // anything re-rendered this frame that the composite reads: it must draw whatever the gate's key says
     let drew = false;
     const sigMoved = sig !== lastSig;
+    let uploadedThisFrame = false;
     if (sigMoved) {
       lastSig = sig;
       cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const t0 = performance.now();
       o.draw(cctx, org);
-      rawTex.needsUpdate = true; edgeFrost.touch(); pageDirty = true; avgWanted = true; drew = true;
-      debugState.paints++;
+      addSample(debugState.drawMs, performance.now() - t0);
+      rawTex.needsUpdate = true; edgeFrost.touch(); pageDirty = true; avgWanted = true; drew = true; uploadedThisFrame = true;
+      debugState.paints++; debugState.uploaded += cw * ch * 4; debugState.plan.full++;
     }
     // The brightness grid (a 576-tap pass per cell and a readback) every 4th page draw while the page keeps moving, and
     // on the first frame it rests; the context rule fades over 0.25s, so a grid a few frames old does not show (lever `avg`)
@@ -377,10 +395,12 @@ function setup(o: StageOptions, renderer: any): () => void {
     } else EDGE.topOn.value = 0;
 
     // the page with its effects, then every frost that reads it (only when either moved)
-    if (edgeFrost.render(renderer)) drew = true;
+    // lever `edgefrost`: the edge blur stays dirty, unrendered, while the edge is off (its weight is 0 in the page pass)
+    if (!(perf("edgefrost") && EDGE.topOn.value === 0 && NAV.on.value === 0) && edgeFrost.render(renderer)) drew = true;
     const edgeKey = Object.values(EDGE).map((u: any) => u.value).join("|");
     if (pageDirty || edgeKey !== lastEdgeKey) {
       pageDirty = false; lastEdgeKey = edgeKey;
+      pageMesh.material = perf("pushidle") && pageIdleReady && NAV.on.value === 0 ? pageIdleMat : pageMat;
       renderer.setRenderTarget(pageRT); renderer.render(pageScene, pageCam); renderer.setRenderTarget(null);
       frosts.forEach((f) => f.touch());
       drew = true;
@@ -411,6 +431,11 @@ function setup(o: StageOptions, renderer: any): () => void {
     if (!perf("idle") || gate.render(key, drew)) {
       renderer.render(scene, camera);
       debugState.renders++;
+      // how far the GPU queue runs behind a frame that sent page pixels, one frame in ten
+      if (uploadedThisFrame && ++lagTick % 10 === 0) {
+        const t = performance.now();
+        renderer.backend?.device?.queue?.onSubmittedWorkDone?.().then(() => addSample(debugState.gpuLagMs, performance.now() - t), () => {});
+      }
     }
     // the bars take their side from the first grid, so the CSS material holds the screen until one has arrived
     if (allReady && tabsReady && avgBytes && !readySent) { readySent = true; o.onReady?.(); }
@@ -455,7 +480,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     for (const [el, U] of Array.from(cssOnly)) { U.dispose(); cssOnly.delete(el); leave(el); }
     [...frosts, edgeFrost].forEach((f) => f.dispose());
     tabs.dispose();
-    [pageMat, bgMat, avgMat, pageGeo, bgGeo, rawTex, prevTex, pageRT, avgRT].forEach((x) => x.dispose());
+    [pageMat, pageIdleMat, bgMat, avgMat, pageGeo, bgGeo, rawTex, prevTex, pageRT, avgRT].forEach((x) => x.dispose());
     renderer.dispose();
   };
 }

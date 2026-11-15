@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { debugState } from "./debug-state";
+import { debugState, p50p95 } from "./debug-state";
 import { startTrace } from "@/lib/trace";
 import { describe as describePerf, parseStored, perfSnapshot } from "@/lib/perf-flags";
 
@@ -39,18 +39,22 @@ export function debugEnabled(): boolean {
 
 // Per-second rates of what the stage did, from the counters between two readout ticks (the performance levers): frames
 // the loop ran, composites drawn, page paints and display-list rebuilds. At rest with `idle` on, all but frames read 0.
-let lastRates = { t: 0, frames: 0, renders: 0, paints: 0, rebuilds: 0 };
+let lastRates = { t: 0, frames: 0, renders: 0, paints: 0, rebuilds: 0, uploaded: 0, plan: { full: 0, strip: 0, move: 0 } };
+const fmt = (q: [number, number] | null) => (q ? `${q[0]}/${q[1]}ms` : "-");
 let rates = "";
 function rateLine(): string {
   const now = performance.now(), s = debugState;
   if (lastRates.t && now - lastRates.t >= 400) {
     const k = 1000 / (now - lastRates.t);
     const r = (a: number, b: number) => Math.round((a - b) * k);
-    rates = `per s  frames ${r(s.frames, lastRates.frames)}  renders ${r(s.renders, lastRates.renders)}  paints ${r(s.paints, lastRates.paints)}  rebuilds ${r(s.rebuilds, lastRates.rebuilds)}`;
+    const mb = ((s.uploaded - lastRates.uploaded) * k) / 1e6;
+    const p = s.plan, lp = lastRates.plan;
+    rates = `per s  frames ${r(s.frames, lastRates.frames)}  renders ${r(s.renders, lastRates.renders)}  paints ${r(s.paints, lastRates.paints)}  rebuilds ${r(s.rebuilds, lastRates.rebuilds)}  up ${mb.toFixed(1)}MB` +
+      `\nplan full ${r(p.full, lp.full)} strip ${r(p.strip, lp.strip)} move ${r(p.move, lp.move)}  draw ${fmt(p50p95(s.drawMs))}  gpu lag ${fmt(p50p95(s.gpuLagMs))}`;
   }
-  if (!lastRates.t || now - lastRates.t >= 400) lastRates = { t: now, frames: s.frames, renders: s.renders, paints: s.paints, rebuilds: s.rebuilds };
+  if (!lastRates.t || now - lastRates.t >= 400) lastRates = { t: now, frames: s.frames, renders: s.renders, paints: s.paints, rebuilds: s.rebuilds, uploaded: s.uploaded, plan: { ...s.plan } };
   const changed = describePerf(parseStored(perfSnapshot()));
-  return `${rates || "per s  measuring"}\nperf ${changed || "defaults"}`;
+  return `${rates || "per s  measuring\n"}\nperf ${changed || "defaults"}`;
 }
 
 export function GlassDebug() {
@@ -83,20 +87,19 @@ export function GlassDebug() {
     : [
         // only what fits in the status bar's band: the rates, the stage's state and any error
         rateLine(),
-        `gpu ${gpu}  phase ${s.phase}  stage ${s.stage || "?"}`,
-        s.error ? `error ${s.error}` : "error none",
+        `gpu ${gpu}  phase ${s.phase}  stage ${s.stage || "?"}  ${s.error ? `error ${s.error}` : "no error"}`,
       ];
   return (
     <pre
       // fixed over the canvas already, so it takes no live lift (whose position: relative would pull it to the top)
       data-glass-debug
       // In the status bar's band at the top, over no control, and never takes a tap (Frank's call, 2026-11-14: above the
-      // tab bar it still blocked what was behind it). Four 11pt lines end at the band's bottom.
+      // tab bar it still blocked what was behind it). Five 11pt lines end at the band's bottom.
       // while typing, just above the keyboard: the top of what is on screen plus its height (src/lib/scroller.ts)
       style={
         typing
           ? { top: "calc(var(--vv-h, 100vh) - 84px)" }
-          : { top: 0, height: "max(env(safe-area-inset-top), 44px)", paddingTop: "max(env(safe-area-inset-top) - 44px, 0px)" }
+          : { top: 0, height: "max(env(safe-area-inset-top), 55px)", paddingTop: "max(env(safe-area-inset-top) - 55px, 0px)" }
       }
       className={`pointer-events-none fixed inset-x-0 z-[100] overflow-hidden whitespace-pre bg-black/75 font-mono text-white ${typing ? "mx-2 rounded-xl p-2 text-[9px] leading-[11px]" : "px-2 text-[9px] leading-[11px]"}`}
     >

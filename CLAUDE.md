@@ -1228,6 +1228,20 @@ readout (`?glassdebug=1`) shows frames, renders, paints and rebuilds per second 
   under the canvas. The rest chime is a timeout at the end of rest either way.
 - `gpu`, `dpr2`, `edge`, `push`: diagnostics (the stage off, a 2x canvas, the painted soft edges off, the page push off).
 
+From the scroll review (2026-11-14; reports and the verdict in `tmp/agent-scratch/scroll-*.md`, local): every scroll frame
+repainted and re-uploaded the whole 3x screen (3.16 Mpx, 12.6 MB), with a mip rebuild and about 20 passes, though the
+content only moved. Cost follows changed pixels, not draw calls, so per-op tuning caps out near 1.5x.
+
+- The readout's second line: page plans per second (full repaints, ring strips, ring moves), `draw` p50/p95 (`o.draw`,
+  which includes a list rebuild), `gpu lag` p50/p95 (`onSubmittedWorkDone` after a frame that uploaded, 1 in 10), and
+  MB uploaded per second on the first.
+- `clipruns` (on): a clip chain is applied once per run of items sharing it, and a square clip covering the canvas is
+  skipped (`clipIsNoop`, tested).
+- `edgefrost` (on): the top edge's blur is not rendered while the edge is off and no push runs.
+- `pushidle` (on): without a push, the page pass is a light variant that samples the page and the edge blur once
+  (`pageColor(false)`), built off the frame. `rawfmt` (an opaque, unflipped page texture) was left out: it moves the flip
+  into four shaders for a gain only the phone could show, and `ring` makes uploads small anyway.
+
 Two per-device test settings came out of Frank's phone test (2026-11-14), mounted by `DevicePrefs` in the layout:
 
 - Both bottom-edge switches are off by default and the style defaults to Gradient only (Frank's call, 2026-11-14:

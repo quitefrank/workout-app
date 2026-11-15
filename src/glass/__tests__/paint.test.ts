@@ -1,7 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { setColorResolver } from "../paint/css";
 import type { Clip, DisplayList, Item } from "../paint/display-list";
-import { bandLevels, fitText, gradientGeometry, mipLevels, paintList } from "../paint/paint";
+import { bandLevels, clipIsNoop, fitText, gradientGeometry, mipLevels, paintList } from "../paint/paint";
+import { addSample, p50p95, samples } from "../debug-state";
 
 /** Records calls and property writes on a stand-in 2D context. Like a real one, it keeps the last colour it accepted
  *  and ignores one it cannot parse (here, any oklch()). */
@@ -161,5 +162,26 @@ describe("soft edge blur levels", () => {
     // the tuned 10pt edge at 3x: sigma 30
     expect(bandLevels(30)).toEqual([2, 3, 4, 4, 5, 5]);
     expect(mipLevels(0.5)).toBe(1);
+  });
+});
+
+describe("clipIsNoop", () => {
+  it("skips only a square clip covering the canvas", () => {
+    expect(clipIsNoop(0, 0, 402, 874, [0, 0, 0, 0], 402, 874)).toBe(true);
+    expect(clipIsNoop(-10, -5, 500, 900, [0, 0, 0, 0], 402, 874)).toBe(true);
+    expect(clipIsNoop(0, 0, 402, 874, [12, 12, 12, 12], 402, 874)).toBe(false);
+    expect(clipIsNoop(0, 1, 402, 874, [0, 0, 0, 0], 402, 874)).toBe(false);
+    expect(clipIsNoop(16, 0, 370, 874, [0, 0, 0, 0], 402, 874)).toBe(false);
+  });
+});
+
+describe("readout samples", () => {
+  it("keeps the last 60 and reports p50 and p95", () => {
+    const s = samples();
+    expect(p50p95(s)).toBeNull();
+    for (let i = 1; i <= 100; i++) addSample(s, i);
+    expect(s.v.length).toBe(60);
+    // 41 to 100 are left
+    expect(p50p95(s)).toEqual([71, 98]);
   });
 });
