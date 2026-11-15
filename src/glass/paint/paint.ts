@@ -22,11 +22,15 @@ type Shift = [number, number];
 /** Paint a display list into the content canvas at the current scroll. The context's transform maps CSS px to device
  *  pixels; W and H are the viewport in CSS px; `origin` is where the canvas sits in the page's viewport coordinates
  *  (0,0 unless iOS has slid the viewport under the keyboard). */
-export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scrollX: number, scrollY: number, W: number, H: number, origin = { x: 0, y: 0 }) {
+/** `layer`: the ring's over layer (lever `ring`): only the items `include` keeps, on a cleared canvas with no background */
+export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scrollX: number, scrollY: number, W: number, H: number, origin = { x: 0, y: 0 }, layer?: { include: (it: Item) => boolean }) {
   // canvas shadow blur and offsets are in device pixels and ignore the transform, so they are scaled by hand
   const s = c.getTransform().a || 1;
-  setColor(c, "fillStyle", list.bg);
-  c.fillRect(0, 0, W, H);
+  if (layer) c.clearRect(0, 0, W, H);
+  else {
+    setColor(c, "fillStyle", list.bg);
+    c.fillRect(0, 0, W, H);
+  }
   // how far each clip's contents moved since the build: the sum of the scroll deltas of the scrollers around them
   const shifts = new Map<Clip, Shift>();
   const shiftOf = (clip: Clip | null): Shift => {
@@ -44,6 +48,7 @@ export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scroll
   const runs = perf("clipruns");
   let open: Clip | null | undefined;
   for (const it of list.items) {
+    if (layer && !layer.include(it)) continue;
     const [ix, iy] = shiftOf(it.clip);
     const dx = (it.fixed ? 0 : -scrollX) + ix - origin.x, dy = (it.fixed ? 0 : -scrollY) + iy - origin.y;
     if (!onScreen(it, dx, dy, W, H)) continue;
@@ -65,6 +70,59 @@ export function paintList(c: CanvasRenderingContext2D, list: DisplayList, scroll
     c.save();
     c.globalAlpha = it.alpha * fade;
     if (it.clip) applyClip(c, it.clip, scrollX, scrollY, shiftOf, origin);
+    draw(c, it, dx, dy, s);
+    c.restore();
+  }
+  if (open !== undefined) c.restore();
+}
+
+/** Whether a clip chain runs through `main` */
+export function within(clip: Clip | null, main: Clip): boolean {
+  for (let c = clip; c; c = c.parent) if (c === main) return true;
+  return false;
+}
+
+/**
+ * The ring's strip (lever `ring`): the app scroller's content between content y `y0` and `y0 + h` (CSS px from the
+ * content's top, the scroller at scrollTop 0), drawn as if the scroller were at scrollTop 0. The context's transform
+ * maps content y to the strip's rows; the caller fills the background. Only items whose clips run through `main` (and
+ * are not fixed) are drawn, and the clips from `main` outward are left out, so rows beyond the screen are drawn too.
+ * Inner scrollers (the week strip) draw at their live scroll, as on screen.
+ */
+export function paintContent(c: CanvasRenderingContext2D, list: DisplayList, main: Clip, y0: number, h: number, W: number) {
+  const s = c.getTransform().a || 1;
+  const shifts = new Map<Clip, Shift>();
+  const shiftOf = (clip: Clip | null): Shift => {
+    if (!clip) return [0, 0];
+    let v = shifts.get(clip);
+    if (!v) {
+      const p = shiftOf(clip.parent);
+      v = !clip.scroller ? p : clip === main ? [p[0] + clip.sx0 - clip.scroller.scrollLeft, p[1] + clip.sy0] : [p[0] + clip.sx0 - clip.scroller.scrollLeft, p[1] + clip.sy0 - clip.scroller.scrollTop];
+      shifts.set(clip, v);
+    }
+    return v;
+  };
+  const applyInner = (clip: Clip) => {
+    if (clip === main) return;
+    if (clip.parent) applyInner(clip.parent);
+    const [px, py] = shiftOf(clip.parent);
+    c.beginPath();
+    c.roundRect(clip.x + px, clip.y + py, Math.max(0, clip.w), Math.max(0, clip.h), clip.radii);
+    c.clip();
+  };
+  let open: Clip | null | undefined;
+  for (const it of list.items) {
+    if (it.fixed || !within(it.clip, main)) continue;
+    const [dx, dy] = shiftOf(it.clip);
+    if (!onScreen(it, dx, dy - y0, W, h)) continue;
+    if (it.clip !== open) {
+      if (open !== undefined) c.restore();
+      c.save();
+      if (it.clip) applyInner(it.clip);
+      open = it.clip;
+    }
+    c.save();
+    c.globalAlpha = it.alpha;
     draw(c, it, dx, dy, s);
     c.restore();
   }

@@ -47,7 +47,7 @@ export const PERF_LEVERS: ReadonlyArray<PerfDef> = [
   { key: "clipruns", label: "Clip once per run", on: true, help: "A clip is applied once for a run of items that share it, and a clip that cuts nothing is skipped." },
   { key: "edgefrost", label: "Skip idle edge blur", on: true, help: "The top edge's blur is not rendered while the edge is off." },
   { key: "pushidle", label: "Light page pass", on: true, help: "Without a page push running, the page pass samples the page once and never the push's copy." },
-  { key: "ring", label: "Scroll by moving", on: false, restart: true, help: "Scrolling moves a painted copy of the page on the GPU and paints only the rows that come into view." },
+  { key: "ring", label: "Scroll by moving", on: true, restart: true, help: "Scrolling moves a painted copy of the page on the GPU and paints only the rows that come into view." },
 ];
 
 const DEFAULTS = Object.fromEntries(PERF_LEVERS.map((d) => [d.key, d.on])) as Record<PerfLever, boolean>;

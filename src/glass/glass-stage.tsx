@@ -9,6 +9,8 @@ import { buildDisplayList, UNPAINTED, type DisplayList } from "./paint/display-l
 import { paintList } from "./paint/paint";
 import { createFamily, PRESET1_BARS, PRESET1_LIGHT } from "./presets";
 import { perf } from "@/lib/perf-flags";
+import { makeRingPainter } from "./ring-painter";
+import { navState } from "./nav-state";
 
 const unpainted = (n: EventTarget | Node | null | undefined) => {
   const el = n instanceof Element ? n : n instanceof Node ? n.parentElement : null;
@@ -167,21 +169,37 @@ export function GlassStage() {
         debugState.phase = "init";
         debugState.stage = `${W}x${H}@${dpr}`;
         canvas.style.width = W + "px"; canvas.style.height = H + "px";
+        // the current display list, rebuilt when the page changed: a sticky element's place depends on the scroll, and
+        // while the page animates every other frame rebuilds
+        const currentList = (): DisplayList => {
+          const at = String(scrollTop());
+          if (list && list.sticky && builtAt !== at) list = null;
+          if (list && animating && (rebuildFrame = !rebuildFrame)) list = null;
+          if (!list) {
+            list = buildDisplayList(document.body, bump); builtAt = at;
+            debugState.rebuilds++;
+            painted = Array.from(document.querySelectorAll<HTMLInputElement>(PAINTED_INPUTS)).filter((el) => !unpainted(el.parentElement));
+            if (process.env.NODE_ENV !== "production") warnLiveInScroll();
+          }
+          return list;
+        };
+        // lever `ring` (restart): scrolling moves a painted copy on the GPU and paints only the rows that come into view
+        const ringPainter = perf("ring")
+          ? makeRingPainter({
+              W, H, scrollTop,
+              list: () => { const l = currentList(); if (l.pending) list = null; return l; },
+              mainEl: () => document.querySelector(SCROLLER),
+              blocked: () =>
+                animating ? "animating" : navState.phase !== "idle" ? "push" : window.scrollX || window.scrollY ? "window scroll" : window.visualViewport?.offsetTop ? "keyboard" : null,
+            })
+          : undefined;
         const s = await startStage({
           THREE, T, canvas, W, H, dpr, bars, appearance,
+          ring: ringPainter,
           draw: (c, origin) => {
-            const at = String(scrollTop());
-            // a sticky element's place depends on the scroll; while the page animates, every other frame rebuilds
-            if (list && list.sticky && builtAt !== at) list = null;
-            if (list && animating && (rebuildFrame = !rebuildFrame)) list = null;
-            if (!list) {
-              list = buildDisplayList(document.body, bump); builtAt = at;
-              debugState.rebuilds++;
-              painted = Array.from(document.querySelectorAll<HTMLInputElement>(PAINTED_INPUTS)).filter((el) => !unpainted(el.parentElement));
-              if (process.env.NODE_ENV !== "production") warnLiveInScroll();
-            }
-            paintList(c, list, window.scrollX, window.scrollY, W, H, origin);
-            if (list.pending) list = null;
+            const l = currentList();
+            paintList(c, l, window.scrollX, window.scrollY, W, H, origin);
+            if (l.pending) list = null;
           },
           signature: () => {
             if (animating) {

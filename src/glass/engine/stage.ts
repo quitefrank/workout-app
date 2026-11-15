@@ -11,6 +11,8 @@ import { PUSH, pushLayers, pushProgress } from "@/lib/page-push";
 import { makeTabsLayer } from "./tabs";
 import { makeFrameGate, meshKey, uniformsKey } from "./frame-gate";
 import { perf } from "@/lib/perf-flags";
+import { ringRows, splitWrap } from "../paint/ring";
+import type { RingArgs, RingFrame } from "../ring-painter";
 
 /* The Glass Lab V3's GPU surface (makeGpu, lines 4275 to 4501), for the app: a canvas, a content texture the painter
    draws into, glass meshes placed from DOM rects, for whatever glass the current screen holds. Changes from the lab:
@@ -25,6 +27,8 @@ export type StageOptions = {
   appearance: () => "dark" | "light";
   /** paint the page; `origin` is where the canvas sits on screen, subtracted from every rect */
   draw: (c: CanvasRenderingContext2D, origin: { x: number; y: number }) => void;
+  /** lever `ring`: called every frame in place of `draw` (src/glass/ring-painter.ts) */
+  ring?: (a: RingArgs) => RingFrame;
   /** what the page looks like now; the canvas's place is added to it by the stage */
   signature: () => string;
   /** the first frame on which every glass element on screen has its shaders built */
@@ -56,13 +60,32 @@ export async function startStage(o: StageOptions): Promise<() => void> {
 
 function setup(o: StageOptions, renderer: any): () => void {
   const { THREE, T, W, H, dpr } = o;
-  const { Fn, uv, vec2, vec3, float, int, ivec2, max, min, floor, clamp, mix, smoothstep, step: stepNode, texture, textureLoad, uniform, sRGBTransferEOTF, screenCoordinate, Loop } = T;
+  const { Fn, uv, vec2, vec3, float, int, ivec2, max, min, floor, clamp, mix, mod, smoothstep, step: stepNode, texture, textureLoad, uniform, sRGBTransferEOTF, screenCoordinate, Loop } = T;
   const contentCanvas = document.createElement("canvas"); contentCanvas.width = Math.round(W * dpr); contentCanvas.height = Math.round(H * dpr);
   const cctx = contentCanvas.getContext("2d")!;
   // raw sRGB bytes (no decode on sampling): the frost averages them as they are, and the optics decode where they read
+  const ringMode = !!o.ring;
   const rawTex = new THREE.CanvasTexture(contentCanvas); rawTex.colorSpace = THREE.NoColorSpace;
-  rawTex.generateMipmaps = true; rawTex.minFilter = THREE.LinearMipmapLinearFilter; rawTex.magFilter = THREE.LinearFilter;
+  // in ring mode the composed screen carries the mipmaps; the page canvas is only the fallback's source
+  rawTex.generateMipmaps = !ringMode; rawTex.minFilter = ringMode ? THREE.LinearFilter : THREE.LinearMipmapLinearFilter; rawTex.magFilter = THREE.LinearFilter;
   const cw = contentCanvas.width, ch = contentCanvas.height;
+  // The ring (lever `ring`, src/glass/ring-painter.ts): the scroller's content by row in ringRT, written a run of rows at
+  // a time straight from the page canvas; an over layer for pinned items; and a compose pass that places the ring by the
+  // scroll under the over layer into screenRT, which everything downstream reads in place of the page canvas. Fallback
+  // frames paint the page canvas as before and the compose pass passes it through.
+  const limit = Math.min(8192, renderer.backend?.device?.limits?.maxTextureDimension2D ?? 8192);
+  const hr = ringMode ? ringRows(ch, limit) : 1;
+  const ringRT = ringMode ? new THREE.RenderTarget(cw, hr, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, generateMipmaps: false, depthBuffer: false }) : null;
+  if (ringRT) ringRT.texture.colorSpace = THREE.NoColorSpace;
+  const overCanvas = ringMode ? document.createElement("canvas") : null;
+  if (overCanvas) { overCanvas.width = cw; overCanvas.height = ch; }
+  const overCtx = overCanvas?.getContext("2d") ?? null;
+  const overTex = overCanvas ? new THREE.CanvasTexture(overCanvas) : null;
+  if (overTex) { overTex.colorSpace = THREE.NoColorSpace; overTex.generateMipmaps = false; overTex.minFilter = THREE.NearestFilter; overTex.magFilter = THREE.NearestFilter; }
+  const screenRT = ringMode ? new THREE.RenderTarget(cw, ch, { minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: true, depthBuffer: false }) : null;
+  if (screenRT) screenRT.texture.colorSpace = THREE.NoColorSpace;
+  /** what the page pass, the edge blur and the brightness grid read: the composed screen in ring mode */
+  const srcTex = screenRT ? screenRT.texture : rawTex;
   // The page push (src/lib/page-push.ts): a copy of the page that was on screen when a link was tapped, slid against the
   // new page in the page pass below, so the bars stay put and refract both as they move, as the phone's do
   const prevCanvas = document.createElement("canvas"); prevCanvas.width = cw; prevCanvas.height = ch;
@@ -85,7 +108,7 @@ function setup(o: StageOptions, renderer: any): () => void {
   // screen edge and, while the bar is on its light side, dissolved toward white; while it is on its dark side, dimmed.
   // Measured off the phone's Photos Library (dark side, top): the page at about 0.45 of itself at the screen edge, 0.75
   // 95pt down, gone by about 140pt, detail blurred to a third around the buttons.
-  const edgeFrost = makeFrost(THREE, T, rawTex, cw, ch, dpr, { P: CTXV as unknown as Material }, () => CTXV.blur);
+  const edgeFrost = makeFrost(THREE, T, srcTex, cw, ch, dpr, { P: CTXV as unknown as Material }, () => CTXV.blur);
   const EDGE = { topS: uniform(0), topReach: uniform(0), topOn: uniform(0), topDim: uniform(0), dimAmt: uniform(CTXV.dim), whiteAmt: uniform(CTXV.white) };
   // `push`: the page pass with the push's two layers; without it (lever `pushidle`, used whenever no push runs) it samples
   // the page and its edge blur once each and never the copy
@@ -95,7 +118,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     if (!push) {
       const y = float(1).sub(fu.y).mul(H);
       const wTop = float(1).sub(smoothstep(EDGE.topReach.mul(0.2), EDGE.topReach, y)).mul(EDGE.topOn);
-      let c = mix(texture(rawTex, fu).rgb, texture(edgeFrost.tex, fu).rgb, clamp(wTop.mul(1.3), 0, 1));
+      let c = mix(texture(srcTex, fu).rgb, texture(edgeFrost.tex, fu).rgb, clamp(wTop.mul(1.3), 0, 1));
       c = mix(mix(c, vec3(1, 1, 1), wTop.mul(EDGE.whiteAmt)), c.mul(float(1).sub(wTop.mul(EDGE.dimAmt))), max(EDGE.topS, EDGE.topDim));
       return c;
     }
@@ -103,13 +126,13 @@ function setup(o: StageOptions, renderer: any): () => void {
     // the top page's leading edge. During a push the edge blur reads the composite unblurred (no frost of the copy).
     const px = fu.x.mul(W);
     const tu = vec2(px.sub(NAV.topX).div(W), fu.y), uu = vec2(px.sub(NAV.underX).div(W), fu.y);
-    const topC = mix(texture(prevTex, tu).rgb, texture(rawTex, tu).rgb, NAV.topIsNew);
+    const topC = mix(texture(prevTex, tu).rgb, texture(srcTex, tu).rgb, NAV.topIsNew);
     const shade = float(1).sub(clamp(NAV.topX.sub(px).div(PUSH.shadowWidth), 0, 1));
-    const underC = mix(texture(rawTex, uu).rgb, texture(prevTex, uu).rgb, NAV.topIsNew)
+    const underC = mix(texture(srcTex, uu).rgb, texture(prevTex, uu).rgb, NAV.topIsNew)
       .mul(float(1).sub(NAV.dim))
       .mul(float(1).sub(shade.mul(shade).mul(NAV.shadow)));
     const pushed = mix(underC, topC, stepNode(NAV.topX, px));
-    const sharp = mix(texture(rawTex, fu).rgb, pushed, NAV.on), soft = mix(texture(edgeFrost.tex, fu).rgb, pushed, NAV.on);
+    const sharp = mix(texture(srcTex, fu).rgb, pushed, NAV.on), soft = mix(texture(edgeFrost.tex, fu).rgb, pushed, NAV.on);
     const y = float(1).sub(fu.y).mul(H);
     // weight 1 at the screen edge, falling to 0 at the reach (smoothstep over the last four fifths)
     const wTop = float(1).sub(smoothstep(EDGE.topReach.mul(0.2), EDGE.topReach, y)).mul(EDGE.topOn);
@@ -125,6 +148,41 @@ function setup(o: StageOptions, renderer: any): () => void {
   const pageMesh = new THREE.Mesh(pageGeo, pageMat);
   const pageScene = new THREE.Scene(); pageScene.add(pageMesh);
   const pageCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10); pageCam.position.z = 1;
+  // The ring's compose pass (lever `ring`): a screen pixel inside the scroller takes the ring's row for its content row
+  // (its screen row plus the scroll), outside it the page's background, and the over layer goes on top. Mode 0 passes
+  // the page canvas through for a fallback frame. Rows count from the top, as the brightness grid reads the page.
+  const R = { mode: uniform(0), sRow: uniform(0), x0: uniform(0), y0: uniform(0), x1: uniform(0), y1: uniform(0), bg: uniform(new THREE.Vector3(0, 0, 0)), overOn: uniform(0) };
+  const composeScene = new THREE.Scene();
+  let composeMat: any = null, gpuRing: any = null;
+  if (ringMode && ringRT && overTex) {
+    composeMat = new THREE.MeshBasicNodeMaterial();
+    composeMat.colorNode = Fn(() => {
+      const pxf = floor(uv().x.mul(cw)), pyf = floor(uv().y.mul(ch));
+      const px = int(pxf), py = int(pyf), flipRow = int(ch - 1).sub(py);
+      const legacy = textureLoad(rawTex, ivec2(px, flipRow), int(0)).rgb;
+      const inside = stepNode(R.x0, pxf).mul(stepNode(pxf, R.x1.sub(1))).mul(stepNode(R.y0, pyf)).mul(stepNode(pyf, R.y1.sub(1)));
+      const row = int(mod(pyf.add(R.sRow).add(hr * 1024), float(hr)));
+      const base = mix(R.bg, textureLoad(ringRT.texture, ivec2(px, row), int(0)).rgb, inside);
+      const ov = textureLoad(overTex, ivec2(px, flipRow), int(0));
+      return mix(legacy, mix(base, ov.rgb, ov.a.mul(R.overOn)), R.mode);
+    })();
+    composeScene.add(new THREE.Mesh(pageGeo, composeMat));
+    // the ring's GPU texture exists once it has been a target; runs of rows are copied into it directly
+    renderer.setRenderTarget(ringRT); renderer.clear(); renderer.setRenderTarget(null);
+    gpuRing = renderer.backend.get(ringRT.texture).texture;
+    if (!gpuRing) throw new Error("ring texture missing");
+  }
+  const device = renderer.backend?.device;
+  const upload = (row: number, at: number, n: number) => {
+    for (const part of splitWrap(row, n, hr)) {
+      device.queue.copyExternalImageToTexture(
+        { source: contentCanvas, origin: { x: 0, y: at + part.src }, flipY: false },
+        { texture: gpuRing, origin: { x: 0, y: part.dst }, premultipliedAlpha: false },
+        { width: cw, height: part.n },
+      );
+      debugState.uploaded += cw * part.n * 4;
+    }
+  };
   // the rest variant is built off the frame; the full pass draws until it is ready
   let pageIdleReady = false;
   { const probe = new THREE.Mesh(pageGeo, pageIdleMat); const probeScene = new THREE.Scene(); probeScene.add(probe);
@@ -220,7 +278,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     Loop({ start: y0, end: y1, type: "int", name: "py" }, ({ py }: any) => {
       Loop({ start: x0, end: x1, type: "int", name: "px" }, ({ px }: any) => {
         // the canvas texture is uploaded bottom row first
-        sum.addAssign(textureLoad(rawTex, ivec2(px, int(ch - 1).sub(py)), int(0)).rgb);
+        sum.addAssign(textureLoad(srcTex, ivec2(px, int(ch - 1).sub(py)), int(0)).rgb);
         n.addAssign(1);
       });
     });
@@ -269,6 +327,8 @@ function setup(o: StageOptions, renderer: any): () => void {
   // A tap copies the page on screen, once the shader is showing it (before that the CSS material is, and nothing pushes)
   navState.snapshot = () => {
     if (stopped || !html.classList.contains("gpu")) return false;
+    // in ring mode the page canvas holds only the last run of rows: paint the whole screen into it first
+    if (ringMode) { cctx.setTransform(dpr, 0, 0, dpr, 0, 0); o.draw(cctx, org); }
     prevCtx.clearRect(0, 0, cw, ch);
     prevCtx.drawImage(contentCanvas, 0, 0);
     prevTex.needsUpdate = true;
@@ -313,7 +373,31 @@ function setup(o: StageOptions, renderer: any): () => void {
     let drew = false;
     const sigMoved = sig !== lastSig;
     let uploadedThisFrame = false;
-    if (sigMoved) {
+    if (ringMode) {
+      if (sigMoved) lastSig = sig;
+      const t0 = performance.now();
+      const f = o.ring!({ c: cctx, over: overCtx!, origin: org, hr, dpr, sigMoved, upload });
+      let compose = false;
+      if (f.kind !== "none") addSample(debugState.drawMs, performance.now() - t0);
+      if (f.kind === "full") {
+        rawTex.needsUpdate = true; R.mode.value = 0; compose = true;
+        debugState.uploaded += cw * ch * 4; debugState.plan.full++; debugState.ring = f.reason;
+      } else if (f.kind === "ring") {
+        R.mode.value = 1; R.sRow.value = f.sRow;
+        R.x0.value = f.rect.x0; R.y0.value = f.rect.y0; R.x1.value = f.rect.x1; R.y1.value = f.rect.y1;
+        R.bg.value.set(f.bg[0], f.bg[1], f.bg[2]);
+        if (f.over === "painted") { overTex!.needsUpdate = true; R.overOn.value = 1; debugState.uploaded += cw * ch * 4; }
+        else if (f.over === "empty") R.overOn.value = 0;
+        compose = f.visible;
+        if (f.visible) { if (f.rows) debugState.plan.strip++; else debugState.plan.move++; }
+        debugState.ring = "on";
+      }
+      if (compose) {
+        renderer.setRenderTarget(screenRT); renderer.render(composeScene, pageCam); renderer.setRenderTarget(null);
+        edgeFrost.touch(); pageDirty = true; avgWanted = true; drew = true; uploadedThisFrame = true;
+        debugState.paints++;
+      }
+    } else if (sigMoved) {
       lastSig = sig;
       cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const t0 = performance.now();
@@ -481,6 +565,7 @@ function setup(o: StageOptions, renderer: any): () => void {
     [...frosts, edgeFrost].forEach((f) => f.dispose());
     tabs.dispose();
     [pageMat, pageIdleMat, bgMat, avgMat, pageGeo, bgGeo, rawTex, prevTex, pageRT, avgRT].forEach((x) => x.dispose());
+    [composeMat, ringRT, overTex, screenRT].forEach((x) => x?.dispose());
     renderer.dispose();
   };
 }

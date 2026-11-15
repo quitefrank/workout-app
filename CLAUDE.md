@@ -1241,6 +1241,21 @@ content only moved. Cost follows changed pixels, not draw calls, so per-op tunin
 - `pushidle` (on): without a push, the page pass is a light variant that samples the page and the edge blur once
   (`pageColor(false)`), built off the frame. `rawfmt` (an opaque, unflipped page texture) was left out: it moves the flip
   into four shaders for a gain only the phone could show, and `ring` makes uploads small anyway.
+- `ring` (on, restart; `src/glass/ring-painter.ts`, the arithmetic tested in `src/glass/paint/ring.ts`): the app
+  scroller's content lives in a GPU texture by content row (`ringRT`, two screens tall, wrapping), and a scroll paints
+  only the rows that came into view into the page canvas and copies just those rows across
+  (`copyExternalImageToTexture` with an origin, `upload` in `stage.ts`). A compose pass places the ring by the scroll,
+  fills outside the scroller with the page's background and lays the over layer on top (pinned items, the scrim: every
+  item not in the scroller's content, painted only when the list changes) into `screenRT`, which the page pass, the edge
+  blur and the brightness grid read in place of the page canvas. At rest it paints ahead, 160pt a frame, off screen. An
+  inner scroller (the week strip) repaints its own rows. Anything it cannot follow falls back to the full paint for that
+  frame, passed through the compose pass: an animation, the push (whose snapshot paints the whole screen first), the
+  keyboard, a soft edge, a sticky element, pinned items mixed into the content or under it (the body's own background
+  box excepted). The readout's `ring` says `on` or the last fallback's reason. Measured at 3x in desktop Chromium:
+  pixel parity within 0.081% of pixels against the full paint on Home, Library and History at five scroll offsets
+  (sub-pixel antialiasing, since the ring places whole device rows), the week strip, a sheet's scrim and a push match,
+  and a scroll frame uploads about 0.17 MB instead of 12.6 MB. Desktop frame rates were not usable that day (a game held
+  the GPU); the phone is the test.
 
 Two per-device test settings came out of Frank's phone test (2026-11-14), mounted by `DevicePrefs` in the layout:
 

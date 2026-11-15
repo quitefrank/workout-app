@@ -50,7 +50,7 @@ function rateLine(): string {
     const mb = ((s.uploaded - lastRates.uploaded) * k) / 1e6;
     const p = s.plan, lp = lastRates.plan;
     rates = `per s  frames ${r(s.frames, lastRates.frames)}  renders ${r(s.renders, lastRates.renders)}  paints ${r(s.paints, lastRates.paints)}  rebuilds ${r(s.rebuilds, lastRates.rebuilds)}  up ${mb.toFixed(1)}MB` +
-      `\nplan full ${r(p.full, lp.full)} strip ${r(p.strip, lp.strip)} move ${r(p.move, lp.move)}  draw ${fmt(p50p95(s.drawMs))}  gpu lag ${fmt(p50p95(s.gpuLagMs))}`;
+      `\nplan full ${r(p.full, lp.full)} strip ${r(p.strip, lp.strip)} move ${r(p.move, lp.move)}  ring ${s.ring}  draw ${fmt(p50p95(s.drawMs))}  lag ${fmt(p50p95(s.gpuLagMs))}`;
   }
   if (!lastRates.t || now - lastRates.t >= 400) lastRates = { t: now, frames: s.frames, renders: s.renders, paints: s.paints, rebuilds: s.rebuilds, uploaded: s.uploaded, plan: { ...s.plan } };
   const changed = describePerf(parseStored(perfSnapshot()));

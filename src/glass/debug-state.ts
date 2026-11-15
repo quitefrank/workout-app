@@ -17,6 +17,8 @@ export type GlassDebugState = {
   gpuLagMs: Samples;
   /** how the last page frames were drawn: full repaints, ring strips, ring moves with nothing painted */
   plan: { full: number; strip: number; move: number };
+  /** lever \`ring\`: "on", or why the last frame fell back to a full paint */
+  ring: string;
   stage: string;
   entries: GlassEntryState[];
 };
@@ -38,5 +40,5 @@ export function p50p95(s: Samples): [number, number] | null {
 
 export const debugState: GlassDebugState = {
   phase: "idle", error: null, adapter: "", frames: 0, renders: 0, paints: 0, rebuilds: 0, uploaded: 0,
-  drawMs: samples(), gpuLagMs: samples(), plan: { full: 0, strip: 0, move: 0 }, stage: "", entries: [],
+  drawMs: samples(), gpuLagMs: samples(), plan: { full: 0, strip: 0, move: 0 }, ring: "off", stage: "", entries: [],
 };
